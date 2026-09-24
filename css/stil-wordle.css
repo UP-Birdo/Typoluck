@@ -1,0 +1,261 @@
+/*
+ * stil-wordle.css — das Spielbrett, die Tastatur, das Ende.
+ *
+ * Die Zeiten der Aufdeck-Bewegung müssen zu AUFDECKEN_MS und VERSATZ_MS in
+ * js\bildschirm-wordle.js passen (320 ms je Kachel, 160 ms Versatz).
+ */
+
+.wordle {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Das Brett
+ * ------------------------------------------------------------------ */
+
+.wordle-brett {
+    display: grid;
+    gap: 6px;
+    width: min(100%, 330px);
+}
+
+.wordle-zeile {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+.kachel {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    border: 2px solid var(--kachel-rahmen);
+    border-radius: 6px;
+    background: var(--karte);
+    color: var(--schrift);
+    font-size: clamp(1.4rem, 7vw, 2rem);
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    user-select: none;
+    box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-rahmen);
+}
+
+.kachel-gefuellt {
+    border-color: var(--kachel-rahmen-voll);
+}
+
+.kachel-richtig,
+.kachel-vorhanden,
+.kachel-falsch {
+    border-color: transparent;
+    color: var(--kachel-schrift);
+}
+
+.kachel-richtig {
+    background: var(--kachel-richtig);
+}
+
+.kachel-vorhanden {
+    background: var(--kachel-vorhanden);
+}
+
+.kachel-falsch {
+    background: var(--kachel-falsch);
+}
+
+/* Ein getippter Buchstabe springt kurz auf. */
+.kachel-tipp {
+    animation: kachel-tipp 100ms ease-out;
+}
+
+@keyframes kachel-tipp {
+    from { transform: scale(1.12); }
+    to { transform: scale(1); }
+}
+
+/* Aufdecken: Die Kachel klappt zu und mit Farbe wieder auf. Die Farbe setzt
+   js\bildschirm-wordle.js genau in der Mitte der Bewegung. */
+.kachel-aufdecken {
+    animation: kachel-aufdecken 320ms ease-in-out backwards;
+}
+
+@keyframes kachel-aufdecken {
+    0% { transform: scaleY(1); }
+    50% { transform: scaleY(0); }
+    100% { transform: scaleY(1); }
+}
+
+/* Ungültiges Wort: Die Zeile schüttelt den Kopf. */
+.wordle-zeile-wackeln {
+    animation: zeile-wackeln 360ms ease-in-out;
+}
+
+@keyframes zeile-wackeln {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+}
+
+/* Gewonnen: Die richtige Zeile hüpft. */
+.kachel-jubel {
+    animation: kachel-jubel 500ms ease-out backwards;
+}
+
+@keyframes kachel-jubel {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-14px); }
+    70% { transform: translateY(3px); }
+}
+
+/* ------------------------------------------------------------------ *
+ * Die Tastatur
+ * ------------------------------------------------------------------ */
+
+.tastatur {
+    display: grid;
+    gap: 6px;
+    width: 100%;
+    max-width: 520px;
+    user-select: none;
+}
+
+.tastatur-zeile {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+}
+
+.taste {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 54px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: var(--taste);
+    color: var(--taste-schrift);
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--still-kante);
+}
+
+.taste:active {
+    transform: translateY(var(--knopf-tiefe));
+    filter: brightness(0.92);
+}
+
+.taste-breit {
+    flex: 1.6 1 0;
+    font-size: 0.8rem;
+}
+
+.taste .zeichen {
+    width: 22px;
+    height: 22px;
+}
+
+.taste-richtig {
+    background: var(--kachel-richtig);
+    color: var(--kachel-schrift);
+}
+
+.taste-vorhanden {
+    background: var(--kachel-vorhanden);
+    color: var(--kachel-schrift);
+}
+
+/* Ausgeschlossene Buchstaben treten ZURÜCK: eigene, gedämpfte Farben statt
+   der Kachelfarbe. Im dunklen Modus lag die Kachelfarbe so nah an der
+   normalen Taste, dass man den Unterschied nicht sah (Bildschirmfoto
+   24.09.2026). */
+.taste-falsch {
+    background: var(--taste-aus);
+    color: var(--taste-aus-schrift);
+}
+
+/* ------------------------------------------------------------------ *
+ * Das Ende und das kleine Muster
+ * ------------------------------------------------------------------ */
+
+.wordle-ende {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+}
+
+.wordle-ende-titel {
+    margin: 0 0 4px;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.wordle-ende-loesung {
+    margin: 0 0 8px;
+}
+
+.wordle-ende-loesung strong {
+    color: var(--haupt);
+    letter-spacing: 0.08em;
+}
+
+.wordle-ende .muster {
+    margin: 0 auto 14px;
+}
+
+.muster {
+    display: grid;
+    gap: 2px;
+    flex: none;
+}
+
+.muster-zeile {
+    display: flex;
+    gap: 2px;
+}
+
+.muster-feld {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+
+.wordle-ende .muster-feld {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+}
+
+.muster-richtig {
+    background: var(--kachel-richtig);
+}
+
+.muster-vorhanden {
+    background: var(--kachel-vorhanden);
+}
+
+.muster-falsch {
+    background: var(--kachel-falsch);
+}
+
+/* Wer Bewegung abgeschaltet hat, bekommt keine. */
+@media (prefers-reduced-motion: reduce) {
+    .kachel-tipp,
+    .kachel-aufdecken,
+    .kachel-jubel,
+    .wordle-zeile-wackeln {
+        animation: none;
+    }
+}

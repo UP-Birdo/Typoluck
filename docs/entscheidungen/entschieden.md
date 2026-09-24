@@ -1,0 +1,122 @@
+# Typoluck — Getroffene Entscheidungen
+
+Je Eintrag: was entschieden ist, und warum. Neueste oben.
+
+## Name: Typoluck (24.09.2026, Nutzer)
+
+Aus mehreren Vorschlägen gewählt. „Typo" (Tippfehler) steht neben „Blunder"
+(Patzer) — beide Apps tragen einen Fehler aus ihrem Spiel im Namen und sehen
+nebeneinander wie eine Familie aus. Bei der Websuche am 24.09.2026 kein
+Spiel und keine App dieses Namens gefunden (die Suche in den Stores selbst
+steht beim Nutzer aus).
+
+## Das Studio UPCrew: eigene Datenbank, UPCrew-Konten, Intro (24.09.2026, Nutzer)
+
+Erst war entschieden: dieselbe Datenbank und dieselben Konten wie
+Blunderluck. Noch vor der ersten Auslieferung hat der Nutzer das
+umgeworfen: „Ich möchte nicht, dass die Benutzerdaten auf Blunderluck
+laufen — Spieler, die nur das eine spielen, sind dann verwirrt, warum sie
+sich bei einem anderen Spiel anmelden sollen." Stattdessen ein Studio-Name
+für das Entwicklerteam, der am Anfang jeder App kommt.
+
+- **Name: UPCrew** („UP" = Upgrade, „Crew" = zusammen, als Team). Geprüft
+  und verworfen: UPlus (LG U+, grosser Mobilfunkanbieter, und eine
+  gleichnamige App), JKB (es gibt „JKB Games"; Initialen klingen nach einer
+  Person, nicht nach einem Team), Lucky Slip, Oopsworks. Vor dem Gang in die
+  Stores gehört UPCrew noch ins Markenregister (DPMA, EUIPO).
+- **Eigene Datenbank, die keinem Spiel gehört** (Firebase-Projekt „UPCrew",
+  `upcrew-7a29d`, vom Nutzer angelegt). Gefragt war „nur Texte" gegen
+  „eigene Datenbank"; gewählt: eigene Datenbank. Blunderluck zieht mit
+  seinen Konten dorthin um (eigene Sitzung; jetzt noch billig, zwei Spieler).
+- **GitHub bleibt unter up-birdo** — keine Studio-Organisation (Nutzer).
+- **Die Texte nennen immer das Studio**, nie ein anderes Spiel. Die
+  Anmeldung trägt oben „UPCREW", die Knöpfe heissen „Mit UPCrew-Konto
+  anmelden" / „Neues UPCrew-Konto erstellen".
+- **Das UPCrew-Intro** eröffnet jede App (einmal je Besuch, antippen
+  überspringt, die App lädt darunter weiter) — Aufbau in `js\intro.js`,
+  Aussehen in `docs\GESTALTUNG.md`.
+
+Was aus der früheren Entscheidung „gemeinsames Konto mit Blunderluck"
+bleibt, gilt jetzt für ALLE UPCrew-Spiele:
+
+- **Das Passwort-Verfahren ist in allen Spielen gleich** (Zutat
+  `blunderluck-pin|`, SHA-256, Hex). Die Zutat trägt ihren alten Namen, weil
+  Blunderlucks Konten so samt Passwort umziehen können; Spieler sehen sie nie.
+- **Fremde Felder wandern durch, eigene kommen keine dazu.** Blunderluck
+  verwirft beim Schreiben unbekannte Felder; jedes Spiel muss umgekehrt alle
+  Felder der anderen erhalten, auch künftige. Deshalb kopiert
+  `SPIELER.normalisieren` jeden Eintrag vollständig.
+- **Die Marke `geaendertAm` zieht immer hoch** — und liegt nach dem
+  Zusammenführen ÜBER der am Server.
+- **Ohne Server-Kontakt wird die Kontenliste nie geschrieben**, weil ein
+  alter Stand in allen Spielen Konten löschen würde.
+- **Die Anmeldung auf dem Gerät ist NICHT zwischen den Spielen geteilt**
+  (alle Apps teilen sich unter up-birdo.github.io den Browser-Speicher;
+  Typoluck liest trotzdem nur `typoluck.…`). Grund: Eine App, die sich auf
+  den Gerätespeicher einer anderen verlässt, bricht, sobald die andere ihn
+  umbaut.
+
+## Ergebnisse zweimal gespeichert: je Tag und je Spieler (24.09.2026)
+
+`wordle/tage/<datum>/<id>` für die Rangliste, `wordle/verlauf/<id>/<datum>`
+für das Profil. So lädt keine Ansicht mehr als nötig (ein Tag = alle
+Spieler; ein Spieler = alle Tage). Beide in EINER Mehrpfad-Änderung —
+entweder beide oder keiner.
+
+## Das Lösungswort steht nie in der Datenbank (24.09.2026)
+
+Die Datenbank ist öffentlich lesbar. Stünde das Wort im Ergebnis, verriete
+jeder Frühaufsteher allen anderen die Lösung. Gespeichert wird nur das
+Farbmuster (R/V/F); das Wort eines Tages rechnet `WORDLE.tageswort` nach.
+
+## Das Tageswort wird gerechnet, nicht vom Server geholt (24.09.2026)
+
+Kein Server-Schritt, der ausfallen kann; jedes Gerät hat offline dasselbe
+Wort. Der Preis: Die Wortliste darf nur hinten wachsen, und jede Erweiterung
+braucht einen neuen Planabschnitt (Kopf von `js\woerter-de.js`). Der Test
+hält das Wort von Tag 1 und 2 für immer fest.
+
+## Erst aufs Gerät, dann ins Netz (24.09.2026)
+
+Ein fertiges Tageswort geht zuerst in die Warteliste auf dem Gerät. So geht
+nichts verloren — weder ohne Netz noch solange die Firebase-Regel für
+`typoluck` fehlt. Nachgereicht wird bei jedem Start nach der Anmeldung.
+
+## Punkte: 7 minus Versuche, ungelöst 0 (24.09.2026)
+
+Einfach zu erklären, belohnt schnelles Lösen, und wer löst, bekommt immer
+mehr als wer nicht löst. Gewertet wird nur das Tageswort; die Übung zählt
+nichts (sonst übte man sich in der Rangliste nach oben). Die Rangliste zeigt
+Heute und die letzten 7 Tage — eine Gesamtwertung würde mit der Zeit Neue
+chancenlos lassen.
+
+## Violett als Akzentfarbe (24.09.2026)
+
+Grün und Gelb sind Spielbedeutungen, Rot ist Gefahr, Blau gehört
+Blunderluck. Violett ist frei und macht die Schwester-App erkennbar eigen.
+
+## 2D zuerst, 3D angedockt statt vorgebaut (24.09.2026, Nutzer-Ansage)
+
+„Erst die ganzen Grundlagen 2D mit Menüs und alles, es folgen dann
+3D-Knöpfe usw., also vorausschauend bauen." Vorausschauend heisst hier:
+jede sichtbare Grundform an genau einer Stelle (`BAUSTEINE.knopf`,
+`_kachelBauen`, `_tasteBauen`) und die Tiefe schon als Variable — aber kein
+three.js und keine 3D-Datei, bevor es gebraucht wird (Haus-Regel „nichts auf
+Vorrat"). Plan: `ARCHITECTURE.md`, „3D".
+
+## Kein Firebase-SDK, keine Bibliothek (24.09.2026)
+
+Wie Blunderluck: REST über `fetch`. Kein Bauschritt, nichts Fremdes.
+
+## Die Werkstatt wird mit ausgeliefert (24.09.2026)
+
+`js\werkstatt.js` tut ohne `?werkstatt` nichts und schaltet mit ihm zwingend
+auf „lokal" — die echte Datenbank ist unerreichbar. Ausgeliefert, damit
+dieselbe Adresse auf dem Handy dasselbe zeigt wie am Rechner.
+
+## Passwort: Türschloss, kein Tresor
+
+Geerbt von Blunderluck: 4 bis 8 Zeichen, Prüfsumme mit offenem Salz in einer
+öffentlichen Datenbank. Kurze Passwörter sind durchprobierbar. Eine
+Verschärfung (PBKDF2) müsste in ALLEN UPCrew-Spielen gleichzeitig kommen und
+alte Prüfsummen weiter annehmen (in Blunderluck ist das Bau-Punkt 46).

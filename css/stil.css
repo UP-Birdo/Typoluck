@@ -1,0 +1,690 @@
+/*
+ * stil.css — die Grundlagen: Variablen, Schrift, Knöpfe, Karten, Leiste,
+ * Dialoge, Anmeldung.
+ *
+ * ALLE FARBEN STEHEN NUR HIER, als Variablen — jede zweimal: hell im ersten
+ * Block, dunkel darunter. Wer eine Farbe ergänzt, ergänzt sie an beiden
+ * Stellen (und in der Werkstatt-Umschaltung `[data-darstellung="dunkel"]`).
+ * Was die Variablen bedeuten, steht in docs\GESTALTUNG.md.
+ *
+ * Kaskade (Reihenfolge in index.html): stil.css → stil-bildschirme.css →
+ * stil-wordle.css.
+ */
+
+:root {
+    color-scheme: light dark;
+
+    --flaeche: #f4f2fa;
+    --karte: #fdfcff;
+    --karte-leise: #efecf7;
+    --rahmen: #dcd7ea;
+    --schrift: #1d1a26;
+    --schrift-leise: #5f5a6e;
+    --haupt: #5b3cc4;
+    --haupt-schrift: #ffffff;
+    --haupt-kante: #3f2892;
+    --gefahr: #b3261e;
+    --gut: #1e7d43;
+    --gut-flaeche: #e4f4ea;
+    --warnung-flaeche: #fff4d6;
+    --still-kante: #c5bfd6;
+
+    /* Die drei Kachelfarben des Spiels — die Bedeutung ist Wordle-Standard
+       und wird nie für etwas anderes benutzt. */
+    --kachel-richtig: #3f8f4f;
+    --kachel-vorhanden: #c9a227;
+    --kachel-falsch: #7b7887;
+    --kachel-schrift: #ffffff;
+    --kachel-rahmen: #cfc9de;
+    --kachel-rahmen-voll: #8e87a3;
+    --taste: #e3dfee;
+    --taste-schrift: #1d1a26;
+    --taste-aus: #8c889a;
+    --taste-aus-schrift: #f1eff6;
+
+    /*
+     * DIE NAHT FÜR DEN 3D-LOOK (Nutzer-Ansage 24.09.2026: „es folgen dann
+     * 3D-Knöpfe"). Heute 0 — dann sind Knöpfe und Kacheln flach. Wird der
+     * Wert grösser (etwa 4px), bekommen ALLE Knöpfe eine Kante in ihrer
+     * Kantenfarbe und sinken beim Drücken ein; keine Zeile JavaScript nötig.
+     * Plan und nächste Stufen: docs\ARCHITECTURE.md, Abschnitt „3D".
+     */
+    --knopf-tiefe: 0px;
+    --kachel-tiefe: 0px;
+
+    --abstand: 16px;
+    --radius: 12px;
+    --inhalt-breite: 560px;
+    --inhalt-rand: 16px;
+    --leiste-hoehe: 64px;
+
+    /* Die Studio-Farben von UPCrew — bewusst OHNE Dunkel-Fassung: Das
+       Studio-Zeichen sieht in jedem Spiel und jeder Darstellung gleich aus. */
+    --upcrew-grund: #120e1c;
+    --upcrew-farbe: #7a5cf0;
+    --upcrew-schrift: #ffffff;
+
+    /* Die Ebenen — wer liegt über wem. Nie eine eigene Zahl ausdenken. */
+    --ebene-leiste: 10;
+    --ebene-hinweis: 20;
+    --ebene-kurzmeldung: 40;
+    --ebene-vollbild: 50;
+    --ebene-intro: 55;
+    --ebene-dialog: 60;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --flaeche: #15131b;
+        --karte: #201d29;
+        --karte-leise: #2a2635;
+        --rahmen: #3a3547;
+        --schrift: #ece9f4;
+        --schrift-leise: #aaa4ba;
+        --haupt: #9a82f2;
+        --haupt-schrift: #120e1c;
+        --haupt-kante: #6a52c4;
+        --gefahr: #e05a52;
+        --gut: #4cb87a;
+        --gut-flaeche: #1d3327;
+        --warnung-flaeche: #3a3016;
+        --still-kante: #4a4459;
+        --kachel-richtig: #4a9d5b;
+        --kachel-vorhanden: #c3a13a;
+        --kachel-falsch: #4a4658;
+        --kachel-rahmen: #3f3a4e;
+        --kachel-rahmen-voll: #6e6784;
+        --taste: #5a5470;
+        --taste-schrift: #ffffff;
+        --taste-aus: #25222e;
+        --taste-aus-schrift: #6f6982;
+    }
+}
+
+/* Dieselben dunklen Werte, fest eingeschaltet — für Bildschirmfotos aus der
+   Werkstatt (?werkstatt&dunkel), die sonst immer hell wären. */
+:root[data-darstellung="dunkel"] {
+    color-scheme: dark;
+    --flaeche: #15131b;
+    --karte: #201d29;
+    --karte-leise: #2a2635;
+    --rahmen: #3a3547;
+    --schrift: #ece9f4;
+    --schrift-leise: #aaa4ba;
+    --haupt: #9a82f2;
+    --haupt-schrift: #120e1c;
+    --haupt-kante: #6a52c4;
+    --gefahr: #e05a52;
+    --gut: #4cb87a;
+    --gut-flaeche: #1d3327;
+    --warnung-flaeche: #3a3016;
+    --still-kante: #4a4459;
+    --kachel-richtig: #4a9d5b;
+    --kachel-vorhanden: #c3a13a;
+    --kachel-falsch: #4a4658;
+    --kachel-rahmen: #3f3a4e;
+    --kachel-rahmen-voll: #6e6784;
+    --taste: #5a5470;
+    --taste-schrift: #ffffff;
+    --taste-aus: #25222e;
+    --taste-aus-schrift: #6f6982;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    background: var(--flaeche);
+    color: var(--schrift);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.dialog-offen,
+body.anmeldung-offen {
+    overflow: hidden;
+}
+
+.nur-vorlesen {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Der Rahmen: Inhalt in der Mitte, Leiste unten
+ * ------------------------------------------------------------------ */
+
+.inhalt {
+    max-width: var(--inhalt-breite);
+    margin: 0 auto;
+    padding: 8px var(--inhalt-rand) calc(var(--leiste-hoehe) + 24px + env(safe-area-inset-bottom));
+}
+
+.hinweis {
+    position: sticky;
+    top: 0;
+    z-index: var(--ebene-hinweis);
+    margin: 0;
+    padding: 8px var(--inhalt-rand);
+    background: var(--warnung-flaeche);
+    color: var(--schrift);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.leiste {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--ebene-leiste);
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--karte);
+    border-top: 1px solid var(--rahmen);
+}
+
+.knopf-leiste {
+    position: relative;
+    flex: 1 1 0;
+    max-width: 120px;
+    flex-direction: column;
+    gap: 2px;
+    min-height: 52px;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: var(--schrift-leise);
+    font-size: 0.75rem;
+    box-shadow: none;
+}
+
+.knopf-leiste .zeichen {
+    width: 24px;
+    height: 24px;
+}
+
+.knopf-leiste.leiste-aktiv {
+    color: var(--haupt);
+    font-weight: 600;
+}
+
+.leiste-marke {
+    position: absolute;
+    top: 2px;
+    left: calc(50% + 6px);
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--gefahr);
+    color: #ffffff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 18px;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Kopfzeile eines Bildschirms
+ * ------------------------------------------------------------------ */
+
+.kopfzeile {
+    display: grid;
+    grid-template-columns: 48px 1fr 48px;
+    align-items: center;
+    min-height: 52px;
+    margin-bottom: 8px;
+}
+
+.kopfzeile-titel {
+    margin: 0;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.kopfzeile-rechts {
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ------------------------------------------------------------------ *
+ * Knöpfe — genau EINE Hauptaktion je Bildschirm (Haus-Regel)
+ * ------------------------------------------------------------------ */
+
+.knopf {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 18px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--still-kante);
+    transition: transform 80ms ease, box-shadow 80ms ease, background-color 120ms ease;
+}
+
+.knopf:active:not(:disabled) {
+    transform: translateY(var(--knopf-tiefe));
+    box-shadow: 0 0 0 transparent;
+}
+
+.knopf:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.knopf:focus-visible,
+.taste:focus-visible,
+.segment-wahl:focus-visible,
+.rangliste-knopf:focus-visible,
+.freunde-name:focus-visible {
+    outline: 3px solid var(--haupt);
+    outline-offset: 2px;
+}
+
+.knopf-haupt {
+    background: var(--haupt);
+    color: var(--haupt-schrift);
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--haupt-kante);
+}
+
+.knopf-still {
+    background: var(--karte);
+    color: var(--schrift);
+    border-color: var(--rahmen);
+}
+
+.knopf-gefahr {
+    background: var(--karte);
+    color: var(--gefahr);
+    border-color: var(--gefahr);
+}
+
+.knopf-flach {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px;
+    background: transparent;
+    color: var(--schrift);
+    box-shadow: none;
+}
+
+.knopf-klein {
+    min-height: 36px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+}
+
+.knopf-breit {
+    width: 100%;
+}
+
+.knopf .zeichen {
+    width: 20px;
+    height: 20px;
+    flex: none;
+}
+
+.knopf-reihe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.knopf-reihe .knopf {
+    flex: 1 1 140px;
+}
+
+.knopf-spalte {
+    display: grid;
+    gap: 8px;
+}
+
+/* Die Zeichen: Linien in Schriftfarbe, keine Füllung. */
+.zeichen {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* ------------------------------------------------------------------ *
+ * Karten, Texte, Felder
+ * ------------------------------------------------------------------ */
+
+.karte {
+    margin: 0 0 var(--abstand);
+    padding: var(--abstand);
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--radius);
+}
+
+.karte > .knopf + .knopf {
+    margin-top: 8px;
+}
+
+.karte-titel {
+    margin: 0 0 10px;
+    font-size: 1.05rem;
+}
+
+.unterkopf {
+    margin: 16px 0 8px;
+    font-size: 0.95rem;
+    color: var(--schrift-leise);
+}
+
+.erklaerung {
+    margin: 0 0 10px;
+    color: var(--schrift-leise);
+    font-size: 0.95rem;
+}
+
+.feld {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--rahmen);
+    border-radius: 10px;
+    background: var(--karte-leise);
+    color: var(--schrift);
+    font: inherit;
+}
+
+.feld:focus {
+    outline: 2px solid var(--haupt);
+    outline-offset: 0;
+    border-color: var(--haupt);
+}
+
+.feld-block {
+    display: grid;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.feld-beschriftung {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.feld-fehler {
+    min-height: 1.2em;
+    color: var(--gefahr);
+    font-size: 0.85rem;
+}
+
+.namens-kreis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--haupt);
+    color: var(--haupt-schrift);
+    font-weight: 700;
+}
+
+.namens-kreis-gross {
+    width: 72px;
+    height: 72px;
+    font-size: 2rem;
+}
+
+.schild {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.schild-gut {
+    background: var(--gut-flaeche);
+    color: var(--gut);
+}
+
+/* Segment-Schalter („Heute | 7 Tage") */
+.segment {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--karte-leise);
+    border: 1px solid var(--rahmen);
+}
+
+.segment-wahl {
+    min-height: 36px;
+    padding: 6px 16px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--schrift-leise);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.segment-aktiv {
+    background: var(--karte);
+    color: var(--schrift);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* ------------------------------------------------------------------ *
+ * Dialoge und Kurzmeldung
+ * ------------------------------------------------------------------ */
+
+.dialog-hintergrund {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ebene-dialog);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--inhalt-rand);
+    background: rgba(10, 8, 20, 0.55);
+}
+
+.dialog-hintergrund[hidden] {
+    display: none;
+}
+
+.dialog {
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    background: var(--karte);
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+}
+
+.dialog-titel {
+    margin: 0 0 8px;
+    font-size: 1.2rem;
+}
+
+.dialog-text {
+    margin: 0 0 16px;
+    color: var(--schrift-leise);
+    white-space: pre-line;
+}
+
+.dialog .feld {
+    margin-bottom: 16px;
+}
+
+.dialog-knoepfe {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.kurzmeldung {
+    position: fixed;
+    left: 50%;
+    top: 16px;
+    z-index: var(--ebene-kurzmeldung);
+    max-width: calc(100% - 32px);
+    margin: 0;
+    padding: 10px 18px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: var(--schrift);
+    color: var(--flaeche);
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    transition: opacity 250ms ease;
+}
+
+.kurzmeldung-weg {
+    opacity: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Das UPCrew-Intro (js\intro.js)
+ *
+ * Das Zeichen: „UP" weiss in einem violetten, abgerundeten Block, dahinter
+ * „Crew" in Schrift. Einblenden mit leichtem Anwachsen, Ausblenden 400 ms.
+ * ------------------------------------------------------------------ */
+
+.intro {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ebene-intro);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: var(--upcrew-grund);
+    color: var(--upcrew-schrift);
+    cursor: pointer;
+    transition: opacity 400ms ease;
+}
+
+.intro[hidden] {
+    display: none;
+}
+
+.intro-weg {
+    opacity: 0;
+}
+
+.intro-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 2.6rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    animation: intro-auftritt 700ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+.intro-up {
+    padding: 4px 14px;
+    border-radius: 14px;
+    background: var(--upcrew-farbe);
+    color: var(--upcrew-schrift);
+}
+
+.intro-zeile {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.95rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    animation: intro-zeile 600ms ease 150ms both;
+}
+
+@keyframes intro-auftritt {
+    from { opacity: 0; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes intro-zeile {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .intro-logo,
+    .intro-zeile {
+        animation: none;
+    }
+}
+
+/* ------------------------------------------------------------------ *
+ * Anmeldung — das Vollbild
+ * ------------------------------------------------------------------ */
+
+.anmeldung {
+    position: fixed;
+    inset: 0;
+    z-index: var(--ebene-vollbild);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: var(--inhalt-rand);
+    background: var(--flaeche);
+}
+
+.anmeldung[hidden] {
+    display: none;
+}
+
+.anmeldung-kasten {
+    width: 100%;
+    max-width: 400px;
+    padding: 24px 20px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: 20px;
+}
+
+.anmeldung-kasten > .knopf + .knopf {
+    margin-top: 10px;
+}
+
+.anmeldung-marke {
+    margin-bottom: 4px;
+    color: var(--haupt);
+    font-size: 0.85rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.anmeldung-titel {
+    margin: 0 0 8px;
+    font-size: 1.6rem;
+}

@@ -1,0 +1,24 @@
+name: Wunsch / Fehler
+description: Etwas ergänzen, ändern oder einen Fehler melden
+title: "[Wunsch] "
+labels: ["wunsch"]
+body:
+    - type: textarea
+      id: idee
+      attributes:
+          label: Was wünschst du dir?
+          placeholder: z. B. Ein Wordle mit sechs Buchstaben …
+      validations:
+          required: true
+    - type: input
+      id: stelle
+      attributes:
+          label: An welcher Stelle?
+          description: Füllt die App automatisch aus.
+          placeholder: z. B. wordle
+    - type: input
+      id: fassung
+      attributes:
+          label: Fassung
+          description: Version der App, aus der der Wunsch stammt.
+          placeholder: z. B. v0.1.0

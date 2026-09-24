@@ -1,0 +1,299 @@
+/*
+ * stil-bildschirme.css — Start, Rangliste, Freunde, Profil.
+ *
+ * Nur Anordnung und Grössen; Farben kommen aus den Variablen in stil.css.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Start
+ * ------------------------------------------------------------------ */
+
+.start-kopf {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 64px;
+    margin-bottom: 8px;
+}
+
+.start-marke {
+    display: grid;
+}
+
+.start-logo {
+    color: var(--haupt);
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
+}
+
+.start-gruss {
+    color: var(--schrift-leise);
+}
+
+.spiel-kachel-kopf {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+
+.spiel-kachel-bild {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: var(--kachel-richtig);
+    color: var(--kachel-schrift);
+}
+
+.spiel-kachel-bild .zeichen {
+    width: 30px;
+    height: 30px;
+}
+
+.spiel-kachel-name {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.spiel-kachel-satz {
+    margin: 0;
+    color: var(--schrift-leise);
+    font-size: 0.95rem;
+}
+
+.spiel-kachel-stand {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: var(--karte-leise);
+    font-weight: 600;
+}
+
+.spiel-stand-erledigt {
+    background: var(--gut-flaeche);
+    color: var(--gut);
+}
+
+.start-freunde .knopf-flach {
+    margin-top: 4px;
+    padding-left: 0;
+    color: var(--haupt);
+}
+
+/* ------------------------------------------------------------------ *
+ * Rangliste (auch auf dem Start benutzt)
+ * ------------------------------------------------------------------ */
+
+.rangliste-auswahl {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: var(--abstand);
+}
+
+.rangliste {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.rangliste-zeile + .rangliste-zeile {
+    border-top: 1px solid var(--rahmen);
+}
+
+.rangliste-knopf {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 56px;
+    padding: 8px 4px;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.rangliste-ich .rangliste-knopf {
+    background: var(--karte-leise);
+    border-radius: 10px;
+}
+
+.rangliste-platz {
+    flex: none;
+    width: 2.2em;
+    color: var(--schrift-leise);
+    font-weight: 700;
+    text-align: right;
+}
+
+.rangliste-mitte {
+    display: grid;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.rangliste-name {
+    overflow: hidden;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rangliste-zusatz {
+    color: var(--schrift-leise);
+    font-size: 0.85rem;
+}
+
+.rangliste-punkte {
+    flex: none;
+    min-width: 2em;
+    color: var(--haupt);
+    font-size: 1.25rem;
+    font-weight: 800;
+    text-align: right;
+}
+
+/* ------------------------------------------------------------------ *
+ * Freunde
+ * ------------------------------------------------------------------ */
+
+.freunde-zeile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.freunde-zeile + .freunde-zeile {
+    border-top: 1px solid var(--rahmen);
+}
+
+.freunde-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.freunde-name span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.freunde-knoepfe {
+    display: flex;
+    flex: none;
+    gap: 6px;
+}
+
+.freunde-treffer {
+    margin-top: 10px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Profil
+ * ------------------------------------------------------------------ */
+
+.profil-kopf {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.profil-name {
+    margin: 0;
+    font-size: 1.4rem;
+}
+
+.statistik-raster {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.statistik-feld {
+    display: grid;
+    justify-items: center;
+    padding: 8px 4px;
+    border-radius: 10px;
+    background: var(--karte-leise);
+}
+
+.statistik-zahl {
+    font-size: 1.4rem;
+    font-weight: 800;
+}
+
+.statistik-text {
+    color: var(--schrift-leise);
+    font-size: 0.75rem;
+    text-align: center;
+}
+
+.verteilung-zeile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.verteilung-nummer {
+    width: 1em;
+    color: var(--schrift-leise);
+    font-weight: 700;
+}
+
+.verteilung-balken {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--kachel-falsch);
+    color: var(--kachel-schrift);
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: right;
+}
+
+.angaben {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 16px;
+    margin: 0 0 12px;
+}
+
+.angaben dt {
+    color: var(--schrift-leise);
+}
+
+.angaben dd {
+    margin: 0;
+    font-weight: 600;
+}
+
+@media (max-width: 380px) {
+    .statistik-raster {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
