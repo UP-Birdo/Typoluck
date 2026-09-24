@@ -42,15 +42,23 @@
     --taste-aus: #8c889a;
     --taste-aus-schrift: #f1eff6;
 
+    /* Die Kanten — je Fläche eine dunklere Fassung ihrer Farbe. Sie bilden
+       die „Seitenwand" unter Knopf, Taste und Kachel (3D Stufe 1). */
+    --kachel-richtig-kante: #2c6a39;
+    --kachel-vorhanden-kante: #957716;
+    --kachel-falsch-kante: #5a5766;
+    --taste-kante: #c2bcd3;
+    --taste-aus-kante: #6b6779;
+
     /*
      * DIE NAHT FÜR DEN 3D-LOOK (Nutzer-Ansage 24.09.2026: „es folgen dann
-     * 3D-Knöpfe"). Heute 0 — dann sind Knöpfe und Kacheln flach. Wird der
-     * Wert grösser (etwa 4px), bekommen ALLE Knöpfe eine Kante in ihrer
-     * Kantenfarbe und sinken beim Drücken ein; keine Zeile JavaScript nötig.
-     * Plan und nächste Stufen: docs\ARCHITECTURE.md, Abschnitt „3D".
+     * 3D-Knöpfe"). Seit 0.1.1 Stufe 1: Knöpfe, Tasten und Kacheln haben eine
+     * Kante in ihrer Kantenfarbe, Knöpfe und Tasten sinken beim Drücken um
+     * die Tiefe ein; keine Zeile JavaScript nötig. Auf 0px gesetzt ist alles
+     * wieder flach. Plan und nächste Stufen: docs\ARCHITECTURE.md, „3D".
      */
-    --knopf-tiefe: 0px;
-    --kachel-tiefe: 0px;
+    --knopf-tiefe: 4px;
+    --kachel-tiefe: 3px;
 
     --abstand: 16px;
     --radius: 12px;
@@ -98,6 +106,11 @@
         --taste-schrift: #ffffff;
         --taste-aus: #25222e;
         --taste-aus-schrift: #6f6982;
+        --kachel-richtig-kante: #336f40;
+        --kachel-vorhanden-kante: #8a7020;
+        --kachel-falsch-kante: #322f3d;
+        --taste-kante: #3a3549;
+        --taste-aus-kante: #121017;
     }
 }
 
@@ -128,6 +141,11 @@
     --taste-schrift: #ffffff;
     --taste-aus: #25222e;
     --taste-aus-schrift: #6f6982;
+    --kachel-richtig-kante: #336f40;
+    --kachel-vorhanden-kante: #8a7020;
+    --kachel-falsch-kante: #322f3d;
+    --taste-kante: #3a3549;
+    --taste-aus-kante: #121017;
 }
 
 * {
@@ -317,6 +335,7 @@ body.anmeldung-offen {
     background: var(--karte);
     color: var(--gefahr);
     border-color: var(--gefahr);
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--gefahr);
 }
 
 .knopf-flach {
@@ -326,6 +345,21 @@ body.anmeldung-offen {
     background: transparent;
     color: var(--schrift);
     box-shadow: none;
+}
+
+/* Die Leistenknöpfe sind flach. Ihre eigene Regel weiter oben verliert
+   gegen `.knopf` (gleiches Gewicht, steht davor) — auch Schriftgrösse und
+   Innenabstand kommen deshalb von `.knopf`, so ist 0.1.0 ausgeliefert. Hier
+   wird nur die 3D-Kante weggenommen, am Aussehen sonst nichts geändert. */
+.knopf.knopf-leiste {
+    box-shadow: none;
+}
+
+/* Wer keine Kante hat, sinkt auch nicht ein — sonst hüpft ein flacher
+   Knopf beim Antippen ohne sichtbaren Grund nach unten. */
+.knopf-flach:active:not(:disabled),
+.knopf-leiste:active:not(:disabled) {
+    transform: none;
 }
 
 .knopf-klein {

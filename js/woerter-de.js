@@ -16,7 +16,9 @@
  *     Tastatur des Spiels auch nur anbietet;
  *   - kein Wort doppelt, auch nicht über beide Listen hinweg.
  *
- * HERKUNFT: Von Hand zusammengestellt am 24.09.2026 — eine Startliste. Sie
+ * HERKUNFT: Von Hand zusammengestellt am 24.09.2026 — eine Startliste; am
+ * 25.09.2026 (0.1.1) um rund 450 Zusatzwörter ergänzt, ebenfalls von Hand
+ * (Lösungsliste und Tagesplan unverändert). Sie
  * ist bewusst klein; eine grosse Liste braucht eine Quelle mit passender
  * Lizenz, und die Wahl ist eine Nutzer-Entscheidung
  * (docs\entscheidungen\offen-und-abgelehnt.md, „Die grosse Wortliste").
@@ -138,7 +140,50 @@ const WOERTER_DE = {
         + "vasen venen verse vögel votum vital "
         + "waben waise wanze waren warze weber waten weben wehen weise wende werft "
         + "werke wesen wiege wille winde wirte witwe witze wonne worte wrack würde "
-        + "zacke zeche zehen zelte ziele zinke zonen zucht zwirn zwist"
+        + "zacke zeche zehen zelte ziele zinke zonen zucht zwirn zwist "
+        /* Ergänzt am 25.09.2026 (0.1.1), von Hand: Zahl- und Bindewörter,
+           Verb- und Adjektivformen, Mehrzahlen, geläufige Hauptwörter. */
+        + "abgas abtei akten alben algen alibi allem allen aller alles alten "
+        + "anruf armen aroma assel babys backe basar beige berge besen beton "
+        + "beule bevor bibel biest bingo bisse blaue blieb blues blüte bonus "
+        + "borte boxer buden busse bäche bäder bälle bänke bärte böcke chefs "
+        + "chöre clubs codes dabei dafür daher dahin damit daten davon deine "
+        + "delle denkt depot diese disko durch duzen dübel düfte echte ehren "
+        + "elche erker ernst essay essig etwas eurer euros falls farne fatal "
+        + "faule faxen fehlt feind feine fesch feste fette finte fleck flora "
+        + "flure flyer flöhe fokus forum freie frohe front frühe fährt fälle "
+        + "fügen fühlt führt füsse gaben ganze garde gaudi geber gecko gegen "
+        + "gehst gelbe genie gerne getue gilde ginge gnome graue griff grill "
+        + "grobe gross gruss gräte grüne gummi gurte guten guter gutes gänge "
+        + "gänse hagel hager halbe hallo harte hasen hatte hauen heiss helle "
+        + "helme hielt hirte hofft hohen hoher hohes hohle holen hosen humus "
+        + "hurra hähne hälse hände hänge hätte häute hülse hüten ideen ihrem "
+        + "ihren ihrer ihres immer indem index infos innen jacht jeans jedem "
+        + "jeden jeder jedes jetzt joker junge juror kader kahle kajak kalte "
+        + "kamen kanon kanus karre kauft keime keine kekse kennt kiosk klare "
+        + "klebe klops kluge knete koala kommt konto krass krimi kräne krüge "
+        + "kuppe kurse kurze kutte käfig kälte kämme köpfe kübel kühle laben "
+        + "lacht lagen lahme laken lange latte lebte leere lehne leine lernt "
+        + "leser lider liebt liege liegt liest likör linke lippe lobby loipe "
+        + "lotto luchs lässt läufe läuft löhne lüfte macke magst makel manko "
+        + "mappe meine miene milde mitte mixen moden molch monde motto musst "
+        + "mädel möbel mögen möhre müden müsli nabel nahen nasse neben nennt "
+        + "nette netze neuen neuer neues nicht niere niete nimmt ninja nonne "
+        + "notar noten nugat obhut olive orten paare panda panne parks paste "
+        + "patin pelze pilze pixel plane pläne pokal polka ponys posse prosa "
+        + "psalm pudel pulte pässe radau ranch regie reife reime reine rennt "
+        + "ringe risse rodeo roten roter rotes rubin rugby räder räume röcke "
+        + "sacht sagst sagte sahen sakko samba satte schon sechs seine sekte "
+        + "serum sitze sitzt skier slang snack sofas sogar sollt sonde sonst "
+        + "sosse sowie spass spatz spitz sporn sport späte starr staus stege "
+        + "steht stieg stroh stunt stäbe sucht summe sushi sägen söhne süsse "
+        + "tacho tagen tango tanzt tarif taten tatze tauen taxis teddy teile "
+        + "teilt tests thema tiefe tipps trotz truhe träne trübe tuten typen "
+        + "täler töpfe türen ulken umbau umzug unser unten viele virus vokal "
+        + "volle wachs wahre warme weine weiss wenig werde werte wieso wilde "
+        + "wirft wirkt wirst wobei wodka wofür woher wohin wohnt wovon wurde "
+        + "wählt wände wären wölfe yacht zahlt zahme zarte zeigt zenit zieht "
+        + "zogen zudem zweck zwölf zählt zähne zäune übung"
     ).split(" ")
 };
 

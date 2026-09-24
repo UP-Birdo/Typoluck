@@ -56,16 +56,25 @@
     color: var(--kachel-schrift);
 }
 
+.kachel-gefuellt {
+    box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-rahmen-voll);
+}
+
+/* Aufgedeckte Kacheln stehen auf einer Kante in ihrer eigenen, dunkleren
+   Farbe (3D Stufe 1) — nicht auf der grauen Rahmenkante. */
 .kachel-richtig {
     background: var(--kachel-richtig);
+    box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-richtig-kante);
 }
 
 .kachel-vorhanden {
     background: var(--kachel-vorhanden);
+    box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-vorhanden-kante);
 }
 
 .kachel-falsch {
     background: var(--kachel-falsch);
+    box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-falsch-kante);
 }
 
 /* Ein getippter Buchstabe springt kurz auf. */
@@ -149,11 +158,15 @@
     font-weight: 700;
     cursor: pointer;
     touch-action: manipulation;
-    box-shadow: 0 var(--knopf-tiefe) 0 var(--still-kante);
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--taste-kante);
+    transition: transform 60ms ease, box-shadow 60ms ease;
 }
 
+/* Gedrückt sinkt die Taste auf ihre Kante — die Kante verschwindet dabei,
+   sonst sähe es aus, als schwebe sie darüber. */
 .taste:active {
     transform: translateY(var(--knopf-tiefe));
+    box-shadow: 0 0 0 transparent;
     filter: brightness(0.92);
 }
 
@@ -170,11 +183,13 @@
 .taste-richtig {
     background: var(--kachel-richtig);
     color: var(--kachel-schrift);
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--kachel-richtig-kante);
 }
 
 .taste-vorhanden {
     background: var(--kachel-vorhanden);
     color: var(--kachel-schrift);
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--kachel-vorhanden-kante);
 }
 
 /* Ausgeschlossene Buchstaben treten ZURÜCK: eigene, gedämpfte Farben statt
@@ -184,6 +199,7 @@
 .taste-falsch {
     background: var(--taste-aus);
     color: var(--taste-aus-schrift);
+    box-shadow: 0 var(--knopf-tiefe) 0 var(--taste-aus-kante);
 }
 
 /* ------------------------------------------------------------------ *

@@ -30,10 +30,22 @@ keiner Spielfarbe und macht die Schwester-App erkennbar eigen.
 
 ## Tiefe — die Naht für 3D
 
-`--knopf-tiefe` und `--kachel-tiefe` stehen heute auf `0px`. Knöpfe und
-Tasten haben schon einen Schatten in ihrer Kantenfarbe (`--haupt-kante`,
-`--still-kante`) und sinken beim Drücken um die Tiefe ein. Wird der Wert
-grösser, ist die App „knopfig" — ohne Code. Plan: `ARCHITECTURE.md`, „3D".
+Seit 0.1.1 (3D Stufe 1): `--knopf-tiefe` 4px, `--kachel-tiefe` 3px. Knöpfe,
+Tasten und Kacheln stehen auf einer Kante in einer dunkleren Fassung ihrer
+Farbe und sinken beim Drücken um die Tiefe ein (Kacheln sinken nicht, sie
+werden nicht gedrückt). Auf `0px` gesetzt ist alles wieder flach.
+
+| Kante | gehört zu |
+|---|---|
+| `--haupt-kante` | Hauptknopf (violett) |
+| `--still-kante` | stille Knöpfe |
+| `--gefahr` | roter Knopf — die Kante ist die Rahmenfarbe selbst |
+| `--taste-kante`, `--taste-aus-kante` | Taste normal / ausgeschlossen |
+| `--kachel-richtig-kante`, `--kachel-vorhanden-kante`, `--kachel-falsch-kante` | aufgedeckte Kacheln und gleichfarbige Tasten |
+| `--kachel-rahmen`, `--kachel-rahmen-voll` | leere / getippte Kachel |
+
+Flache Knöpfe (Leiste unten, `knopf-flach`) haben keine Kante und sinken
+deshalb auch nicht ein. Plan der nächsten Stufen: `ARCHITECTURE.md`, „3D".
 
 ## Abstände und Formen
 

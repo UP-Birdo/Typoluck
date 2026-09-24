@@ -3,6 +3,20 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Eine Variable auf 0 versteckt, welche Regel wirklich gewinnt (25.09.2026)
+
+Beim Einschalten der Tiefe (0.1.1) bekamen die Knöpfe der Leiste unten eine
+Kante, obwohl `.knopf-leiste` ausdrücklich `box-shadow: none` sagt. Ursache:
+`.knopf-leiste` steht in `css\stil.css` VOR `.knopf`, beide Regeln wiegen
+gleich, also gewinnt `.knopf` — schon immer, auch bei Schriftgrösse,
+Innenabstand und Mindesthöhe. Solange `--knopf-tiefe` 0 war, war der
+Schatten unsichtbar und fiel nicht auf. Die naheliegende Reparatur
+(`.knopf.knopf-leiste` für die ganze Regel) hätte die Leiste sichtbar
+verändert (kleinere Schrift), obwohl 0.1.0 so ausgeliefert ist. Deshalb
+nimmt eine eigene Regel `.knopf.knopf-leiste` NUR die Kante weg. **Lehre:**
+Wer einen Schalter von 0 hochdreht, sieht sich JEDE Stelle an, die ihn
+benutzt — auch die, die ihn angeblich abschalten.
+
 ## window.open mit "noopener" liefert immer null (24.09.2026)
 
 `window.open(adresse, "_blank", "noopener")` öffnet das Fenster, gibt aber

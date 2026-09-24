@@ -3,6 +3,15 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.1.1 — 2026-09-25
+
+- **Knöpfe zum Drücken:** Knöpfe, Tasten und Buchstaben-Kacheln haben jetzt
+  eine Kante und wirken wie echte Tasten. Beim Antippen sinken Knöpfe und
+  Tasten sichtbar ein. Der erste Schritt zum 3D-Aussehen.
+- **Seltener „Dieses Wort kenne ich nicht":** rund 450 geläufige Wörter mehr
+  zum Raten (Mehrzahlen, Verb- und Adjektivformen, Wörter wie „nicht",
+  „schon", „etwas"). Das Tageswort ändert sich dadurch nicht.
+
 ## 0.1.0 — 2026-09-24
 
 Die erste Fassung: das Grundgerüst der Spielesammlung mit Wordle als erstem

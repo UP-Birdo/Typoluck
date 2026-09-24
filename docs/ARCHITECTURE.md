@@ -116,12 +116,13 @@ Wort von Tag 1 und 2 für immer fest.
 Nutzer-Ansage 24.09.2026: erst 2D, dann 3D-Knöpfe und mehr. Vorbereitet
 ist, ohne etwas auf Vorrat zu bauen:
 
-- **Stufe 1 — Tiefe per Stil.** Alle Knöpfe und Tasten tragen schon
-  `box-shadow: 0 var(--knopf-tiefe) 0 <Kantenfarbe>` und sinken beim Drücken
-  um `--knopf-tiefe` ein; die Kacheln entsprechend `--kachel-tiefe`. Heute
-  steht beides auf `0px`. Ein Wert wie `4px` in `css\stil.css` macht die
-  ganze App „knopfig" — ohne JavaScript. Die Kantenfarben stehen schon
-  (`--haupt-kante`, `--still-kante`).
+- **Stufe 1 — Tiefe per Stil. Gebaut in 0.1.1.** Alle Knöpfe und Tasten
+  tragen `box-shadow: 0 var(--knopf-tiefe) 0 <Kantenfarbe>` und sinken beim
+  Drücken um `--knopf-tiefe` ein; die Kacheln entsprechend `--kachel-tiefe`
+  (4px / 3px, ohne JavaScript). Welche Kante zu welcher Fläche gehört:
+  `docs\GESTALTUNG.md`, „Tiefe". Falle: `.knopf-leiste` steht in
+  `stil.css` VOR `.knopf` und verliert gegen dessen Regeln — die Kante wird
+  deshalb mit `.knopf.knopf-leiste` weggenommen.
 - **Stufe 2 — echte Formen.** Jeder Knopf entsteht in `BAUSTEINE.knopf`,
   jede Kachel in `WORDLE_BILDSCHIRM._kachelBauen`, jede Taste in
   `_tasteBauen`. Dort bekommt der Knopf später ein gerendertes Bild (Blender

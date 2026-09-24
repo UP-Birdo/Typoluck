@@ -5,6 +5,7 @@
 
 ## erkenntnisse.md — Fallen und Bug-Ursachen
 
+- Eine Variable auf 0 versteckt, welche Regel wirklich gewinnt
 - window.open mit "noopener" liefert immer null
 - Eine CSS-Animation kann nicht „zur Farbe der Klasse" springen
 - In der Testumgebung gibt es kein window.setInterval
