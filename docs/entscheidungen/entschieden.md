@@ -2,6 +2,85 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## UPCrew-Runde 2: Farbwelt, Kopfzeile, Tab „Aufgaben" (26.09.2026, 0.7.0)
+
+Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md`, Block 1 („fang an
+zu bauen"); Hintergrund `Design\3D-Schrift\docs\FARBWELTEN-PLAN.md`.
+Blunderluck und Trainer werden gleichzeitig in eigenen Sitzungen umgebaut —
+hier wurde nur in Typoluck geschrieben.
+
+- **Farbwelt über den gemeinsamen Baustein** `upcrew-farbwelten.js`,
+  unverändert kopiert (Byte-Vergleich gleich). Angewendet in
+  `DARSTELLUNG.anwenden`, damit es EINE Stelle gibt, die bei jedem Wechsel
+  läuft: Laden, Einstellung, Gerät wechselt hell/dunkel (neuer Horcher).
+  `DARSTELLUNG.modus()` ist die eine Regel für hell/dunkel — das Intro
+  fragt seitdem dort statt selbst.
+- **Früh laden:** `upcrew-intro.js` und `upcrew-farbwelten.js` stehen VOR
+  `darstellung.js` in `index.html` (Auftrag sagte nur „nach
+  upcrew-intro.js") — sonst sähe man beim Start kurz die alten blauen
+  Rückfall-Farben. Ein Test prüft die Reihenfolge.
+- **Welt fest „werkstatt"**, `upcrew.farbwelt` wird bewusst nicht gelesen
+  (Freischalten = Runde 3). Werkstatt liefert genau die Kacheln aus 0.6.2.
+  Der Test fährt Sperre und Lesbarkeit über ALLE fünf Welten — so fällt
+  eine unpassende Welt auf, bevor sie freischaltbar wird.
+- **Der Test liest die Quelle in `Design\` NICHT** zum Vergleich: Ein Pfad
+  nach draussen zur Laufzeit ginge an der Projekt-Schranke vorbei, und das
+  Projekt muss sich allein verschieben lassen. Gleichheit prüft der
+  Byte-Vergleich beim Kopieren.
+- **Kopfzeile wie Blunderluck:** Kurzprofil links (Kreis, Name, „Serie X ·
+  Y % gelöst" aus `RANGLISTE.statistik`, dieselbe Zählung wie im Profil),
+  rechts das Menü. Schriftzug „Typoluck" weg; der Namens-Kreis neben den
+  Balken entfällt (das Kurzprofil ist jetzt der Weg ins Profil, das Menü
+  der zweite).
+- **Tab „Aufgaben"** mit Pfad und Texten wörtlich aus den gemeinsamen
+  Absprachen; Bildschirm `herausforderungen` nur als Platzhalter.
+- MINOR 0.7.0: „Aufgaben" ist ein neuer Bildschirm, Kurzprofil eine neue
+  Anzeige.
+
+## Weg vom NYT-Look: Name Wordguesser, Kacheln Orange/Blau (25.09.2026, 0.6.2)
+
+Auftrag: „prüfe, wie viel wir anders machen müssen, damit wir von der New
+York Times keinen auf den Deckel bekommen" — dann „fang an, damit ich nicht
+zum Schluss auf etwas baue, was dann eh nicht mehr erlaubt ist".
+
+**Anlass:** Im März 2024 liess die NYT hunderte Wordle-Nachbauten von
+GitHub nehmen (DMCA). Begründung dort: der Name „Wordle" (ihre Marke) und
+der Look — Anordnung und die grünen, gelben und grauen Kacheln. Laut ihrem
+Sprecher stören ähnliche Wortspiele nicht, solange sie Marke und
+„geschütztes Spielgeschehen" nicht übernehmen. (Einschätzung, keine
+Rechtsberatung; vor dem Gang in die Stores anwaltlich prüfen lassen.)
+
+- **Name: Wordguesser** (Nutzer: „Wort raten auf Englisch"). Steht nur in
+  `WORDLE.NAME`; `test-syntax.js` sucht „Wordle" in allem Sichtbaren (Code
+  ohne Kommentare, Seite, Manifest, README, Meldeformular). **Innere Namen
+  bleiben** (`WORDLE`, Bildschirm-Id und Datenbankpfad `wordle`) —
+  unsichtbar, und die Pfade sind Datenvertrag.
+- **Kacheln Orange/Blau als Standard, Grün/Gelb gestrichen** — auch als
+  Wahl. Der Schalter „Kacheln" aus 0.6.0 ist weg; die gespeicherte
+  Einstellung `farbenKontrast` bleibt liegen und wirkt nicht mehr
+  (additiv, nichts gelöscht). „Fehlt" hell etwas dunkler als das
+  NYT-Grau.
+- **Die Kachelfarben-Sperre** (Nutzer: „die Felder sollen sich an die
+  Farbpakete anpassen, die man freischalten kann — achte darauf, dass
+  dann nicht diese Farben angewendet werden können"):
+  `DARSTELLUNG.kachelFarbeErlaubt(rolle, farbe)` verbietet für „richtig"
+  jeden grünen Ton (75–165 Grad), für „vorhanden" jeden gelben (38–70 Grad);
+  Grau ist frei. Ein Farbton-Bereich statt einer Liste verbotener Codes,
+  weil schon unsere eigenen alten Farben (#3f8f4f, #c9a227) nicht auf der
+  Liste gestanden hätten und trotzdem der Look sind. Der Test fährt die
+  Sperre gegen jede Kachelfarbe in jeder Stil-Datei — ein künftiges
+  Farbpaket fällt also auf, sobald es im Stil steht.
+- **App-Zeichen** mit: orange T-Kachel, blaue kleine Kachel (`icon.svg`,
+  `tools\Icons-Erzeugen.ps1`, PNGs neu).
+- **Bleibt, weil nicht schützbar oder unser eigenes:** Spielregel (5
+  Buchstaben, 6 Versuche, Tageswort), die von Hand gebaute deutsche
+  Wortliste, der Code (neu geschrieben, keine fremde Datei, kein
+  fremder Lizenztext).
+- **Nicht gebaut, aber jetzt entschieden:** Teilen nie als Raster farbiger
+  Quadrate (`offen-und-abgelehnt.md`, „Ergebnis teilen").
+- PATCH 0.6.2: bestehende Funktionen umbenannt und umgefärbt, nichts
+  Neues für den Spieler.
+
 ## Schwer-Modus (25.09.2026, 0.6.0)
 
 Auftrag: „weiter" (nach 0.6.0 lokal, noch nicht ausgeliefert) — ROADMAP

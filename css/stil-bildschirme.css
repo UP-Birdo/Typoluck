@@ -16,23 +16,58 @@
     margin-bottom: 8px;
 }
 
-.start-marke {
-    display: grid;
+/* Links oben das Kurzprofil (seit 0.7.0, wie Blunderluck `.start-profil`):
+   grosser Kreis, daneben Name und „Serie · gelöst". Ein Knopf ohne
+   Knopf-Look, als Pille auf Kartenfarbe — wie das Spielerfeld in
+   Spiele-Apps. Bis 0.6.x stand hier der Schriftzug „Typoluck". */
+.start-profil {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    min-width: 0;
+    padding: 4px 14px 4px 4px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+    background: var(--karte);
+    text-align: left;
 }
 
-.start-logo {
-    color: var(--haupt);
-    font-size: 1.7rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    line-height: 1.1;
+.start-profil .namens-kreis {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
 }
 
-/* Rechts oben: Namens-Kreis und der Drei-Balken-Knopf (seit 0.3.0). */
+.start-profil-texte {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.start-profil-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.start-profil-werte {
+    color: var(--schrift-leise);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* Rechts oben: der Drei-Balken-Knopf (seit 0.3.0). Steht auch ohne
+   Kurzprofil rechts. */
 .start-kopf-rechts {
     display: flex;
     align-items: center;
     gap: 4px;
+    margin-left: auto;
 }
 
 .start-kopf-rechts .menue-halter > .knopf .zeichen {

@@ -27,10 +27,11 @@ Bis dahin: Liste von Hand erweitern (hinten anfügen, Tagesplan beachten).
 
 ### Ergebnis teilen
 
-Das klassische Wordle-Teilen sind farbige Quadrate als Emojis — im Haus
-verboten (keine Emojis ohne ausdrückliches OK). Alternativen: Text ohne
-Quadrate („Typoluck Nr. 3 — 4/6"), ein Bild, oder das OK für genau diese
-Quadrate. Zu entscheiden vom Nutzer.
+Das Teilen des NYT-Spiels sind farbige Quadrate als Emojis. **Abgelehnt
+seit 25.09.2026 (0.6.2):** Dieses Raster ist Teil des Looks, gegen den die
+NYT vorgeht (`entschieden.md`, „Weg vom NYT-Look"), und Emojis sind im Haus
+ohnehin verboten. Offen bleibt nur: Text ohne Quadrate („Wordguesser Nr. 3
+— 4/6") oder ein eigenes Bild. Zu entscheiden vom Nutzer.
 
 ### Blunderlucks Umzug zu UPCrew (Arbeit einer Blunderluck-Sitzung)
 

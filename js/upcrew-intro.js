@@ -100,11 +100,11 @@
       ${mono(108, 78, "lvl", f.ak, 7, "end").replace("<text", '<text opacity=".7"')}</g>`;
 
   // ---------- B: Taste ----------
-  function taste(f, cx, cy, s, t0) {
+  function taste(f, cx, cy, s, t0, kreuz = f.lcd) {
     const a = s * .3;
     return `<g class="upi-taste" style="--t0:${t0}s"><rect x="${cx - s / 2}" y="${cy - s / 2 + 5}" width="${s}" height="${s}" rx="${s * .18}" fill="${f.ta}"/>
       <rect x="${cx - s / 2}" y="${cy - s / 2}" width="${s}" height="${s}" rx="${s * .18}" fill="${f.ak}"/>
-      <path d="M${cx} ${cy - a} V${cy + a} M${cx - a} ${cy} H${cx + a}" stroke="${f.lcd}" stroke-width="${s * .14}" stroke-linecap="round"/></g>`;
+      <path d="M${cx} ${cy - a} V${cy + a} M${cx - a} ${cy} H${cx + a}" stroke="${kreuz}" stroke-width="${s * .14}" stroke-linecap="round"/></g>`;
   }
 
   // ---------- C: Pad-Raster 3 x 4, Pfeil nach oben ----------
@@ -192,14 +192,20 @@
 
     // B: Taste faellt ein, wird gedrueckt; das dunkle Kreuz loest sich, waechst, faerbt sich aus der Mitte ein
     //    und wirbelt zum P; CREW und eine kleine Taste folgen
-    B: f => {
-      const tLos = 1.4, tM = 1.95, tE = tM + WIRBEL.dauer / 1000, id = "upi-m" + (++zaehler);
-      const grosse = `<g class="upi-aus" style="--t0:${tM + .1}s"><g class="upi-fall" style="--t0:.35s">${taste(f, 118, 100, 56, .95)}</g></g>`;
-      const dunkel = `<mask id="${id}" maskUnits="userSpaceOnUse" x="-300" y="-100" width="1200" height="400">
-          <rect x="-300" y="-100" width="1200" height="400" fill="white"/>
-          <circle class="upi-faerben" style="--t0:${tLos}s" cx="118" cy="100" r="0" fill="black"/></mask>
-        <path mask="url(#${id})" d="${PLUS2(PX)}" fill="none" stroke="${f.lcd}" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>`;
-      const loesen = `<g class="upi-zeigen" style="--t0:${tLos}s"><g class="upi-wachsen" style="--t0:${tLos}s">${plusP(f.ink, f.ink, WIRBEL, tM, [], true)}${dunkel}</g></g>`;
+    B: (f, o) => {
+      // Kreuz auf der Taste: dunkel auf dunklem Grund (wird hell), hell auf hellem Grund (wird dunkel) - sichtbarer Wechsel
+      const kreuz = o.modus === "hell" ? f.fl : f.lcd;
+      const tLos = 1.4, tFarbig = tLos + .5, tM = 1.95, tE = tM + WIRBEL.dauer / 1000;
+      const grosse = `<g class="upi-aus" style="--t0:${tM + .1}s"><g class="upi-fall" style="--t0:.35s">${taste(f, 118, 100, 56, .95, kreuz)}</g></g>`;
+      // Einfaerben: vier Arme in Schriftfarbe wachsen von der Mitte zur Spitze ueber das dunkle Kreuz (Strich-Zug,
+      // keine Maske - laeuft auch in Safari). Sobald alles farbig ist, uebernimmt das gleich aussehende Wirbel-Kreuz.
+      const arm = e => `<path class="upi-zieh upi-arm" style="--t0:${tLos}s" pathLength="1" d="M118 100 ${e}" fill="none"
+        stroke="${f.ink}" stroke-width="22" stroke-linecap="round"/>`;
+      const dunkel = `<g class="upi-verbergen" style="--t0:${tFarbig}s">
+        <path d="${PLUS2(PX)}" fill="none" stroke="${kreuz}" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+        ${["V61", "V139", "H79", "H157"].map(arm).join("")}</g>`;
+      const wirbelKreuz = `<g class="upi-zeigen" style="--t0:${tFarbig}s">${plusP(f.ink, f.ink, WIRBEL, tM, [], true)}</g>`;
+      const loesen = `<g class="upi-zeigen" style="--t0:${tLos}s"><g class="upi-wachsen" style="--t0:${tLos}s">${wirbelKreuz}${dunkel}</g></g>`;
       const klein = `<g class="upi-ein" style="--t0:${tE + .5}s">${taste(f, 560, 100, 60, tE + .8)}</g>`;
       return { ende: tE + 1.2, html: marke("-12 30 640 150", buchstaben(f.ink, "U", 0) + grosse + loesen + buchstaben(f.ink, "CREW", tE - .1) + klein) };
     },

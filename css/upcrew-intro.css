@@ -36,16 +36,18 @@
 @keyframes upi-pad { from { fill: var(--aus); } to { fill: var(--an); } }
 .upi-taste { animation: upi-taste .4s ease-in-out both; animation-delay: var(--t0); transform-box: fill-box; }
 @keyframes upi-taste { 0%, 100% { transform: translateY(0); } 40%, 60% { transform: translateY(4px); } }
-/* B: das Kreuz erscheint sofort, waechst von Tastengroesse (0,44) auf Buchstabengroesse und faerbt sich von innen */
+/* B: das Kreuz erscheint sofort, waechst von Tastengroesse (0,44) auf Buchstabengroesse und faerbt sich von innen:
+   die Arme in Schriftfarbe ziehen sich von der Mitte zur Spitze (upi-arm), dann wechselt es auf das Wirbel-Kreuz */
 .upi-zeigen { animation: upi-zeigen 1ms linear both; animation-delay: var(--t0); }
 @keyframes upi-zeigen { from { opacity: 0; } to { opacity: 1; } }
-.upi-wachsen { animation: upi-wachsen .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--t0); transform-box: view-box; transform-origin: 118px 100px; }
+.upi-verbergen { animation: upi-verbergen 1ms linear both; animation-delay: var(--t0); }
+@keyframes upi-verbergen { from { opacity: 1; } to { opacity: 0; } }
+.upi-wachsen { animation: upi-wachsen .5s cubic-bezier(.2,.7,.2,1) both; animation-delay: var(--t0); transform-box: fill-box; transform-origin: center; }
 @keyframes upi-wachsen { from { transform: scale(.44); } }
-.upi-faerben { animation: upi-faerben .55s cubic-bezier(.45,0,.2,1) both; animation-delay: var(--t0); }
-@keyframes upi-faerben { from { r: 0; } to { r: 54; } }
+.upi-zieh.upi-arm { animation-duration: .5s; animation-timing-function: cubic-bezier(.3,.5,.3,1); }
 .upi-pp-form { transform-box: fill-box; transform-origin: center; }
 
 @media (prefers-reduced-motion: reduce) {
   .upi-bu, .upi-ein, .upi-aus, .upi-zieh, .upi-fall, .upi-seg, .upi-pad, .upi-taste,
-  .upi-zeigen, .upi-wachsen, .upi-faerben { animation-duration: 1ms !important; animation-delay: 0s !important; }
+  .upi-zeigen, .upi-verbergen, .upi-wachsen { animation-duration: 1ms !important; animation-delay: 0s !important; }
 }

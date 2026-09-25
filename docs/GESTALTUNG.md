@@ -6,9 +6,21 @@ welche nimmt. Deshalb keine Farbcodes in dieser Datei.
 
 ## Die Farben
 
-Jede Farbe ist dreimal da: hell (`:root`), dunkel (`@media
-(prefers-color-scheme: dark)`) und dunkel fest (`[data-darstellung="dunkel"]`,
-für Werkstatt-Fotos). Wer eine ergänzt, ergänzt sie an allen drei Stellen.
+**Seit 0.7.0 kommen die Farben aus der UPCrew-Farbwelt** (UPCrew-Runde 2):
+`js\upcrew-farbwelten.js` (kopiert aus `Design\3D-Schrift\final`, nie hier
+abwandeln) rechnet aus einer Welt alle Oberflächen-, Kachel- und
+Tasten-Variablen und setzt sie direkt an `<html>` — `DARSTELLUNG.anwenden`,
+bei jedem Wechsel hell/dunkel. Welt vorerst fest **Werkstatt** (Orange);
+freischaltbare Welten kommen in Runde 3. Welche Welt wie aussieht, zeigt
+`Design\3D-Schrift\final\farbwelten-ansicht.html`. Nicht aus der Welt kommen
+die Bedeutungsfarben (`--gefahr`, `--gut`, `--warnung-flaeche`) und die
+violette Anmeldung.
+
+Die Werte in `css\stil.css` sind nur noch **Rückfall** (falls der Baustein
+fehlt). Dort ist jede Farbe dreimal da: hell (`:root`), dunkel (`@media
+(prefers-color-scheme: dark)`) und dunkel fest (`[data-darstellung="dunkel"]`).
+Wer eine ergänzt, ergänzt sie an allen drei Stellen — und bittet die
+Design-Sitzung, sie auch in die Farbwelten aufzunehmen.
 
 | Variable | Wofür |
 |---|---|
@@ -16,15 +28,15 @@ für Werkstatt-Fotos). Wer eine ergänzt, ergänzt sie an allen drei Stellen.
 | `--karte`, `--karte-leise` | Kästen auf dem Grund; leise = zurückgenommen (Felder, Listen) |
 | `--rahmen` | Linien ohne Bedeutung |
 | `--schrift`, `--schrift-leise` | Lesetext; Zusätze und Hinweise |
-| `--haupt` | **Die eine Akzentfarbe (Blau, seit 0.3.0):** Hauptaktion, Punkte, Namenskreis, markiertes Wordle-Feld (`--kachel-markiert`) |
+| `--haupt` | **Die eine Akzentfarbe (seit 0.7.0 der Akzent der Farbwelt, Werkstatt = Orange; 0.3.0–0.6.x Blau):** Hauptaktion, Punkte, Namenskreis, markiertes Feld (`--kachel-markiert`), aktiver Eintrag der Leiste |
 | `--haupt-schrift` | Text auf `--haupt` |
 | `--gefahr` | Nur Zerstörendes (Abmelden, Entfernen) |
 | `--gut`, `--gut-flaeche` | Erfolg („erledigt", „Ihr seid Freunde") |
 | `--warnung-flaeche` | Hinweisstreifen oben |
-| `--kachel-richtig`, `--kachel-vorhanden`, `--kachel-falsch` | **Nur** die drei Wordle-Bedeutungen — nie für etwas anderes |
+| `--kachel-richtig`, `--kachel-vorhanden`, `--kachel-falsch` | **Nur** die drei Bedeutungen im Wortspiel — nie für etwas anderes. Seit 0.6.2 Orange / Blau / Grau; **„richtig" nie grün, „vorhanden" nie gelb** (NYT-Look, auch für künftige Farbpakete — `DARSTELLUNG.kachelFarbeErlaubt`, Test in `tests\test-darstellung.js`) |
 | `--taste`, `--taste-schrift` | Tastatur im Grundzustand |
 
-**Warum Blau (seit 0.3.0):** Der Nutzer wollte hinter der Anmeldung dieselbe
+**Blau (0.3.0–0.6.x), überholt seit 0.7.0 durch die Farbwelt.** Der Nutzer wollte hinter der Anmeldung dieselbe
 Farbwelt wie Blunderluck (25.09.2026) — die Spiele von UPCrew sollen
 zusammengehörig aussehen. Die Grundfarben sind 1:1 Blunderlucks Werte;
 Kanten, Kacheln und Tasten sind daraus abgeleitet (neutrales Grau,

@@ -198,6 +198,10 @@ const BAUSTEINE = {
         /* Der freie Platz links in der Leiste unten (seit 0.5.0): ein
            Kästchen mit Plus — „hier kommt noch etwas hin". */
         platzhalter: "M4.5 4.5 H19.5 V19.5 H4.5 Z M12 8.5 V15.5 M8.5 12 H15.5",
+        /* Die Aufgaben / Herausforderungen (seit 0.7.0): ein Weg, der nach
+           oben rechts steigt. Pfad wörtlich aus den gemeinsamen Absprachen
+           mit Blunderluck (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md). */
+        aufgaben: "M4 20 L10 14 L14 17 L20 6 M15 6 H20 V11",
         /* Hell/dunkel in den Einstellungen (seit 0.6.0): ein Kreis, halb
            geteilt, mit Strichen in der dunklen Hälfte. */
         darstellung: "M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 Z M12 3 V21 "

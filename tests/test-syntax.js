@@ -131,6 +131,26 @@ pruefe("Die Schrift steht nur als Variable im Stil",
         && /--schrift-familie:/.test(lesen("css/stil.css")));
 
 /* ------------------------------------------------------------------ *
+ * Keine fremde Marke (seit 0.6.2)
+ * ------------------------------------------------------------------ */
+
+/* „Wordle" ist eine Marke der New York Times (Nutzer-Entscheidung
+   25.09.2026): Der Name darf nirgends stehen, wo ihn ein Spieler sieht —
+   nicht im Programmtext (ohne Kommentare), nicht in der Seite, im Manifest,
+   in der öffentlichen README oder in den Meldeformularen. Die inneren Namen
+   (WORDLE, "wordle") sind klein bzw. gross geschrieben und fallen nicht
+   darunter. Der sichtbare Name steht in WORDLE.NAME. */
+const sichtbar = liste("js").filter((d) => d.endsWith(".js"))
+    .map((datei) => [datei, lesen(datei).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "")])
+    .concat(["index.html", "manifest.webmanifest", "README.md", "icon.svg"]
+        .map((datei) => [datei, lesen(datei).replace(/<!--[\s\S]*?-->/g, "")]))
+    .concat(liste(".github/ISSUE_TEMPLATE").map((datei) => [datei, lesen(datei)]));
+for (const [datei, text] of sichtbar) {
+    pruefe("Kein „Wordle“ sichtbar: " + datei, !/Wordle/.test(text));
+}
+gleich("Der sichtbare Spielname", WORDLE.NAME, "Wordguesser");
+
+/* ------------------------------------------------------------------ *
  * Unantastbare Werte
  * ------------------------------------------------------------------ */
 
@@ -163,12 +183,48 @@ pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts",
 const leisteText = (lesen("js/navigation.js").match(/LEISTE: \[([\s\S]*?)\],/) || ["", ""])[1];
 const leisteEintraege = leisteText.split("\n").filter((z) => z.indexOf("{") !== -1);
 gleich("Die Leiste hat drei Einträge", leisteEintraege.length, 3);
-pruefe("Links in der Leiste: der Platzhalter", /platzhalter: true/.test(leisteEintraege[0] || ""));
+/* Links seit 0.7.0 „Aufgaben" (UPCrew-Runde 2, gleich wie Blunderluck);
+   bis 0.6.x der Platzhalter „Bald". */
+pruefe("Links in der Leiste: Aufgaben",
+    /id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben"/.test(leisteEintraege[0] || ""));
+gleich("Das Aufgaben-Zeichen ist der gemeinsame Pfad mit Blunderluck",
+    (lesen("js/bausteine.js").match(/aufgaben: "([^"]+)"/) || [])[1], "M4 20 L10 14 L14 17 L20 6 M15 6 H20 V11");
+pruefe("Herausforderungen: Titel und Satz wie abgesprochen",
+    lesen("js/bildschirm-herausforderungen.js").indexOf('TITEL: "Herausforderungen"') !== -1
+        && lesen("js/bildschirm-herausforderungen.js")
+            .indexOf("TEXT: \"Kommt bald – hier siehst du deinen Weg durch beide Spiele.\"") !== -1);
+pruefe("Herausforderungen stehen nicht im Menü",
+    /id: "herausforderungen"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-herausforderungen.js")));
+
+/* Kopfzeile auf dem Start (seit 0.7.0, wie Blunderluck): kein Schriftzug
+   mehr, links das Kurzprofil, rechts das Menü. */
+pruefe("Start: kein Schriftzug „Typoluck“ mehr oben", lesen("js/bildschirm-start.js").indexOf("start-logo") === -1);
+pruefe("Start: Kurzprofil mit Serie und Quote",
+    /_kurzprofilBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
+        && /"Serie " \+ werte\.serie \+ " · " \+ werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js")));
 pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[1] || ""));
 pruefe("Rechts in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[2] || ""));
 pruefe("Einstellungen stehen im Menü",
     /id: "einstellungen"[\s\S]*?imMenue: true/.test(lesen("js/bildschirm-einstellungen.js")));
 pruefe("Die Rangliste steht nicht doppelt (nicht auch im Menü)",
     /id: "rangliste"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-rangliste.js")));
+
+/* ------------------------------------------------------------------ *
+ * Die UPCrew-Bausteine (seit 0.7.0): kopiert, nie abgewandelt
+ * ------------------------------------------------------------------ */
+
+/* Farbwelt und Intro kommen aus Design\3D-Schrift\final. Der Test liest
+   bewusst NUR im eigenen Projekt (ein Projekt muss sich allein verschieben
+   lassen, und ein Pfad nach draussen zur Laufzeit ginge an der
+   Projekt-Schranke vorbei). Ob die Kopien gleich der Quelle sind, prüft
+   der Mensch bzw. Claude beim Kopieren (Byte-Vergleich, STATUS.md). */
+for (const kopie of ["js/upcrew-intro.js", "css/upcrew-intro.css", "js/upcrew-farbwelten.js"]) {
+    pruefe("UPCrew-Baustein vorhanden: " + kopie, fs.existsSync(path.join(wurzel, kopie)));
+}
+const reihe = indexSkripte.join(" ");
+pruefe("Farbwelt lädt VOR darstellung.js (kein Aufblitzen alter Farben)",
+    reihe.indexOf("js/upcrew-intro.js") !== -1
+        && reihe.indexOf("js/upcrew-intro.js") < reihe.indexOf("js/upcrew-farbwelten.js")
+        && reihe.indexOf("js/upcrew-farbwelten.js") < reihe.indexOf("js/darstellung.js"));
 
 fazit();

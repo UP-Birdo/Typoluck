@@ -24,7 +24,6 @@
  *     &anmeldung                       NICHT angemeldet (Anmelde-Vollbild)
  *     &dunkel / &hell                  Darstellung festlegen (sonst wie
  *                                      das Gerät)
- *     &kontrast                        Kacheln Orange/Blau (seit 0.6.0)
  *     &schwer                          Schwer-Modus an (seit 0.6.0)
  *     &menue                           das Menü hinter den drei Balken
  *                                      offen zeigen (seit 0.3.0, Start)
@@ -81,9 +80,6 @@ const WERKSTATT = {
             DARSTELLUNG.themaSetzen("dunkel");
         } else if (WERKSTATT._parameter().has("hell")) {
             DARSTELLUNG.themaSetzen("hell");
-        }
-        if (WERKSTATT._parameter().has("kontrast")) {
-            DARSTELLUNG.kontrastSetzen(true);
         }
         DARSTELLUNG.anwenden();
 

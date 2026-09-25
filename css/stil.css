@@ -37,11 +37,15 @@
     --warnung-flaeche: #fff4d6;
     --still-kante: #c3c8d0;
 
-    /* Die drei Kachelfarben des Spiels — die Bedeutung ist Wordle-Standard
-       und wird nie für etwas anderes benutzt. */
-    --kachel-richtig: #3f8f4f;
-    --kachel-vorhanden: #c9a227;
-    --kachel-falsch: #787c84;
+    /* Die drei Kachelfarben des Spiels — richtig, woanders im Wort, fehlt;
+       werden nie für etwas anderes benutzt. SEIT 0.6.2 ORANGE/BLAU statt
+       Grün/Gelb/Grau: „richtig" ist NIE grün, „vorhanden" NIE gelb — der
+       Look des NYT-Spiels ist tabu, auch für künftige Farbpakete
+       (DARSTELLUNG.kachelFarbeErlaubt, tests\test-darstellung.js prüft
+       jede Kachelfarbe in dieser Datei). */
+    --kachel-richtig: #e8702a;
+    --kachel-vorhanden: #3f8fe0;
+    --kachel-falsch: #5f6672;
     --kachel-schrift: #ffffff;
     --kachel-rahmen: #cdd1d8;
     --kachel-rahmen-voll: #878d97;
@@ -52,9 +56,9 @@
 
     /* Die Kanten — je Fläche eine dunklere Fassung ihrer Farbe. Sie bilden
        die „Seitenwand" unter Knopf, Taste und Kachel (3D Stufe 1). */
-    --kachel-richtig-kante: #2c6a39;
-    --kachel-vorhanden-kante: #957716;
-    --kachel-falsch-kante: #575b62;
+    --kachel-richtig-kante: #b0501a;
+    --kachel-vorhanden-kante: #2a67a8;
+    --kachel-falsch-kante: #454b55;
     --taste-kante: #bfc5ce;
     --taste-aus-kante: #686c74;
 
@@ -142,8 +146,8 @@
         --gut-flaeche: #1d3327;
         --warnung-flaeche: #3a3016;
         --still-kante: #454b56;
-        --kachel-richtig: #4a9d5b;
-        --kachel-vorhanden: #c3a13a;
+        --kachel-richtig: #e8702a;
+        --kachel-vorhanden: #3f8fe0;
         --kachel-falsch: #474b53;
         --kachel-rahmen: #3b4049;
         --kachel-rahmen-voll: #6b717c;
@@ -151,8 +155,8 @@
         --taste-schrift: #ffffff;
         --taste-aus: #22252b;
         --taste-aus-schrift: #6c727d;
-        --kachel-richtig-kante: #336f40;
-        --kachel-vorhanden-kante: #8a7020;
+        --kachel-richtig-kante: #b0501a;
+        --kachel-vorhanden-kante: #2a67a8;
         --kachel-falsch-kante: #30333a;
         --taste-kante: #373c46;
         --taste-aus-kante: #0f1114;
@@ -184,8 +188,8 @@
     --gut-flaeche: #1d3327;
     --warnung-flaeche: #3a3016;
     --still-kante: #454b56;
-    --kachel-richtig: #4a9d5b;
-    --kachel-vorhanden: #c3a13a;
+    --kachel-richtig: #e8702a;
+    --kachel-vorhanden: #3f8fe0;
     --kachel-falsch: #474b53;
     --kachel-rahmen: #3b4049;
     --kachel-rahmen-voll: #6b717c;
@@ -193,28 +197,19 @@
     --taste-schrift: #ffffff;
     --taste-aus: #22252b;
     --taste-aus-schrift: #6c727d;
-    --kachel-richtig-kante: #336f40;
-    --kachel-vorhanden-kante: #8a7020;
+    --kachel-richtig-kante: #b0501a;
+    --kachel-vorhanden-kante: #2a67a8;
     --kachel-falsch-kante: #30333a;
     --taste-kante: #373c46;
     --taste-aus-kante: #0f1114;
 }
 
 /*
- * FARBEN FÜR FARBENBLINDE (seit 0.6.0, Einstellungen → „Kacheln").
- * Grün und Gelb sind für die häufigste Farbschwäche (rot-grün) schwer
- * auseinanderzuhalten; Orange und Blau unterscheiden sich für sie deutlich
- * — dieselbe Wahl wie die „Kontrast"-Einstellung des Original-Wordle.
- * „Fehlt" bleibt grau. Hell und dunkel gleich; der Block steht NACH den
- * Dunkel-Blöcken, damit er beide überschreibt (gleiches Gewicht, später
- * gewinnt).
+ * Bis 0.6.1 stand hier der Block `data-farben="kontrast"` (Orange/Blau als
+ * Wahl für Farbenblinde). Seit 0.6.2 sind Orange/Blau die Farben ab Werk —
+ * sie sind zugleich für die häufigste Farbschwäche (rot-grün) gut
+ * auseinanderzuhalten, eine Wahl braucht es nicht mehr.
  */
-:root[data-farben="kontrast"] {
-    --kachel-richtig: #e8702a;
-    --kachel-richtig-kante: #b0501a;
-    --kachel-vorhanden: #3f8fe0;
-    --kachel-vorhanden-kante: #2a67a8;
-}
 
 * {
     box-sizing: border-box;

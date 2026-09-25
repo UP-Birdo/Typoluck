@@ -32,8 +32,8 @@
  * (`leisteBauen`, aus `starten`) und steht fest am unteren Rand — auf JEDEM
  * Bildschirm, auch im Spiel. Beim Wechsel wird nur neu markiert, welcher
  * Eintrag gerade gilt (`_leisteMarkieren`), sie selbst bleibt stehen.
- * Welche Einträge sie trägt, steht in `LEISTE` — der linke ist ein
- * Platzhalter (abgeschaltet), bis dort etwas hinkommt.
+ * Welche Einträge sie trägt, steht in `LEISTE` — links seit 0.7.0
+ * „Aufgaben" (bis 0.6.x ein abgeschalteter Platzhalter „Bald").
  *
  * DIE ZURÜCK-TASTE DES HANDYS gehört dazu: Jeder Wechsel legt einen Eintrag
  * in den Browser-Verlauf (history.pushState). Drückt man Zurück, kommt der
@@ -72,7 +72,10 @@ const NAVIGATION = {
      * `platzhalter` weg — sonst ändert sich nichts.
      */
     LEISTE: [
-        { text: "Bald", zeichen: "platzhalter", platzhalter: true },
+        /* Seit 0.7.0 (UPCrew-Runde 2) statt des Platzhalters „Bald":
+           Aufgaben = die Herausforderungen, gleich wie in Blunderluck.
+           Start bleibt immer in der Mitte. */
+        { id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben" },
         { id: "start", text: "Start", zeichen: "start", auchAktivBei: ["wordle"] },
         { id: "rangliste", text: "Rangliste", zeichen: "rangliste" }
     ],

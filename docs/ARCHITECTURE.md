@@ -22,6 +22,8 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\bausteine.js` | Oberfläche | Knopf, Karte, Kopfzeile, Segment, Zeichen — **die 3D-Naht** |
 | `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
 | `js\fuehlen.js` | Oberfläche | Vibration: tippen, erfolg, fehler; Schalter in den Einstellungen (seit 0.4.0, bis 0.4.0 im Profil) |
+| `js\upcrew-farbwelten.js` | Oberfläche | Die UPCrew-Farbwelten → Farb-Variablen an `<html>` (seit 0.7.0; gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; lädt mit `upcrew-intro.js` VOR `darstellung.js`) |
+| `js\darstellung.js` | Oberfläche | Hell/dunkel/Gerät, wendet die Farbwelt „werkstatt" an, Kachelfarben-Sperre (NYT-Look) |
 | `js\dialog.js` | Oberfläche | Eigene Dialoge und Kurzmeldung |
 | `js\navigation.js` | Oberfläche | Bildschirme, Menü hinter den drei Balken (seit 0.3.0 statt der Leiste unten), Zurück-Taste |
 | `js\anmeldung.js` | Bildschirm | Anmelde-Vollbild, Konto anlegen, Name/Passwort ändern |
@@ -29,10 +31,12 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\bildschirm-wordle.js` | Bildschirm | Brett, Tastatur, Aufdecken, Ende |
 | `js\bildschirm-rangliste.js` | Bildschirm | Heute / 7 Tage, Alle / Freunde |
 | `js\bildschirm-freunde.js` | Bildschirm | Anfragen, Freunde, Suche |
-| `js\bildschirm-profil.js` | Bildschirm | Statistik, Konto, Über Typoluck |
+| `js\bildschirm-profil.js` | Bildschirm | Spieler und Statistik |
+| `js\bildschirm-einstellungen.js` | Bildschirm | Wortspiel, dieses Gerät, UPCrew-Konto, Über Typoluck (seit 0.5.0) |
+| `js\bildschirm-herausforderungen.js` | Bildschirm | Tab „Aufgaben": vorerst Platzhalter „Kommt bald" (seit 0.7.0; Pfad und Inventar kommen in Runde 3) |
 | `js\wunsch.js` | Oberfläche | Wunsch-/Fehler-Knopf → GitHub-Formular |
 | `js\werkstatt.js` | Werkzeug | Testzustand für Bildschirmfotos (`?werkstatt`), sonst untätig |
-| `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro (gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; Stil `css\upcrew-intro.css`) |
+| `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro samt den Grundfarben der Farbwelten (gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; Stil `css\upcrew-intro.css`; lädt seit 0.7.0 früh, vor `darstellung.js`) |
 | `js\intro.js` | Oberfläche | Anpasser für Typoluck: bei jedem Start, hell/dunkel wie die App, Werkstatt-Schalter `&intro` |
 | `js\app.js` | Start | Verbindet alles, hält den eigenen Verlauf |
 | `css\stil.css` | Aussehen | Variablen (Farben, Tiefe, Ebenen), Knöpfe, Karten, Dialoge, Anmeldung |

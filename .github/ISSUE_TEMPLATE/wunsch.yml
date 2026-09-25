@@ -7,7 +7,7 @@ body:
       id: idee
       attributes:
           label: Was wünschst du dir?
-          placeholder: z. B. Ein Wordle mit sechs Buchstaben …
+          placeholder: z. B. Wörterraten mit sechs Buchstaben …
       validations:
           required: true
     - type: input

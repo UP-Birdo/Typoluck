@@ -1,7 +1,7 @@
 # Typoluck
 
-**Wortspiele mit Freunden.** Das erste Spiel ist Wordle auf Deutsch: jeden
-Tag ein neues Wort mit fünf Buchstaben, sechs Versuche. Das Tageswort ist für
+**Wortspiele mit Freunden.** Das erste Spiel ist Wordguesser, Wörterraten
+auf Deutsch: jeden Tag ein neues Wort mit fünf Buchstaben, sechs Versuche. Das Tageswort ist für
 alle gleich — wer löst es am schnellsten?
 
 **Spielen:** https://up-birdo.github.io/Typoluck/
@@ -32,7 +32,7 @@ für alle Spiele von UPCrew, mit denselben Freunden überall.
 
 ## Wunsch oder Fehler?
 
-Im Profil unter „Über Typoluck" auf **Wunsch oder Fehler melden** tippen.
+In den Einstellungen unter „Über Typoluck" auf **Wunsch oder Fehler melden** tippen.
 
 ## Technik
 

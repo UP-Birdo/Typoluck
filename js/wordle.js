@@ -34,6 +34,14 @@ const WORDLE_WOERTER = (typeof WOERTER_DE !== "undefined")
 
 const WORDLE = {
 
+    /* DER NAME, DEN DER SPIELER SIEHT — steht nur hier (seit 0.6.2).
+       „Wordle" ist eine Marke der New York Times und darf NIE sichtbar sein
+       (Nutzer-Entscheidung 25.09.2026, tests\test-syntax.js wacht darüber).
+       Die inneren Namen (WORDLE, "wordle" als Bildschirm-Id und als Pfad in
+       der Datenbank) bleiben: Sie sieht niemand, und die Pfade gehören zum
+       Datenvertrag. */
+    NAME: "Wordguesser",
+
     VERSUCHE: 6,
     LAENGE: 5,
 

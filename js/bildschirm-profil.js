@@ -64,7 +64,7 @@ const PROFIL_BILDSCHIRM = {
         }
         behaelter.appendChild(kopf);
 
-        const statistik = BAUSTEINE.karte("Wordle", "profil-statistik");
+        const statistik = BAUSTEINE.karte(WORDLE.NAME, "profil-statistik");
         statistik.id = "profil-statistik";
         PROFIL_BILDSCHIRM._statistikFuellen(statistik, id, eigenes);
         behaelter.appendChild(statistik);

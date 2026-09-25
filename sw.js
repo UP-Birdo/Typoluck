@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.6.1";
+const SPEICHER_NAME = "typoluck-v0.7.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -49,6 +49,8 @@ const DATEIEN = [
     "./js/spieler.js",
     "./js/ich.js",
     "./js/fuehlen.js",
+    "./js/upcrew-intro.js",
+    "./js/upcrew-farbwelten.js",
     "./js/darstellung.js",
     "./js/speicher.js",
     "./js/abgleich.js",
@@ -67,9 +69,9 @@ const DATEIEN = [
     "./js/bildschirm-freunde.js",
     "./js/bildschirm-profil.js",
     "./js/bildschirm-einstellungen.js",
+    "./js/bildschirm-herausforderungen.js",
     "./js/wunsch.js",
     "./js/werkstatt.js",
-    "./js/upcrew-intro.js",
     "./js/intro.js",
     "./js/app.js"
 ];

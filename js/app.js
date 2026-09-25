@@ -99,6 +99,7 @@ const APP = {
         FREUNDE_BILDSCHIRM.anmelden();
         EINSTELLUNGEN_BILDSCHIRM.anmelden();
         RANGLISTE_BILDSCHIRM.anmelden();
+        HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
         NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"));
 

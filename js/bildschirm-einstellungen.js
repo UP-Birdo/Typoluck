@@ -37,12 +37,13 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     },
 
     /*
-     * Wordle (seit 0.6.0): der Schwer-Modus. Gilt ab der nächsten Runde —
-     * eine angefangene bleibt, wie sie war (Begründung: js\wordle.js,
-     * „Der Schwer-Modus"). Gespeichert je Gerät wie die übrigen.
+     * Das Wortspiel (seit 0.6.0; Name seit 0.6.2 aus WORDLE.NAME): der
+     * Schwer-Modus. Gilt ab der nächsten Runde — eine angefangene bleibt,
+     * wie sie war (Begründung: js\wordle.js, „Der Schwer-Modus").
+     * Gespeichert je Gerät wie die übrigen.
      */
     _wordleBauen() {
-        const karte = BAUSTEINE.karte("Wordle");
+        const karte = BAUSTEINE.karte(WORDLE.NAME);
         karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("stern", "Schwer-Modus",
             BAUSTEINE.segment(
                 [{ wert: false, text: "Aus" }, { wert: true, text: "An" }],
@@ -75,18 +76,10 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                     NAVIGATION.auffrischen();
                 }, "Darstellung")));
 
-        /* Kachelfarben für Farbenblinde (seit 0.6.0). Die Wahl zeigt die
-           Farben selbst — zwei kleine Kacheln je Knopf wären schöner, aber
-           der Segment-Schalter trägt nur Text; die Wörter reichen. */
-        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("wordle", "Kacheln",
-            BAUSTEINE.segment(
-                [{ wert: false, text: "Grün/Gelb" }, { wert: true, text: "Orange/Blau" }],
-                DARSTELLUNG.kontrast(),
-                (wert) => {
-                    DARSTELLUNG.kontrastSetzen(wert);
-                    DARSTELLUNG.anwenden();
-                    NAVIGATION.auffrischen();
-                }, "Kachelfarben")));
+        /* Bis 0.6.1 stand hier der Schalter „Kacheln: Grün/Gelb –
+           Orange/Blau". Seit 0.6.2 gibt es kein Grün/Gelb mehr (NYT-Look,
+           js\darstellung.js „Kachelfarben-Sperre"); die Kacheln folgen
+           später den Farbpaketen, die man freischaltet. */
 
         karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("vibration", "Vibration",
             FUEHLEN.verfuegbar()

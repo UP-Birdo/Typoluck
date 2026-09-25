@@ -51,13 +51,8 @@ const INTRO = {
                 return "dunkel";
             }
         }
-        const gewaehlt = document.documentElement.dataset.darstellung;
-        if (gewaehlt === "hell" || gewaehlt === "dunkel") {
-            return gewaehlt;
-        }
-        const geraetHell = !!(window.matchMedia
-            && window.matchMedia("(prefers-color-scheme: light)").matches);
-        return geraetHell ? "hell" : "dunkel";
+        /* Seit 0.7.0 dieselbe Regel wie die Farbwelt (eine Stelle). */
+        return DARSTELLUNG.modus();
     },
 
     /* Zeigt das Intro im Behälter und liefert ein Versprechen, das nach dem

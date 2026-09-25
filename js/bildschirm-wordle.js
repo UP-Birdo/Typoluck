@@ -44,7 +44,7 @@ const WORDLE_BILDSCHIRM = {
     anmelden() {
         NAVIGATION.anmelden({
             id: "wordle",
-            titel: "Wordle",
+            titel: WORDLE.NAME,
             imMenue: false,
             zeigen: (behaelter, parameter) => WORDLE_BILDSCHIRM.zeigen(behaelter, parameter),
             verlassen: () => WORDLE_BILDSCHIRM.verlassen()
@@ -59,7 +59,7 @@ const WORDLE_BILDSCHIRM = {
         /* UP#Plus verwaltet nur und spielt nicht (seit v0.2.0). */
         if (typeof ANMELDUNG !== "undefined" && ANMELDUNG.istOberAdmin && ANMELDUNG.istOberAdmin()) {
             behaelter.innerHTML = "";
-            behaelter.appendChild(BAUSTEINE.kopfzeile("Wordle", { zurueck: () => NAVIGATION.zurueck() }));
+            behaelter.appendChild(BAUSTEINE.kopfzeile(WORDLE.NAME, { zurueck: () => NAVIGATION.zurueck() }));
             behaelter.appendChild(ZUSTAND.leer({ zeichen: "zahnrad", text: "UP#Plus spielt nicht" }));
             return;
         }

@@ -36,8 +36,8 @@ if (-not (Test-Path -LiteralPath $zielOrdner)) {
 # ---------------------------------------------------------------------
 
 $violett = [System.Drawing.ColorTranslator]::FromHtml("#5b3cc4")
-$gruen   = [System.Drawing.ColorTranslator]::FromHtml("#3f8f4f")
-$gelb    = [System.Drawing.ColorTranslator]::FromHtml("#e0b52c")
+$orange  = [System.Drawing.ColorTranslator]::FromHtml("#e8702a")
+$blau    = [System.Drawing.ColorTranslator]::FromHtml("#3f8fe0")
 $weiss   = [System.Drawing.Color]::White
 
 # Abgerundetes Rechteck als Zeichenpfad (x, y, Breite, Hoehe, Radius).
@@ -70,9 +70,9 @@ function New-Icon {
     $g.FillPath($pinsel, $grund)
     $pinsel.Dispose()
 
-    # Gruene Kachel
+    # Orange Kachel (seit 0.6.2; bis 0.6.1 gruen - NYT-Look, siehe icon.svg)
     $kachel = New-RundesRechteck -X (96 * $m) -Y (160 * $m) -B (256 * $m) -H (256 * $m) -R (36 * $m)
-    $pinsel = New-Object System.Drawing.SolidBrush($gruen)
+    $pinsel = New-Object System.Drawing.SolidBrush($orange)
     $g.FillPath($pinsel, $kachel)
     $pinsel.Dispose()
 
@@ -82,9 +82,9 @@ function New-Icon {
     $g.FillRectangle($pinsel, [single](202 * $m), [single](212 * $m), [single](44 * $m), [single](160 * $m))
     $pinsel.Dispose()
 
-    # Gelbe Kachel mit violettem Rand (der Rand trennt sie von der gruenen)
+    # Blaue Kachel mit violettem Rand (der Rand trennt sie von der orangen)
     $klein = New-RundesRechteck -X (312 * $m) -Y (88 * $m) -B (104 * $m) -H (104 * $m) -R (22 * $m)
-    $pinsel = New-Object System.Drawing.SolidBrush($gelb)
+    $pinsel = New-Object System.Drawing.SolidBrush($blau)
     $g.FillPath($pinsel, $klein)
     $pinsel.Dispose()
     $stift = New-Object System.Drawing.Pen($violett, [single](12 * $m))

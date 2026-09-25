@@ -3,6 +3,38 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.7.0 — 26.09.2026
+
+**Werkstatt-Farben, Kopfzeile wie in Blunderluck, und der Tab „Aufgaben".**
+
+- **Neue Farben:** Die ganze App trägt jetzt die UPCrew-Farbwelt
+  „Werkstatt" — Orange als Hauptfarbe statt Blau, warme Grautöne. Hell und
+  dunkel; wechselt das Handy zwischen hell und dunkel, zieht die App mit.
+  Die Kacheln bleiben Orange/Blau.
+- **Oben links dein Kurzprofil:** Kreis, Name und „Serie · % gelöst". Ein
+  Tipp öffnet dein Profil. Rechts die drei Balken wie bisher. Der
+  Schriftzug „Typoluck" oben ist weg — wie in Blunderluck.
+- **Neu: „Aufgaben" in der Leiste unten** (statt „Bald"). Dort kommen bald
+  die Herausforderungen durch beide Spiele hin; heute steht dort, dass es
+  bald kommt.
+- Das Studio-Intro hat eine Reparatur an Art B bekommen.
+
+## 0.6.2 — 25.09.2026
+
+**Das Wortspiel heisst jetzt Wordguesser, die Kacheln sind Orange und Blau.**
+
+- Neuer Name für das Wortspiel: **Wordguesser** (auf dem Start, in den
+  Einstellungen, im Profil).
+- Die Kacheln sind jetzt **Orange** (richtig) und **Blau** (woanders im
+  Wort) statt Grün und Gelb. „Fehlt" ist ein etwas dunkleres Grau. Das
+  App-Zeichen hat dieselben Farben.
+- Der Schalter „Kacheln Grün/Gelb – Orange/Blau" in den Einstellungen ist
+  weg: Orange und Blau sind jetzt der Standard und auch bei Rot-Grün-Schwäche
+  gut zu unterscheiden. Später richten sich die Kacheln nach den
+  Farbpaketen, die man freischalten kann.
+- Warum: Name und Farben lehnten sich an ein bekanntes Spiel der New York
+  Times an, die gegen solche Nachbauten vorgeht.
+
 ## 0.6.1 — 25.09.2026
 
 **Das neue UPCrew-Studio-Intro.**

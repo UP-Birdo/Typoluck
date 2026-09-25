@@ -25,7 +25,7 @@ const START = {
     SPIELE: [
         {
             id: "wordle",
-            name: "Wordle",
+            name: WORDLE.NAME,
             zeichen: "wordle",
             beschreibung: "5 Buchstaben · 6 Versuche",
             tagesName() {
@@ -65,25 +65,17 @@ const START = {
         const ich = ANMELDUNG.ich();
         const name = ich ? ich.name : (ICH.person() ? ICH.person().name : "");
 
+        /* DIE KOPFZEILE WIE IN BLUNDERLUCK (seit 0.7.0, UPCrew-Runde 2;
+           Vorbild dort `START._kurzprofilBauen` / `_menuebandBauen` in
+           js\start.js): links das Kurzprofil, rechts der Drei-Balken-Knopf
+           mit Profil, Freunde und Einstellungen. Der Schriftzug „Typoluck"
+           oben ist weg (Nutzer-Entscheidung 26.09.2026) — bis 0.6.x stand
+           er links, der Namens-Kreis rechts neben den Balken. */
         const kopf = BAUSTEINE.el("header", "start-kopf");
-        /* Nur der Name der App — keine Begrüßung (UPCrew-Standard, seit
-           0.4.0; bis 0.3.0 stand hier „Hallo …!"). Wer angemeldet ist, zeigt
-           der Namens-Kreis rechts. */
-        const marke = BAUSTEINE.el("div", "start-marke");
-        marke.appendChild(BAUSTEINE.el("span", "start-logo", "Typoluck"));
-        kopf.appendChild(marke);
-
-        /* Oben rechts: der Namens-Kreis (führt direkt ins Profil) und das
-           Menü hinter den drei Balken (seit 0.3.0, wie in Blunderluck) mit
-           Profil, Freunde und seit 0.5.0 Einstellungen — zwei Wege zum
-           Profil. Die Rangliste liegt seit 0.5.0 in der Leiste unten. */
+        if (name) {
+            kopf.appendChild(START._kurzprofilBauen(ich, name));
+        }
         const rechts = BAUSTEINE.el("div", "start-kopf-rechts");
-        const profilKnopf = BAUSTEINE.knopf({
-            art: "flach", titel: "Dein Profil",
-            beiKlick: () => NAVIGATION.zeigen("profil", null)
-        });
-        profilKnopf.appendChild(BAUSTEINE.kreis(name));
-        rechts.appendChild(profilKnopf);
         rechts.appendChild(NAVIGATION.menueBauen());
         kopf.appendChild(rechts);
         behaelter.appendChild(kopf);
@@ -94,6 +86,34 @@ const START = {
 
         behaelter.appendChild(START._freundeKarteBauen());
         START._freundeLaden();
+    },
+
+    /*
+     * Das Kurzprofil oben links (seit 0.7.0): Kreis mit Anfangsbuchstabe,
+     * Name, darunter „Serie 4 · 83 % gelöst". Ein Tipp öffnet das eigene
+     * Profil. Die Zahlen rechnet RANGLISTE.statistik — dieselbe Zählung wie
+     * auf der Profilseite, aus dem eigenen Verlauf samt noch nicht
+     * gesendeter Ergebnisse. Ohne Konto (nur Gerät bekannt) steht nur der
+     * Name da.
+     */
+    _kurzprofilBauen(ich, name) {
+        const knopf = BAUSTEINE.knopf({
+            art: "flach", titel: "Dein Profil",
+            beiKlick: () => NAVIGATION.zeigen("profil", null)
+        });
+        knopf.classList.add("start-profil");
+        knopf.appendChild(BAUSTEINE.kreis(name));
+
+        const texte = BAUSTEINE.el("span", "start-profil-texte");
+        texte.appendChild(BAUSTEINE.el("span", "start-profil-name", name));
+        if (ich) {
+            const verlauf = ERGEBNISSE.verlaufMitAusstehendem(APP.eigenerVerlauf, ich.id);
+            const werte = RANGLISTE.statistik(verlauf, WORDLE.datumText(APP.jetzt()));
+            texte.appendChild(BAUSTEINE.el("span", "start-profil-werte",
+                "Serie " + werte.serie + " · " + werte.quote + " % gelöst"));
+        }
+        knopf.appendChild(texte);
+        return knopf;
     },
 
     _spielKachelBauen(spiel) {
