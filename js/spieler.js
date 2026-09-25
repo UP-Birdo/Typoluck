@@ -243,6 +243,30 @@ const SPIELER = {
         });
     },
 
+    /* Einen fertigen Eintrag einsetzen (seit v0.2.0, UPCrew-Konto): Gibt es
+       die Kennung schon, wird ersetzt, sonst angehängt. Konto-Nummer und
+       Anmelde-Kennung (`uid`, `kennung`) wandern als fremde Felder durch. */
+    eintragEinsetzen(daten, eintrag, zeitpunkt) {
+        const neu = SPIELER.kopieren(daten);
+        const sauber = SPIELER.normalisieren({ spieler: [eintrag] }).spieler[0];
+        if (!sauber) {
+            return neu;
+        }
+        const stelle = neu.spieler.findIndex((spieler) => spieler.id === sauber.id);
+        if (stelle === -1) {
+            neu.spieler.push(sauber);
+        } else {
+            neu.spieler[stelle] = sauber;
+        }
+        return SPIELER._gestempelt(neu, zeitpunkt);
+    },
+
+    spielerEntfernen(daten, id, zeitpunkt) {
+        const neu = SPIELER.kopieren(daten);
+        neu.spieler = neu.spieler.filter((spieler) => spieler.id !== id);
+        return SPIELER._gestempelt(neu, zeitpunkt);
+    },
+
     /* ---------------------------------------------------------------- *
      * Zusammenführen — der Schutz gegen gegenseitiges Überschreiben
      *

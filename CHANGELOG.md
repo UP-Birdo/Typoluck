@@ -3,6 +3,23 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.2.0 — 2026-09-25
+
+- **Name mit Nummer:** Jeder bekommt seine eigene Nummer, zum Beispiel
+  Mia#4821. Angemeldet wird mit Name#Nummer. Namen nur aus Buchstaben und
+  Ziffern, Symbole verschwinden beim Tippen.
+- **Sicheres Passwort:** 8 bis 12 Zeichen, mit Gross- und Kleinbuchstaben,
+  Ziffer und Sonderzeichen. Es prüft jetzt Firebase (Google); in der
+  Datenbank steht es nicht mehr, auch nicht als Prüfsumme. Keine E-Mail,
+  kein Google-Konto.
+- **Als Gast spielen:** ohne Konto, an dein Gerät gebunden. Im Profil (und
+  hin und wieder als Frage) kannst du deinen Spielstand sichern.
+- **Jeder schreibt nur sich selbst:** Die Datenbank lässt jedes Konto nur
+  seinen eigenen Eintrag ändern.
+- **UPCrew-Konto löschen** im Profil, mit Rückfrage und Passwort.
+- **Passwort vergessen?** Ein Admin gibt dein Konto zum Neu-Verbinden frei;
+  dann legst du beim Anmelden ein neues Passwort fest.
+
 ## 0.1.1 — 2026-09-25
 
 - **Knöpfe zum Drücken:** Knöpfe, Tasten und Buchstaben-Kacheln haben jetzt

@@ -100,7 +100,8 @@ const FREUNDE_BILDSCHIRM = {
             const daten = ANMELDUNG.abgleich.daten;
             const gefunden = SPIELER.normalisieren(daten).spieler.filter((anderer) =>
                 anderer.id !== ich.id && anderer.name
-                && anderer.name.toLowerCase().indexOf(gesucht) !== -1
+                && ANMELDUNG.anzeigeName(anderer).toLowerCase().indexOf(gesucht) !== -1
+                && !(KONTO.aktiv() && KONTO.istOberAdmin(daten, anderer.uid))
                 && SPIELER.freundschaft(daten, ich.id, anderer.id) === "keine").slice(0, 20);
 
             if (gefunden.length === 0) {
@@ -129,7 +130,7 @@ const FREUNDE_BILDSCHIRM = {
         name.type = "button";
         name.className = "freunde-name";
         name.appendChild(BAUSTEINE.kreis(spieler.name));
-        name.appendChild(BAUSTEINE.el("span", null, spieler.name));
+        name.appendChild(BAUSTEINE.el("span", null, ANMELDUNG.anzeigeName(spieler)));
         name.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: spieler.id }));
         zeile.appendChild(name);
 
@@ -159,10 +160,10 @@ const FREUNDE_BILDSCHIRM = {
         }
         ANMELDUNG.abgleich.aendern(neu);
         DIALOG.kurzmeldung({
-            anfragen: "Anfrage an " + anderer.name + " gesendet",
-            annehmen: "Du und " + anderer.name + " seid jetzt Freunde",
+            anfragen: "Anfrage an " + ANMELDUNG.anzeigeName(anderer) + " gesendet",
+            annehmen: "Du und " + ANMELDUNG.anzeigeName(anderer) + " seid jetzt Freunde",
             ablehnen: "Anfrage abgelehnt",
-            entfernen: anderer.name + " entfernt",
+            entfernen: ANMELDUNG.anzeigeName(anderer) + " entfernt",
             zurueckziehen: "Anfrage zurückgezogen"
         }[aktion]);
     }

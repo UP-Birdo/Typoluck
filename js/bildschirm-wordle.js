@@ -52,6 +52,13 @@ const WORDLE_BILDSCHIRM = {
      * ---------------------------------------------------------------- */
 
     zeigen(behaelter, parameter) {
+        /* UP#Plus verwaltet nur und spielt nicht (seit v0.2.0). */
+        if (typeof ANMELDUNG !== "undefined" && ANMELDUNG.istOberAdmin && ANMELDUNG.istOberAdmin()) {
+            behaelter.innerHTML = "";
+            behaelter.appendChild(BAUSTEINE.erklaerung("Mit dem Verwaltungskonto UP#Plus "
+                + "kann man nicht spielen. Melde dich zum Spielen mit deinem Spieler-Konto an."));
+            return;
+        }
         const modus = (parameter && parameter.modus === "uebung") ? "uebung" : "tag";
         WORDLE_BILDSCHIRM._behaelter = behaelter;
         WORDLE_BILDSCHIRM.eingabe = "";

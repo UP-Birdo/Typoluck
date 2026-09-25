@@ -54,7 +54,7 @@ const PROFIL_BILDSCHIRM = {
 
         const kopf = BAUSTEINE.karte(null, "profil-kopf");
         kopf.appendChild(BAUSTEINE.kreis(spieler.name, "namens-kreis-gross"));
-        kopf.appendChild(BAUSTEINE.el("h2", "profil-name", spieler.name));
+        kopf.appendChild(BAUSTEINE.el("h2", "profil-name", ANMELDUNG.anzeigeName(spieler)));
         if (!eigenes && ich) {
             kopf.appendChild(PROFIL_BILDSCHIRM._freundschaftBauen(ich, spieler));
         }
@@ -160,12 +160,23 @@ const PROFIL_BILDSCHIRM = {
         karte.appendChild(BAUSTEINE.erklaerung("Dein Konto gilt in allen Spielen von UPCrew — "
             + "mit demselben Namen, Passwort und denselben Freunden."));
         const reihe = BAUSTEINE.el("div", "knopf-spalte");
+        /* Ein Gast (seit v0.2.0) sichert hier seinen Spielstand. */
+        if (ANMELDUNG.istGast()) {
+            reihe.appendChild(BAUSTEINE.knopf({ text: "Spielstand sichern", art: "haupt", breit: true,
+                beiKlick: () => ANMELDUNG.gastSichernOeffnen() }));
+        }
         reihe.appendChild(BAUSTEINE.knopf({ text: "Name ändern", art: "still", breit: true,
             beiKlick: () => ANMELDUNG.nameAendern() }));
         reihe.appendChild(BAUSTEINE.knopf({ text: "Passwort ändern", art: "still", breit: true,
             beiKlick: () => ANMELDUNG.passwortAendern() }));
         reihe.appendChild(BAUSTEINE.knopf({ text: "Abmelden", art: "gefahr", breit: true,
             beiKlick: () => ANMELDUNG.abmelden(false) }));
+        /* Seit v0.2.0 (Nutzer 25.09.2026): das Konto selbst löschen — gilt
+           für alle Spiele von UPCrew, die Rückfrage stellt die Anmeldung. */
+        if (KONTO.aktiv()) {
+            reihe.appendChild(BAUSTEINE.knopf({ text: "UPCrew-Konto löschen", art: "gefahr",
+                breit: true, beiKlick: () => ANMELDUNG.kontoLoeschen() }));
+        }
         karte.appendChild(reihe);
         return karte;
     },

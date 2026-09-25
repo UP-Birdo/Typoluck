@@ -56,8 +56,25 @@ const APP = {
             WERKSTATT.vorbereiten();
         }
         const erzwungen = werkstatt ? "lokal" : null;
+
+        /* Das UPCrew-Konto (seit v0.2.0, js\konto.js) — nie in der Werkstatt,
+           die immer lokal spielt. Jede Anfrage an die Datenbank trägt den
+           Anmelde-Schlüssel; die Regeln lassen nur angemeldete Konten
+           schreiben, und jedes nur seinen eigenen Eintrag. */
+        if (!werkstatt) {
+            KONTO.einrichten(KONFIG);
+        }
+        if (KONTO.aktiv()) {
+            SpeicherGemeinsam.tokenGeber = () => KONTO.token();
+            KONTO.beiVerloren = () => ANMELDUNG.sitzungVerloren();
+        }
+
         const spieler = speicherErzeugen(KONFIG.speicher, KONFIG.speicher.spielerPfad,
-            KONFIG.speicher.lokalerSchluesselSpieler, erzwungen);
+            KONFIG.speicher.lokalerSchluesselSpieler, erzwungen,
+            KONTO.aktiv() ? {
+                eigeneUid: () => KONTO.uid(),
+                aufbereiten: (roh) => SPIELER.normalisieren(roh)
+            } : null);
         const spiel = speicherErzeugen(KONFIG.speicher, KONFIG.speicher.spielPfad,
             KONFIG.speicher.lokalerSchluesselSpiel, erzwungen);
         APP.spielerSpeicher = spieler.speicher;
@@ -139,6 +156,9 @@ const APP = {
                 : nachgereicht.gesendet + " Ergebnisse nachgereicht");
         }
         await APP._eigenenVerlaufLaden();
+
+        /* Ein Gast wird hin und wieder gefragt, ob er sichern will (v0.2.0). */
+        await ANMELDUNG.gastErinnern();
     },
 
     async _eigenenVerlaufLaden() {

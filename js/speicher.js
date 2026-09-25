@@ -179,6 +179,23 @@ class SpeicherGemeinsam {
     }
 
     async _rufen(adresse, einstellungen, zeitlimit, was) {
+        /* Der Anmelde-Schlüssel des UPCrew-Kontos (seit v0.2.0,
+           js\konto.js): Die Regeln lassen nur angemeldete Konten schreiben.
+           Geholt VOR dem Zeitlimit; ohne Schlüssel geht die Anfrage trotzdem
+           hinaus — lesen darf jeder. */
+        if (typeof SpeicherGemeinsam.tokenGeber === "function") {
+            let token = null;
+            try {
+                token = await SpeicherGemeinsam.tokenGeber();
+            } catch (fehler) {
+                token = null;
+            }
+            if (token) {
+                adresse += (adresse.indexOf("?") === -1 ? "?" : "&")
+                    + "auth=" + encodeURIComponent(token);
+            }
+        }
+
         if (typeof AbortController === "undefined") {
             return fetch(adresse, einstellungen);
         }
@@ -201,6 +218,112 @@ SpeicherGemeinsam.ZEITLIMIT_LADEN_MS = 8000;
 SpeicherGemeinsam.ZEITLIMIT_SPEICHERN_MS = 12000;
 SpeicherGemeinsam.ZEITLIMIT_MARKE_MS = 800;
 
+/* Woher der Anmelde-Schlüssel kommt (`KONTO.token`, von app.js gesetzt). */
+SpeicherGemeinsam.tokenGeber = null;
+
+/* ------------------------------------------------------------------ *
+ * Rückwand 3: die UPCrew-Konten (seit v0.2.0)
+ *
+ * Seit der Anmeldung über Firebase hat jedes Konto seinen EIGENEN Knoten —
+ * nur so können die Regeln sagen „jeder schreibt nur sich selbst":
+ *
+ *     spieler/
+ *         geaendertAm: 1750000000000        (die Marke, wie bisher)
+ *         konten/
+ *             <uid>: { id, name, uid, kennung, freunde, abgelehnt, … }
+ *
+ * Nach aussen bleibt alles wie vorher: `laden` liefert die gewohnte Liste
+ * `{ geaendertAm, spieler: [ … ] }`, `speichern` schreibt aus ihr NUR den
+ * eigenen Eintrag — und nur, wenn er sich gegenüber dem Server geändert
+ * hat. Passwort-Prüfsummen schreibt diese Rückwand nie; die Regeln lehnen
+ * sie ab. Dieselbe Form wie in Blunderluck (js\speicher.js dort).
+ * ------------------------------------------------------------------ */
+
+class SpeicherKonten extends SpeicherGemeinsam {
+
+    /* `eigeneUid()` liefert die Konto-Nummer dieses Geräts oder null,
+       `aufbereiten` bringt eine Liste in Form (SPIELER.normalisieren). */
+    constructor(basis, pfad, eigeneUid, aufbereiten) {
+        super(basis, pfad);
+        this.eigeneUid = eigeneUid;
+        this.aufbereiten = aufbereiten || ((daten) => daten);
+        this.zuletzt = null;
+    }
+
+    static alsListe(roh) {
+        if (!roh || typeof roh !== "object") {
+            return null;
+        }
+        const stand = {};
+        for (const schluessel of Object.keys(roh)) {
+            if (schluessel !== "konten") {
+                stand[schluessel] = roh[schluessel];
+            }
+        }
+        const konten = (roh.konten && typeof roh.konten === "object") ? roh.konten : {};
+        stand.spieler = Object.keys(konten).sort()
+            .filter((uid) => konten[uid] && typeof konten[uid] === "object")
+            .map((uid) => Object.assign({}, konten[uid], { uid: uid }));
+        return stand;
+    }
+
+    static eintragFuerServer(spieler) {
+        const eintrag = JSON.parse(JSON.stringify(spieler));
+        delete eintrag.pinPruefwert;
+        delete eintrag.pinSalz;
+        return eintrag;
+    }
+
+    async laden() {
+        const liste = SpeicherKonten.alsListe(await this.teilLaden(""));
+        this._merken(liste ? this.aufbereiten(liste) : null);
+        return liste;
+    }
+
+    _eigener(daten) {
+        const uid = this.eigeneUid ? this.eigeneUid() : null;
+        if (!uid || !daten || !Array.isArray(daten.spieler)) {
+            return null;
+        }
+        return daten.spieler.find((spieler) => spieler.uid === uid) || null;
+    }
+
+    _merken(daten) {
+        const eigener = this._eigener(daten);
+        this.zuletzt = eigener ? JSON.stringify(SpeicherKonten.eintragFuerServer(eigener)) : null;
+    }
+
+    async speichern(daten) {
+        const eigener = this._eigener(this.aufbereiten(daten));
+        if (!eigener) {
+            return;
+        }
+        const eintrag = SpeicherKonten.eintragFuerServer(eigener);
+        const text = JSON.stringify(eintrag);
+        if (text === this.zuletzt) {
+            return;
+        }
+        const aenderungen = { geaendertAm: Date.now() };
+        aenderungen["konten/" + eigener.uid] = eintrag;
+        await this.teilSchreiben(aenderungen);
+        this.zuletzt = text;
+    }
+
+    /* Einen Eintrag gezielt setzen oder mit `null` löschen (Konto löschen,
+       Neu-Verbinden); `weitere` sind zusätzliche Knoten im selben Schritt. */
+    async eintragSetzen(uid, eintrag, weitere) {
+        const aenderungen = Object.assign({}, weitere || {});
+        aenderungen["konten/" + uid] = (eintrag === null)
+            ? null : SpeicherKonten.eintragFuerServer(eintrag);
+        aenderungen.geaendertAm = Date.now();
+        await this.teilSchreiben(aenderungen);
+        if (this.eigeneUid && uid === this.eigeneUid()) {
+            this.zuletzt = (eintrag === null)
+                ? null : JSON.stringify(SpeicherKonten.eintragFuerServer(eintrag));
+        }
+    }
+}
+
 /* ------------------------------------------------------------------ *
  * Auswahl der Rückwand
  * ------------------------------------------------------------------ */
@@ -210,7 +333,7 @@ SpeicherGemeinsam.ZEITLIMIT_MARKE_MS = 800;
  * eingestellt läuft — sonst nennt er den Grund für den Rückfall auf lokal.
  * `modusErzwingen` ("lokal") setzt die Werkstatt (js\werkstatt.js).
  */
-function speicherErzeugen(einstellung, pfad, lokalerSchluessel, modusErzwingen) {
+function speicherErzeugen(einstellung, pfad, lokalerSchluessel, modusErzwingen, konten) {
     const modus = modusErzwingen || einstellung.modus;
 
     if (modus === "gemeinsam") {
@@ -220,11 +343,20 @@ function speicherErzeugen(einstellung, pfad, lokalerSchluessel, modusErzwingen) 
                 hinweis: "In js\\konfig.js fehlt die Datenbank-Adresse. Es wird nur auf diesem Gerät gespeichert."
             };
         }
+        /* Die Spielerliste mit UPCrew-Konten (seit v0.2.0): `konten` =
+           { eigeneUid, aufbereiten }. */
+        if (konten) {
+            return {
+                speicher: new SpeicherKonten(einstellung.firebaseBasis, pfad,
+                    konten.eigeneUid, konten.aufbereiten),
+                hinweis: ""
+            };
+        }
         return { speicher: new SpeicherGemeinsam(einstellung.firebaseBasis, pfad), hinweis: "" };
     }
     return { speicher: new SpeicherLokal(lokalerSchluessel), hinweis: "" };
 }
 
 if (typeof module !== "undefined" && module.exports) {
-    module.exports = { SpeicherLokal, SpeicherGemeinsam, speicherErzeugen };
+    module.exports = { SpeicherLokal, SpeicherGemeinsam, SpeicherKonten, speicherErzeugen };
 }

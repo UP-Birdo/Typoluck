@@ -15,7 +15,7 @@ const KONFIG = {
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird im Profil unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.1.1",
+    APP_VERSION: "0.2.0",
 
     speicher: {
 
@@ -68,6 +68,22 @@ const KONFIG = {
            Schlüssel dürfen sich nie treffen. */
         lokalerSchluesselSpieler: "typoluck.spieler",
         lokalerSchluesselSpiel: "typoluck.spiel"
+    },
+
+    /*
+     * DAS UPCREW-KONTO (seit v0.2.0, js\konto.js): Anmeldung über Firebase
+     * Authentication, Projekt UPCrew. Beide Werte sind KEIN Geheimnis — sie
+     * stehen bei jeder Firebase-Web-App im Quelltext; geschützt wird über
+     * die Datenbank-Regeln. Eingetragen vom Nutzer am 25.09.2026, dieselben
+     * wie in jedem UPCrew-Spiel.
+     */
+    konto: {
+        apiKey: "AIzaSyC-oWrTMnUaUbb7Sb14TvzfdYcRIOIYcmU",
+        appId: "1:355067454774:web:c97aeb6b21445897a53f97",
+
+        /* Die erfundene Adresse `<kennung>@<domain>` — nie zustellbar, ohne
+           Namen. In jedem UPCrew-Spiel gleich und UNANTASTBAR. */
+        domain: "konten.upcrew.invalid"
     }
 };
 
