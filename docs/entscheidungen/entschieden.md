@@ -2,6 +2,65 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## UPCrew-Standard, erster Schritt (25.09.2026, 0.4.0)
+
+Auftrag: „setz den UPCrew-Standard um" (`..\..\UPCrew-STANDARD.md`,
+festgelegt mit dem Nutzer). Typoluck ist die erste der drei Apps.
+
+- **Was gebaut ist und warum so:** Zustände und Vibration als je EIN
+  Baustein, damit keine Stelle eigene Texte oder Muster erfindet; beide
+  liefern bzw. tun nichts, wo das Gerät es nicht kann. Die Rundungswerte
+  (8 / 14 / 999 px) hat diese Runde festgelegt: 14 px ist schon die
+  Rundung des UPCrew-Zeichens, so passen Intro und App zusammen.
+- **Die Spielregel als Bild:** drei Kacheln wie auf dem Brett (derselbe
+  Baustein `_kachelBauen`), dazu die Punkte-Tafel aus `RANGLISTE.punkte` —
+  kein Absatz. `RANGLISTE.ERKLAERUNG` bleibt als Vorlesetext der Tafel.
+- **Bewusst NICHT in dieser Runde:** (1) die Schrift — der Nutzer wählt nach
+  Bild, und die Dateien kann nur er holen (die Schranke lässt Claude nicht
+  ins Netz); vorbereitet ist `--schrift-familie`. (2) Der iPhone-Umweg für
+  die Vibration — der Standard verlangt erst eine Messung auf dem Gerät.
+  (3) Die Sätze in den Anmelde-Abläufen (Passwortregeln, Fehler beim
+  Anmelden): Ein Teil kommt aus `js\konto.js`, das mit Blunderluck gleich
+  bleiben muss; nur die Begrüßungen sind schon raus. (4) Das Markenzeichen
+  — Nutzer-Entscheidung nach Bild.
+
+## Blunderlucks Farben, Drei-Balken-Menü, antippbare Felder (25.09.2026, 0.3.0)
+
+Drei Nutzer-Wünsche in einer Nachricht, in EINE Version gebündelt.
+
+- **Farben:** „hinter der Crew-Anmeldung dieselbe Farbpalette wie
+  Blunderluck, statt Pink und Lila Blau". Die Grundfarben sind 1:1 aus
+  Blunderlucks `stil.css`; was Blunderluck nicht hat (Kanten, Kacheln,
+  Tasten), ist daraus abgeleitet. **Löst „Violett als Akzentfarbe" (unten)
+  ab.** „Hinter der Anmeldung" wurde wörtlich genommen: Die Anmeldung
+  bleibt UPCrew-violett, weil sie dem Studio gehört und das Intro ebenfalls
+  violett ist. Soll auch sie blau werden, genügt es, die Farbblöcke von
+  `.anmeldung` in `css\stil.css` zu löschen. **Das App-Zeichen (`icon.svg`,
+  `icons\`) ist noch violett** — Nutzer-Frage, siehe `offen-und-abgelehnt.md`.
+- **Menü:** „so wie bei Blunderluck Freunde und Profil in drei Balken
+  Menü". Die Leiste unten ist ersatzlos weg; ein Knopf mit drei Balken
+  oben rechts auf dem Start öffnet Profil, Freunde, Rangliste (Reihenfolge
+  wie Blunderluck: Profil zuerst). Die drei Seiten bekamen „Zurück", und
+  die Wege dorthin legen jetzt einen Verlaufseintrag an (vorher ersetzten
+  sie ihn, weil die Leiste Tabs waren) — sonst führte „Zurück" aus der App
+  heraus. Nachgebaut, nicht geteilt: Typoluck baut jeden Knopf in
+  `BAUSTEINE.knopf`, Blunderluck nicht. Ein offenes Menü bleibt beim
+  Neuzeichnen nach neuen Daten offen.
+- **Felder antippen:** „auf die Felder klicken in der Zeile, wo man gerade
+  schreiben soll, dass man schon vor-eintragen kann". Die Eingabe sind fünf
+  Felder mit Markierung; die Regeln (wohin die Markierung springt, was
+  Löschen tut) stehen im Modell `js\wordle.js` und sind getestet. Wer der
+  Reihe nach tippt, merkt keinen Unterschied. Lücken sind erlaubt; mit
+  Lücke sagt „Prüfen" wie bisher „Zu wenig Buchstaben".
+
+## UP#Plus ist in allen UPCrew-Spielen nur Rollen-Verteiler (25.09.2026, 0.2.1)
+
+Nutzer: keine Rangliste, keine Suche, keine Freunde, keine Anfragen —
+„in allen UPCrew-Games soll das so sein". In der Datenschicht umgesetzt
+(`SPIELER.istVerteiler`, `SPIELER.mitspieler`, `freundschaft`,
+`freundHinzufuegen`), gleich wie Blunderluck v0.139.0. Begründung dort:
+`Apps\Blunderluck\docs\entscheidungen\entschieden.md`.
+
 ## Name: Typoluck (24.09.2026, Nutzer)
 
 Aus mehreren Vorschlägen gewählt. „Typo" (Tippfehler) steht neben „Blunder"
@@ -90,10 +149,12 @@ nichts (sonst übte man sich in der Rangliste nach oben). Die Rangliste zeigt
 Heute und die letzten 7 Tage — eine Gesamtwertung würde mit der Zeit Neue
 chancenlos lassen.
 
-## Violett als Akzentfarbe (24.09.2026)
+## Violett als Akzentfarbe (24.09.2026) — ABGELÖST durch 0.3.0
 
 Grün und Gelb sind Spielbedeutungen, Rot ist Gefahr, Blau gehört
 Blunderluck. Violett ist frei und macht die Schwester-App erkennbar eigen.
+**Seit 0.3.0 überholt:** Der Nutzer will Blunderlucks Blau (Eintrag oben);
+Violett bleibt nur der Anmeldung und dem Intro.
 
 ## 2D zuerst, 3D angedockt statt vorgebaut (24.09.2026, Nutzer-Ansage)
 

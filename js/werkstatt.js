@@ -21,6 +21,13 @@
  *     &datum=2026-09-24                so tun, als wäre heute dieser Tag
  *     &anmeldung                       NICHT angemeldet (Anmelde-Vollbild)
  *     &dunkel                          dunkle Darstellung erzwingen
+ *     &menue                           das Menü hinter den drei Balken
+ *                                      offen zeigen (seit 0.3.0, Start)
+ *     &felder=.a..e&stelle=2           beim Bildschirm wordle: die Zeile,
+ *                                      in die getippt wird, vorbelegt
+ *                                      („." = leer) und Feld 3 markiert
+ *     &regel                           beim Bildschirm wordle: die
+ *                                      Spielregel offen (seit 0.4.0)
  *
  * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
  * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
@@ -129,6 +136,30 @@ const WERKSTATT = {
             return null;
         }
         return { id: id, parameter: { modus: WERKSTATT.wert("modus") || "tag" } };
+    },
+
+    /* Nach dem ersten Zeigen: Zustände, die man sonst nur mit einem Tipp
+       erreicht (offenes Menü, vorgetippte Felder). Geht über dieselben
+       Wege wie ein echter Tipp — Modell und Navigation. */
+    nachDemZeigen() {
+        if (WERKSTATT._parameter().has("menue")) {
+            NAVIGATION._menueOeffnen();
+        }
+        if (WERKSTATT._parameter().has("regel") && NAVIGATION.aktuell === "wordle") {
+            WORDLE_BILDSCHIRM._anleitungZeigen();
+        }
+        const felder = WERKSTATT.wert("felder");
+        if (felder && NAVIGATION.aktuell === "wordle" && WORDLE_BILDSCHIRM.eingabe) {
+            let eingabe = WORDLE.leereEingabe();
+            Array.from(felder).slice(0, WORDLE.LAENGE).forEach((zeichen, i) => {
+                if (zeichen !== ".") {
+                    eingabe = WORDLE.eingabeTippen(WORDLE.eingabeWaehlen(eingabe, i), zeichen);
+                }
+            });
+            const stelle = parseInt(WERKSTATT.wert("stelle"), 10);
+            WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeWaehlen(eingabe, stelle);
+            WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
+        }
     },
 
     /* 0 = nicht gelöst (sechs Versuche), sonst gelöst im n-ten Versuch. */

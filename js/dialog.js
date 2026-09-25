@@ -5,7 +5,7 @@
  * lassen sich nicht gestalten. Die drei Namen sind im Haus gesetzt:
  *
  *     await DIALOG.frage(titel, text, jaText, gefaehrlich)   → true/false
- *     await DIALOG.hinweis(titel, text)                       → (nichts)
+ *     await DIALOG.hinweis(titel, text, inhalt)               → (nichts)
  *     await DIALOG.eingabe(titel, text, vorgabe, okText, verdeckt) → Text oder null
  *
  * Dazu zwei kleine Helfer:
@@ -45,11 +45,17 @@ const DIALOG = {
         });
     },
 
-    hinweis(titel, text) {
+    /* `inhalt` (seit 0.4.0, optional): ein Element statt oder nach dem Text —
+       der UPCrew-Standard will Bilder statt Sätze (z. B. die Spielregel als
+       drei Kacheln). */
+    hinweis(titel, text, inhalt) {
         return DIALOG._einreihen((fertig) => {
             const kasten = DIALOG._kastenBauen(titel, text);
+            if (inhalt) {
+                kasten.appendChild(inhalt);
+            }
             const leiste = DIALOG._leisteBauen(kasten);
-            const ok = BAUSTEINE.knopf({ text: "Verstanden", art: "haupt", beiKlick: () => fertig() });
+            const ok = BAUSTEINE.knopf({ text: "OK", art: "haupt", beiKlick: () => fertig() });
             leiste.appendChild(ok);
             return { fokus: ok, abbrechen: () => fertig() };
         });

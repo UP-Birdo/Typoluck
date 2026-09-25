@@ -100,6 +100,37 @@ for (const datei of textDateien) {
 }
 
 /* ------------------------------------------------------------------ *
+ * UPCrew-Standard (seit 0.4.0, Apps\UPCrew-STANDARD.md)
+ * ------------------------------------------------------------------ */
+
+/* Text: keine Begrüßungen, keine Lob-Listen, keine Aufforderungs-Floskeln,
+   kein „Wird geladen" (dafür gibt es ZUSTAND.laden). Gesucht wird im
+   Programmtext ohne Kommentare — dort darf die Geschichte stehen. */
+const verboteneFloskeln = /Willkommen|"Hallo|Sei die oder der|Unglaublich|Grossartig|Gut gemacht|Wird geladen|Los geht/;
+for (const datei of liste("js").filter((d) => d.endsWith(".js"))) {
+    const ohneKommentare = lesen(datei).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    const treffer = ohneKommentare.match(verboteneFloskeln);
+    pruefe("Keine Floskeln im Text: " + datei, !treffer, treffer ? treffer[0] : "");
+}
+
+/* Formen: jede Rundung verweist auf --rund-klein/-mittel/-voll, kein
+   Schatten ist verschwommen (dritte Länge = Unschärfe muss 0 sein). */
+for (const datei of liste("css")) {
+    const stil = lesen(datei).replace(/\/\*[\s\S]*?\*\//g, "");
+    const rundungen = stil.match(/border-radius:[^;]+;/g) || [];
+    const fest = rundungen.filter((r) => !/var\(--rund-(klein|mittel|voll)\)/.test(r));
+    pruefe("Nur die drei Rundungen: " + datei, fest.length === 0, fest.join(" | "));
+    const schatten = (stil.match(/box-shadow:[^;]+;/g) || [])
+        .filter((s) => /\d+px\s+\d+px\s+[1-9]\d*px/.test(s) || /rgba\(0, 0, 0/.test(s));
+    pruefe("Keine weichen Schatten: " + datei, schatten.length === 0, schatten.join(" | "));
+}
+pruefe("Die drei Rundungen sind festgelegt",
+    ["--rund-klein:", "--rund-mittel:", "--rund-voll:"].every((v) => lesen("css/stil.css").indexOf(v) !== -1));
+pruefe("Die Schrift steht nur als Variable im Stil",
+    (lesen("css/stil.css").match(/font-family:\s*"/g) || []).length === 0
+        && /--schrift-familie:/.test(lesen("css/stil.css")));
+
+/* ------------------------------------------------------------------ *
  * Unantastbare Werte
  * ------------------------------------------------------------------ */
 
@@ -116,7 +147,7 @@ pruefe("Lokale Schlüssel gehören Typoluck",
     KONFIG.speicher.lokalerSchluesselSpieler.startsWith("typoluck.")
         && KONFIG.speicher.lokalerSchluesselSpiel.startsWith("typoluck."));
 pruefe("Gerätespeicher-Schlüssel gehören Typoluck",
-    [ICH.SCHLUESSEL_PERSON, ICH.SCHLUESSEL_SPIELSTAND, ICH.SCHLUESSEL_AUSSTEHEND]
+    [ICH.SCHLUESSEL_PERSON, ICH.SCHLUESSEL_SPIELSTAND, ICH.SCHLUESSEL_AUSSTEHEND, ICH.SCHLUESSEL_EINSTELLUNGEN]
         .every((schluessel) => schluessel.startsWith("typoluck.")));
 pruefe("index.html nennt den Namen der App", /<h1 class="nur-vorlesen">Typoluck<\/h1>/.test(index));
 gleich("Manifest: Name", JSON.parse(lesen("manifest.webmanifest")).name, "Typoluck");

@@ -111,4 +111,72 @@ const alt = WORDLE.normalisieren({ modus: "tag", datum: "2026-09-24", loesung: "
 gleich("Unbrauchbare Versuche fallen weg", alt.versuche, ["leben", "apfel", "humor"]);
 gleich("Zustand wird neu gerechnet", alt.zustand, "gewonnen");
 
+/* ------------------------------------------------------------------ *
+ * Die Eingabe — Felder antippen und vor-eintragen (seit 0.3.0)
+ * ------------------------------------------------------------------ */
+
+function tippe(eingabe, text) {
+    for (const zeichen of Array.from(text)) {
+        eingabe = WORDLE.eingabeTippen(eingabe, zeichen);
+    }
+    return eingabe;
+}
+
+let e = WORDLE.leereEingabe();
+gleich("Leere Eingabe: fünf leere Felder, erstes markiert", e, { felder: ["", "", "", "", ""], stelle: 0 });
+
+e = tippe(e, "hau");
+gleich("Der Reihe nach tippen wie bisher", e, { felder: ["h", "a", "u", "", ""], stelle: 3 });
+e = tippe(e, "se");
+gleich("Volle Zeile: nichts mehr markiert", e.stelle, WORDLE.LAENGE);
+gleich("Das Wort zum Abschicken", WORDLE.eingabeWort(e), "hause");
+gleich("Volle Zeile: weiterer Buchstabe tut nichts", tippe(e, "x").felder, ["h", "a", "u", "s", "e"]);
+
+e = WORDLE.eingabeLoeschen(e);
+gleich("Löschen nach voller Zeile nimmt den letzten", e, { felder: ["h", "a", "u", "s", ""], stelle: 4 });
+e = WORDLE.eingabeLoeschen(e);
+gleich("Löschen auf leerem Feld nimmt den links davon", e, { felder: ["h", "a", "u", "", ""], stelle: 3 });
+
+/* Vor-eintragen: erst das letzte Feld, dann von vorn. */
+e = WORDLE.eingabeWaehlen(WORDLE.leereEingabe(), 4);
+e = tippe(e, "e");
+gleich("Feld 5 antippen und e tippen", e.felder, ["", "", "", "", "e"]);
+gleich("… danach springt die Markierung auf das erste leere Feld", e.stelle, 0);
+gleich("Mit Lücke gibt es kein ganzes Wort", WORDLE.eingabeWort(e), "e");
+gleich("… und raten sagt zu-kurz", WORDLE.raten(runde, WORDLE.eingabeWort(e), 1).fehler, "zu-kurz");
+e = tippe(e, "haus");
+gleich("Die Lücken füllen sich der Reihe nach", WORDLE.eingabeWort(e), "hause");
+
+/* Mitten hinein: Feld 3 steht schon fest, dann springt man darüber. */
+e = WORDLE.eingabeWaehlen(WORDLE.leereEingabe(), 2);
+e = tippe(e, "u");
+gleich("Nach dem Tippen in Feld 3 geht es rechts weiter", e.stelle, 3);
+e = WORDLE.eingabeWaehlen(e, 0);
+e = tippe(e, "ha");
+gleich("Von vorn: das feste Feld wird übersprungen", e, { felder: ["h", "a", "u", "", ""], stelle: 3 });
+
+e = WORDLE.eingabeWaehlen(e, 1);
+gleich("Antippen eines vollen Felds markiert es nur", e.felder, ["h", "a", "u", "", ""]);
+gleich("Ein Buchstabe ersetzt es", tippe(e, "o").felder, ["h", "o", "u", "", ""]);
+gleich("Löschen auf vollem Feld leert genau dieses", WORDLE.eingabeLoeschen(e),
+    { felder: ["h", "", "u", "", ""], stelle: 1 });
+gleich("Löschen ganz vorn ohne Buchstaben tut nichts", WORDLE.eingabeLoeschen(WORDLE.leereEingabe()),
+    WORDLE.leereEingabe());
+
+gleich("Pfeil rechts", WORDLE.eingabeSchieben(WORDLE.leereEingabe(), 1).stelle, 1);
+gleich("Pfeil links am Rand bleibt stehen", WORDLE.eingabeSchieben(WORDLE.leereEingabe(), -1).stelle, 0);
+gleich("Pfeil links aus voller Zeile markiert das letzte Feld",
+    WORDLE.eingabeSchieben(tippe(WORDLE.leereEingabe(), "hause"), -1).stelle, 4);
+gleich("Pfeil rechts am Ende bleibt auf dem letzten Feld",
+    WORDLE.eingabeSchieben(WORDLE.eingabeWaehlen(WORDLE.leereEingabe(), 4), 1).stelle, 4);
+
+gleich("Unsinnige Stelle wird ignoriert", WORDLE.eingabeWaehlen(WORDLE.leereEingabe(), 9).stelle, 0);
+gleich("Nur Spiel-Buchstaben kommen hinein", tippe(WORDLE.leereEingabe(), "1ß-").felder,
+    ["", "", "", "", ""]);
+gleich("Grossbuchstaben werden klein", tippe(WORDLE.leereEingabe(), "Ä").felder[0], "ä");
+const vorher = WORDLE.leereEingabe();
+WORDLE.eingabeTippen(vorher, "a");
+pruefe("Tippen ändert die alte Eingabe nicht", vorher.felder[0] === "");
+gleich("Kaputte Eingabe wird zur leeren", WORDLE.eingabeTippen(null, "a").felder, ["a", "", "", "", ""]);
+
 fazit();

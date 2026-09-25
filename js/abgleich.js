@@ -60,7 +60,7 @@ class Abgleich {
        ohne Netz starten, der Stand kommt dann mit der nächsten Abfrage. */
     async starten() {
         let geladen = false;
-        this.beiStatus("laedt", "Wird geladen …");
+        this.beiStatus("laedt", "Lädt");
         try {
             this.daten = SPIELER.normalisieren(await this.speicher.laden());
             geladen = true;

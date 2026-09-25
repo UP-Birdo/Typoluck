@@ -28,8 +28,16 @@
     line-height: 1.1;
 }
 
-.start-gruss {
-    color: var(--schrift-leise);
+/* Rechts oben: Namens-Kreis und der Drei-Balken-Knopf (seit 0.3.0). */
+.start-kopf-rechts {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.start-kopf-rechts .menue-halter > .knopf .zeichen {
+    width: 26px;
+    height: 26px;
 }
 
 .spiel-kachel-kopf {
@@ -46,7 +54,7 @@
     flex: none;
     width: 56px;
     height: 56px;
-    border-radius: 14px;
+    border-radius: var(--rund-mittel);
     background: var(--kachel-richtig);
     color: var(--kachel-schrift);
 }
@@ -70,7 +78,7 @@
 .spiel-kachel-stand {
     margin: 0 0 12px;
     padding: 8px 12px;
-    border-radius: 10px;
+    border-radius: var(--rund-klein);
     background: var(--karte-leise);
     font-weight: 600;
 }
@@ -125,7 +133,7 @@
 
 .rangliste-ich .rangliste-knopf {
     background: var(--karte-leise);
-    border-radius: 10px;
+    border-radius: var(--rund-klein);
 }
 
 .rangliste-platz {
@@ -238,7 +246,7 @@
     display: grid;
     justify-items: center;
     padding: 8px 4px;
-    border-radius: 10px;
+    border-radius: var(--rund-klein);
     background: var(--karte-leise);
 }
 
@@ -268,7 +276,7 @@
 
 .verteilung-balken {
     padding: 2px 8px;
-    border-radius: 4px;
+    border-radius: var(--rund-klein);
     background: var(--kachel-falsch);
     color: var(--kachel-schrift);
     font-size: 0.85rem;

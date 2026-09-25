@@ -128,4 +128,26 @@ const vorher = JSON.stringify(SPIELER.spielerFinden(serverNeu, "c"));
 const nachher = SPIELER.freundHinzufuegen(serverNeu, "a", "c", 1);
 gleich("Anfrage ändert den fremden Eintrag nicht", JSON.stringify(SPIELER.spielerFinden(nachher, "c")), vorher);
 
+/* ------------------------------------------------------------------ *
+ * UP#Plus ist reiner Rollen-Verteiler (0.2.1): keine Rangliste, keine
+ * Suche, keine Freunde — in beide Richtungen
+ * ------------------------------------------------------------------ */
+
+const mitUp = { spieler: [
+    { id: "a", name: "Anna", tag: "0001", freunde: ["up"] },
+    { id: "up", name: "UP", tag: "Plus", freunde: ["a"] },
+    { id: "u", name: "up", tag: "0002" }
+] };
+gleich("UP#Plus erkannt", SPIELER.istVerteiler(SPIELER.spielerFinden(mitUp, "up")), true);
+gleich("up#0002 ist ein Mensch", SPIELER.istVerteiler(SPIELER.spielerFinden(mitUp, "u")), false);
+gleich("mitspieler ohne UP", SPIELER.mitspieler(mitUp).map((s) => s.id).join(","), "a,u");
+gleich("keine Freundschaft mit UP", SPIELER.freundschaft(mitUp, "a", "up"), "keine");
+gleich("UP sieht keine Freunde", SPIELER.freundeVon(mitUp, "up").freunde.length, 0);
+gleich("an UP geht keine Anfrage",
+    SPIELER.spielerFinden(SPIELER.freundHinzufuegen(mitUp, "u", "up", 1), "u").freunde.length, 0);
+gleich("UP nimmt nichts an",
+    SPIELER.spielerFinden(SPIELER.freundHinzufuegen(mitUp, "up", "u", 1), "up").freunde.join(","), "a");
+gleich("UP steht nicht in der Tagestabelle",
+    RANGLISTE.tagesTabelle({ up: { versuche: 3, geloest: true, beendetAm: 1 } }, mitUp, null).length, 0);
+
 fazit();

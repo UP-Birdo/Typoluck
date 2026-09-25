@@ -1,11 +1,19 @@
 /*
- * stil.css — die Grundlagen: Variablen, Schrift, Knöpfe, Karten, Leiste,
+ * stil.css — die Grundlagen: Variablen, Schrift, Knöpfe, Karten, Menü,
  * Dialoge, Anmeldung.
  *
  * ALLE FARBEN STEHEN NUR HIER, als Variablen — jede zweimal: hell im ersten
  * Block, dunkel darunter. Wer eine Farbe ergänzt, ergänzt sie an beiden
  * Stellen (und in der Werkstatt-Umschaltung `[data-darstellung="dunkel"]`).
  * Was die Variablen bedeuten, steht in docs\GESTALTUNG.md.
+ *
+ * DIE FARBWELT IST DIE VON BLUNDERLUCK (seit 0.3.0, Nutzer 25.09.2026:
+ * „hinter der Crew-Anmeldung dieselbe Farbpalette wie Blunderluck, statt
+ * Pink und Lila Blau"). Die Werte von --flaeche bis --warnung-flaeche sind
+ * 1:1 aus Apps\Blunderluck\css\stil.css übernommen; was Blunderluck nicht
+ * kennt (Kanten, Kacheln, Tasten), ist daraus abgeleitet — neutrales Grau,
+ * dunkleres Blau. NUR die Anmeldung behält das UPCrew-Violett (Abschnitt
+ * „Anmeldung" unten) — sie gehört dem Studio, nicht dem Spiel.
  *
  * Kaskade (Reihenfolge in index.html): stil.css → stil-bildschirme.css →
  * stil-wordle.css.
@@ -14,41 +22,45 @@
 :root {
     color-scheme: light dark;
 
-    --flaeche: #f4f2fa;
-    --karte: #fdfcff;
-    --karte-leise: #efecf7;
-    --rahmen: #dcd7ea;
-    --schrift: #1d1a26;
-    --schrift-leise: #5f5a6e;
-    --haupt: #5b3cc4;
+    --flaeche: #f5f6f8;
+    --karte: #ffffff;
+    --karte-leise: #eef0f4;
+    --rahmen: #d8dbe0;
+    --schrift: #1c1f23;
+    --schrift-leise: #5c636e;
+    --haupt: #1f5fa8;
     --haupt-schrift: #ffffff;
-    --haupt-kante: #3f2892;
+    --haupt-kante: #16457a;
     --gefahr: #b3261e;
     --gut: #1e7d43;
     --gut-flaeche: #e4f4ea;
     --warnung-flaeche: #fff4d6;
-    --still-kante: #c5bfd6;
+    --still-kante: #c3c8d0;
 
     /* Die drei Kachelfarben des Spiels — die Bedeutung ist Wordle-Standard
        und wird nie für etwas anderes benutzt. */
     --kachel-richtig: #3f8f4f;
     --kachel-vorhanden: #c9a227;
-    --kachel-falsch: #7b7887;
+    --kachel-falsch: #787c84;
     --kachel-schrift: #ffffff;
-    --kachel-rahmen: #cfc9de;
-    --kachel-rahmen-voll: #8e87a3;
-    --taste: #e3dfee;
-    --taste-schrift: #1d1a26;
-    --taste-aus: #8c889a;
-    --taste-aus-schrift: #f1eff6;
+    --kachel-rahmen: #cdd1d8;
+    --kachel-rahmen-voll: #878d97;
+    --taste: #dfe3e9;
+    --taste-schrift: #1c1f23;
+    --taste-aus: #8a8f98;
+    --taste-aus-schrift: #f1f3f6;
 
     /* Die Kanten — je Fläche eine dunklere Fassung ihrer Farbe. Sie bilden
        die „Seitenwand" unter Knopf, Taste und Kachel (3D Stufe 1). */
     --kachel-richtig-kante: #2c6a39;
     --kachel-vorhanden-kante: #957716;
-    --kachel-falsch-kante: #5a5766;
-    --taste-kante: #c2bcd3;
-    --taste-aus-kante: #6b6779;
+    --kachel-falsch-kante: #575b62;
+    --taste-kante: #bfc5ce;
+    --taste-aus-kante: #686c74;
+
+    /* Das Feld, in das gerade getippt wird (seit 0.3.0): Rahmen und Kante
+       in der Hauptfarbe — dieselbe Farbe wie der Tastatur-Fokus. */
+    --kachel-markiert: var(--haupt);
 
     /*
      * DIE NAHT FÜR DEN 3D-LOOK (Nutzer-Ansage 24.09.2026: „es folgen dann
@@ -60,11 +72,40 @@
     --knopf-tiefe: 4px;
     --kachel-tiefe: 3px;
 
+    /* Karten, Dialog, Menü und Kurzmeldung stehen seit 0.4.0 ebenfalls auf
+       einer harten Kante statt auf einem weichen Schatten (UPCrew-Standard,
+       Abschnitt „Formen"): ein Schatten ohne Unschärfe, wenige Pixel nach
+       unten versetzt. Ein Test meldet jeden verschwommenen Schatten. */
+    --karte-tiefe: 3px;
+
+    /*
+     * DIE RUNDUNGEN — DREI STUFEN, SONST KEINE (UPCrew-Standard, seit
+     * 0.4.0). Jede Rundung im Stil verweist auf eine dieser Variablen; ein
+     * Test zählt fest eingetragene Werte und meldet sie. Die Werte hat
+     * Typoluck als erste UPCrew-App festgelegt, Blunderluck und Trainer
+     * übernehmen sie. 14 px ist zugleich die Rundung des UPCrew-Zeichens
+     * im Intro.
+     *   klein   Felder, Buchstaben-Kacheln, Tasten, Chips, Balken
+     *   mittel  Knöpfe, Karten, Dialoge, Menü
+     *   voll    Pillen, Namens-Kreise, Zähler
+     */
+    --rund-klein: 8px;
+    --rund-mittel: 14px;
+    --rund-voll: 999px;
+
+    /*
+     * DIE SCHRIFT (UPCrew-Standard, Abschnitt „Schrift"): Vorgesehen ist
+     * eine eigene, runde und verspielte Schrift, mit der App ausgeliefert
+     * (woff2 im Ordner schrift\, @font-face, im Service Worker). Welche,
+     * wählt der Nutzer nach Bild — bis dahin steht hier die Systemschrift,
+     * die danach der Rückfall bleibt. Wer die Schrift einbaut, setzt ihren
+     * Namen VOR die Liste und ändert sonst nichts.
+     */
+    --schrift-familie: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+
     --abstand: 16px;
-    --radius: 12px;
     --inhalt-breite: 560px;
     --inhalt-rand: 16px;
-    --leiste-hoehe: 64px;
 
     /* Die Studio-Farben von UPCrew — bewusst OHNE Dunkel-Fassung: Das
        Studio-Zeichen sieht in jedem Spiel und jeder Darstellung gleich aus. */
@@ -72,8 +113,9 @@
     --upcrew-farbe: #7a5cf0;
     --upcrew-schrift: #ffffff;
 
-    /* Die Ebenen — wer liegt über wem. Nie eine eigene Zahl ausdenken. */
-    --ebene-leiste: 10;
+    /* Die Ebenen — wer liegt über wem. Nie eine eigene Zahl ausdenken.
+       Das Menü (seit 0.3.0) liegt über dem Inhalt, unter dem Hinweis. */
+    --ebene-menue: 10;
     --ebene-hinweis: 20;
     --ebene-kurzmeldung: 40;
     --ebene-vollbild: 50;
@@ -83,34 +125,34 @@
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --flaeche: #15131b;
-        --karte: #201d29;
-        --karte-leise: #2a2635;
-        --rahmen: #3a3547;
-        --schrift: #ece9f4;
-        --schrift-leise: #aaa4ba;
-        --haupt: #9a82f2;
-        --haupt-schrift: #120e1c;
-        --haupt-kante: #6a52c4;
+        --flaeche: #16181c;
+        --karte: #1f2228;
+        --karte-leise: #262a31;
+        --rahmen: #363b44;
+        --schrift: #e9ebef;
+        --schrift-leise: #a3abb8;
+        --haupt: #4a8fd6;
+        --haupt-schrift: #0d1116;
+        --haupt-kante: #2f6aa8;
         --gefahr: #e05a52;
         --gut: #4cb87a;
         --gut-flaeche: #1d3327;
         --warnung-flaeche: #3a3016;
-        --still-kante: #4a4459;
+        --still-kante: #454b56;
         --kachel-richtig: #4a9d5b;
         --kachel-vorhanden: #c3a13a;
-        --kachel-falsch: #4a4658;
-        --kachel-rahmen: #3f3a4e;
-        --kachel-rahmen-voll: #6e6784;
-        --taste: #5a5470;
+        --kachel-falsch: #474b53;
+        --kachel-rahmen: #3b4049;
+        --kachel-rahmen-voll: #6b717c;
+        --taste: #545a66;
         --taste-schrift: #ffffff;
-        --taste-aus: #25222e;
-        --taste-aus-schrift: #6f6982;
+        --taste-aus: #22252b;
+        --taste-aus-schrift: #6c727d;
         --kachel-richtig-kante: #336f40;
         --kachel-vorhanden-kante: #8a7020;
-        --kachel-falsch-kante: #322f3d;
-        --taste-kante: #3a3549;
-        --taste-aus-kante: #121017;
+        --kachel-falsch-kante: #30333a;
+        --taste-kante: #373c46;
+        --taste-aus-kante: #0f1114;
     }
 }
 
@@ -118,34 +160,34 @@
    Werkstatt (?werkstatt&dunkel), die sonst immer hell wären. */
 :root[data-darstellung="dunkel"] {
     color-scheme: dark;
-    --flaeche: #15131b;
-    --karte: #201d29;
-    --karte-leise: #2a2635;
-    --rahmen: #3a3547;
-    --schrift: #ece9f4;
-    --schrift-leise: #aaa4ba;
-    --haupt: #9a82f2;
-    --haupt-schrift: #120e1c;
-    --haupt-kante: #6a52c4;
+    --flaeche: #16181c;
+    --karte: #1f2228;
+    --karte-leise: #262a31;
+    --rahmen: #363b44;
+    --schrift: #e9ebef;
+    --schrift-leise: #a3abb8;
+    --haupt: #4a8fd6;
+    --haupt-schrift: #0d1116;
+    --haupt-kante: #2f6aa8;
     --gefahr: #e05a52;
     --gut: #4cb87a;
     --gut-flaeche: #1d3327;
     --warnung-flaeche: #3a3016;
-    --still-kante: #4a4459;
+    --still-kante: #454b56;
     --kachel-richtig: #4a9d5b;
     --kachel-vorhanden: #c3a13a;
-    --kachel-falsch: #4a4658;
-    --kachel-rahmen: #3f3a4e;
-    --kachel-rahmen-voll: #6e6784;
-    --taste: #5a5470;
+    --kachel-falsch: #474b53;
+    --kachel-rahmen: #3b4049;
+    --kachel-rahmen-voll: #6b717c;
+    --taste: #545a66;
     --taste-schrift: #ffffff;
-    --taste-aus: #25222e;
-    --taste-aus-schrift: #6f6982;
+    --taste-aus: #22252b;
+    --taste-aus-schrift: #6c727d;
     --kachel-richtig-kante: #336f40;
     --kachel-vorhanden-kante: #8a7020;
-    --kachel-falsch-kante: #322f3d;
-    --taste-kante: #3a3549;
-    --taste-aus-kante: #121017;
+    --kachel-falsch-kante: #30333a;
+    --taste-kante: #373c46;
+    --taste-aus-kante: #0f1114;
 }
 
 * {
@@ -160,8 +202,10 @@ body {
     margin: 0;
     background: var(--flaeche);
     color: var(--schrift);
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+    font-family: var(--schrift-familie);
     font-size: 16px;
+    /* Gleich breite Ziffern: Punkte und Plätze stehen sauber untereinander. */
+    font-variant-numeric: tabular-nums;
     line-height: 1.45;
     -webkit-tap-highlight-color: transparent;
 }
@@ -181,13 +225,14 @@ body.anmeldung-offen {
 }
 
 /* ------------------------------------------------------------------ *
- * Der Rahmen: Inhalt in der Mitte, Leiste unten
+ * Der Rahmen: Inhalt in der Mitte. Eine Leiste unten gibt es seit 0.3.0
+ * nicht mehr — Profil, Freunde und Rangliste liegen im Menü oben rechts.
  * ------------------------------------------------------------------ */
 
 .inhalt {
     max-width: var(--inhalt-breite);
     margin: 0 auto;
-    padding: 8px var(--inhalt-rand) calc(var(--leiste-hoehe) + 24px + env(safe-area-inset-bottom));
+    padding: 8px var(--inhalt-rand) calc(24px + env(safe-area-inset-bottom));
 }
 
 .hinweis {
@@ -202,59 +247,127 @@ body.anmeldung-offen {
     text-align: center;
 }
 
-.leiste {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: var(--ebene-leiste);
-    display: flex;
-    justify-content: center;
-    gap: 4px;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-    background: var(--karte);
-    border-top: 1px solid var(--rahmen);
+/* ------------------------------------------------------------------ *
+ * DAS MENÜ HINTER DEN DREI BALKEN (seit 0.3.0)
+ *
+ * Nutzer 25.09.2026: „so wie bei Blunderluck Freunde und Profil in drei
+ * Balken Menü". Nachgebaut nach Blunderlucks Menüband (dort
+ * `.start-menue…` in css\stil-start.css): ein Knopf mit drei Balken oben
+ * rechts auf dem Start, darunter klappt ein abgerundetes Feld auf (seit
+ * 0.4.0 mit harter Kante statt weichem Schatten), je Eintrag Zeichen links
+ * und Wort rechts. Gebaut in
+ * `NAVIGATION.menueBauen` (js\navigation.js).
+ *
+ * Der Halter ist der Bezugspunkt: Das Feld hängt absolut darunter, damit
+ * es den Inhalt darunter nicht wegschiebt.
+ * ------------------------------------------------------------------ */
+
+.menue-halter {
+    position: relative;
 }
 
-.knopf-leiste {
+.menue-halter > .knopf {
     position: relative;
-    flex: 1 1 0;
-    max-width: 120px;
+}
+
+.menue {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: var(--ebene-menue);
+    display: flex;
     flex-direction: column;
     gap: 2px;
-    min-height: 52px;
-    padding: 4px;
+    min-width: 210px;
+    padding: 6px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+
+    /* Bis 0.3.0 zwei weiche Schatten wie in Blunderluck; seit 0.4.0 die
+       harte Kante des UPCrew-Standards wie bei jeder Karte. */
+    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
+}
+
+.menue[hidden] {
+    display: none;
+}
+
+/* Doppelte Klasse, weil `.knopf` weiter unten steht und sonst gewönne. */
+.knopf.knopf-menue {
+    justify-content: flex-start;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 9px 12px;
     border: none;
-    background: transparent;
-    color: var(--schrift-leise);
-    font-size: 0.75rem;
+    border-radius: var(--rund-klein);
+    background: none;
+    color: var(--schrift);
+    font-size: 0.95rem;
+    font-weight: 400;
+    text-align: left;
     box-shadow: none;
 }
 
-.knopf-leiste .zeichen {
-    width: 24px;
-    height: 24px;
+/* Das Zeichen bleibt leise, bis der Eintrag angefasst wird — so führt die
+   Schrift, nicht die Bilderreihe. */
+.knopf-menue .zeichen {
+    color: var(--schrift-leise);
 }
 
-.knopf-leiste.leiste-aktiv {
-    color: var(--haupt);
-    font-weight: 600;
+.knopf.knopf-menue:hover,
+.knopf.knopf-menue:focus-visible {
+    background: var(--karte-leise);
 }
 
-.leiste-marke {
-    position: absolute;
-    top: 2px;
-    left: calc(50% + 6px);
+.knopf-menue:hover .zeichen,
+.knopf-menue:focus-visible .zeichen {
+    color: var(--schrift);
+}
+
+.knopf.knopf-menue:active:not(:disabled) {
+    transform: none;
+    background: var(--rahmen);
+}
+
+/* Die Zahl offener Freundesanfragen — am Balken-Knopf (Summe) und am
+   Eintrag „Freunde". */
+.menue-marke {
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
-    border-radius: 9px;
+    border-radius: var(--rund-voll);
     background: var(--gefahr);
     color: #ffffff;
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 18px;
     text-align: center;
+}
+
+.menue-halter > .knopf > .menue-marke {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+.knopf-menue .menue-marke {
+    margin-left: auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .menue:not([hidden]) {
+        transform-origin: top right;
+        animation: menue-auf 0.16s ease-out;
+    }
+
+    @keyframes menue-auf {
+        from {
+            opacity: 0;
+            transform: translateY(-6px) scale(0.97);
+        }
+    }
 }
 
 /* ------------------------------------------------------------------ *
@@ -292,7 +405,7 @@ body.anmeldung-offen {
     min-height: 44px;
     padding: 10px 18px;
     border: 1px solid transparent;
-    border-radius: var(--radius);
+    border-radius: var(--rund-mittel);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
@@ -347,18 +460,11 @@ body.anmeldung-offen {
     box-shadow: none;
 }
 
-/* Die Leistenknöpfe sind flach. Ihre eigene Regel weiter oben verliert
-   gegen `.knopf` (gleiches Gewicht, steht davor) — auch Schriftgrösse und
-   Innenabstand kommen deshalb von `.knopf`, so ist 0.1.0 ausgeliefert. Hier
-   wird nur die 3D-Kante weggenommen, am Aussehen sonst nichts geändert. */
-.knopf.knopf-leiste {
-    box-shadow: none;
-}
-
 /* Wer keine Kante hat, sinkt auch nicht ein — sonst hüpft ein flacher
-   Knopf beim Antippen ohne sichtbaren Grund nach unten. */
-.knopf-flach:active:not(:disabled),
-.knopf-leiste:active:not(:disabled) {
+   Knopf beim Antippen ohne sichtbaren Grund nach unten. (Die Leistenknöpfe,
+   die hier bis 0.2.1 mitstanden, gibt es seit 0.3.0 nicht mehr; die
+   Menü-Einträge regeln das in ihrem eigenen Abschnitt oben.) */
+.knopf-flach:active:not(:disabled) {
     transform: none;
 }
 
@@ -411,7 +517,8 @@ body.anmeldung-offen {
     padding: var(--abstand);
     background: var(--karte);
     border: 1px solid var(--rahmen);
-    border-radius: var(--radius);
+    border-radius: var(--rund-mittel);
+    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
 }
 
 .karte > .knopf + .knopf {
@@ -440,7 +547,7 @@ body.anmeldung-offen {
     min-height: 44px;
     padding: 10px 12px;
     border: 1px solid var(--rahmen);
-    border-radius: 10px;
+    border-radius: var(--rund-klein);
     background: var(--karte-leise);
     color: var(--schrift);
     font: inherit;
@@ -476,7 +583,7 @@ body.anmeldung-offen {
     flex: none;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
+    border-radius: var(--rund-voll);
     background: var(--haupt);
     color: var(--haupt-schrift);
     font-weight: 700;
@@ -491,7 +598,7 @@ body.anmeldung-offen {
 .schild {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 999px;
+    border-radius: var(--rund-voll);
     background: var(--karte-leise);
     color: var(--schrift-leise);
     font-size: 0.9rem;
@@ -507,7 +614,7 @@ body.anmeldung-offen {
 .segment {
     display: inline-flex;
     padding: 3px;
-    border-radius: 999px;
+    border-radius: var(--rund-voll);
     background: var(--karte-leise);
     border: 1px solid var(--rahmen);
 }
@@ -516,7 +623,7 @@ body.anmeldung-offen {
     min-height: 36px;
     padding: 6px 16px;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--rund-voll);
     background: transparent;
     color: var(--schrift-leise);
     font: inherit;
@@ -527,7 +634,7 @@ body.anmeldung-offen {
 .segment-aktiv {
     background: var(--karte);
     color: var(--schrift);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 0 var(--still-kante);
 }
 
 /* ------------------------------------------------------------------ *
@@ -556,8 +663,8 @@ body.anmeldung-offen {
     overflow-y: auto;
     padding: 20px;
     background: var(--karte);
-    border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    border-radius: var(--rund-mittel);
+    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
 }
 
 .dialog-titel {
@@ -590,12 +697,12 @@ body.anmeldung-offen {
     margin: 0;
     padding: 10px 18px;
     transform: translateX(-50%);
-    border-radius: 999px;
+    border-radius: var(--rund-voll);
     background: var(--schrift);
     color: var(--flaeche);
     font-weight: 600;
     text-align: center;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 var(--karte-tiefe) 0 var(--schrift-leise);
     transition: opacity 250ms ease;
 }
 
@@ -645,7 +752,7 @@ body.anmeldung-offen {
 
 .intro-up {
     padding: 4px 14px;
-    border-radius: 14px;
+    border-radius: var(--rund-mittel);
     background: var(--upcrew-farbe);
     color: var(--upcrew-schrift);
 }
@@ -678,7 +785,55 @@ body.anmeldung-offen {
 
 /* ------------------------------------------------------------------ *
  * Anmeldung — das Vollbild
+ *
+ * DIE ANMELDUNG BLEIBT VIOLETT (seit 0.3.0). Der Nutzer wollte „hinter der
+ * Crew-Anmeldung" Blunderlucks Blau — die Anmeldung selbst gehört dem
+ * Studio UPCrew und behält dessen Farbwelt. Deshalb setzt `.anmeldung` die
+ * Grundfarben für sich und alles darin neu, mit den Werten, die bis 0.2.1
+ * für die ganze App galten. Ein Dialog über der Anmeldung liegt ausserhalb
+ * und zeigt die Farben der App.
  * ------------------------------------------------------------------ */
+
+.anmeldung {
+    --flaeche: #f4f2fa;
+    --karte: #fdfcff;
+    --karte-leise: #efecf7;
+    --rahmen: #dcd7ea;
+    --schrift: #1d1a26;
+    --schrift-leise: #5f5a6e;
+    --haupt: #5b3cc4;
+    --haupt-schrift: #ffffff;
+    --haupt-kante: #3f2892;
+    --still-kante: #c5bfd6;
+}
+
+@media (prefers-color-scheme: dark) {
+    .anmeldung {
+        --flaeche: #15131b;
+        --karte: #201d29;
+        --karte-leise: #2a2635;
+        --rahmen: #3a3547;
+        --schrift: #ece9f4;
+        --schrift-leise: #aaa4ba;
+        --haupt: #9a82f2;
+        --haupt-schrift: #120e1c;
+        --haupt-kante: #6a52c4;
+        --still-kante: #4a4459;
+    }
+}
+
+:root[data-darstellung="dunkel"] .anmeldung {
+    --flaeche: #15131b;
+    --karte: #201d29;
+    --karte-leise: #2a2635;
+    --rahmen: #3a3547;
+    --schrift: #ece9f4;
+    --schrift-leise: #aaa4ba;
+    --haupt: #9a82f2;
+    --haupt-schrift: #120e1c;
+    --haupt-kante: #6a52c4;
+    --still-kante: #4a4459;
+}
 
 .anmeldung {
     position: fixed;
@@ -702,7 +857,8 @@ body.anmeldung-offen {
     padding: 24px 20px;
     background: var(--karte);
     border: 1px solid var(--rahmen);
-    border-radius: 20px;
+    border-radius: var(--rund-mittel);
+    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
 }
 
 .anmeldung-kasten > .knopf + .knopf {
@@ -721,4 +877,128 @@ body.anmeldung-offen {
 .anmeldung-titel {
     margin: 0 0 8px;
     font-size: 1.6rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Die drei Zustände — Laden, Leer, Fehler (js\zustand.js, seit 0.4.0)
+ *
+ * UPCrew-Standard, Abschnitt 3: kein Satz, sondern ein festes Bild je
+ * Zustand. Laden = graue Balken in der Form des Inhalts, sanft pulsierend;
+ * Leer und Fehler = Zeichen, wenige Worte, ein Knopf.
+ * ------------------------------------------------------------------ */
+
+.zustand-laden {
+    display: grid;
+    gap: 10px;
+    padding: 4px 0;
+}
+
+.zustand-balken {
+    display: block;
+    height: 40px;
+    border-radius: var(--rund-klein);
+    background: var(--karte-leise);
+}
+
+.zustand-balken:nth-child(2n) {
+    width: 85%;
+}
+
+.zustand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0 4px;
+    text-align: center;
+}
+
+.zustand-bild {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+}
+
+.zustand-bild .zeichen {
+    width: 28px;
+    height: 28px;
+}
+
+.zustand-fehler .zustand-bild {
+    color: var(--gefahr);
+}
+
+.zustand-text {
+    margin: 0;
+    color: var(--schrift-leise);
+    font-weight: 600;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .zustand-balken {
+        animation: zustand-pulsieren 1.2s ease-in-out infinite alternate;
+    }
+
+    @keyframes zustand-pulsieren {
+        from { opacity: 1; }
+        to { opacity: 0.45; }
+    }
+}
+
+/* ------------------------------------------------------------------ *
+ * Die Punkte-Tafel (Rangliste und Spielregel, seit 0.4.0) — statt eines
+ * Absatzes: je Versuch eine Spalte, oben „3/6", unten die Punkte.
+ * ------------------------------------------------------------------ */
+
+.punkte-tafel {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+}
+
+.punkte-feld {
+    display: grid;
+    justify-items: center;
+    padding: 6px 0;
+    border-radius: var(--rund-klein);
+    background: var(--karte-leise);
+}
+
+.punkte-versuch {
+    color: var(--schrift-leise);
+    font-size: 0.75rem;
+}
+
+.punkte-wert {
+    color: var(--haupt);
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ *
+ * Einstellungen dieses Geräts (Profil, seit 0.4.0)
+ * ------------------------------------------------------------------ */
+
+.einstellung-zeile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.einstellung-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.einstellung-name .zeichen {
+    width: 22px;
+    height: 22px;
 }

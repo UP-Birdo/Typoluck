@@ -170,10 +170,9 @@ const ANMELDUNG = {
     },
 
     _weicheZeigen() {
-        const kasten = ANMELDUNG._kastenBauen("Willkommen bei Typoluck",
-            "Wortspiele mit Freunden. Du spielst mit deinem UPCrew-Konto — "
-                + "ein Konto für alle Spiele von UPCrew. Hast du schon eins, "
-                + "melde dich einfach an.");
+        /* Keine Begrüßung, kein Absatz (UPCrew-Standard, seit 0.4.0; bis
+           0.3.0 „Willkommen bei Typoluck" mit drei Sätzen darunter). */
+        const kasten = ANMELDUNG._kastenBauen("Typoluck", "Ein Konto · alle UPCrew-Spiele");
 
         kasten.appendChild(BAUSTEINE.knopf({
             text: "Mit UPCrew-Konto anmelden", art: "haupt", breit: true,
@@ -322,7 +321,7 @@ const ANMELDUNG = {
             if (mitKonto) {
                 const ergebnis = await KONTO.kontoAnlegen(ANMELDUNG.abgleich.speicher,
                     ANMELDUNG.abgleich.daten, name.feld.value, passwort.feld.value);
-                await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Willkommen, ");
+                await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Angemeldet · ");
                 return;
             }
             await ANMELDUNG._kontoAnlegen(name.feld.value.trim(), passwort.feld.value);
@@ -355,7 +354,8 @@ const ANMELDUNG = {
            die Seite gleich danach schliesst, verlöre es sonst. */
         abgleich.sofortSchreiben();
         ANMELDUNG._fertig();
-        DIALOG.kurzmeldung("Willkommen, " + name + "!");
+        FUEHLEN.erfolg();
+        DIALOG.kurzmeldung("Angemeldet · " + name);
     },
 
     /* Neu verbinden („Passwort vergessen"): Ein Admin hat das Konto
@@ -375,7 +375,7 @@ const ANMELDUNG = {
             los.disabled = true;
             const ergebnis = await KONTO.neuVerbinden(ANMELDUNG.abgleich.speicher,
                 ANMELDUNG.abgleich.daten, spieler, passwort.feld.value);
-            await ANMELDUNG._kontoFertig(ergebnis, passwort, pruefen, "Willkommen zurück, ");
+            await ANMELDUNG._kontoFertig(ergebnis, passwort, pruefen, "Angemeldet · ");
         });
 
         kasten.appendChild(los);
@@ -398,7 +398,8 @@ const ANMELDUNG = {
         await ANMELDUNG._nachladen();
         ANMELDUNG._uebernehmen(ergebnis.eintrag);
         ANMELDUNG._fertig();
-        DIALOG.kurzmeldung("Du spielst als " + KONTO.anzeigeName(ergebnis.eintrag));
+        FUEHLEN.erfolg();
+        DIALOG.kurzmeldung("Gast · " + KONTO.anzeigeName(ergebnis.eintrag));
     },
 
     /* Jedes dritte Öffnen fragt ein Gast, ob er seinen Spielstand sichern
@@ -452,7 +453,7 @@ const ANMELDUNG = {
             los.disabled = true;
             const ergebnis = await KONTO.gastSichern(ANMELDUNG.abgleich.speicher,
                 ANMELDUNG.abgleich.daten, eintrag, name.feld.value, passwort.feld.value);
-            await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Gesichert! Du bist jetzt ");
+            await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Gesichert · ");
         });
 
         kasten.appendChild(los);
@@ -498,7 +499,7 @@ const ANMELDUNG = {
             }
             await ANMELDUNG._nachladen();
             ICH.personSetzen(ich.id, name);
-            DIALOG.kurzmeldung("Du heisst jetzt " + KONTO.anzeigeName(ergebnis.eintrag));
+            DIALOG.kurzmeldung("Name · " + KONTO.anzeigeName(ergebnis.eintrag));
             return;
         }
         const neu = await DIALOG.eingabe("Name ändern",
@@ -725,6 +726,9 @@ const ANMELDUNG = {
         await ANMELDUNG._nachladen();
         ANMELDUNG._uebernehmen(ergebnis.eintrag);
         ANMELDUNG._fertig();
+        /* Erfolg spürt man (UPCrew-Standard, seit 0.4.0); die Meldung ist
+           ein Stichwort mit Namen, keine Begrüßung. */
+        FUEHLEN.erfolg();
         DIALOG.kurzmeldung(gruss + KONTO.anzeigeName(ergebnis.eintrag));
     },
 

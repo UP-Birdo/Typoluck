@@ -16,7 +16,7 @@ für Werkstatt-Fotos). Wer eine ergänzt, ergänzt sie an allen drei Stellen.
 | `--karte`, `--karte-leise` | Kästen auf dem Grund; leise = zurückgenommen (Felder, Listen) |
 | `--rahmen` | Linien ohne Bedeutung |
 | `--schrift`, `--schrift-leise` | Lesetext; Zusätze und Hinweise |
-| `--haupt` | **Die eine Akzentfarbe (Violett):** Hauptaktion, aktiver Leisten-Eintrag, Punkte, Namenskreis |
+| `--haupt` | **Die eine Akzentfarbe (Blau, seit 0.3.0):** Hauptaktion, Punkte, Namenskreis, markiertes Wordle-Feld (`--kachel-markiert`) |
 | `--haupt-schrift` | Text auf `--haupt` |
 | `--gefahr` | Nur Zerstörendes (Abmelden, Entfernen) |
 | `--gut`, `--gut-flaeche` | Erfolg („erledigt", „Ihr seid Freunde") |
@@ -24,9 +24,18 @@ für Werkstatt-Fotos). Wer eine ergänzt, ergänzt sie an allen drei Stellen.
 | `--kachel-richtig`, `--kachel-vorhanden`, `--kachel-falsch` | **Nur** die drei Wordle-Bedeutungen — nie für etwas anderes |
 | `--taste`, `--taste-schrift` | Tastatur im Grundzustand |
 
-**Warum Violett:** Grün und Gelb sind im Spiel belegt (richtig / kommt vor),
-Rot heisst Gefahr, Blau trägt Blunderluck. Violett ist frei, beisst sich mit
-keiner Spielfarbe und macht die Schwester-App erkennbar eigen.
+**Warum Blau (seit 0.3.0):** Der Nutzer wollte hinter der Anmeldung dieselbe
+Farbwelt wie Blunderluck (25.09.2026) — die Spiele von UPCrew sollen
+zusammengehörig aussehen. Die Grundfarben sind 1:1 Blunderlucks Werte;
+Kanten, Kacheln und Tasten sind daraus abgeleitet (neutrales Grau,
+dunkleres Blau). Bis 0.2.1 war Typoluck violett, mit der Begründung „Blau
+trägt Blunderluck, Violett macht die Schwester-App eigen" — das ist
+überholt (`entscheidungen\entschieden.md`).
+
+**Die Anmeldung bleibt violett.** Sie gehört dem Studio UPCrew, nicht dem
+Spiel: `.anmeldung` setzt die Grundfarben für sich neu (Abschnitt
+„Anmeldung" in `css\stil.css`, dreifach wie alle Farben). Ein Dialog über
+der Anmeldung zeigt die Farben der App.
 
 ## Tiefe — die Naht für 3D
 
@@ -37,14 +46,14 @@ werden nicht gedrückt). Auf `0px` gesetzt ist alles wieder flach.
 
 | Kante | gehört zu |
 |---|---|
-| `--haupt-kante` | Hauptknopf (violett) |
+| `--haupt-kante` | Hauptknopf (blau) |
 | `--still-kante` | stille Knöpfe |
 | `--gefahr` | roter Knopf — die Kante ist die Rahmenfarbe selbst |
 | `--taste-kante`, `--taste-aus-kante` | Taste normal / ausgeschlossen |
 | `--kachel-richtig-kante`, `--kachel-vorhanden-kante`, `--kachel-falsch-kante` | aufgedeckte Kacheln und gleichfarbige Tasten |
 | `--kachel-rahmen`, `--kachel-rahmen-voll` | leere / getippte Kachel |
 
-Flache Knöpfe (Leiste unten, `knopf-flach`) haben keine Kante und sinken
+Flache Knöpfe (`knopf-flach`, Menü-Einträge `knopf-menue`) haben keine Kante und sinken
 deshalb auch nicht ein. Plan der nächsten Stufen: `ARCHITECTURE.md`, „3D".
 
 ## Abstände und Formen
@@ -52,10 +61,13 @@ deshalb auch nicht ein. Plan der nächsten Stufen: `ARCHITECTURE.md`, „3D".
 | Variable | Bedeutung |
 |---|---|
 | `--abstand` | Standard-Abstand zwischen zusammengehörigen Dingen |
-| `--radius` | Rundung von Karten und Knöpfen |
+| `--rund-klein` | Rundung von Feldern, Buchstaben-Kacheln, Tasten, Chips, Balken |
+| `--rund-mittel` | Rundung von Knöpfen, Karten, Dialogen, Menü (= Rundung des UPCrew-Zeichens) |
+| `--rund-voll` | Pillen, Namens-Kreise, Zähler |
+| `--karte-tiefe` | Harte Kante unter Karten, Menü, Dialog, Kurzmeldung |
+| `--schrift-familie` | Die Schrift — die einzige Stelle, an der sie steht |
 | `--inhalt-breite` | Höchstbreite des Inhalts (am Rechner mittig) |
 | `--inhalt-rand` | Seitenrand am Handy |
-| `--leiste-hoehe` | Platz, den die Leiste unten braucht |
 
 ## Knöpfe
 
@@ -65,7 +77,7 @@ deshalb auch nicht ein. Plan der nächsten Stufen: `ARCHITECTURE.md`, „3D".
 | `knopf-still` | Alles Übrige |
 | `knopf-gefahr` | Nur Zerstörendes |
 | `knopf-flach` | Zeichen-Knöpfe in Kopfzeilen, Verweise („Ganze Rangliste") |
-| `knopf-leiste` | Die vier Einträge der Leiste unten |
+| `knopf-menue` | Die Einträge im Menü hinter den drei Balken (seit 0.3.0; bis 0.2.1 gab es `knopf-leiste` für die Leiste unten) |
 | `knopf-klein`, `knopf-breit` | Zusatz für Zeilen bzw. volle Breite |
 
 Alle entstehen in `BAUSTEINE.knopf` (`js\bausteine.js`).
@@ -73,12 +85,48 @@ Alle entstehen in `BAUSTEINE.knopf` (`js\bausteine.js`).
 ## Zeichen
 
 Eigene Linienzeichnungen im 24er-Raster, nur Striche (`BAUSTEINE.ZEICHEN`):
-start, rangliste, freunde, profil, zurueck, weiter, info, wordle, uebung,
-loeschen, aktualisieren, zahnrad, stern. Kein Emoji, keine fremde Sammlung.
+start, rangliste, freunde, profil, zurueck, menue (drei gleich lange
+Balken), weiter, info, wordle, uebung, loeschen, aktualisieren, zahnrad,
+stern. Kein Emoji, keine fremde Sammlung.
+
+## Der UPCrew-Standard (seit 0.4.0)
+
+Gemeinsam mit Blunderluck und Trainer: `..\UPCrew-STANDARD.md`. In
+Typoluck heißt das:
+
+- **Formen:** drei Rundungen (`--rund-klein` 8 px, `--rund-mittel` 14 px,
+  `--rund-voll`), sonst keine; kein weicher Schatten, nur harte Kanten.
+- **Text:** keine ganzen Sätze, keine Begrüßung, kein Lob-Wort. Zahlen statt
+  Sätzen („3/6", „+4 Punkte"), Stichworte mit „·" getrennt. Die Spielregel
+  und die Punkte sind Bilder (drei Kacheln, Punkte-Tafel).
+- **Zustände** (`js\zustand.js`): Laden = graue, pulsierende Balken (bei
+  „Bewegung reduzieren" still); Leer = Zeichen im runden Feld, höchstens
+  drei Wörter, ein stiller Knopf; Fehler = durchgestrichenes Funknetz in
+  Rot, „Nicht erreichbar" oder „Keine Antwort", Knopf „Nochmal".
+- **Vibration** (`js\fuehlen.js`): tippen 8 ms; Erfolg und Fehler je ein
+  eigenes Muster. Im Profil unter „Dieses Gerät" abschaltbar.
+- **Schrift:** heute die Systemschrift als Rückfall; die eigene, runde
+  Schrift wählt der Nutzer nach Bild.
+
+## Das Menü hinter den drei Balken (seit 0.3.0)
+
+Nachgebaut nach Blunderlucks Menüband: oben rechts auf dem Start ein
+flacher Knopf mit drei gleich langen Balken, darunter ein abgerundetes Feld
+(`--rund-mittel`, seit 0.4.0 harte Kante statt weicher Schatten), je Eintrag das Zeichen links (leise)
+und das Wort rechts. Einträge: Profil, Freunde, Rangliste — in der
+Reihenfolge, in der sich die Bildschirme in `js\app.js` anmelden. Offene
+Freundesanfragen stehen als rote Zahl am Knopf (Summe) und am Eintrag.
+Kurzes Einblenden, ausser bei „Bewegung reduzieren".
+
+## Das markierte Wordle-Feld (seit 0.3.0)
+
+In der Zeile, in die getippt wird, trägt das markierte Feld Rahmen und
+Kante in `--kachel-markiert` (= `--haupt`). Dorthin kommt der nächste
+Buchstabe.
 
 ## Ebenen
 
-`--ebene-leiste` < `--ebene-hinweis` < `--ebene-kurzmeldung` <
+`--ebene-menue` (das aufgeklappte Menü) < `--ebene-hinweis` < `--ebene-kurzmeldung` <
 `--ebene-vollbild` (Anmeldung) < `--ebene-dialog`. Nie eine eigene Zahl.
 
 ## Bewegung
@@ -106,5 +154,7 @@ Wer das Intro in einer anderen App nachbaut, übernimmt genau diese Werte.
 
 ## Schrift
 
-Systemschrift, 16 px — die App soll ohne Netz vollständig aussehen. Kacheln
-fett und in Grossbuchstaben.
+16 px, gleich breite Ziffern. Die Familie steht nur in `--schrift-familie`
+(heute Systemschrift). Kommt die eigene Schrift (UPCrew-Standard), liegt sie
+als woff2 im Projekt und im Service Worker — die App soll ohne Netz
+vollständig aussehen. Kacheln fett und in Grossbuchstaben.

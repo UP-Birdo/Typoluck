@@ -26,8 +26,10 @@ const BAUSTEINE = {
     /*
      * Ein Knopf.
      *   text      Beschriftung
-     *   art       "haupt" | "still" | "gefahr" | "flach"  (Vorgabe: still)
-     *             Haupt = DIE eine Hauptaktion des Bildschirms.
+     *   art       "haupt" | "still" | "gefahr" | "flach" | "menue"
+     *             (Vorgabe: still). Haupt = DIE eine Hauptaktion des
+     *             Bildschirms; menue = Eintrag im Menü hinter den drei
+     *             Balken (seit 0.3.0, js\navigation.js).
      *   zeichen   optional ein Name aus ZEICHEN (steht vor dem Text)
      *   klein     true = kleinere Form für Zeilen und Leisten
      *   breit     true = volle Breite
@@ -54,6 +56,9 @@ const BAUSTEINE = {
             knopf.title = angaben.titel;
             knopf.setAttribute("aria-label", angaben.titel);
         }
+        /* Jeder Knopf vibriert kurz beim Antippen (UPCrew-Standard, seit
+           0.4.0) — hier an EINER Stelle, damit kein Knopf es vergisst. */
+        knopf.addEventListener("click", () => FUEHLEN.tippen());
         if (angaben.beiKlick) {
             knopf.addEventListener("click", angaben.beiKlick);
         }
@@ -120,7 +125,10 @@ const BAUSTEINE = {
             knopf.setAttribute("role", "radio");
             knopf.setAttribute("aria-checked", wahl.wert === aktuell ? "true" : "false");
             knopf.textContent = wahl.text;
-            knopf.addEventListener("click", () => beiWahl(wahl.wert));
+            knopf.addEventListener("click", () => {
+                FUEHLEN.tippen();
+                beiWahl(wahl.wert);
+            });
             leiste.appendChild(knopf);
         }
         return leiste;
@@ -164,6 +172,9 @@ const BAUSTEINE = {
             + "M16 4.3 A3.3 3.3 0 0 1 16 10.7 M18 14.4 C20 15.2 21.5 17.2 21.5 20",
         profil: "M12 12 A4 4 0 1 0 12 4 A4 4 0 0 0 12 12 Z M4 21 C4 17 7.6 14 12 14 C16.4 14 20 17 20 21",
         zurueck: "M15 5 L8 12 L15 19",
+        /* Drei gleich lange Balken wie in Blunderluck (seit 0.3.0) —
+           ungleiche Striche sähen nach Aufzählung aus, nicht nach Menü. */
+        menue: "M4.2 7 H19.8 M4.2 12 H19.8 M4.2 17 H19.8",
         weiter: "M9 5 L16 12 L9 19",
         info: "M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 Z M12 11 V16.5 M12 7.5 V8",
         wordle: "M3.5 4.5 H9.5 V10.5 H3.5 Z M14.5 4.5 H20.5 V10.5 H14.5 Z "
@@ -174,7 +185,15 @@ const BAUSTEINE = {
         zahnrad: "M12 15 A3 3 0 1 0 12 9 A3 3 0 0 0 12 15 Z "
             + "M12 2.5 V5 M12 19 V21.5 M2.5 12 H5 M19 12 H21.5 "
             + "M5.3 5.3 L7 7 M17 17 L18.7 18.7 M5.3 18.7 L7 17 M17 7 L18.7 5.3",
-        stern: "M12 3 L14.6 8.9 L21 9.5 L16.2 13.8 L17.6 20 L12 16.8 L6.4 20 L7.8 13.8 L3 9.5 L9.4 8.9 Z"
+        stern: "M12 3 L14.6 8.9 L21 9.5 L16.2 13.8 L17.6 20 L12 16.8 L6.4 20 L7.8 13.8 L3 9.5 L9.4 8.9 Z",
+        /* Seit 0.4.0 für die Zustände (js\zustand.js): eine leere Ablage
+           und ein durchgestrichenes Funknetz. */
+        leer: "M3 13 L6 5 H18 L21 13 V19 H3 Z M3 13 H8 L9.5 15.5 H14.5 L16 13 H21",
+        "kein-netz": "M2.5 9 A14 14 0 0 1 21.5 9 M5.5 12.5 A9.5 9.5 0 0 1 18.5 12.5 "
+            + "M8.8 16 A4.8 4.8 0 0 1 15.2 16 M12 19.5 V19.6 M4 4 L20 20",
+        /* Die Vibration im Profil (seit 0.4.0): ein Handy mit Wellen. */
+        vibration: "M8.5 4 H15.5 V20 H8.5 Z M11 17 H13 M4.5 8.5 V15.5 M19.5 8.5 V15.5 "
+            + "M2 10.5 V13.5 M22 10.5 V13.5"
     },
 
     zeichen(name) {

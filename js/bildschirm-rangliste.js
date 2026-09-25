@@ -23,7 +23,7 @@ const RANGLISTE_BILDSCHIRM = {
             id: "rangliste",
             titel: "Rangliste",
             zeichen: "rangliste",
-            inLeiste: true,
+            imMenue: true,
             zeigen: (behaelter) => RANGLISTE_BILDSCHIRM.zeigen(behaelter)
         });
     },
@@ -42,9 +42,10 @@ const RANGLISTE_BILDSCHIRM = {
         behaelter.innerHTML = "";
 
         behaelter.appendChild(BAUSTEINE.kopfzeile("Rangliste", {
+            zurueck: () => NAVIGATION.zurueck(),
             rechts: BAUSTEINE.knopf({
-                art: "flach", zeichen: "info", titel: "Wie gezählt wird",
-                beiKlick: () => DIALOG.hinweis("Wie gezählt wird", RANGLISTE.ERKLAERUNG)
+                art: "flach", zeichen: "info", titel: "Punkte",
+                beiKlick: () => DIALOG.hinweis("Punkte", "", RANGLISTE_BILDSCHIRM.punkteTafelBauen())
             })
         }));
 
@@ -70,9 +71,11 @@ const RANGLISTE_BILDSCHIRM = {
         behaelter.appendChild(karte);
 
         if (RANGLISTE_BILDSCHIRM._fehler) {
-            karte.appendChild(BAUSTEINE.erklaerung(RANGLISTE_BILDSCHIRM._fehler));
+            karte.appendChild(ZUSTAND.fehler({
+                technik: RANGLISTE_BILDSCHIRM._fehler, nochmal: () => RANGLISTE_BILDSCHIRM._laden()
+            }));
         } else if (!RANGLISTE_BILDSCHIRM._stand || RANGLISTE_BILDSCHIRM._stand.zeitraum !== RANGLISTE_BILDSCHIRM.zeitraum) {
-            karte.appendChild(BAUSTEINE.erklaerung("Wird geladen …"));
+            karte.appendChild(ZUSTAND.laden({ zeilen: 5, nochmal: () => RANGLISTE_BILDSCHIRM._laden() }));
         } else {
             RANGLISTE_BILDSCHIRM._tabelleEinsetzen(karte);
         }
@@ -94,9 +97,11 @@ const RANGLISTE_BILDSCHIRM = {
             : RANGLISTE.zeitraumTabelle(stand.tage, daten, auswahl);
 
         if (zeilen.length === 0) {
-            karte.appendChild(BAUSTEINE.erklaerung(stand.zeitraum === "tag"
-                ? "Heute hat noch niemand das Tageswort gelöst. Sei die oder der Erste!"
-                : "In den letzten 7 Tagen hat hier noch niemand gespielt."));
+            karte.appendChild(ZUSTAND.leer({
+                zeichen: "rangliste", text: stand.zeitraum === "tag" ? "Heute noch niemand" : "Noch niemand",
+                aktion: { text: "Spielen", zeichen: "weiter",
+                    beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "tag" }) }
+            }));
             return;
         }
         karte.appendChild(RANGLISTE_BILDSCHIRM.tabelleBauen(zeilen, stand.zeitraum, ich ? ich.id : ""));
@@ -113,15 +118,21 @@ const RANGLISTE_BILDSCHIRM = {
             const knopf = document.createElement("button");
             knopf.type = "button";
             knopf.className = "rangliste-knopf";
-            knopf.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: zeile.id }));
+            knopf.addEventListener("click", () => {
+                FUEHLEN.tippen();
+                NAVIGATION.zeigen("profil", { id: zeile.id });
+            });
 
             knopf.appendChild(BAUSTEINE.el("span", "rangliste-platz", zeile.platz + "."));
             knopf.appendChild(BAUSTEINE.kreis(zeile.name));
             const mitte = BAUSTEINE.el("span", "rangliste-mitte");
             mitte.appendChild(BAUSTEINE.el("span", "rangliste-name", zeile.name));
+            /* Zahlen statt Sätzen (UPCrew-Standard): „3/6" = gelöst im
+               dritten Versuch, „X/6" = nicht gelöst; über 7 Tage „4/5
+               gelöst" = vier von fünf gespielten Tagen. */
             mitte.appendChild(BAUSTEINE.el("span", "rangliste-zusatz", zeitraum === "tag"
-                ? (zeile.geloest ? "gelöst in " + zeile.versuche : "nicht gelöst")
-                : zeile.geloest + " von " + zeile.gespielt + " gelöst"));
+                ? (zeile.geloest ? zeile.versuche : "X") + "/" + WORDLE.VERSUCHE
+                : zeile.geloest + "/" + zeile.gespielt + " gelöst"));
             knopf.appendChild(mitte);
             if (zeitraum === "tag") {
                 knopf.appendChild(WORDLE_BILDSCHIRM.musterBauen(zeile.muster));
@@ -134,12 +145,41 @@ const RANGLISTE_BILDSCHIRM = {
         return liste;
     },
 
+    /*
+     * Die Punkte-Tafel — Versuche gegen Punkte, statt eines Absatzes
+     * (UPCrew-Standard, seit 0.4.0). Die Zahlen rechnet RANGLISTE.punkte,
+     * die Tafel erfindet keine. Auch die Spielregel in Wordle zeigt sie.
+     * Für Vorleseprogramme trägt sie die ausführliche Erklärung.
+     */
+    punkteTafelBauen() {
+        const tafel = BAUSTEINE.el("div", "punkte-tafel");
+        tafel.setAttribute("role", "img");
+        tafel.setAttribute("aria-label", RANGLISTE.ERKLAERUNG);
+        const spalte = (oben, unten) => {
+            const feld = BAUSTEINE.el("div", "punkte-feld");
+            feld.appendChild(BAUSTEINE.el("span", "punkte-versuch", oben));
+            feld.appendChild(BAUSTEINE.el("span", "punkte-wert", unten));
+            tafel.appendChild(feld);
+        };
+        for (let versuch = 1; versuch <= WORDLE.VERSUCHE; versuch++) {
+            spalte(versuch + "/" + WORDLE.VERSUCHE,
+                String(RANGLISTE.punkte({ geloest: true, versuche: versuch })));
+        }
+        spalte("X/" + WORDLE.VERSUCHE, String(RANGLISTE.punkte({ geloest: false })));
+        return tafel;
+    },
+
     async _laden() {
         if (RANGLISTE_BILDSCHIRM._laedt) {
             return;
         }
         RANGLISTE_BILDSCHIRM._laedt = true;
         RANGLISTE_BILDSCHIRM._fehler = "";
+        /* Sofort den Lade-Platzhalter zeigen — auch nach „Nochmal". */
+        if (RANGLISTE_BILDSCHIRM._stand && RANGLISTE_BILDSCHIRM._stand.zeitraum === RANGLISTE_BILDSCHIRM.zeitraum) {
+            RANGLISTE_BILDSCHIRM._stand = null;
+        }
+        RANGLISTE_BILDSCHIRM._zeichnen();
 
         const zeitraum = RANGLISTE_BILDSCHIRM.zeitraum;
         const heute = WORDLE.datumText(APP.jetzt());
@@ -151,7 +191,7 @@ const RANGLISTE_BILDSCHIRM = {
                 tage: await ERGEBNISSE.tageLaden(APP.spielSpeicher, tage)
             };
         } catch (fehler) {
-            RANGLISTE_BILDSCHIRM._fehler = "Die Rangliste ist gerade nicht erreichbar. " + fehler.message;
+            RANGLISTE_BILDSCHIRM._fehler = fehler.message || "Fehler";
         } finally {
             RANGLISTE_BILDSCHIRM._laedt = false;
         }

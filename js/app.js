@@ -90,13 +90,14 @@ const APP = {
         ANMELDUNG.verbinden(APP.abgleich, document.getElementById("anmeldung"));
         ANMELDUNG.beiAngemeldet = () => APP._beiAngemeldet();
 
-        /* 3. Bildschirme — die Reihenfolge ist die der Leiste unten. */
+        /* 3. Bildschirme — die Reihenfolge ist die im Menü hinter den drei
+           Balken (seit 0.3.0; wie Blunderluck: Profil zuerst). */
         START.anmelden();
-        RANGLISTE_BILDSCHIRM.anmelden();
-        FREUNDE_BILDSCHIRM.anmelden();
         PROFIL_BILDSCHIRM.anmelden();
+        FREUNDE_BILDSCHIRM.anmelden();
+        RANGLISTE_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
-        NAVIGATION.starten(document.getElementById("inhalt"), document.getElementById("leiste"), "start");
+        NAVIGATION.starten(document.getElementById("inhalt"), "start");
 
         /* 4. Spielerliste */
         APP._gestartet = true;
@@ -148,6 +149,9 @@ const APP = {
             NAVIGATION.zeigen(ziel.id, ziel.parameter, true);
         } else {
             NAVIGATION.auffrischen();
+        }
+        if (WERKSTATT.aktiv()) {
+            WERKSTATT.nachDemZeigen();
         }
 
         const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);

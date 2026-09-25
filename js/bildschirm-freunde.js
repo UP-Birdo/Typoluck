@@ -20,24 +20,28 @@ const FREUNDE_BILDSCHIRM = {
             id: "freunde",
             titel: "Freunde",
             zeichen: "freunde",
-            inLeiste: true,
+            imMenue: true,
             zeigen: (behaelter) => FREUNDE_BILDSCHIRM.zeigen(behaelter)
         });
     },
 
     zeigen(behaelter) {
-        behaelter.appendChild(BAUSTEINE.kopfzeile("Freunde"));
+        behaelter.appendChild(BAUSTEINE.kopfzeile("Freunde", { zurueck: () => NAVIGATION.zurueck() }));
 
         const ich = ANMELDUNG.ich();
         if (!ich) {
-            behaelter.appendChild(BAUSTEINE.erklaerung("Melde dich an, um Freunde zu finden."));
+            behaelter.appendChild(ZUSTAND.leer({ zeichen: "profil", text: "Nicht angemeldet" }));
+            return;
+        }
+        if (SPIELER.istVerteiler(ich)) {
+            behaelter.appendChild(ZUSTAND.leer({ zeichen: "zahnrad", text: "UP#Plus: keine Freunde" }));
             return;
         }
         const daten = ANMELDUNG.abgleich.daten;
         const sicht = SPIELER.freundeVon(daten, ich.id);
 
         if (sicht.offen.length > 0) {
-            const karte = BAUSTEINE.karte("Anfragen an dich");
+            const karte = BAUSTEINE.karte("Anfragen");
             for (const anderer of sicht.offen) {
                 karte.appendChild(FREUNDE_BILDSCHIRM._zeileBauen(anderer, [
                     BAUSTEINE.knopf({ text: "Annehmen", art: "haupt", klein: true,
@@ -49,11 +53,20 @@ const FREUNDE_BILDSCHIRM = {
             behaelter.appendChild(karte);
         }
 
-        const freundeKarte = BAUSTEINE.karte("Deine Freunde");
+        /* Leer: Zeichen, drei Wörter, ein Knopf, der ins Suchfeld springt
+           (UPCrew-Standard). Dass Freunde in allen UPCrew-Spielen gelten,
+           sagt das Stichwort im Titel der Suche. */
+        const freundeKarte = BAUSTEINE.karte("Freunde");
         if (sicht.freunde.length === 0) {
-            freundeKarte.appendChild(BAUSTEINE.erklaerung("Noch keine. Such unten nach einem Namen "
-                + "und stell eine Anfrage — nimmt die andere Seite an, seid ihr Freunde. "
-                + "Deine Freunde gelten in allen UPCrew-Spielen."));
+            freundeKarte.appendChild(ZUSTAND.leer({
+                zeichen: "freunde", text: "Noch keine Freunde",
+                aktion: { text: "Suchen", beiKlick: () => {
+                    const feld = document.getElementById("freunde-suche");
+                    if (feld) {
+                        feld.focus();
+                    }
+                } }
+            }));
         }
         for (const freund of sicht.freunde) {
             freundeKarte.appendChild(FREUNDE_BILDSCHIRM._zeileBauen(freund, [
@@ -64,7 +77,7 @@ const FREUNDE_BILDSCHIRM = {
         behaelter.appendChild(freundeKarte);
 
         if (sicht.gesendet.length > 0) {
-            const karte = BAUSTEINE.karte("Deine offenen Anfragen");
+            const karte = BAUSTEINE.karte("Gesendet");
             for (const anderer of sicht.gesendet) {
                 karte.appendChild(FREUNDE_BILDSCHIRM._zeileBauen(anderer, [
                     BAUSTEINE.knopf({ text: "Zurückziehen", art: "still", klein: true,
@@ -78,11 +91,12 @@ const FREUNDE_BILDSCHIRM = {
     },
 
     _sucheBauen(ich) {
-        const karte = BAUSTEINE.karte("Spieler finden");
+        const karte = BAUSTEINE.karte("Suchen · alle UPCrew-Spiele");
         const feld = document.createElement("input");
         feld.className = "feld";
+        feld.id = "freunde-suche";
         feld.type = "search";
-        feld.placeholder = "Namen eintippen …";
+        feld.placeholder = "Name";
         feld.value = FREUNDE_BILDSCHIRM.suchtext;
         feld.autocomplete = "off";
         feld.setAttribute("aria-label", "Spieler suchen");
@@ -98,14 +112,13 @@ const FREUNDE_BILDSCHIRM = {
                 return;
             }
             const daten = ANMELDUNG.abgleich.daten;
-            const gefunden = SPIELER.normalisieren(daten).spieler.filter((anderer) =>
+            const gefunden = SPIELER.mitspieler(daten).filter((anderer) =>
                 anderer.id !== ich.id && anderer.name
                 && ANMELDUNG.anzeigeName(anderer).toLowerCase().indexOf(gesucht) !== -1
-                && !(KONTO.aktiv() && KONTO.istOberAdmin(daten, anderer.uid))
                 && SPIELER.freundschaft(daten, ich.id, anderer.id) === "keine").slice(0, 20);
 
             if (gefunden.length === 0) {
-                treffer.appendChild(BAUSTEINE.erklaerung("Niemand gefunden, der dazu passt."));
+                treffer.appendChild(ZUSTAND.leer({ zeichen: "freunde", text: "Niemand gefunden" }));
                 return;
             }
             for (const anderer of gefunden) {
@@ -131,7 +144,10 @@ const FREUNDE_BILDSCHIRM = {
         name.className = "freunde-name";
         name.appendChild(BAUSTEINE.kreis(spieler.name));
         name.appendChild(BAUSTEINE.el("span", null, ANMELDUNG.anzeigeName(spieler)));
-        name.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: spieler.id }));
+        name.addEventListener("click", () => {
+            FUEHLEN.tippen();
+            NAVIGATION.zeigen("profil", { id: spieler.id });
+        });
         zeile.appendChild(name);
 
         const leiste = BAUSTEINE.el("span", "freunde-knoepfe");
@@ -159,9 +175,10 @@ const FREUNDE_BILDSCHIRM = {
             FREUNDE_BILDSCHIRM.suchtext = "";
         }
         ANMELDUNG.abgleich.aendern(neu);
+        FUEHLEN.erfolg();
         DIALOG.kurzmeldung({
-            anfragen: "Anfrage an " + ANMELDUNG.anzeigeName(anderer) + " gesendet",
-            annehmen: "Du und " + ANMELDUNG.anzeigeName(anderer) + " seid jetzt Freunde",
+            anfragen: "Anfrage gesendet",
+            annehmen: "Freunde: " + ANMELDUNG.anzeigeName(anderer),
             ablehnen: "Anfrage abgelehnt",
             entfernen: ANMELDUNG.anzeigeName(anderer) + " entfernt",
             zurueckziehen: "Anfrage zurückgezogen"

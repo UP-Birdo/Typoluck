@@ -22,6 +22,7 @@ const ICH = {
     SCHLUESSEL_PERSON: "typoluck.ich",
     SCHLUESSEL_SPIELSTAND: "typoluck.spielstand",
     SCHLUESSEL_AUSSTEHEND: "typoluck.ausstehend",
+    SCHLUESSEL_EINSTELLUNGEN: "typoluck.einstellungen",
 
     /* Welcher Speicher benutzt wird. Die Tests setzen hier einen Ersatz ein. */
     _speicher() {
@@ -83,6 +84,25 @@ const ICH = {
             return;
         }
         ICH._schreiben(ICH.SCHLUESSEL_AUSSTEHEND, liste);
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Einstellungen dieses Geräts (seit 0.4.0) — heute nur „vibration".
+     * Ein fehlender Wert liefert die Vorgabe; so bekommt jede neue
+     * Einstellung ihren Ab-Werk-Wert, ohne dass alte Stände etwas merken.
+     * ---------------------------------------------------------------- */
+
+    einstellung(name, vorgabe) {
+        const alle = ICH._lesen(ICH.SCHLUESSEL_EINSTELLUNGEN);
+        return (alle && typeof alle === "object" && Object.prototype.hasOwnProperty.call(alle, name))
+            ? alle[name] : vorgabe;
+    },
+
+    einstellungSetzen(name, wert) {
+        const alle = ICH._lesen(ICH.SCHLUESSEL_EINSTELLUNGEN);
+        const neu = (alle && typeof alle === "object") ? alle : {};
+        neu[name] = wert;
+        ICH._schreiben(ICH.SCHLUESSEL_EINSTELLUNGEN, neu);
     },
 
     /* ---------------------------------------------------------------- *

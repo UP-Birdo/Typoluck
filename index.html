@@ -16,7 +16,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
     <link rel="manifest" href="manifest.webmanifest">
-    <meta name="theme-color" content="#5b3cc4">
+    <meta name="theme-color" content="#1f5fa8">
     <meta name="apple-mobile-web-app-title" content="Typoluck">
 
     <!-- Das Aussehen in drei Teilen. DIE REIHENFOLGE IST DIE KASKADE:
@@ -34,9 +34,10 @@
 
     <p class="hinweis" id="hinweis" role="status" hidden></p>
 
+    <!-- Seit 0.3.0 keine Leiste unten mehr: Profil, Freunde und Rangliste
+         liegen im Menü hinter den drei Balken oben rechts auf dem Start
+         (js\navigation.js, wie in Blunderluck). -->
     <main class="inhalt" id="inhalt"></main>
-
-    <nav class="leiste" id="leiste" aria-label="Hauptmenü"></nav>
 
     <!-- Das Anmelde-Vollbild (js\anmeldung.js) liegt über allem ausser den
          Dialogen. -->
@@ -58,6 +59,7 @@
     <script src="js/versiegelung.js"></script>
     <script src="js/spieler.js"></script>
     <script src="js/ich.js"></script>
+    <script src="js/fuehlen.js"></script>
     <script src="js/speicher.js"></script>
     <script src="js/abgleich.js"></script>
     <script src="js/woerter-de.js"></script>
@@ -65,6 +67,7 @@
     <script src="js/ergebnisse.js"></script>
     <script src="js/rangliste.js"></script>
     <script src="js/bausteine.js"></script>
+    <script src="js/zustand.js"></script>
     <script src="js/dialog.js"></script>
     <script src="js/navigation.js"></script>
     <script src="js/anmeldung.js"></script>

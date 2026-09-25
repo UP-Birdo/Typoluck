@@ -13,6 +13,9 @@
 
 ## entschieden.md — getroffene Entscheidungen
 
+- UPCrew-Standard, erster Schritt (0.4.0)
+- Blunderlucks Farben, Drei-Balken-Menü, antippbare Felder (0.3.0)
+- UP#Plus ist in allen UPCrew-Spielen nur Rollen-Verteiler (0.2.1)
 - Name: Typoluck
 - Das Studio UPCrew: eigene Datenbank, UPCrew-Konten, Intro
 - Ergebnisse zweimal gespeichert: je Tag und je Spieler
@@ -20,7 +23,7 @@
 - Das Tageswort wird gerechnet, nicht vom Server geholt
 - Erst aufs Gerät, dann ins Netz
 - Punkte: 7 minus Versuche, ungelöst 0
-- Violett als Akzentfarbe
+- Violett als Akzentfarbe (abgelöst durch 0.3.0)
 - 2D zuerst, 3D angedockt statt vorgebaut
 - Kein Firebase-SDK, keine Bibliothek
 - Die Werkstatt wird mit ausgeliefert
@@ -34,6 +37,7 @@ Braucht eine Nutzer-Entscheidung:
 - Blunderlucks Umzug zu UPCrew
 - Ein Anmelden für alle UPCrew-Spiele auf einem Gerät
 - Passwort vergessen
+- App-Zeichen blau oder violett
 
 Bewusst nicht gebaut: eigene Felder im Spieler-Eintrag, Gesamt-Rangliste,
 Übungsrunden in der Rangliste, das Wort in der Datenbank.

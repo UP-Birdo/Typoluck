@@ -18,7 +18,7 @@ const START = {
      *   id          Kennung (auch der Bildschirm, den die Kachel öffnet)
      *   name        Anzeigename
      *   zeichen     Name aus BAUSTEINE.ZEICHEN
-     *   beschreibung  ein Satz
+     *   beschreibung  Stichworte, kein Satz (UPCrew-Standard, seit 0.4.0)
      *   tagesName()   wie das heutige Rätsel heisst („Tageswort Nr. 3")
      *   tagesStand()  "offen" | "angefangen" | "erledigt" — Stand des heutigen Rätsels
      */
@@ -27,7 +27,7 @@ const START = {
             id: "wordle",
             name: "Wordle",
             zeichen: "wordle",
-            beschreibung: "Errate das Wort mit fünf Buchstaben in sechs Versuchen.",
+            beschreibung: "5 Buchstaben · 6 Versuche",
             tagesName() {
                 return "Tageswort Nr. " + WORDLE.tageswort(WORDLE.datumText(APP.jetzt())).nummer;
             },
@@ -56,7 +56,7 @@ const START = {
             id: "start",
             titel: "Start",
             zeichen: "start",
-            inLeiste: true,
+            imMenue: false,
             zeigen: (behaelter) => START.zeigen(behaelter)
         });
     },
@@ -66,16 +66,25 @@ const START = {
         const name = ich ? ich.name : (ICH.person() ? ICH.person().name : "");
 
         const kopf = BAUSTEINE.el("header", "start-kopf");
+        /* Nur der Name der App — keine Begrüßung (UPCrew-Standard, seit
+           0.4.0; bis 0.3.0 stand hier „Hallo …!"). Wer angemeldet ist, zeigt
+           der Namens-Kreis rechts. */
         const marke = BAUSTEINE.el("div", "start-marke");
         marke.appendChild(BAUSTEINE.el("span", "start-logo", "Typoluck"));
-        marke.appendChild(BAUSTEINE.el("span", "start-gruss", name ? "Hallo " + name + "!" : "Hallo!"));
         kopf.appendChild(marke);
+
+        /* Oben rechts: der Namens-Kreis (führt direkt ins Profil) und das
+           Menü hinter den drei Balken (seit 0.3.0, wie in Blunderluck) mit
+           Profil, Freunde und Rangliste — zwei Wege zum Profil. */
+        const rechts = BAUSTEINE.el("div", "start-kopf-rechts");
         const profilKnopf = BAUSTEINE.knopf({
             art: "flach", titel: "Dein Profil",
-            beiKlick: () => NAVIGATION.zeigen("profil", null, true)
+            beiKlick: () => NAVIGATION.zeigen("profil", null)
         });
         profilKnopf.appendChild(BAUSTEINE.kreis(name));
-        kopf.appendChild(profilKnopf);
+        rechts.appendChild(profilKnopf);
+        rechts.appendChild(NAVIGATION.menueBauen());
+        kopf.appendChild(rechts);
         behaelter.appendChild(kopf);
 
         for (const spiel of START.SPIELE) {
@@ -101,10 +110,11 @@ const START = {
         karte.appendChild(kopf);
 
         const raetsel = spiel.tagesName();
-        const schild = BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + stand, {
-            offen: raetsel + " wartet auf dich.",
-            angefangen: raetsel + " ist angefangen.",
-            erledigt: raetsel + " ist erledigt. Morgen kommt das nächste."
+        /* Name des Rätsels und sein Stand als Stichwort — kein Satz. */
+        const schild = BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + stand, raetsel + " · " + {
+            offen: "offen",
+            angefangen: "angefangen",
+            erledigt: "erledigt"
         }[stand]);
         karte.appendChild(schild);
 
@@ -133,10 +143,10 @@ const START = {
         return karte;
     },
 
-    /* „Heute bei deinen Freunden" — die Tagestabelle, nur Freunde und ich,
-       höchstens fünf Zeilen. */
+    /* „Freunde heute" — die Tagestabelle, nur Freunde und ich, höchstens
+       fünf Zeilen. Laden, Leer und Fehler kommen aus js\zustand.js. */
     _freundeKarteBauen() {
-        const karte = BAUSTEINE.karte("Heute bei deinen Freunden", "start-freunde");
+        const karte = BAUSTEINE.karte("Freunde heute", "start-freunde");
         karte.id = "start-freunde";
         START._freundeKarteFuellen(karte);
         return karte;
@@ -151,11 +161,13 @@ const START = {
             return;
         }
         if (START._freundeFehler) {
-            karte.appendChild(BAUSTEINE.erklaerung(START._freundeFehler));
+            karte.appendChild(ZUSTAND.fehler({
+                technik: START._freundeFehler, nochmal: () => START._freundeLaden()
+            }));
             return;
         }
         if (START._freundeHeute === null) {
-            karte.appendChild(BAUSTEINE.erklaerung("Wird geladen …"));
+            karte.appendChild(ZUSTAND.laden({ zeilen: 3, nochmal: () => START._freundeLaden() }));
             return;
         }
 
@@ -164,29 +176,46 @@ const START = {
             RANGLISTE.auswahl(daten, ich.id, true)).slice(0, 5);
         const hatFreunde = SPIELER.freundeVon(daten, ich.id).freunde.length > 0;
 
+        if (!hatFreunde) {
+            karte.appendChild(ZUSTAND.leer({
+                zeichen: "freunde", text: "Noch keine Freunde",
+                aktion: { text: "Freunde finden", zeichen: "freunde",
+                    beiKlick: () => NAVIGATION.zeigen("freunde", null) }
+            }));
+            return;
+        }
         if (zeilen.length === 0) {
-            karte.appendChild(BAUSTEINE.erklaerung(hatFreunde
-                ? "Heute hat noch niemand von euch gespielt."
-                : "Noch keine Freunde. Unter Freunde findest du andere Spieler."));
+            karte.appendChild(ZUSTAND.leer({
+                zeichen: "wordle", text: "Heute noch niemand",
+                aktion: { text: "Spielen", zeichen: "weiter",
+                    beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "tag" }) }
+            }));
         } else {
             karte.appendChild(RANGLISTE_BILDSCHIRM.tabelleBauen(zeilen, "tag", ich.id));
         }
 
         karte.appendChild(BAUSTEINE.knopf({
-            text: hatFreunde ? "Ganze Rangliste" : "Freunde finden", art: "flach", zeichen: "weiter",
-            beiKlick: () => NAVIGATION.zeigen(hatFreunde ? "rangliste" : "freunde", null, true)
+            text: "Ganze Rangliste", art: "flach", zeichen: "weiter",
+            beiKlick: () => NAVIGATION.zeigen("rangliste", null)
         }));
     },
 
+    /* Holt die Tageswertung. Zeigt sofort den Lade-Platzhalter — so taugt
+       dieselbe Funktion auch für den Knopf „Nochmal". */
     async _freundeLaden() {
         START._freundeHeute = null;
         START._freundeFehler = "";
+        START._freundeKarteNeu();
         try {
             START._freundeHeute = await ERGEBNISSE.tagLaden(APP.spielSpeicher,
                 WORDLE.datumText(APP.jetzt()));
         } catch (fehler) {
-            START._freundeFehler = "Die Tageswertung ist gerade nicht erreichbar. " + fehler.message;
+            START._freundeFehler = fehler.message || "Fehler";
         }
+        START._freundeKarteNeu();
+    },
+
+    _freundeKarteNeu() {
         const karte = document.getElementById("start-freunde");
         if (karte && NAVIGATION.aktuell === "start") {
             START._freundeKarteFuellen(karte);

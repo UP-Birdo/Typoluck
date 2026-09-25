@@ -21,7 +21,7 @@ const PROFIL_BILDSCHIRM = {
             id: "profil",
             titel: "Profil",
             zeichen: "profil",
-            inLeiste: true,
+            imMenue: true,
             zeigen: (behaelter, parameter) => PROFIL_BILDSCHIRM.zeigen(behaelter, parameter)
         });
     },
@@ -44,11 +44,11 @@ const PROFIL_BILDSCHIRM = {
         }
 
         behaelter.appendChild(BAUSTEINE.kopfzeile(eigenes ? "Dein Profil" : "Profil", {
-            zurueck: (parameter && parameter.id) ? () => NAVIGATION.zurueck() : null
+            zurueck: () => NAVIGATION.zurueck()
         }));
 
         if (!spieler) {
-            behaelter.appendChild(BAUSTEINE.erklaerung("Diesen Spieler gibt es nicht (mehr)."));
+            behaelter.appendChild(ZUSTAND.leer({ zeichen: "profil", text: "Unbekannter Spieler" }));
             return;
         }
 
@@ -66,6 +66,7 @@ const PROFIL_BILDSCHIRM = {
         behaelter.appendChild(statistik);
 
         if (eigenes) {
+            behaelter.appendChild(PROFIL_BILDSCHIRM._geraetBauen());
             behaelter.appendChild(PROFIL_BILDSCHIRM._einstellungenBauen());
             behaelter.appendChild(PROFIL_BILDSCHIRM._ueberBauen());
         }
@@ -79,12 +80,18 @@ const PROFIL_BILDSCHIRM = {
         while (karte.children.length > 1) {
             karte.removeChild(karte.lastChild);
         }
+        const nochmal = () => {
+            PROFIL_BILDSCHIRM._verlauf = null;
+            PROFIL_BILDSCHIRM._fehler = "";
+            PROFIL_BILDSCHIRM._statistikFuellen(karte, id, eigenes);
+            PROFIL_BILDSCHIRM._laden(id, eigenes);
+        };
         if (PROFIL_BILDSCHIRM._fehler) {
-            karte.appendChild(BAUSTEINE.erklaerung(PROFIL_BILDSCHIRM._fehler));
+            karte.appendChild(ZUSTAND.fehler({ technik: PROFIL_BILDSCHIRM._fehler, nochmal: nochmal }));
             return;
         }
         if (PROFIL_BILDSCHIRM._verlauf === null) {
-            karte.appendChild(BAUSTEINE.erklaerung("Wird geladen …"));
+            karte.appendChild(ZUSTAND.laden({ zeilen: 2, nochmal: nochmal }));
             return;
         }
 
@@ -107,13 +114,15 @@ const PROFIL_BILDSCHIRM = {
         karte.appendChild(raster);
 
         if (werte.gespielt === 0) {
-            karte.appendChild(BAUSTEINE.erklaerung(eigenes
-                ? "Noch kein Tageswort gespielt. Los geht es auf dem Start."
-                : "Hat noch kein Tageswort gespielt."));
+            karte.appendChild(ZUSTAND.leer({
+                zeichen: "wordle", text: "Noch nicht gespielt",
+                aktion: eigenes ? { text: "Spielen", zeichen: "weiter",
+                    beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "tag" }) } : null
+            }));
             return;
         }
 
-        karte.appendChild(BAUSTEINE.el("h3", "unterkopf", "Gelöst im … Versuch"));
+        karte.appendChild(BAUSTEINE.el("h3", "unterkopf", "Gelöst im Versuch"));
         const hoechster = Math.max(1, ...werte.verteilung);
         werte.verteilung.forEach((anzahl, i) => {
             const zeile = BAUSTEINE.el("div", "verteilung-zeile");
@@ -129,6 +138,9 @@ const PROFIL_BILDSCHIRM = {
         const daten = ANMELDUNG.abgleich.daten;
         const lage = SPIELER.freundschaft(daten, ich.id, spieler.id);
         const bereich = BAUSTEINE.el("div", "profil-freundschaft");
+        if (SPIELER.istVerteiler(ich) || SPIELER.istVerteiler(spieler)) {
+            return bereich;
+        }
 
         const setzen = (neu, meldung) => {
             ANMELDUNG.abgleich.aendern(neu);
@@ -136,29 +148,56 @@ const PROFIL_BILDSCHIRM = {
         };
 
         if (lage === "freunde") {
-            bereich.appendChild(BAUSTEINE.el("span", "schild schild-gut", "Ihr seid Freunde"));
+            bereich.appendChild(BAUSTEINE.el("span", "schild schild-gut", "Freunde"));
         } else if (lage === "gesendet") {
             bereich.appendChild(BAUSTEINE.el("span", "schild", "Anfrage gesendet"));
         } else if (lage === "offen") {
             bereich.appendChild(BAUSTEINE.knopf({
-                text: "Anfrage annehmen", art: "haupt", klein: true,
+                text: "Annehmen", art: "haupt", klein: true,
                 beiKlick: () => setzen(SPIELER.freundHinzufuegen(daten, ich.id, spieler.id),
-                    "Du und " + spieler.name + " seid jetzt Freunde")
+                    "Freunde: " + spieler.name)
             }));
         } else {
             bereich.appendChild(BAUSTEINE.knopf({
-                text: "Als Freund anfragen", art: "haupt", klein: true, zeichen: "freunde",
+                text: "Anfragen", art: "haupt", klein: true, zeichen: "freunde",
                 beiKlick: () => setzen(SPIELER.freundHinzufuegen(daten, ich.id, spieler.id),
-                    "Anfrage an " + spieler.name + " gesendet")
+                    "Anfrage gesendet")
             }));
         }
         return bereich;
     },
 
+    /*
+     * Dieses Gerät (seit 0.4.0): der Schalter für die Vibration
+     * (UPCrew-Standard, Abschnitt 5 — ab Werk an). Ein Segment-Schalter
+     * wie in der Rangliste. Kann das Gerät nicht vibrieren (iPhone), steht
+     * das als Stichwort daneben, statt einen Schalter ohne Wirkung zu zeigen.
+     */
+    _geraetBauen() {
+        const karte = BAUSTEINE.karte("Dieses Gerät");
+        const zeile = BAUSTEINE.el("div", "einstellung-zeile");
+        const name = BAUSTEINE.el("span", "einstellung-name");
+        name.appendChild(BAUSTEINE.zeichen("vibration"));
+        name.appendChild(BAUSTEINE.el("span", null, "Vibration"));
+        zeile.appendChild(name);
+        if (FUEHLEN.verfuegbar()) {
+            zeile.appendChild(BAUSTEINE.segment(
+                [{ wert: true, text: "An" }, { wert: false, text: "Aus" }],
+                FUEHLEN.an(),
+                (wert) => {
+                    FUEHLEN.anSetzen(wert);
+                    FUEHLEN.tippen();
+                    NAVIGATION.auffrischen();
+                }, "Vibration"));
+        } else {
+            zeile.appendChild(BAUSTEINE.el("span", "schild", "nicht möglich"));
+        }
+        karte.appendChild(zeile);
+        return karte;
+    },
+
     _einstellungenBauen() {
-        const karte = BAUSTEINE.karte("UPCrew-Konto");
-        karte.appendChild(BAUSTEINE.erklaerung("Dein Konto gilt in allen Spielen von UPCrew — "
-            + "mit demselben Namen, Passwort und denselben Freunden."));
+        const karte = BAUSTEINE.karte("UPCrew-Konto · alle Spiele");
         const reihe = BAUSTEINE.el("div", "knopf-spalte");
         /* Ein Gast (seit v0.2.0) sichert hier seinen Spielstand. */
         if (ANMELDUNG.istGast()) {
@@ -193,7 +232,7 @@ const PROFIL_BILDSCHIRM = {
         angabe("Speicher", APP.spielSpeicher ? APP.spielSpeicher.beschreibung : "");
         const offen = ICH.ausstehend().length;
         if (offen > 0) {
-            angabe("Noch nicht gesendet", offen === 1 ? "1 Ergebnis" : offen + " Ergebnisse");
+            angabe("Nicht gesendet", offen === 1 ? "1 Ergebnis" : offen + " Ergebnisse");
         }
         karte.appendChild(liste);
         karte.appendChild(BAUSTEINE.knopf({
@@ -209,7 +248,7 @@ const PROFIL_BILDSCHIRM = {
             PROFIL_BILDSCHIRM._verlauf = await ERGEBNISSE.verlaufLaden(APP.spielSpeicher, id);
         } catch (fehler) {
             PROFIL_BILDSCHIRM._verlauf = eigenes ? {} : null;
-            PROFIL_BILDSCHIRM._fehler = eigenes ? "" : "Die Statistik ist gerade nicht erreichbar. " + fehler.message;
+            PROFIL_BILDSCHIRM._fehler = eigenes ? "" : (fehler.message || "Fehler");
         }
         const karte = document.getElementById("profil-statistik");
         if (karte && NAVIGATION.aktuell === "profil" && PROFIL_BILDSCHIRM._fuerId === id) {

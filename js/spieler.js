@@ -187,6 +187,21 @@ const SPIELER = {
             spieler.name.trim().toLowerCase() === gesucht) || null;
     },
 
+    /* Das Verteiler-Konto UP#Plus (Nutzer 25.09.2026: „reiner Admin-Rollen-
+       Verteiler-Account"): keine Rangliste, keine Suche, keine Freunde. Die
+       Nummer „Plus" hat nur dieses Konto — alle anderen haben vier Ziffern
+       (Regeln, Apps\Blunderluck\SICHERHEIT.md §11). Wie in Blunderluck. */
+    istVerteiler(spieler) {
+        return !!spieler && spieler.tag === "Plus"
+            && String(spieler.name || "").trim().toLowerCase() === "up";
+    },
+
+    /* Die Spielerliste ohne das Verteiler-Konto. */
+    mitspieler(daten) {
+        return SPIELER.normalisieren(daten).spieler
+            .filter((spieler) => !SPIELER.istVerteiler(spieler));
+    },
+
     hatPasswort(spieler) {
         return !!(spieler && spieler.pinPruefwert && spieler.pinSalz);
     },
@@ -327,7 +342,7 @@ const SPIELER = {
         const stand = SPIELER.normalisieren(daten);
         const ich = stand.spieler.find((spieler) => spieler.id === ichId);
         const anderer = stand.spieler.find((spieler) => spieler.id === andererId);
-        if (!ich || !anderer) {
+        if (!ich || !anderer || SPIELER.istVerteiler(ich) || SPIELER.istVerteiler(anderer)) {
             return "keine";
         }
 
@@ -362,8 +377,10 @@ const SPIELER = {
     /* Anfrage stellen und annehmen sind dieselbe Handlung: den anderen in
        die eigene Liste eintragen. Eine frühere Ablehnung fällt dabei weg. */
     freundHinzufuegen(daten, ichId, andererId, zeitpunkt) {
+        const verteiler = SPIELER.istVerteiler(SPIELER.spielerFinden(daten, ichId))
+            || SPIELER.istVerteiler(SPIELER.spielerFinden(daten, andererId));
         return SPIELER._eigenenAendern(daten, ichId, zeitpunkt, (spieler) => {
-            if (ichId === andererId) {
+            if (ichId === andererId || verteiler) {
                 return;
             }
             if (spieler.freunde.indexOf(andererId) === -1) {

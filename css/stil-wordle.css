@@ -34,7 +34,7 @@
     justify-content: center;
     aspect-ratio: 1;
     border: 2px solid var(--kachel-rahmen);
-    border-radius: 6px;
+    border-radius: var(--rund-klein);
     background: var(--karte);
     color: var(--schrift);
     font-size: clamp(1.4rem, 7vw, 2rem);
@@ -75,6 +75,22 @@
 .kachel-falsch {
     background: var(--kachel-falsch);
     box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-falsch-kante);
+}
+
+/*
+ * DIE ZEILE, IN DIE GETIPPT WIRD, IST ANTIPPBAR (seit 0.3.0, Nutzer
+ * 25.09.2026: „auf die Felder klicken, dass man schon vor-eintragen kann").
+ * Ein Tipp auf ein Feld markiert es; der nächste Buchstabe landet dort.
+ * Das markierte Feld trägt Rahmen und Kante in der Hauptfarbe. Welches
+ * Feld markiert ist, rechnet js\wordle.js (`eingabe…`).
+ */
+.wordle-zeile-aktiv .kachel {
+    cursor: pointer;
+}
+
+.kachel.kachel-markiert {
+    border-color: var(--kachel-markiert);
+    box-shadow: 0 var(--kachel-tiefe) 0 var(--kachel-markiert);
 }
 
 /* Ein getippter Buchstabe springt kurz auf. */
@@ -150,7 +166,7 @@
     height: 54px;
     padding: 0;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--rund-klein);
     background: var(--taste);
     color: var(--taste-schrift);
     font: inherit;
@@ -212,19 +228,84 @@
     text-align: center;
 }
 
+/* Seit 0.4.0 ist der Titel die Zahl („3/6") statt eines Lob-Worts —
+   deshalb gross (UPCrew-Standard: Zahl statt Satz). */
 .wordle-ende-titel {
     margin: 0 0 4px;
-    font-size: 1.5rem;
+    font-size: 2.4rem;
     font-weight: 800;
+    line-height: 1.1;
 }
 
 .wordle-ende-loesung {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
     margin: 0 0 8px;
+}
+
+.wordle-ende-wort-titel {
+    color: var(--schrift-leise);
+    font-size: 0.85rem;
 }
 
 .wordle-ende-loesung strong {
     color: var(--haupt);
     letter-spacing: 0.08em;
+}
+
+.wordle-ende-punkte {
+    margin: 0 0 12px;
+    color: var(--haupt);
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+.wordle-ende-naechstes {
+    margin: 10px 0 0;
+    color: var(--schrift-leise);
+    font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------------ *
+ * Die Spielregel als Bild (Dialog „So geht's", seit 0.4.0)
+ * ------------------------------------------------------------------ */
+
+.anleitung {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.anleitung-kopf {
+    margin: 0;
+    color: var(--schrift-leise);
+    font-weight: 600;
+    text-align: center;
+}
+
+.anleitung-farben {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    justify-items: center;
+}
+
+.anleitung-farbe {
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+}
+
+.anleitung-farbe .kachel {
+    width: 52px;
+    font-size: 1.5rem;
+}
+
+.anleitung-wort {
+    font-size: 0.85rem;
+    font-weight: 600;
 }
 
 .wordle-ende .muster {
@@ -245,13 +326,13 @@
 .muster-feld {
     width: 8px;
     height: 8px;
-    border-radius: 2px;
+    border-radius: calc(var(--rund-klein) / 4);
 }
 
 .wordle-ende .muster-feld {
     width: 16px;
     height: 16px;
-    border-radius: 3px;
+    border-radius: calc(var(--rund-klein) / 3);
 }
 
 .muster-richtig {

@@ -216,13 +216,133 @@ const WORDLE = {
         return { runde: neu, fehler: "" };
     },
 
-    /* Der Satz, den der Bildschirm zu einem Fehler zeigt — steht beim Modell,
-       damit Regel und Erklärung nicht auseinanderlaufen. */
+    /* ---------------------------------------------------------------- *
+     * Die Eingabe — die Zeile, in die gerade getippt wird (seit 0.3.0)
+     *
+     * Nutzer 25.09.2026: „dass man auf die Felder klicken kann in der Zeile,
+     * wo man gerade schreiben soll, dass man schon vor-eintragen kann".
+     * Deshalb ist die Eingabe kein Text mehr, der nur hinten wächst, sondern
+     * fünf Felder mit einer Markierung:
+     *
+     *     { felder: ["h", "", "u", "", ""], stelle: 1 }
+     *
+     *   felder   je Stelle ein Buchstabe oder "" (Lücken sind erlaubt)
+     *   stelle   das markierte Feld, 0 bis LAENGE-1 — dorthin kommt der
+     *            nächste Buchstabe. LAENGE heisst „nichts markiert": die
+     *            Zeile wurde von vorn nach hinten vollgetippt, ein weiterer
+     *            Buchstabe tut nichts (wie im klassischen Wordle).
+     *
+     * Wer der Reihe nach tippt, merkt keinen Unterschied zu vorher. Die
+     * Regeln stehen hier und nicht im Bildschirm (eiserne Regel „Regeln nur
+     * im Modell"); jede Funktion liefert eine NEUE Eingabe.
+     * ---------------------------------------------------------------- */
+
+    leereEingabe() {
+        return { felder: new Array(WORDLE.LAENGE).fill(""), stelle: 0 };
+    },
+
+    /* Ein Feld antippen: es wird markiert, auch wenn schon etwas darin
+       steht (der nächste Buchstabe ersetzt es dann). */
+    eingabeWaehlen(eingabe, stelle) {
+        const neu = WORDLE._eingabeKopie(eingabe);
+        if (Number.isInteger(stelle) && stelle >= 0 && stelle < WORDLE.LAENGE) {
+            neu.stelle = stelle;
+        }
+        return neu;
+    },
+
+    /* Pfeiltasten: die Markierung ein Feld weiter (+1) oder zurück (-1),
+       nie über den Rand hinaus. Aus „nichts markiert" führt links auf das
+       letzte Feld. */
+    eingabeSchieben(eingabe, richtung) {
+        const neu = WORDLE._eingabeKopie(eingabe);
+        const von = neu.stelle >= WORDLE.LAENGE ? WORDLE.LAENGE : neu.stelle;
+        neu.stelle = Math.min(WORDLE.LAENGE - 1, Math.max(0, von + (richtung < 0 ? -1 : 1)));
+        return neu;
+    },
+
+    /*
+     * Einen Buchstaben tippen: Er kommt in das markierte Feld. Danach
+     * springt die Markierung auf das nächste LEERE Feld rechts davon; gibt
+     * es rechts keins mehr, auf das erste leere Feld von vorn; ist die
+     * Zeile voll, auf „nichts markiert". So füllt man Lücken, ohne selbst
+     * weiterzutippen.
+     */
+    eingabeTippen(eingabe, buchstabe) {
+        const neu = WORDLE._eingabeKopie(eingabe);
+        const zeichen = String(buchstabe || "").toLowerCase();
+        if (neu.stelle >= WORDLE.LAENGE || Array.from(zeichen).length !== 1
+                || WORDLE.BUCHSTABEN.indexOf(zeichen) === -1) {
+            return neu;
+        }
+        neu.felder[neu.stelle] = zeichen;
+        neu.stelle = WORDLE._naechstesLeeres(neu.felder, neu.stelle);
+        return neu;
+    },
+
+    /*
+     * Löschen: Steht im markierten Feld ein Buchstabe, geht genau der weg
+     * und die Markierung bleibt. Ist es leer (oder nichts markiert), geht
+     * der nächste Buchstabe LINKS davon weg und die Markierung wandert
+     * dorthin — das ist das gewohnte Zurück-Löschen beim Tippen.
+     */
+    eingabeLoeschen(eingabe) {
+        const neu = WORDLE._eingabeKopie(eingabe);
+        if (neu.stelle < WORDLE.LAENGE && neu.felder[neu.stelle] !== "") {
+            neu.felder[neu.stelle] = "";
+            return neu;
+        }
+        for (let i = Math.min(neu.stelle, WORDLE.LAENGE) - 1; i >= 0; i--) {
+            if (neu.felder[i] !== "") {
+                neu.felder[i] = "";
+                neu.stelle = i;
+                return neu;
+            }
+        }
+        return neu;
+    },
+
+    /* Das Wort zum Abschicken. Mit Lücke ist es kürzer als LAENGE — dann
+       sagt `raten` von selbst „zu-kurz". */
+    eingabeWort(eingabe) {
+        return WORDLE._eingabeKopie(eingabe).felder.join("");
+    },
+
+    /* Hilfen der Eingabe */
+
+    _eingabeKopie(eingabe) {
+        const felder = new Array(WORDLE.LAENGE).fill("");
+        const roh = (eingabe && Array.isArray(eingabe.felder)) ? eingabe.felder : [];
+        for (let i = 0; i < WORDLE.LAENGE; i++) {
+            felder[i] = (typeof roh[i] === "string") ? roh[i] : "";
+        }
+        const stelle = (eingabe && Number.isInteger(eingabe.stelle)
+            && eingabe.stelle >= 0 && eingabe.stelle <= WORDLE.LAENGE) ? eingabe.stelle : 0;
+        return { felder: felder, stelle: stelle };
+    },
+
+    _naechstesLeeres(felder, von) {
+        for (let i = von + 1; i < WORDLE.LAENGE; i++) {
+            if (felder[i] === "") {
+                return i;
+            }
+        }
+        for (let i = 0; i < von; i++) {
+            if (felder[i] === "") {
+                return i;
+            }
+        }
+        return WORDLE.LAENGE;
+    },
+
+    /* Die Worte, die der Bildschirm zu einem Fehler zeigt — stehen beim
+       Modell, damit Regel und Erklärung nicht auseinanderlaufen. Seit 0.4.0
+       Stichworte statt Sätze (UPCrew-Standard, Abschnitt „Text"). */
     fehlerText(fehler) {
         return {
-            "vorbei": "Diese Runde ist schon vorbei.",
-            "zu-kurz": "Zu wenig Buchstaben.",
-            "unbekannt": "Dieses Wort kenne ich nicht."
+            "vorbei": "Runde vorbei",
+            "zu-kurz": "Zu kurz",
+            "unbekannt": "Unbekanntes Wort"
         }[fehler] || "";
     },
 

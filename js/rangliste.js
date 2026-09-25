@@ -61,7 +61,7 @@ const RANGLISTE = {
         const zeilen = [];
         for (const id of Object.keys(tag || {})) {
             const spieler = SPIELER.spielerFinden(spielerDaten, id);
-            if (!spieler || (auswahl && !auswahl.has(id))) {
+            if (!spieler || SPIELER.istVerteiler(spieler) || (auswahl && !auswahl.has(id))) {
                 continue;
             }
             const ergebnis = tag[id];
@@ -101,7 +101,7 @@ const RANGLISTE = {
         const zeilen = [];
         for (const id of Object.keys(summen)) {
             const spieler = SPIELER.spielerFinden(spielerDaten, id);
-            if (!spieler || (auswahl && !auswahl.has(id))) {
+            if (!spieler || SPIELER.istVerteiler(spieler) || (auswahl && !auswahl.has(id))) {
                 continue;
             }
             zeilen.push(Object.assign({ id: id, name: spieler.name }, summen[id]));

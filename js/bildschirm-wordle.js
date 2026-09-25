@@ -5,6 +5,11 @@
  * die Runde vorbei ist — das sagt js\wordle.js. Dieser Bildschirm hält nur
  * die aktuelle Eingabe (die noch nicht abgeschickten Buchstaben) und zeigt an.
  *
+ * Die Eingabe sind seit 0.3.0 fünf Felder mit einer Markierung
+ * (`WORDLE.leereEingabe`): Die Felder der aktiven Zeile lassen sich
+ * antippen, der nächste Buchstabe landet im markierten Feld. Wohin die
+ * Markierung danach springt, rechnet das Modell (`WORDLE.eingabe…`).
+ *
  * Zwei Arten zu spielen (Parameter `modus`):
  *   "tag"     Das Tageswort — für alle gleich, einmal am Tag, zählt für die
  *             Rangliste. Angefangene Versuche überleben das Schliessen der
@@ -31,7 +36,7 @@ const WORDLE_BILDSCHIRM = {
     VERSATZ_MS: 160,
 
     runde: null,
-    eingabe: "",
+    eingabe: null,
     _behaelter: null,
     _tastenHoerer: null,
     _sperre: false,
@@ -40,8 +45,7 @@ const WORDLE_BILDSCHIRM = {
         NAVIGATION.anmelden({
             id: "wordle",
             titel: "Wordle",
-            gehoertZu: "start",
-            inLeiste: false,
+            imMenue: false,
             zeigen: (behaelter, parameter) => WORDLE_BILDSCHIRM.zeigen(behaelter, parameter),
             verlassen: () => WORDLE_BILDSCHIRM.verlassen()
         });
@@ -55,13 +59,13 @@ const WORDLE_BILDSCHIRM = {
         /* UP#Plus verwaltet nur und spielt nicht (seit v0.2.0). */
         if (typeof ANMELDUNG !== "undefined" && ANMELDUNG.istOberAdmin && ANMELDUNG.istOberAdmin()) {
             behaelter.innerHTML = "";
-            behaelter.appendChild(BAUSTEINE.erklaerung("Mit dem Verwaltungskonto UP#Plus "
-                + "kann man nicht spielen. Melde dich zum Spielen mit deinem Spieler-Konto an."));
+            behaelter.appendChild(BAUSTEINE.kopfzeile("Wordle", { zurueck: () => NAVIGATION.zurueck() }));
+            behaelter.appendChild(ZUSTAND.leer({ zeichen: "zahnrad", text: "UP#Plus spielt nicht" }));
             return;
         }
         const modus = (parameter && parameter.modus === "uebung") ? "uebung" : "tag";
         WORDLE_BILDSCHIRM._behaelter = behaelter;
-        WORDLE_BILDSCHIRM.eingabe = "";
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
         WORDLE_BILDSCHIRM._sperre = false;
 
         const neueUebung = parameter && parameter.neu;
@@ -169,19 +173,27 @@ const WORDLE_BILDSCHIRM = {
 
             let buchstaben = [];
             let bewertung = null;
+            const aktiv = zeile === runde.versuche.length && runde.zustand === "laeuft";
             if (zeile < runde.versuche.length) {
                 buchstaben = Array.from(runde.versuche[zeile]);
                 bewertung = bewertungen[zeile];
-            } else if (zeile === runde.versuche.length && runde.zustand === "laeuft") {
-                buchstaben = Array.from(WORDLE_BILDSCHIRM.eingabe);
+            } else if (aktiv) {
+                buchstaben = WORDLE_BILDSCHIRM.eingabe.felder;
                 reihe.classList.add("wordle-zeile-aktiv");
             }
 
             for (let stelle = 0; stelle < WORDLE.LAENGE; stelle++) {
-                reihe.appendChild(WORDLE_BILDSCHIRM._kachelBauen(
-                    buchstaben[stelle] || "", bewertung ? bewertung[stelle] : null));
+                const kachel = WORDLE_BILDSCHIRM._kachelBauen(
+                    buchstaben[stelle] || "", bewertung ? bewertung[stelle] : null);
+                if (aktiv) {
+                    WORDLE_BILDSCHIRM._kachelAntippbarMachen(kachel, stelle);
+                }
+                reihe.appendChild(kachel);
             }
             brett.appendChild(reihe);
+            if (aktiv) {
+                WORDLE_BILDSCHIRM._markierungZeigen(reihe);
+            }
         }
         return brett;
     },
@@ -202,6 +214,37 @@ const WORDLE_BILDSCHIRM = {
             }[bewertung]);
         }
         return kachel;
+    },
+
+    /* Eine Kachel der aktiven Zeile: antippen markiert sie. Kein Knopf,
+       damit die Kachel an EINER Stelle entsteht (`_kachelBauen`) — nur
+       Beschriftung und Tipp kommen hier dazu. Am Rechner verschieben die
+       Pfeiltasten die Markierung (`_beiTaste`). */
+    _kachelAntippbarMachen(kachel, stelle) {
+        kachel.dataset.stelle = String(stelle);
+        kachel.setAttribute("aria-label", "Feld " + (stelle + 1)
+            + (kachel.textContent ? ", " + kachel.textContent : ", leer"));
+        kachel.addEventListener("click", () => {
+            if (WORDLE_BILDSCHIRM._sperre || WORDLE_BILDSCHIRM.runde.zustand !== "laeuft") {
+                return;
+            }
+            FUEHLEN.tippen();
+            WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeWaehlen(WORDLE_BILDSCHIRM.eingabe, stelle);
+            WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
+        });
+    },
+
+    /* Das markierte Feld hervorheben — und nur das. */
+    _markierungZeigen(zeile) {
+        const stelle = WORDLE_BILDSCHIRM.eingabe.stelle;
+        Array.from(zeile.children).forEach((kachel, i) => {
+            kachel.classList.toggle("kachel-markiert", i === stelle);
+            if (i === stelle) {
+                kachel.setAttribute("aria-current", "true");
+            } else {
+                kachel.removeAttribute("aria-current");
+            }
+        });
     },
 
     _tastaturBauen() {
@@ -238,37 +281,44 @@ const WORDLE_BILDSCHIRM = {
                 knopf.classList.add("taste-" + bewertung);
             }
         }
-        knopf.addEventListener("click", () => WORDLE_BILDSCHIRM._eingeben(taste));
+        knopf.addEventListener("click", () => {
+            FUEHLEN.tippen();
+            WORDLE_BILDSCHIRM._eingeben(taste);
+        });
         return knopf;
     },
 
-    /* Das Ende: Lösung, Punkte, wie es weitergeht. */
+    /*
+     * Das Ende: Ergebnis als Zahl, Lösung, Punkte, wie es weitergeht.
+     * Kein Lob-Wort (UPCrew-Standard, seit 0.4.0; bis 0.3.0 „Unglaublich!
+     * Grossartig! …") — der Erfolg zeigt sich über das Hüpfen der Zeile und
+     * die Vibration, die Zahl „3/6" sagt den Rest.
+     */
     _endeBauen() {
         const runde = WORDLE_BILDSCHIRM.runde;
         const gewonnen = runde.zustand === "gewonnen";
         const karte = BAUSTEINE.karte(null, "wordle-ende");
 
-        karte.appendChild(BAUSTEINE.el("p", "wordle-ende-titel", gewonnen
-            ? WORDLE_BILDSCHIRM._lob(runde.versuche.length)
-            : "Diesmal nicht."));
+        karte.appendChild(BAUSTEINE.el("p", "wordle-ende-titel",
+            (gewonnen ? runde.versuche.length : "X") + "/" + WORDLE.VERSUCHE));
         const loesung = BAUSTEINE.el("p", "wordle-ende-loesung");
-        loesung.appendChild(document.createTextNode("Das Wort war "));
+        loesung.appendChild(BAUSTEINE.el("span", "wordle-ende-wort-titel", "Lösung"));
         loesung.appendChild(BAUSTEINE.el("strong", null, runde.loesung.toUpperCase()));
         karte.appendChild(loesung);
 
         if (runde.modus === "tag") {
             const punkte = RANGLISTE.punkte(ERGEBNISSE.ausRunde(runde));
-            karte.appendChild(BAUSTEINE.erklaerung(punkte === 1 ? "1 Punkt für die Rangliste."
-                : punkte + " Punkte für die Rangliste."));
+            karte.appendChild(BAUSTEINE.el("p", "wordle-ende-punkte",
+                "+" + punkte + (punkte === 1 ? " Punkt" : " Punkte")));
             karte.appendChild(BAUSTEINE.knopf({
-                text: "Zur Rangliste", art: "haupt", breit: true, zeichen: "rangliste",
+                text: "Rangliste", art: "haupt", breit: true, zeichen: "rangliste",
                 beiKlick: () => NAVIGATION.zeigen("rangliste", null, true)
             }));
             karte.appendChild(BAUSTEINE.knopf({
                 text: "Übungsrunde", art: "still", breit: true, zeichen: "uebung",
                 beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "uebung", neu: true }, true)
             }));
-            karte.appendChild(BAUSTEINE.erklaerung("Das nächste Tageswort kommt um Mitternacht."));
+            karte.appendChild(BAUSTEINE.el("p", "wordle-ende-naechstes", "Nächstes Wort: 0 Uhr"));
         } else {
             karte.appendChild(BAUSTEINE.knopf({
                 text: "Neues Übungswort", art: "haupt", breit: true, zeichen: "uebung",
@@ -285,13 +335,12 @@ const WORDLE_BILDSCHIRM = {
             { zurueck: () => NAVIGATION.zurueck() }));
 
         const karte = BAUSTEINE.karte(null, "wordle-ende");
-        karte.appendChild(BAUSTEINE.el("p", "wordle-ende-titel", "Heute schon gespielt"));
-        karte.appendChild(BAUSTEINE.erklaerung(ergebnis.geloest
-            ? "Gelöst im " + ergebnis.versuche + ". Versuch — auf einem anderen Gerät."
-            : "Nicht gelöst — auf einem anderen Gerät."));
+        karte.appendChild(BAUSTEINE.el("p", "wordle-ende-titel",
+            (ergebnis.geloest ? ergebnis.versuche : "X") + "/" + WORDLE.VERSUCHE));
+        karte.appendChild(BAUSTEINE.el("p", "wordle-ende-naechstes", "Gespielt · anderes Gerät"));
         karte.appendChild(WORDLE_BILDSCHIRM.musterBauen(ergebnis.muster));
         karte.appendChild(BAUSTEINE.knopf({
-            text: "Zur Rangliste", art: "haupt", breit: true, zeichen: "rangliste",
+            text: "Rangliste", art: "haupt", breit: true, zeichen: "rangliste",
             beiKlick: () => NAVIGATION.zeigen("rangliste", null, true)
         }));
         karte.appendChild(BAUSTEINE.knopf({
@@ -317,18 +366,32 @@ const WORDLE_BILDSCHIRM = {
         return raster;
     },
 
-    _lob(versuche) {
-        return ["Unglaublich!", "Grossartig!", "Stark!", "Gut gemacht!", "Geschafft!", "Knapp!"][versuche - 1]
-            || "Geschafft!";
-    },
-
+    /*
+     * Die Spielregel als BILD statt als Absatz (UPCrew-Standard, seit
+     * 0.4.0): drei Kacheln mit je einem Wort, darunter die Stichworte und
+     * die Punkte-Tafel. Die Kacheln entstehen wie auf dem Brett
+     * (`_kachelBauen`), damit Regel und Spiel gleich aussehen.
+     */
     _anleitungZeigen() {
-        DIALOG.hinweis("So wird gespielt",
-            "Errate das Wort mit fünf Buchstaben in sechs Versuchen. Nach jedem "
-                + "Versuch zeigen die Farben: Grün = richtiger Buchstabe an der "
-                + "richtigen Stelle. Gelb = kommt vor, aber woanders. Grau = kommt "
-                + "nicht vor. Umlaute sind eigene Buchstaben, ß wird als SS geschrieben. "
-                + RANGLISTE.ERKLAERUNG);
+        const inhalt = BAUSTEINE.el("div", "anleitung");
+        inhalt.appendChild(BAUSTEINE.el("p", "anleitung-kopf",
+            WORDLE.LAENGE + " Buchstaben · " + WORDLE.VERSUCHE + " Versuche"));
+
+        const farben = BAUSTEINE.el("div", "anleitung-farben");
+        for (const [buchstabe, bewertung, wort] of [
+            ["a", WORDLE.RICHTIG, "richtig"],
+            ["b", WORDLE.VORHANDEN, "woanders"],
+            ["c", WORDLE.FALSCH, "fehlt"]
+        ]) {
+            const spalte = BAUSTEINE.el("div", "anleitung-farbe");
+            spalte.appendChild(WORDLE_BILDSCHIRM._kachelBauen(buchstabe, bewertung));
+            spalte.appendChild(BAUSTEINE.el("span", "anleitung-wort", wort));
+            farben.appendChild(spalte);
+        }
+        inhalt.appendChild(farben);
+        inhalt.appendChild(BAUSTEINE.el("p", "anleitung-kopf", "Ä Ö Ü eigene Buchstaben · ß = SS"));
+        inhalt.appendChild(RANGLISTE_BILDSCHIRM.punkteTafelBauen());
+        DIALOG.hinweis("So geht's", "", inhalt);
     },
 
     /* ---------------------------------------------------------------- *
@@ -347,6 +410,15 @@ const WORDLE_BILDSCHIRM = {
         } else if (taste === "Backspace") {
             ereignis.preventDefault();
             WORDLE_BILDSCHIRM._eingeben("loeschen");
+        } else if (taste === "ArrowLeft" || taste === "ArrowRight") {
+            /* Am Rechner: die Markierung mit den Pfeiltasten verschieben —
+               dasselbe wie ein Feld antippen. */
+            ereignis.preventDefault();
+            if (!WORDLE_BILDSCHIRM._sperre && WORDLE_BILDSCHIRM.runde.zustand === "laeuft") {
+                WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeSchieben(WORDLE_BILDSCHIRM.eingabe,
+                    taste === "ArrowLeft" ? -1 : 1);
+                WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
+            }
         } else if (taste.length === 1 && WORDLE.BUCHSTABEN.indexOf(taste.toLowerCase()) !== -1) {
             WORDLE_BILDSCHIRM._eingeben(taste.toLowerCase());
         }
@@ -359,7 +431,7 @@ const WORDLE_BILDSCHIRM = {
         }
 
         if (taste === "loeschen") {
-            WORDLE_BILDSCHIRM.eingabe = Array.from(WORDLE_BILDSCHIRM.eingabe).slice(0, -1).join("");
+            WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeLoeschen(WORDLE_BILDSCHIRM.eingabe);
             WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
             return;
         }
@@ -367,38 +439,44 @@ const WORDLE_BILDSCHIRM = {
             WORDLE_BILDSCHIRM._abschicken();
             return;
         }
-        if (Array.from(WORDLE_BILDSCHIRM.eingabe).length < WORDLE.LAENGE) {
-            WORDLE_BILDSCHIRM.eingabe += taste;
-            WORDLE_BILDSCHIRM._aktiveZeileAuffrischen(true);
+        const vorher = WORDLE_BILDSCHIRM.eingabe;
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeTippen(vorher, taste);
+        if (vorher.stelle < WORDLE.LAENGE) {
+            WORDLE_BILDSCHIRM._aktiveZeileAuffrischen(vorher.stelle);
         }
     },
 
     /* Nur die Zeile, in die gerade getippt wird — kein ganzes Neuzeichnen
-       je Buchstabe (das liesse die Tastatur flackern). */
-    _aktiveZeileAuffrischen(neuerBuchstabe) {
+       je Buchstabe (das liesse die Tastatur flackern). `getipptAn` = das
+       Feld, das eben einen Buchstaben bekam (es springt kurz auf). */
+    _aktiveZeileAuffrischen(getipptAn) {
         const zeile = WORDLE_BILDSCHIRM._behaelter.querySelector(".wordle-zeile-aktiv");
         if (!zeile) {
             return;
         }
-        const buchstaben = Array.from(WORDLE_BILDSCHIRM.eingabe);
+        const felder = WORDLE_BILDSCHIRM.eingabe.felder;
         Array.from(zeile.children).forEach((kachel, i) => {
-            const buchstabe = buchstaben[i] || "";
+            const buchstabe = felder[i] || "";
             kachel.textContent = buchstabe.toUpperCase();
             kachel.classList.toggle("kachel-gefuellt", buchstabe !== "");
             kachel.classList.remove("kachel-tipp");
+            kachel.setAttribute("aria-label", "Feld " + (i + 1)
+                + (buchstabe ? ", " + buchstabe.toUpperCase() : ", leer"));
         });
-        if (neuerBuchstabe && buchstaben.length > 0) {
-            const kachel = zeile.children[buchstaben.length - 1];
+        WORDLE_BILDSCHIRM._markierungZeigen(zeile);
+        if (Number.isInteger(getipptAn) && zeile.children[getipptAn]) {
+            const kachel = zeile.children[getipptAn];
             void kachel.offsetWidth;
             kachel.classList.add("kachel-tipp");
         }
     },
 
     _abschicken() {
-        const antwort = WORDLE.raten(WORDLE_BILDSCHIRM.runde, WORDLE_BILDSCHIRM.eingabe,
-            APP.jetzt().getTime());
+        const antwort = WORDLE.raten(WORDLE_BILDSCHIRM.runde,
+            WORDLE.eingabeWort(WORDLE_BILDSCHIRM.eingabe), APP.jetzt().getTime());
 
         if (antwort.fehler) {
+            FUEHLEN.fehler();
             DIALOG.kurzmeldung(WORDLE.fehlerText(antwort.fehler), 1500);
             const zeile = WORDLE_BILDSCHIRM._behaelter.querySelector(".wordle-zeile-aktiv");
             if (zeile) {
@@ -411,7 +489,7 @@ const WORDLE_BILDSCHIRM = {
 
         const zeilenNummer = WORDLE_BILDSCHIRM.runde.versuche.length;
         WORDLE_BILDSCHIRM.runde = antwort.runde;
-        WORDLE_BILDSCHIRM.eingabe = "";
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
         WORDLE_BILDSCHIRM._merken();
 
         /* Aufdecken: Das Brett wird mit der neuen Zeile gezeichnet, die Kacheln
@@ -460,6 +538,13 @@ const WORDLE_BILDSCHIRM = {
     _beiRundenende() {
         const runde = WORDLE_BILDSCHIRM.runde;
         WORDLE_BILDSCHIRM._zeichnen();
+
+        /* Das Ergebnis spürt man (UPCrew-Standard): Erfolg oder Fehler. */
+        if (runde.zustand === "gewonnen") {
+            FUEHLEN.erfolg();
+        } else {
+            FUEHLEN.fehler();
+        }
 
         if (runde.zustand === "gewonnen") {
             const zeilen = WORDLE_BILDSCHIRM._behaelter.querySelectorAll(".wordle-zeile");

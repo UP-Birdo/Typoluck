@@ -5,6 +5,15 @@ nicht gebaut wird (nicht erneut vorschlagen).
 
 ## Braucht eine Nutzer-Entscheidung
 
+### App-Zeichen blau oder violett (seit 0.3.0)
+
+Die App ist seit 0.3.0 blau wie Blunderluck, das Zeichen auf dem
+Startbildschirm des Handys (`icon.svg`, daraus `icons\*.png` mit
+`tools\Icons-Erzeugen.ps1`) ist noch violett. Nicht ungefragt geändert,
+weil das Zeichen auch als UPCrew-Zeichen gelesen werden kann und ein neues
+Zeichen auf den Handys erst nach Neu-Installieren erscheint. Zu
+entscheiden: blau wie die App, oder violett wie das Studio.
+
 ### Die grosse Wortliste
 
 Die Startliste (567 Lösungen, 211 Zusatzwörter) ist von Hand. Wer ein

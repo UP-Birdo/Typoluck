@@ -20,8 +20,10 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\ergebnisse.js` | Modell + Leitung | Was von einer Runde in die Datenbank kommt, Warteliste |
 | `js\rangliste.js` | Modell | Punkte, Tabellen, Statistik, Serie |
 | `js\bausteine.js` | Oberfläche | Knopf, Karte, Kopfzeile, Segment, Zeichen — **die 3D-Naht** |
+| `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
+| `js\fuehlen.js` | Oberfläche | Vibration: tippen, erfolg, fehler; Schalter im Profil (seit 0.4.0) |
 | `js\dialog.js` | Oberfläche | Eigene Dialoge und Kurzmeldung |
-| `js\navigation.js` | Oberfläche | Bildschirme, Leiste unten, Zurück-Taste |
+| `js\navigation.js` | Oberfläche | Bildschirme, Menü hinter den drei Balken (seit 0.3.0 statt der Leiste unten), Zurück-Taste |
 | `js\anmeldung.js` | Bildschirm | Anmelde-Vollbild, Konto anlegen, Name/Passwort ändern |
 | `js\bildschirm-start.js` | Bildschirm | Start mit Spiel-Kacheln und „Heute bei deinen Freunden" |
 | `js\bildschirm-wordle.js` | Bildschirm | Brett, Tastatur, Aufdecken, Ende |
@@ -105,7 +107,8 @@ Wort von Tag 1 und 2 für immer fest.
 
 1. Modell-Datei `js\<spiel>.js` (Regeln, ohne DOM), Tests dazu.
 2. Bildschirm `js\bildschirm-<spiel>.js` mit `anmelden()` bei NAVIGATION
-   (`gehoertZu: "start"`, `inLeiste: false`).
+   (`imMenue: false` — ins Menü hinter den drei Balken kommen nur
+   Profil, Freunde, Rangliste).
 3. Eintrag in `START.SPIELE` (Name, Zeichen, `tagesName`, `tagesStand`).
 4. Ergebnisse unter `typoluck/<spiel>/…` — eigener Unterbaum, dieselbe
    Regel „jeder schreibt nur seine Knoten".
@@ -120,9 +123,10 @@ ist, ohne etwas auf Vorrat zu bauen:
   tragen `box-shadow: 0 var(--knopf-tiefe) 0 <Kantenfarbe>` und sinken beim
   Drücken um `--knopf-tiefe` ein; die Kacheln entsprechend `--kachel-tiefe`
   (4px / 3px, ohne JavaScript). Welche Kante zu welcher Fläche gehört:
-  `docs\GESTALTUNG.md`, „Tiefe". Falle: `.knopf-leiste` steht in
-  `stil.css` VOR `.knopf` und verliert gegen dessen Regeln — die Kante wird
-  deshalb mit `.knopf.knopf-leiste` weggenommen.
+  `docs\GESTALTUNG.md`, „Tiefe". Falle: Eine Knopf-Art, deren Regeln in
+  `stil.css` VOR `.knopf` stehen, verliert gegen dessen Regeln — deshalb
+  stehen die Menü-Einträge (seit 0.3.0) als `.knopf.knopf-menue` da (bis
+  0.2.1 galt dasselbe für `.knopf-leiste`).
 - **Stufe 2 — echte Formen.** Jeder Knopf entsteht in `BAUSTEINE.knopf`,
   jede Kachel in `WORDLE_BILDSCHIRM._kachelBauen`, jede Taste in
   `_tasteBauen`. Dort bekommt der Knopf später ein gerendertes Bild (Blender
