@@ -23,7 +23,8 @@ const RANGLISTE_BILDSCHIRM = {
             id: "rangliste",
             titel: "Rangliste",
             zeichen: "rangliste",
-            imMenue: true,
+            /* Seit 0.5.0 rechts in der Leiste unten statt im Menü. */
+            imMenue: false,
             zeigen: (behaelter) => RANGLISTE_BILDSCHIRM.zeigen(behaelter)
         });
     },
@@ -41,8 +42,9 @@ const RANGLISTE_BILDSCHIRM = {
         }
         behaelter.innerHTML = "";
 
+        /* Kein „Zurück" (seit 0.5.0): Die Rangliste ist ein Ziel der Leiste
+           unten, wie der Start — zurück geht es über die Leiste. */
         behaelter.appendChild(BAUSTEINE.kopfzeile("Rangliste", {
-            zurueck: () => NAVIGATION.zurueck(),
             rechts: BAUSTEINE.knopf({
                 art: "flach", zeichen: "info", titel: "Punkte",
                 beiKlick: () => DIALOG.hinweis("Punkte", "", RANGLISTE_BILDSCHIRM.punkteTafelBauen())

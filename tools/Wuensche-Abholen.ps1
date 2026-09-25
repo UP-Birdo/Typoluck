@@ -4,7 +4,7 @@
     Holt offene Wuensche von GitHub und traegt sie in TODO.md ein.
 
 .DESCRIPTION
-    Gegenstueck zum Knopf "Wunsch oder Fehler melden" im Profil der App:
+    Gegenstueck zum Knopf "Wunsch oder Fehler melden" in den Einstellungen der App:
 
         App  ->  vorbefuelltes GitHub-Formular  ->  Eintrag im Repo
              ->  DIESES SKRIPT  ->  TODO.md "## Anfragen"

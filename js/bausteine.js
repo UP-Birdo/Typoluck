@@ -26,10 +26,11 @@ const BAUSTEINE = {
     /*
      * Ein Knopf.
      *   text      Beschriftung
-     *   art       "haupt" | "still" | "gefahr" | "flach" | "menue"
+     *   art       "haupt" | "still" | "gefahr" | "flach" | "menue" | "leiste"
      *             (Vorgabe: still). Haupt = DIE eine Hauptaktion des
      *             Bildschirms; menue = Eintrag im Menü hinter den drei
-     *             Balken (seit 0.3.0, js\navigation.js).
+     *             Balken (seit 0.3.0); leiste = Eintrag der Leiste unten
+     *             (seit 0.5.0) — beide gebaut in js\navigation.js.
      *   zeichen   optional ein Name aus ZEICHEN (steht vor dem Text)
      *   klein     true = kleinere Form für Zeilen und Leisten
      *   breit     true = volle Breite
@@ -191,9 +192,12 @@ const BAUSTEINE = {
         leer: "M3 13 L6 5 H18 L21 13 V19 H3 Z M3 13 H8 L9.5 15.5 H14.5 L16 13 H21",
         "kein-netz": "M2.5 9 A14 14 0 0 1 21.5 9 M5.5 12.5 A9.5 9.5 0 0 1 18.5 12.5 "
             + "M8.8 16 A4.8 4.8 0 0 1 15.2 16 M12 19.5 V19.6 M4 4 L20 20",
-        /* Die Vibration im Profil (seit 0.4.0): ein Handy mit Wellen. */
+        /* Die Vibration in den Einstellungen (seit 0.4.0): ein Handy mit Wellen. */
         vibration: "M8.5 4 H15.5 V20 H8.5 Z M11 17 H13 M4.5 8.5 V15.5 M19.5 8.5 V15.5 "
-            + "M2 10.5 V13.5 M22 10.5 V13.5"
+            + "M2 10.5 V13.5 M22 10.5 V13.5",
+        /* Der freie Platz links in der Leiste unten (seit 0.5.0): ein
+           Kästchen mit Plus — „hier kommt noch etwas hin". */
+        platzhalter: "M4.5 4.5 H19.5 V19.5 H4.5 Z M12 8.5 V15.5 M8.5 12 H15.5"
     },
 
     zeichen(name) {

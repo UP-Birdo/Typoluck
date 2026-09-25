@@ -16,14 +16,24 @@
  * Neue Spiele und neue Bildschirme kommen so dazu, ohne dass diese Datei
  * sich ändert: anmelden, fertig.
  *
- * DAS MENÜ STATT DER LEISTE UNTEN (seit 0.3.0, Nutzer 25.09.2026: „so wie
- * bei Blunderluck Freunde und Profil in drei Balken Menü"). Bis 0.2.1 stand
- * unten eine Leiste mit Start, Rangliste, Freunde, Profil. Jetzt steht auf
- * dem Start oben rechts EIN Knopf mit drei Balken (`menueBauen`); ein Tipp
+ * DAS MENÜ HINTER DEN DREI BALKEN (seit 0.3.0, Nutzer 25.09.2026: „so wie
+ * bei Blunderluck Freunde und Profil in drei Balken Menü"). Auf dem Start
+ * oben rechts steht EIN Knopf mit drei Balken (`menueBauen`); ein Tipp
  * klappt die Einträge auf, ein Tipp daneben (oder Esc) klappt sie zu. Die
  * Bildschirme hinter dem Menü haben links oben „Zurück". Vorbild ist
  * Blunderlucks Menüband (dort `START._menuebandBauen` in js\start.js) —
  * nachgebaut, nicht geteilt: Typoluck baut jeden Knopf in BAUSTEINE.knopf.
+ * Im Menü seit 0.5.0: Profil, Freunde, Einstellungen.
+ *
+ * DIE LEISTE UNTEN (seit 0.5.0, Nutzer 25.09.2026: „unten das Tab-Menü
+ * sollte nie weg, rechts soll weiterhin die Rangliste, links ein
+ * Platzhalter, wird noch kommen"). 0.3.0 hatte die alte Leiste zugunsten
+ * des Menüs entfernt; jetzt gibt es beides. Die Leiste wird EINMAL gebaut
+ * (`leisteBauen`, aus `starten`) und steht fest am unteren Rand — auf JEDEM
+ * Bildschirm, auch im Spiel. Beim Wechsel wird nur neu markiert, welcher
+ * Eintrag gerade gilt (`_leisteMarkieren`), sie selbst bleibt stehen.
+ * Welche Einträge sie trägt, steht in `LEISTE` — der linke ist ein
+ * Platzhalter (abgeschaltet), bis dort etwas hinkommt.
  *
  * DIE ZURÜCK-TASTE DES HANDYS gehört dazu: Jeder Wechsel legt einen Eintrag
  * in den Browser-Verlauf (history.pushState). Drückt man Zurück, kommt der
@@ -49,13 +59,36 @@ const NAVIGATION = {
     _menueOffen: false,
     _aussenHoerer: null,
 
+    /*
+     * Die Einträge der Leiste unten, von links nach rechts.
+     *   id           der Bildschirm, den der Eintrag zeigt (fehlt beim
+     *                Platzhalter)
+     *   text         Beschriftung unter dem Zeichen — ein Wort
+     *   zeichen      Name aus BAUSTEINE.ZEICHEN
+     *   auchAktivBei weitere Bildschirme, bei denen der Eintrag als
+     *                „hier bin ich" markiert ist (ein Spiel gehört zum Start)
+     *   platzhalter  true = abgeschaltet, hält nur den Platz frei
+     * Wer den Platzhalter mit Leben füllt, gibt ihm eine `id` und nimmt
+     * `platzhalter` weg — sonst ändert sich nichts.
+     */
+    LEISTE: [
+        { text: "Bald", zeichen: "platzhalter", platzhalter: true },
+        { id: "start", text: "Start", zeichen: "start", auchAktivBei: ["wordle"] },
+        { id: "rangliste", text: "Rangliste", zeichen: "rangliste" }
+    ],
+
+    _leisteEl: null,
+
     anmelden(bildschirm) {
         NAVIGATION._bildschirme[bildschirm.id] = bildschirm;
         NAVIGATION._reihenfolge.push(bildschirm.id);
     },
 
-    starten(inhaltEl, startId) {
+    starten(inhaltEl, startId, leisteEl) {
         NAVIGATION._inhaltEl = inhaltEl;
+        if (leisteEl) {
+            NAVIGATION.leisteBauen(leisteEl);
+        }
 
         window.addEventListener("popstate", (ereignis) => {
             const zustand = ereignis.state;
@@ -249,6 +282,56 @@ const NAVIGATION = {
     },
 
     /* ---------------------------------------------------------------- *
+     * Die Leiste unten (seit 0.5.0)
+     * ---------------------------------------------------------------- */
+
+    /* Baut die Einträge aus `LEISTE` in das feste Element aus index.html.
+       Läuft einmal beim Start; danach wird nur noch markiert. */
+    leisteBauen(leisteEl) {
+        NAVIGATION._leisteEl = leisteEl;
+        leisteEl.innerHTML = "";
+        for (const eintrag of NAVIGATION.LEISTE) {
+            const knopf = BAUSTEINE.knopf({
+                art: "leiste", zeichen: eintrag.zeichen, text: eintrag.text,
+                beiKlick: eintrag.platzhalter ? null : () => {
+                    /* Ein Tipp auf den Eintrag, auf dem man schon steht,
+                       legt keinen neuen Verlaufseintrag an. */
+                    if (NAVIGATION.aktuell !== eintrag.id) {
+                        NAVIGATION.zeigen(eintrag.id, null);
+                    }
+                }
+            });
+            if (eintrag.platzhalter) {
+                knopf.disabled = true;
+                knopf.classList.add("knopf-leiste-platzhalter");
+            } else {
+                knopf.dataset.bildschirm = eintrag.id;
+            }
+            leisteEl.appendChild(knopf);
+        }
+        leisteEl.hidden = false;
+        NAVIGATION._leisteMarkieren();
+    },
+
+    _leisteMarkieren() {
+        const leiste = NAVIGATION._leisteEl;
+        if (!leiste) {
+            return;
+        }
+        for (const knopf of leiste.querySelectorAll(".knopf-leiste")) {
+            const eintrag = NAVIGATION.LEISTE.find((e) => e.id && e.id === knopf.dataset.bildschirm);
+            const aktiv = !!eintrag && (eintrag.id === NAVIGATION.aktuell
+                || (eintrag.auchAktivBei || []).indexOf(NAVIGATION.aktuell) !== -1);
+            knopf.classList.toggle("knopf-leiste-aktiv", aktiv);
+            if (aktiv) {
+                knopf.setAttribute("aria-current", "page");
+            } else {
+                knopf.removeAttribute("aria-current");
+            }
+        }
+    },
+
+    /* ---------------------------------------------------------------- *
      * Innereien
      * ---------------------------------------------------------------- */
 
@@ -260,6 +343,7 @@ const NAVIGATION = {
         NAVIGATION.aktuell = id;
         NAVIGATION._parameter = parameter;
         NAVIGATION._bauen(id, parameter);
+        NAVIGATION._leisteMarkieren();
         window.scrollTo(0, 0);
     },
 

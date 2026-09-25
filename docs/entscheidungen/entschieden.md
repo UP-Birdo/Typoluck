@@ -2,6 +2,31 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Leiste unten und Einstellungen (25.09.2026, 0.5.0)
+
+Auftrag: „unten das Tab-Menü sollte nie weg, rechts soll weiterhin die
+Rangliste, in die drei Balken soll auch Einstellungen rein, links im
+Tab-Menü soll ein Platzhalter rein, wird noch kommen".
+
+- **Leiste UND Menü, nicht entweder–oder.** 0.3.0 hatte die Leiste für das
+  Drei-Balken-Menü entfernt. Jetzt: die Leiste für die Hauptbereiche
+  (Platzhalter, Start, Rangliste), das Menü für Persönliches (Profil,
+  Freunde, Einstellungen).
+- **Die Mitte ist Start.** Der Nutzer hat links und rechts festgelegt; eine
+  Leiste ohne Weg zurück zum Start wäre eine Sackgasse. Ein Spiel
+  (Wordle) markiert Start als aktiv — es wird von dort geöffnet.
+- **„Nie weg" wörtlich:** fest am unteren Rand auf jedem Bildschirm, auch
+  im Spiel. Zugedeckt nur von Anmeldung, Intro und Dialogen (Vollbilder).
+  Die Leiste wird einmal gebaut und nicht bei jedem Wechsel neu, damit sie
+  nicht flackert.
+- **Rangliste nicht doppelt:** aus dem Menü genommen, und ohne „Zurück"
+  oben (wie der Start ein Ziel der Leiste). Ein Test wacht darüber.
+- **Einstellungen = die drei Karten, die bisher unten im eigenen Profil
+  standen** (Gerät, UPCrew-Konto, Über Typoluck), 1:1 übernommen. Doppelt
+  wäre verwirrend; das Profil zeigt seitdem dasselbe wie ein fremdes.
+- **Platzhalter:** abgeschaltet sichtbar (Kästchen mit Plus, „Bald"). Wer
+  ihn füllt, gibt dem Eintrag in `NAVIGATION.LEISTE` eine `id`.
+
 ## UPCrew-Standard, erster Schritt (25.09.2026, 0.4.0)
 
 Auftrag: „setz den UPCrew-Standard um" (`..\..\UPCrew-STANDARD.md`,

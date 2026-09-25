@@ -91,13 +91,16 @@ const APP = {
         ANMELDUNG.beiAngemeldet = () => APP._beiAngemeldet();
 
         /* 3. Bildschirme — die Reihenfolge ist die im Menü hinter den drei
-           Balken (seit 0.3.0; wie Blunderluck: Profil zuerst). */
+           Balken (seit 0.3.0; wie Blunderluck: Profil zuerst; seit 0.5.0
+           Einstellungen als letzter Eintrag). Die Leiste unten führt ihre
+           Einträge selbst (NAVIGATION.LEISTE). */
         START.anmelden();
         PROFIL_BILDSCHIRM.anmelden();
         FREUNDE_BILDSCHIRM.anmelden();
+        EINSTELLUNGEN_BILDSCHIRM.anmelden();
         RANGLISTE_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
-        NAVIGATION.starten(document.getElementById("inhalt"), "start");
+        NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"));
 
         /* 4. Spielerliste */
         APP._gestartet = true;
@@ -213,7 +216,7 @@ const APP = {
     _fehlerFangen() {
         window.addEventListener("error", (ereignis) => {
             APP.hinweisZeigen("Da ist etwas schiefgegangen: " + (ereignis.message || "unbekannter Fehler")
-                + ". Neu laden hilft meistens; melde es gern über dein Profil.");
+                + ". Neu laden hilft meistens; melde es gern über die Einstellungen.");
         });
         window.addEventListener("unhandledrejection", (ereignis) => {
             const grund = ereignis.reason && ereignis.reason.message ? ereignis.reason.message : String(ereignis.reason);

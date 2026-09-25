@@ -15,7 +15,9 @@
  * Die Schalter in der Adresse:
  *
  *     ?werkstatt                       angemeldet als „Werkstatt", Start
- *     &bildschirm=rangliste            gleich auf diesen Bildschirm
+ *     &bildschirm=rangliste            gleich auf diesen Bildschirm (jede
+ *                                      angemeldete Id, z. B. auch
+ *                                      einstellungen seit 0.5.0)
  *     &modus=uebung                    beim Bildschirm wordle: welche Art
  *     &versuche=hause,tisch            angefangene Tageswort-Runde
  *     &datum=2026-09-24                so tun, als wäre heute dieser Tag

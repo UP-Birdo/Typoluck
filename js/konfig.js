@@ -13,9 +13,9 @@ const KONFIG = {
 
     /* Version der App (0.MINOR.PATCH, Haus-Regel in ..\..\CLAUDE.md,
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
-       wird im Profil unter „Über Typoluck" angezeigt, und tests\test-syntax.js
+       wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.4.0",
+    APP_VERSION: "0.5.0",
 
     speicher: {
 

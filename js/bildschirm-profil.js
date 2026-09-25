@@ -1,8 +1,12 @@
 /*
  * bildschirm-profil.js — ein Spielerprofil: das eigene oder ein fremdes.
  *
- * Parameter `id`: wessen Profil. Ohne Parameter das eigene — dann mit den
- * Einstellungen (Name, Passwort, Abmelden) und „Über Typoluck".
+ * Parameter `id`: wessen Profil. Ohne Parameter das eigene.
+ *
+ * Seit 0.5.0 zeigt das eigene Profil dasselbe wie ein fremdes: Spieler und
+ * Statistik. Gerät, Konto und „Über Typoluck" stehen seitdem unter
+ * Einstellungen (js\bildschirm-einstellungen.js, im Menü hinter den drei
+ * Balken).
  *
  * Die Statistik rechnet js\rangliste.js aus dem Verlauf des Spielers
  * (`typoluck/wordle/verlauf/<id>`). Beim eigenen Profil zählen Ergebnisse,
@@ -64,12 +68,6 @@ const PROFIL_BILDSCHIRM = {
         statistik.id = "profil-statistik";
         PROFIL_BILDSCHIRM._statistikFuellen(statistik, id, eigenes);
         behaelter.appendChild(statistik);
-
-        if (eigenes) {
-            behaelter.appendChild(PROFIL_BILDSCHIRM._geraetBauen());
-            behaelter.appendChild(PROFIL_BILDSCHIRM._einstellungenBauen());
-            behaelter.appendChild(PROFIL_BILDSCHIRM._ueberBauen());
-        }
 
         if (PROFIL_BILDSCHIRM._verlauf === null && !PROFIL_BILDSCHIRM._fehler) {
             PROFIL_BILDSCHIRM._laden(id, eigenes);
@@ -165,81 +163,6 @@ const PROFIL_BILDSCHIRM = {
             }));
         }
         return bereich;
-    },
-
-    /*
-     * Dieses Gerät (seit 0.4.0): der Schalter für die Vibration
-     * (UPCrew-Standard, Abschnitt 5 — ab Werk an). Ein Segment-Schalter
-     * wie in der Rangliste. Kann das Gerät nicht vibrieren (iPhone), steht
-     * das als Stichwort daneben, statt einen Schalter ohne Wirkung zu zeigen.
-     */
-    _geraetBauen() {
-        const karte = BAUSTEINE.karte("Dieses Gerät");
-        const zeile = BAUSTEINE.el("div", "einstellung-zeile");
-        const name = BAUSTEINE.el("span", "einstellung-name");
-        name.appendChild(BAUSTEINE.zeichen("vibration"));
-        name.appendChild(BAUSTEINE.el("span", null, "Vibration"));
-        zeile.appendChild(name);
-        if (FUEHLEN.verfuegbar()) {
-            zeile.appendChild(BAUSTEINE.segment(
-                [{ wert: true, text: "An" }, { wert: false, text: "Aus" }],
-                FUEHLEN.an(),
-                (wert) => {
-                    FUEHLEN.anSetzen(wert);
-                    FUEHLEN.tippen();
-                    NAVIGATION.auffrischen();
-                }, "Vibration"));
-        } else {
-            zeile.appendChild(BAUSTEINE.el("span", "schild", "nicht möglich"));
-        }
-        karte.appendChild(zeile);
-        return karte;
-    },
-
-    _einstellungenBauen() {
-        const karte = BAUSTEINE.karte("UPCrew-Konto · alle Spiele");
-        const reihe = BAUSTEINE.el("div", "knopf-spalte");
-        /* Ein Gast (seit v0.2.0) sichert hier seinen Spielstand. */
-        if (ANMELDUNG.istGast()) {
-            reihe.appendChild(BAUSTEINE.knopf({ text: "Spielstand sichern", art: "haupt", breit: true,
-                beiKlick: () => ANMELDUNG.gastSichernOeffnen() }));
-        }
-        reihe.appendChild(BAUSTEINE.knopf({ text: "Name ändern", art: "still", breit: true,
-            beiKlick: () => ANMELDUNG.nameAendern() }));
-        reihe.appendChild(BAUSTEINE.knopf({ text: "Passwort ändern", art: "still", breit: true,
-            beiKlick: () => ANMELDUNG.passwortAendern() }));
-        reihe.appendChild(BAUSTEINE.knopf({ text: "Abmelden", art: "gefahr", breit: true,
-            beiKlick: () => ANMELDUNG.abmelden(false) }));
-        /* Seit v0.2.0 (Nutzer 25.09.2026): das Konto selbst löschen — gilt
-           für alle Spiele von UPCrew, die Rückfrage stellt die Anmeldung. */
-        if (KONTO.aktiv()) {
-            reihe.appendChild(BAUSTEINE.knopf({ text: "UPCrew-Konto löschen", art: "gefahr",
-                breit: true, beiKlick: () => ANMELDUNG.kontoLoeschen() }));
-        }
-        karte.appendChild(reihe);
-        return karte;
-    },
-
-    _ueberBauen() {
-        const karte = BAUSTEINE.karte("Über Typoluck");
-        const liste = BAUSTEINE.el("dl", "angaben");
-        const angabe = (begriff, wert) => {
-            liste.appendChild(BAUSTEINE.el("dt", null, begriff));
-            liste.appendChild(BAUSTEINE.el("dd", null, wert));
-        };
-        angabe("Ein Spiel von", "UPCrew");
-        angabe("Version", KONFIG.APP_VERSION);
-        angabe("Speicher", APP.spielSpeicher ? APP.spielSpeicher.beschreibung : "");
-        const offen = ICH.ausstehend().length;
-        if (offen > 0) {
-            angabe("Nicht gesendet", offen === 1 ? "1 Ergebnis" : offen + " Ergebnisse");
-        }
-        karte.appendChild(liste);
-        karte.appendChild(BAUSTEINE.knopf({
-            text: "Wunsch oder Fehler melden", art: "still", breit: true,
-            beiKlick: () => WUNSCH.oeffnen()
-        }));
-        return karte;
     },
 
     async _laden(id, eigenes) {

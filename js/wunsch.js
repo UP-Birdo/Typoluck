@@ -1,5 +1,5 @@
 /*
- * wunsch.js — der Knopf „Wunsch oder Fehler melden" (im Profil).
+ * wunsch.js — der Knopf „Wunsch oder Fehler melden" (in den Einstellungen, bis 0.4.0 im Profil).
  *
  * Der Weg eines Wunsches (Haus-Standard für öffentliche Apps):
  *

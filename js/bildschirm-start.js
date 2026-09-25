@@ -75,7 +75,8 @@ const START = {
 
         /* Oben rechts: der Namens-Kreis (führt direkt ins Profil) und das
            Menü hinter den drei Balken (seit 0.3.0, wie in Blunderluck) mit
-           Profil, Freunde und Rangliste — zwei Wege zum Profil. */
+           Profil, Freunde und seit 0.5.0 Einstellungen — zwei Wege zum
+           Profil. Die Rangliste liegt seit 0.5.0 in der Leiste unten. */
         const rechts = BAUSTEINE.el("div", "start-kopf-rechts");
         const profilKnopf = BAUSTEINE.knopf({
             art: "flach", titel: "Dein Profil",

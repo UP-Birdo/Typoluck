@@ -472,7 +472,7 @@ const ANMELDUNG = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Aus dem Profil heraus
+     * Aus den Einstellungen heraus (bis 0.4.0: aus dem Profil)
      * ---------------------------------------------------------------- */
 
     async nameAendern() {
@@ -618,7 +618,7 @@ const ANMELDUNG = {
         if (!still) {
             const sicher = await DIALOG.frage(gast ? "Als Gast abmelden?" : "Abmelden?",
                 gast
-                    ? "Dein Gast-Spielstand ist danach weg. Sichern kannst du ihn im Profil."
+                    ? "Dein Gast-Spielstand ist danach weg. Sichern kannst du ihn in den Einstellungen."
                     : "Dein Konto bleibt bestehen. Du kannst dich jederzeit wieder anmelden.",
                 gast ? "Trotzdem abmelden" : "Abmelden", gast);
             if (!sicher) {

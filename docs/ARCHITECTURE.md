@@ -21,7 +21,7 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\rangliste.js` | Modell | Punkte, Tabellen, Statistik, Serie |
 | `js\bausteine.js` | Oberfläche | Knopf, Karte, Kopfzeile, Segment, Zeichen — **die 3D-Naht** |
 | `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
-| `js\fuehlen.js` | Oberfläche | Vibration: tippen, erfolg, fehler; Schalter im Profil (seit 0.4.0) |
+| `js\fuehlen.js` | Oberfläche | Vibration: tippen, erfolg, fehler; Schalter in den Einstellungen (seit 0.4.0, bis 0.4.0 im Profil) |
 | `js\dialog.js` | Oberfläche | Eigene Dialoge und Kurzmeldung |
 | `js\navigation.js` | Oberfläche | Bildschirme, Menü hinter den drei Balken (seit 0.3.0 statt der Leiste unten), Zurück-Taste |
 | `js\anmeldung.js` | Bildschirm | Anmelde-Vollbild, Konto anlegen, Name/Passwort ändern |

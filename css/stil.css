@@ -114,13 +114,20 @@
     --upcrew-schrift: #ffffff;
 
     /* Die Ebenen — wer liegt über wem. Nie eine eigene Zahl ausdenken.
-       Das Menü (seit 0.3.0) liegt über dem Inhalt, unter dem Hinweis. */
+       Das Menü (seit 0.3.0) liegt über dem Inhalt, unter dem Hinweis; die
+       Leiste unten (seit 0.5.0) über dem Menü, unter allem Vollbildigen —
+       Anmeldung, Intro und Dialoge decken sie zu. */
     --ebene-menue: 10;
+    --ebene-leiste: 15;
     --ebene-hinweis: 20;
     --ebene-kurzmeldung: 40;
     --ebene-vollbild: 50;
     --ebene-intro: 55;
     --ebene-dialog: 60;
+
+    /* Die Höhe der Leiste unten ohne den iPhone-Streifen. Der Inhalt hält
+       sich unten genau so viel frei, damit nichts hinter ihr verschwindet. */
+    --leiste-hoehe: 60px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -225,14 +232,92 @@ body.anmeldung-offen {
 }
 
 /* ------------------------------------------------------------------ *
- * Der Rahmen: Inhalt in der Mitte. Eine Leiste unten gibt es seit 0.3.0
- * nicht mehr — Profil, Freunde und Rangliste liegen im Menü oben rechts.
+ * Der Rahmen: Inhalt in der Mitte, darunter fest die Leiste (seit 0.5.0).
+ * Der Inhalt hält unten die Höhe der Leiste plus den iPhone-Streifen frei.
  * ------------------------------------------------------------------ */
 
 .inhalt {
     max-width: var(--inhalt-breite);
     margin: 0 auto;
-    padding: 8px var(--inhalt-rand) calc(24px + env(safe-area-inset-bottom));
+    padding: 8px var(--inhalt-rand) calc(24px + var(--leiste-hoehe) + env(safe-area-inset-bottom));
+}
+
+/* ------------------------------------------------------------------ *
+ * DIE LEISTE UNTEN (seit 0.5.0)
+ *
+ * Nutzer 25.09.2026: „unten das Tab-Menü sollte nie weg, rechts soll
+ * weiterhin die Rangliste, links ein Platzhalter". Fest am unteren Rand,
+ * über die ganze Breite; die Einträge stehen mittig in der Inhaltsbreite.
+ * Je Eintrag Zeichen oben, ein Wort darunter. Der gerade gültige Eintrag
+ * steht in der Hauptfarbe. Oben eine harte Kante statt eines Schattens
+ * (UPCrew-Standard). Gebaut in `NAVIGATION.leisteBauen`.
+ * ------------------------------------------------------------------ */
+
+.leiste {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--ebene-leiste);
+    display: flex;
+    justify-content: center;
+    padding: 0 max(var(--inhalt-rand), calc((100% - var(--inhalt-breite)) / 2))
+        env(safe-area-inset-bottom);
+    background: var(--karte);
+    border-top: 1px solid var(--rahmen);
+}
+
+.leiste[hidden] {
+    display: none;
+}
+
+/* Doppelte Klasse, weil `.knopf` weiter unten steht und sonst gewönne. */
+.knopf.knopf-leiste {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    min-height: var(--leiste-hoehe);
+    padding: 6px 4px;
+    position: relative;
+    border: none;
+    background: none;
+    color: var(--schrift-leise);
+    font-size: 0.75rem;
+    font-weight: 600;
+    box-shadow: none;
+}
+
+.knopf.knopf-leiste .zeichen {
+    width: 24px;
+    height: 24px;
+}
+
+.knopf.knopf-leiste-aktiv {
+    color: var(--haupt);
+}
+
+/* Der aktive Eintrag trägt oben einen kurzen Balken in der Hauptfarbe —
+   so erkennt man ihn auch ohne Farbsehen. */
+.knopf-leiste-aktiv::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    width: 32px;
+    height: 3px;
+    border-radius: var(--rund-voll);
+    background: var(--haupt);
+}
+
+.knopf.knopf-leiste:active:not(:disabled) {
+    transform: none;
+    background: var(--karte-leise);
+}
+
+/* Der Platzhalter: sichtbar, aber erkennbar noch ohne Funktion. */
+.knopf.knopf-leiste-platzhalter:disabled {
+    opacity: 0.4;
+    cursor: default;
 }
 
 .hinweis {
@@ -981,7 +1066,8 @@ body.anmeldung-offen {
 }
 
 /* ------------------------------------------------------------------ *
- * Einstellungen dieses Geräts (Profil, seit 0.4.0)
+ * Einstellungen dieses Geräts (seit 0.4.0; bis 0.4.0 im Profil, seit
+ * 0.5.0 auf dem Bildschirm Einstellungen)
  * ------------------------------------------------------------------ */
 
 .einstellung-zeile {

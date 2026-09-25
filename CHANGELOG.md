@@ -3,6 +3,20 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.5.0 — 25.09.2026
+
+**Die Leiste unten ist zurück — und bleibt immer stehen. Neu: Einstellungen.**
+
+- **Leiste unten auf jedem Bildschirm**, auch mitten im Spiel: links ein
+  freier Platz (kommt noch), in der Mitte Start, rechts die Rangliste. Der
+  Bereich, in dem du gerade bist, ist blau markiert.
+- **Einstellungen** im Menü hinter den drei Balken (neben Profil und
+  Freunde): Vibration, dein UPCrew-Konto (Name, Passwort, Abmelden,
+  Löschen) und „Über Typoluck" samt „Wunsch oder Fehler melden". Das stand
+  bisher unten im Profil; das Profil zeigt jetzt nur noch dich und deine
+  Statistik.
+- Die Rangliste ist aus dem Menü in die Leiste gewandert.
+
 ## 0.4.0 — 25.09.2026
 
 **Typoluck fühlt sich an wie eine UPCrew-App: weniger Text, mehr Bild,

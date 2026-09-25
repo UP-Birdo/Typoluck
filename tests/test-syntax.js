@@ -152,4 +152,23 @@ pruefe("Gerätespeicher-Schlüssel gehören Typoluck",
 pruefe("index.html nennt den Namen der App", /<h1 class="nur-vorlesen">Typoluck<\/h1>/.test(index));
 gleich("Manifest: Name", JSON.parse(lesen("manifest.webmanifest")).name, "Typoluck");
 
+/* ------------------------------------------------------------------ *
+ * Die Leiste unten und das Menü (seit 0.5.0, Nutzer 25.09.2026: „unten
+ * das Tab-Menü sollte nie weg, rechts die Rangliste, links ein
+ * Platzhalter"; „in die drei Balken auch Einstellungen")
+ * ------------------------------------------------------------------ */
+
+pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts",
+    /<\/main>\s*(<!--[\s\S]*?-->\s*)?<nav class="leiste" id="leiste"/.test(index));
+const leisteText = (lesen("js/navigation.js").match(/LEISTE: \[([\s\S]*?)\],/) || ["", ""])[1];
+const leisteEintraege = leisteText.split("\n").filter((z) => z.indexOf("{") !== -1);
+gleich("Die Leiste hat drei Einträge", leisteEintraege.length, 3);
+pruefe("Links in der Leiste: der Platzhalter", /platzhalter: true/.test(leisteEintraege[0] || ""));
+pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[1] || ""));
+pruefe("Rechts in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[2] || ""));
+pruefe("Einstellungen stehen im Menü",
+    /id: "einstellungen"[\s\S]*?imMenue: true/.test(lesen("js/bildschirm-einstellungen.js")));
+pruefe("Die Rangliste steht nicht doppelt (nicht auch im Menü)",
+    /id: "rangliste"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-rangliste.js")));
+
 fazit();
