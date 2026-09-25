@@ -2,6 +2,44 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Schwer-Modus (25.09.2026, 0.6.0)
+
+Auftrag: „weiter" (nach 0.6.0 lokal, noch nicht ausgeliefert) — ROADMAP
+Nr. 7, in dieselbe Nummer gebündelt, weil 0.6.0 nie draussen war.
+
+- **Regeln wie das Original:** Grün bleibt an seiner Stelle, Grün/Gelb
+  muss so oft vorkommen, wie es gezeigt wurde; Grau darf man weiter tippen.
+  Geprüft gegen jeden früheren Versuch, grüne Stellen zuerst.
+- **Die Runde trägt `schwer`**, festgelegt beim Anlegen. Eine gemerkte
+  Runde ohne Versuch übernimmt noch die aktuelle Wahl; ab dem ersten
+  Versuch nicht mehr — sonst liesse sich die Regel nach einem Blick auf
+  die Tastatur abschalten.
+- **Hinweis als Stichwort** („Feld 3: A", „E benutzen"), UPCrew-Standard.
+- **Nicht gebaut:** Kennzeichen in der Rangliste — eigener Punkt (ROADMAP
+  Nr. 7, Folge), weil er den Datenvertrag der Ergebnisse berührt.
+
+## Darstellung und Farbenblind-Kacheln (25.09.2026, 0.6.0)
+
+Auftrag: „weiter arbeiten". Gewählt: ROADMAP Nr. 8 — der erste Punkt, der
+ohne Nutzer-Entscheidung geht (1, 2 und 4 warten auf ihn) und direkt an die
+neue Einstellungen-Seite anschliesst.
+
+- **Ein Baustein `DARSTELLUNG`** wie `FUEHLEN`: setzt nur Attribute an
+  `<html>`, die Farben bleiben Variablen in `css\stil.css`. Angewendet
+  beim Laden der Datei (früh in `index.html`), damit nichts in der falschen
+  Farbe aufblitzt.
+- **„Hell" schlägt das dunkle Gerät** über `:root:not([data-darstellung=
+  "hell"])` im Dunkel-Block — statt die hellen Werte ein drittes Mal
+  abzuschreiben.
+- **Orange/Blau** wie die Kontrast-Einstellung des Original-Wordle; nur
+  richtig/vorhanden ändern sich, grau bleibt. Ab Werk Grün/Gelb (TODO-
+  Prüfliste Punkt 9: Standard nur ändern, wenn der Nutzer will — ein
+  Angebot ändert ihn nicht).
+- **Tastatur-Anordnung (Rest von Nr. 8) bewusst weggelassen:** QWERTZ ist
+  der deutsche Standard; welche andere Anordnung jemand wollte, ist offen.
+- Die Werkstatt geht über denselben Baustein (`&hell`, `&dunkel`,
+  `&kontrast`), damit der Bildschirm die Wahl auch anzeigt.
+
 ## Leiste unten und Einstellungen (25.09.2026, 0.5.0)
 
 Auftrag: „unten das Tab-Menü sollte nie weg, rechts soll weiterhin die

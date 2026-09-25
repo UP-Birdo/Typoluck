@@ -9,8 +9,9 @@
  *     FUEHLEN.erfolg()   Tageswort gelöst
  *     FUEHLEN.fehler()   unbekanntes Wort, zu kurz, verloren
  *
- * Ab Werk AN; abschaltbar in den Einstellungen (seit 0.5.0; vorher Profil) (Gerät-Einstellung „vibration" in
- * js\ich.js). Wo es keine Vibration gibt, tut der Baustein still nichts.
+ * Ab Werk AN; abschaltbar in den Einstellungen (seit 0.5.0; vorher im
+ * Profil) — Gerät-Einstellung „vibration" in js\ich.js. Wo es keine
+ * Vibration gibt, tut der Baustein still nichts.
  *
  * DAS IPHONE VIBRIERT FÜR WEB-APPS NICHT: `navigator.vibrate` fehlt in
  * Safari. Auf Android geht es. Der bekannte Umweg über einen Schalter-Knopf

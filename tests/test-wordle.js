@@ -179,4 +179,46 @@ WORDLE.eingabeTippen(vorher, "a");
 pruefe("Tippen ändert die alte Eingabe nicht", vorher.felder[0] === "");
 gleich("Kaputte Eingabe wird zur leeren", WORDLE.eingabeTippen(null, "a").felder, ["a", "", "", "", ""]);
 
+/* ------------------------------------------------------------------ *
+ * Der Schwer-Modus (seit 0.6.0)
+ * ------------------------------------------------------------------ */
+
+/* Die Testwörter müssen erlaubt sein — sonst prüfte der Test „unbekannt"
+   statt der Schwer-Regel. */
+for (const wort of ["leben", "humor", "affen", "nebel", "apfel", "essen", "messe", "masse"]) {
+    pruefe("Testwort erlaubt: " + wort, WORDLE.istErlaubt(wort));
+}
+
+const neueSchwere = (loesung) => WORDLE.neueRunde({ modus: "uebung", loesung: loesung, zeitpunkt: 1, schwer: true });
+
+pruefe("Ab Werk nicht schwer", !WORDLE.neueRunde({ modus: "uebung", loesung: "apfel" }).schwer);
+pruefe("Schwer wird in der Runde vermerkt", neueSchwere("apfel").schwer);
+
+/* Lösung „apfel", geraten „leben": das zweite e ist grün (Feld 4), das l
+   gelb, das erste e grau (apfel hat nur ein e). */
+let schwer = WORDLE.raten(neueSchwere("apfel"), "leben", 2).runde;
+gleich("Grüne Stelle muss bleiben", WORDLE.raten(schwer, "humor", 3).hinweis, "Feld 4: E");
+gleich("… Fehler heisst „schwer“", WORDLE.raten(schwer, "humor", 3).fehler, "schwer");
+gleich("Gelber Buchstabe muss vorkommen", WORDLE.raten(schwer, "affen", 3).hinweis, "L benutzen");
+gleich("Alles benutzt: angenommen", WORDLE.raten(schwer, "nebel", 3).fehler, "");
+gleich("Die Lösung selbst geht immer", WORDLE.raten(schwer, "apfel", 3).runde.zustand, "gewonnen");
+gleich("Graue Buchstaben sind erlaubt (b und n aus „leben“)", WORDLE.schwerPruefen(schwer, "nebel"), "");
+pruefe("Bei einem Schwer-Fehler bleibt die Runde, wie sie war",
+    WORDLE.raten(schwer, "humor", 3).runde === schwer);
+
+/* Lösung „messe", geraten „essen": s grün auf Feld 3, dazu e und s je
+   zweimal grün oder gelb — also mindestens zwei e und zwei s. */
+schwer = WORDLE.raten(neueSchwere("messe"), "essen", 2).runde;
+gleich("Doppelte: grüne Stelle zuerst genannt", WORDLE.schwerPruefen(schwer, "nebel"), "Feld 3: S");
+gleich("Doppelte: zwei e nötig, eins reicht nicht", WORDLE.schwerPruefen(schwer, "masse"), "E benutzen");
+gleich("Doppelte: die Lösung erfüllt alles", WORDLE.schwerPruefen(schwer, "messe"), "");
+
+const leicht = WORDLE.raten(WORDLE.neueRunde({ modus: "uebung", loesung: "apfel" }), "leben", 2).runde;
+gleich("Ohne Schwer-Modus gilt nichts davon", WORDLE.raten(leicht, "humor", 3).fehler, "");
+
+gleich("Alte Runde ohne Feld: nicht schwer",
+    WORDLE.normalisieren({ modus: "uebung", loesung: "apfel", versuche: [] }).schwer, false);
+pruefe("Gespeicherte schwere Runde bleibt schwer",
+    WORDLE.normalisieren(JSON.parse(JSON.stringify(neueSchwere("apfel")))).schwer);
+
 fazit();

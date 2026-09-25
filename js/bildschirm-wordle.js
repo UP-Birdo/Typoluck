@@ -103,25 +103,50 @@ const WORDLE_BILDSCHIRM = {
         const heute = WORDLE.datumText(APP.jetzt());
         const schluessel = "wordle-" + modus;
         const gemerkt = WORDLE.normalisieren(ICH.spielstand(schluessel));
+        const schwer = WORDLE_BILDSCHIRM.schwerGewaehlt();
 
         if (modus === "tag") {
             if (gemerkt && gemerkt.modus === "tag" && gemerkt.datum === heute) {
-                return gemerkt;
+                return WORDLE_BILDSCHIRM._schwerVorDemErstenVersuch(gemerkt, schwer);
             }
             const tag = WORDLE.tageswort(heute);
             return WORDLE.neueRunde({
                 modus: "tag", datum: heute, nummer: tag.nummer,
-                loesung: tag.wort, zeitpunkt: APP.jetzt().getTime()
+                loesung: tag.wort, zeitpunkt: APP.jetzt().getTime(), schwer: schwer
             });
         }
 
         if (gemerkt && gemerkt.modus === "uebung" && gemerkt.zustand === "laeuft" && !neueUebung) {
-            return gemerkt;
+            return WORDLE_BILDSCHIRM._schwerVorDemErstenVersuch(gemerkt, schwer);
         }
         return WORDLE.neueRunde({
             modus: "uebung", loesung: WORDLE.uebungswort(Math.random()),
-            zeitpunkt: APP.jetzt().getTime()
+            zeitpunkt: APP.jetzt().getTime(), schwer: schwer
         });
+    },
+
+    /*
+     * Der Schwer-Modus (seit 0.6.0) ist eine Einstellung dieses Geräts; die
+     * Runde merkt sich beim Anlegen, ob sie schwer ist (js\wordle.js). Eine
+     * gemerkte Runde OHNE Versuch übernimmt noch die aktuelle Wahl — wer
+     * das Tageswort geöffnet, aber nicht angefangen hat, soll umschalten
+     * können. Ab dem ersten Versuch bleibt es, wie es war.
+     */
+    schwerGewaehlt() {
+        return ICH.einstellung("schwer", false) === true;
+    },
+
+    schwerSetzen(wert) {
+        ICH.einstellungSetzen("schwer", wert === true);
+    },
+
+    _schwerVorDemErstenVersuch(runde, schwer) {
+        if (runde.versuche.length === 0 && runde.schwer !== schwer) {
+            const neu = JSON.parse(JSON.stringify(runde));
+            neu.schwer = schwer;
+            return neu;
+        }
+        return runde;
     },
 
     _merken() {
@@ -141,13 +166,22 @@ const WORDLE_BILDSCHIRM = {
         behaelter.innerHTML = "";
 
         const titel = runde.modus === "tag" ? "Tageswort Nr. " + runde.nummer : "Übung";
-        behaelter.appendChild(BAUSTEINE.kopfzeile(titel, {
+        const kopf = BAUSTEINE.kopfzeile(titel, {
             zurueck: () => NAVIGATION.zurueck(),
             rechts: BAUSTEINE.knopf({
                 art: "flach", zeichen: "info", titel: "So wird gespielt",
                 beiKlick: () => WORDLE_BILDSCHIRM._anleitungZeigen()
             })
-        }));
+        });
+        /* „schwer" klein unter dem Titel, solange die Runde im Schwer-Modus
+           läuft (seit 0.6.0) — damit man weiss, warum ein Wort abgewiesen
+           wird. Als eigene Zeile, weil „… · schwer" im Titel auf schmalen
+           Handys umbrach. */
+        if (runde.schwer) {
+            kopf.querySelector(".kopfzeile-titel")
+                .appendChild(BAUSTEINE.el("span", "kopfzeile-zusatz", "schwer"));
+        }
+        behaelter.appendChild(kopf);
 
         const spiel = BAUSTEINE.el("div", "wordle");
         spiel.appendChild(WORDLE_BILDSCHIRM._brettBauen());
@@ -477,7 +511,7 @@ const WORDLE_BILDSCHIRM = {
 
         if (antwort.fehler) {
             FUEHLEN.fehler();
-            DIALOG.kurzmeldung(WORDLE.fehlerText(antwort.fehler), 1500);
+            DIALOG.kurzmeldung(antwort.hinweis || WORDLE.fehlerText(antwort.fehler), 1500);
             const zeile = WORDLE_BILDSCHIRM._behaelter.querySelector(".wordle-zeile-aktiv");
             if (zeile) {
                 zeile.classList.remove("wordle-zeile-wackeln");

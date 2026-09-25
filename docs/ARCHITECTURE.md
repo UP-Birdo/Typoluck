@@ -32,7 +32,8 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\bildschirm-profil.js` | Bildschirm | Statistik, Konto, Über Typoluck |
 | `js\wunsch.js` | Oberfläche | Wunsch-/Fehler-Knopf → GitHub-Formular |
 | `js\werkstatt.js` | Werkzeug | Testzustand für Bildschirmfotos (`?werkstatt`), sonst untätig |
-| `js\intro.js` | Oberfläche | Das UPCrew-Intro beim Start (einmal je Besuch, antippen überspringt) |
+| `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro (gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; Stil `css\upcrew-intro.css`) |
+| `js\intro.js` | Oberfläche | Anpasser für Typoluck: bei jedem Start, hell/dunkel wie die App, Werkstatt-Schalter `&intro` |
 | `js\app.js` | Start | Verbindet alles, hält den eigenen Verlauf |
 | `css\stil.css` | Aussehen | Variablen (Farben, Tiefe, Ebenen), Knöpfe, Karten, Dialoge, Anmeldung |
 | `css\stil-bildschirme.css` | Aussehen | Start, Rangliste, Freunde, Profil |

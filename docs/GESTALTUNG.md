@@ -127,7 +127,7 @@ Buchstabe.
 ## Ebenen
 
 `--ebene-menue` (das aufgeklappte Menü) < `--ebene-hinweis` < `--ebene-kurzmeldung` <
-`--ebene-vollbild` (Anmeldung) < `--ebene-dialog`. Nie eine eigene Zahl.
+`--ebene-vollbild` (Anmeldung) < `--ebene-intro` < `--ebene-dialog`. Nie eine eigene Zahl.
 
 ## Bewegung
 
@@ -138,19 +138,28 @@ bekommt keine.
 
 ## Das UPCrew-Intro
 
-Das Studio-Zeichen, mit dem JEDE UPCrew-App beginnen soll (`js\intro.js`,
-Stil `.intro…` in `css\stil.css`):
+Das Studio-Zeichen, mit dem jede UPCrew-App beginnt. **Seit 0.6.1 ein
+gemeinsamer Baustein:** `js\upcrew-intro.js` und `css\upcrew-intro.css`,
+unverändert kopiert aus `Design\3D-Schrift\final\` — dort wird er gestaltet
+und geändert (Aussehen: `Design\3D-Schrift\docs\GESTALTUNG.md` Abschnitt 10,
+Einbau: `Design\3D-Schrift\docs\EINBAU-INTRO.md`). **Hier nie abwandeln**,
+sondern dort ändern und neu kopieren. `js\intro.js` ist nur der Anpasser:
+Er sagt dem Baustein hell oder dunkel, Nummer „02", Name und Version.
 
-- Grund `--upcrew-grund` (fast schwarz, violett getönt), bildschirmfüllend.
-- „UP" weiss, fett, in einem violetten Block (`--upcrew-farbe`, Rundung
-  14 px), daneben „Crew" weiss, fett. Darunter klein, gesperrt, halb
-  durchsichtig: „präsentiert".
-- Auftritt 700 ms (leichtes Anwachsen), steht 1,8 s, blendet in 400 ms aus.
-  Antippen oder eine Taste überspringt. Einmal je Besuch.
-- **Die Studio-Farben haben keine Dunkel-Fassung** — das Zeichen sieht in
-  jedem Spiel und jeder Darstellung gleich aus.
-
-Wer das Intro in einer anderen App nachbaut, übernimmt genau diese Werte.
+- **Immer dunkel UND hell:** Das Intro folgt der Darstellung der App
+  (Einstellung Hell/Dunkel, sonst das Gerät). Die frühere Regel „Studio-Farben
+  ohne helle Fassung" gilt nicht mehr.
+- **Sechs Arten (A–F) rotieren:** Jeder Start zeigt die nächste. Der Zähler
+  (`upcrew.intro-zaehler` im Browser-Speicher) ist für alle UPCrew-Apps auf
+  `up-birdo.github.io` derselbe; als Home-Bildschirm-App zählt jede für sich.
+- **Farbwelt Werkstatt-Orange ist Standard**; das bisherige Violett ist die
+  Farbwelt „Studio" (später freischaltbar, `upcrew.farbwelt`). Die Farbwelt
+  rotiert nie.
+- **Bei jedem Start**, 1,7 bis 4,65 s je Art plus 0,7 s stehen, 0,4 s
+  ausblenden; Antippen oder eine Taste überspringt; „Bewegung reduzieren"
+  zeigt 1,2 s das Endbild. Schrift: Systemschrift-Monospace, kein Netz.
+- Ebene über `--ebene-intro` (55) aus `css\stil.css` — die einzige Variable,
+  die der Baustein von der App liest.
 
 ## Schrift
 

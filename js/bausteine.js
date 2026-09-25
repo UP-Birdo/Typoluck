@@ -197,7 +197,11 @@ const BAUSTEINE = {
             + "M2 10.5 V13.5 M22 10.5 V13.5",
         /* Der freie Platz links in der Leiste unten (seit 0.5.0): ein
            Kästchen mit Plus — „hier kommt noch etwas hin". */
-        platzhalter: "M4.5 4.5 H19.5 V19.5 H4.5 Z M12 8.5 V15.5 M8.5 12 H15.5"
+        platzhalter: "M4.5 4.5 H19.5 V19.5 H4.5 Z M12 8.5 V15.5 M8.5 12 H15.5",
+        /* Hell/dunkel in den Einstellungen (seit 0.6.0): ein Kreis, halb
+           geteilt, mit Strichen in der dunklen Hälfte. */
+        darstellung: "M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 Z M12 3 V21 "
+            + "M12 7 H16.5 M12 11 H18.5 M12 15 H18 M12 18.5 H15.5"
     },
 
     zeichen(name) {

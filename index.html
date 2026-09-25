@@ -25,6 +25,9 @@
     <link rel="stylesheet" href="css/stil.css">
     <link rel="stylesheet" href="css/stil-bildschirme.css">
     <link rel="stylesheet" href="css/stil-wordle.css">
+    <!-- Das UPCrew-Studio-Intro: gemeinsamer Baustein aller UPCrew-Apps,
+         kopiert aus Design\3D-Schrift\final (seit 0.6.1). -->
+    <link rel="stylesheet" href="css/upcrew-intro.css">
 </head>
 <body>
 
@@ -47,9 +50,9 @@
          Dialogen. -->
     <div class="anmeldung" id="anmeldung" hidden></div>
 
-    <!-- Das UPCrew-Intro (js\intro.js): liegt beim Start kurz über allem,
-         die App lädt darunter weiter. -->
-    <div class="intro" id="intro" hidden></div>
+    <!-- Das UPCrew-Intro (js\upcrew-intro.js, angepasst in js\intro.js):
+         liegt beim Start kurz über allem, die App lädt darunter weiter. -->
+    <div class="upi" id="intro" hidden></div>
 
     <div class="dialog-hintergrund" id="dialog" hidden></div>
 
@@ -64,6 +67,7 @@
     <script src="js/spieler.js"></script>
     <script src="js/ich.js"></script>
     <script src="js/fuehlen.js"></script>
+    <script src="js/darstellung.js"></script>
     <script src="js/speicher.js"></script>
     <script src="js/abgleich.js"></script>
     <script src="js/woerter-de.js"></script>
@@ -83,6 +87,7 @@
     <script src="js/bildschirm-einstellungen.js"></script>
     <script src="js/wunsch.js"></script>
     <script src="js/werkstatt.js"></script>
+    <script src="js/upcrew-intro.js"></script>
     <script src="js/intro.js"></script>
     <script src="js/app.js"></script>
 

@@ -26,6 +26,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         behaelter.appendChild(BAUSTEINE.kopfzeile("Einstellungen", {
             zurueck: () => NAVIGATION.zurueck()
         }));
+        behaelter.appendChild(EINSTELLUNGEN_BILDSCHIRM._wordleBauen());
         behaelter.appendChild(EINSTELLUNGEN_BILDSCHIRM._geraetBauen());
         /* Konto-Knöpfe nur für Angemeldete — ohne Konto gäbe es nichts zu
            ändern (das Anmelde-Vollbild liegt dann ohnehin darüber). */
@@ -36,6 +37,24 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     },
 
     /*
+     * Wordle (seit 0.6.0): der Schwer-Modus. Gilt ab der nächsten Runde —
+     * eine angefangene bleibt, wie sie war (Begründung: js\wordle.js,
+     * „Der Schwer-Modus"). Gespeichert je Gerät wie die übrigen.
+     */
+    _wordleBauen() {
+        const karte = BAUSTEINE.karte("Wordle");
+        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("stern", "Schwer-Modus",
+            BAUSTEINE.segment(
+                [{ wert: false, text: "Aus" }, { wert: true, text: "An" }],
+                WORDLE_BILDSCHIRM.schwerGewaehlt(),
+                (wert) => {
+                    WORDLE_BILDSCHIRM.schwerSetzen(wert);
+                    NAVIGATION.auffrischen();
+                }, "Schwer-Modus")));
+        return karte;
+    },
+
+    /*
      * Dieses Gerät (seit 0.4.0): der Schalter für die Vibration
      * (UPCrew-Standard, Abschnitt 5 — ab Werk an). Ein Segment-Schalter
      * wie in der Rangliste. Kann das Gerät nicht vibrieren (iPhone), steht
@@ -43,25 +62,55 @@ const EINSTELLUNGEN_BILDSCHIRM = {
      */
     _geraetBauen() {
         const karte = BAUSTEINE.karte("Dieses Gerät");
+
+        /* Hell / dunkel / wie das Gerät (seit 0.6.0, js\darstellung.js). */
+        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("darstellung", "Darstellung",
+            BAUSTEINE.segment(
+                [{ wert: "geraet", text: "Auto" }, { wert: "hell", text: "Hell" },
+                    { wert: "dunkel", text: "Dunkel" }],
+                DARSTELLUNG.thema(),
+                (wert) => {
+                    DARSTELLUNG.themaSetzen(wert);
+                    DARSTELLUNG.anwenden();
+                    NAVIGATION.auffrischen();
+                }, "Darstellung")));
+
+        /* Kachelfarben für Farbenblinde (seit 0.6.0). Die Wahl zeigt die
+           Farben selbst — zwei kleine Kacheln je Knopf wären schöner, aber
+           der Segment-Schalter trägt nur Text; die Wörter reichen. */
+        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("wordle", "Kacheln",
+            BAUSTEINE.segment(
+                [{ wert: false, text: "Grün/Gelb" }, { wert: true, text: "Orange/Blau" }],
+                DARSTELLUNG.kontrast(),
+                (wert) => {
+                    DARSTELLUNG.kontrastSetzen(wert);
+                    DARSTELLUNG.anwenden();
+                    NAVIGATION.auffrischen();
+                }, "Kachelfarben")));
+
+        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("vibration", "Vibration",
+            FUEHLEN.verfuegbar()
+                ? BAUSTEINE.segment(
+                    [{ wert: true, text: "An" }, { wert: false, text: "Aus" }],
+                    FUEHLEN.an(),
+                    (wert) => {
+                        FUEHLEN.anSetzen(wert);
+                        FUEHLEN.tippen();
+                        NAVIGATION.auffrischen();
+                    }, "Vibration")
+                : BAUSTEINE.el("span", "schild", "nicht möglich")));
+        return karte;
+    },
+
+    /* Eine Zeile „Zeichen + Name links, Schalter rechts". */
+    _zeileBauen(zeichen, text, schalter) {
         const zeile = BAUSTEINE.el("div", "einstellung-zeile");
         const name = BAUSTEINE.el("span", "einstellung-name");
-        name.appendChild(BAUSTEINE.zeichen("vibration"));
-        name.appendChild(BAUSTEINE.el("span", null, "Vibration"));
+        name.appendChild(BAUSTEINE.zeichen(zeichen));
+        name.appendChild(BAUSTEINE.el("span", null, text));
         zeile.appendChild(name);
-        if (FUEHLEN.verfuegbar()) {
-            zeile.appendChild(BAUSTEINE.segment(
-                [{ wert: true, text: "An" }, { wert: false, text: "Aus" }],
-                FUEHLEN.an(),
-                (wert) => {
-                    FUEHLEN.anSetzen(wert);
-                    FUEHLEN.tippen();
-                    NAVIGATION.auffrischen();
-                }, "Vibration"));
-        } else {
-            zeile.appendChild(BAUSTEINE.el("span", "schild", "nicht möglich"));
-        }
-        karte.appendChild(zeile);
-        return karte;
+        zeile.appendChild(schalter);
+        return zeile;
     },
 
     _kontoBauen() {

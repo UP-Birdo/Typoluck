@@ -83,8 +83,7 @@
      * 0.4.0). Jede Rundung im Stil verweist auf eine dieser Variablen; ein
      * Test zählt fest eingetragene Werte und meldet sie. Die Werte hat
      * Typoluck als erste UPCrew-App festgelegt, Blunderluck und Trainer
-     * übernehmen sie. 14 px ist zugleich die Rundung des UPCrew-Zeichens
-     * im Intro.
+     * übernehmen sie.
      *   klein   Felder, Buchstaben-Kacheln, Tasten, Chips, Balken
      *   mittel  Knöpfe, Karten, Dialoge, Menü
      *   voll    Pillen, Namens-Kreise, Zähler
@@ -107,12 +106,6 @@
     --inhalt-breite: 560px;
     --inhalt-rand: 16px;
 
-    /* Die Studio-Farben von UPCrew — bewusst OHNE Dunkel-Fassung: Das
-       Studio-Zeichen sieht in jedem Spiel und jeder Darstellung gleich aus. */
-    --upcrew-grund: #120e1c;
-    --upcrew-farbe: #7a5cf0;
-    --upcrew-schrift: #ffffff;
-
     /* Die Ebenen — wer liegt über wem. Nie eine eigene Zahl ausdenken.
        Das Menü (seit 0.3.0) liegt über dem Inhalt, unter dem Hinweis; die
        Leiste unten (seit 0.5.0) über dem Menü, unter allem Vollbildigen —
@@ -130,8 +123,11 @@
     --leiste-hoehe: 60px;
 }
 
+/* Dunkel, wenn das Gerät dunkel ist — AUSSER der Spieler hat in den
+   Einstellungen „Hell" gewählt (seit 0.6.0, js\darstellung.js setzt dann
+   data-darstellung="hell"; die hellen Werte oben gelten weiter). */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-darstellung="hell"]) {
         --flaeche: #16181c;
         --karte: #1f2228;
         --karte-leise: #262a31;
@@ -163,8 +159,15 @@
     }
 }
 
-/* Dieselben dunklen Werte, fest eingeschaltet — für Bildschirmfotos aus der
-   Werkstatt (?werkstatt&dunkel), die sonst immer hell wären. */
+/* Hell von Hand (seit 0.6.0): nur das Farbschema der Bedienelemente des
+   Browsers — die Farben selbst sind die hellen aus dem ersten Block. */
+:root[data-darstellung="hell"] {
+    color-scheme: light;
+}
+
+/* Dieselben dunklen Werte, fest eingeschaltet — seit 0.6.0 die Wahl
+   „Dunkel" in den Einstellungen, vorher nur für Bildschirmfotos aus der
+   Werkstatt (?werkstatt&dunkel). */
 :root[data-darstellung="dunkel"] {
     color-scheme: dark;
     --flaeche: #16181c;
@@ -195,6 +198,22 @@
     --kachel-falsch-kante: #30333a;
     --taste-kante: #373c46;
     --taste-aus-kante: #0f1114;
+}
+
+/*
+ * FARBEN FÜR FARBENBLINDE (seit 0.6.0, Einstellungen → „Kacheln").
+ * Grün und Gelb sind für die häufigste Farbschwäche (rot-grün) schwer
+ * auseinanderzuhalten; Orange und Blau unterscheiden sich für sie deutlich
+ * — dieselbe Wahl wie die „Kontrast"-Einstellung des Original-Wordle.
+ * „Fehlt" bleibt grau. Hell und dunkel gleich; der Block steht NACH den
+ * Dunkel-Blöcken, damit er beide überschreibt (gleiches Gewicht, später
+ * gewinnt).
+ */
+:root[data-farben="kontrast"] {
+    --kachel-richtig: #e8702a;
+    --kachel-richtig-kante: #b0501a;
+    --kachel-vorhanden: #3f8fe0;
+    --kachel-vorhanden-kante: #2a67a8;
 }
 
 * {
@@ -471,6 +490,16 @@ body.anmeldung-offen {
     margin: 0;
     font-size: 1.2rem;
     text-align: center;
+}
+
+/* Ein kleiner Zusatz unter dem Titel, z. B. „schwer" im Wordle (seit 0.6.0). */
+.kopfzeile-zusatz {
+    display: block;
+    color: var(--schrift-leise);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .kopfzeile-rechts {
@@ -796,77 +825,13 @@ body.anmeldung-offen {
 }
 
 /* ------------------------------------------------------------------ *
- * Das UPCrew-Intro (js\intro.js)
+ * Das UPCrew-Intro
  *
- * Das Zeichen: „UP" weiss in einem violetten, abgerundeten Block, dahinter
- * „Crew" in Schrift. Einblenden mit leichtem Anwachsen, Ausblenden 400 ms.
+ * Steht seit 0.6.1 NICHT mehr hier, sondern im gemeinsamen Baustein
+ * css\upcrew-intro.css (Klassen mit „upi-", kopiert aus
+ * Design\3D-Schrift\final, hier nie abwandeln). Von diesem Stil liest er
+ * nur --ebene-intro.
  * ------------------------------------------------------------------ */
-
-.intro {
-    position: fixed;
-    inset: 0;
-    z-index: var(--ebene-intro);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    background: var(--upcrew-grund);
-    color: var(--upcrew-schrift);
-    cursor: pointer;
-    transition: opacity 400ms ease;
-}
-
-.intro[hidden] {
-    display: none;
-}
-
-.intro-weg {
-    opacity: 0;
-}
-
-.intro-logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 2.6rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    animation: intro-auftritt 700ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-.intro-up {
-    padding: 4px 14px;
-    border-radius: var(--rund-mittel);
-    background: var(--upcrew-farbe);
-    color: var(--upcrew-schrift);
-}
-
-.intro-zeile {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.95rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    animation: intro-zeile 600ms ease 150ms both;
-}
-
-@keyframes intro-auftritt {
-    from { opacity: 0; transform: scale(0.8); }
-    to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes intro-zeile {
-    from { opacity: 0; transform: translateY(6px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .intro-logo,
-    .intro-zeile {
-        animation: none;
-    }
-}
 
 /* ------------------------------------------------------------------ *
  * Anmeldung — das Vollbild
@@ -1070,11 +1035,25 @@ body.anmeldung-offen {
  * 0.5.0 auf dem Bildschirm Einstellungen)
  * ------------------------------------------------------------------ */
 
+/* Reicht die Breite nicht für Name und Schalter nebeneinander (schmale
+   Handys, der Schalter mit drei Wahlen seit 0.6.0), rutscht der Schalter
+   in die nächste Zeile, statt über den Kartenrand zu ragen. */
 .einstellung-zeile {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px 12px;
+}
+
+/* Etwas schmalere Wahlen als in der Rangliste — so passen auch drei
+   neben den Namen, bevor der Umbruch oben greifen muss. */
+.einstellung-zeile .segment-wahl {
+    padding: 6px 12px;
+}
+
+.einstellung-zeile + .einstellung-zeile {
+    margin-top: 12px;
 }
 
 .einstellung-name {

@@ -19,7 +19,8 @@
  *         versuche: ["hause", …],  (höchstens VERSUCHE Stück)
  *         zustand:  "laeuft" | "gewonnen" | "verloren",
  *         begonnenAm: 1750000000000,
- *         beendetAm:  0
+ *         beendetAm:  0,
+ *         schwer:   false          (seit 0.6.0: Schwer-Modus, siehe unten)
  *     }
  *
  * Jede Änderung liefert eine NEUE Runde — die alte bleibt unberührt.
@@ -161,7 +162,8 @@ const WORDLE = {
             versuche: [],
             zustand: "laeuft",
             begonnenAm: angaben.zeitpunkt || 0,
-            beendetAm: 0
+            beendetAm: 0,
+            schwer: angaben.schwer === true
         };
     },
 
@@ -173,9 +175,10 @@ const WORDLE = {
                 || Array.from(roh.loesung).length !== WORDLE.LAENGE) {
             return null;
         }
+        /* `schwer` fehlt in Runden von vor 0.6.0 — dann eben nicht schwer. */
         const runde = WORDLE.neueRunde({
             modus: roh.modus, datum: roh.datum, nummer: roh.nummer,
-            loesung: roh.loesung, zeitpunkt: roh.begonnenAm
+            loesung: roh.loesung, zeitpunkt: roh.begonnenAm, schwer: roh.schwer
         });
         runde.versuche = (Array.isArray(roh.versuche) ? roh.versuche : [])
             .filter((wort) => typeof wort === "string"
@@ -192,6 +195,8 @@ const WORDLE = {
      *   fehler "vorbei"      die Runde ist schon entschieden
      *   fehler "zu-kurz"     weniger als fünf Buchstaben
      *   fehler "unbekannt"   kein Wort aus der Liste
+     *   fehler "schwer"      Schwer-Modus: ein gefundener Buchstabe fehlt;
+     *                        `hinweis` sagt welcher (seit 0.6.0)
      * Bei einem Fehler ist `runde` unverändert.
      */
     raten(runde, wort, zeitpunkt) {
@@ -206,6 +211,12 @@ const WORDLE = {
         if (!WORDLE.istErlaubt(eingabe)) {
             return { runde: runde, fehler: "unbekannt" };
         }
+        if (runde.schwer) {
+            const hinweis = WORDLE.schwerPruefen(runde, eingabe);
+            if (hinweis) {
+                return { runde: runde, fehler: "schwer", hinweis: hinweis };
+            }
+        }
 
         const neu = JSON.parse(JSON.stringify(runde));
         neu.versuche.push(eingabe);
@@ -214,6 +225,56 @@ const WORDLE = {
             neu.beendetAm = zeitpunkt || 0;
         }
         return { runde: neu, fehler: "" };
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Der Schwer-Modus (seit 0.6.0, ROADMAP Nr. 7)
+     *
+     * Wie im Original-Wordle: Was man schon weiss, muss man benutzen.
+     *   - Ein grüner Buchstabe muss an SEINER Stelle bleiben.
+     *   - Ein gelber (oder grüner) Buchstabe muss im Wort vorkommen — so
+     *     oft, wie er in einem früheren Versuch grün oder gelb war (zwei
+     *     gelbe „e" heissen: mindestens zwei e).
+     * Graue Buchstaben darf man weiter tippen (auch das wie das Original).
+     *
+     * Geprüft wird gegen JEDEN früheren Versuch, grüne Stellen zuerst — so
+     * nennt der Hinweis das Wichtigste. Liefert "" (in Ordnung) oder ein
+     * Stichwort für die Kurzmeldung: „Feld 3: A" bzw. „E benutzen".
+     *
+     * Ob eine Runde schwer ist, steht IN der Runde (`schwer`) und wird beim
+     * Anlegen festgelegt — umschalten mitten in einer Runde geht nicht,
+     * sonst liesse sich die Regel nach einem Blick auf die Tastatur abstellen.
+     * ---------------------------------------------------------------- */
+
+    schwerPruefen(runde, wort) {
+        const eingabe = Array.from(String(wort || "").toLowerCase());
+        const frueher = runde.versuche.map((versuch) => ({
+            buchstaben: Array.from(versuch),
+            bewertung: WORDLE.bewerten(versuch, runde.loesung)
+        }));
+
+        for (const versuch of frueher) {
+            for (let i = 0; i < WORDLE.LAENGE; i++) {
+                if (versuch.bewertung[i] === WORDLE.RICHTIG && eingabe[i] !== versuch.buchstaben[i]) {
+                    return "Feld " + (i + 1) + ": " + versuch.buchstaben[i].toUpperCase();
+                }
+            }
+        }
+        for (const versuch of frueher) {
+            const noetig = {};
+            versuch.buchstaben.forEach((buchstabe, i) => {
+                if (versuch.bewertung[i] !== WORDLE.FALSCH) {
+                    noetig[buchstabe] = (noetig[buchstabe] || 0) + 1;
+                }
+            });
+            for (const buchstabe of Object.keys(noetig)) {
+                const vorhanden = eingabe.filter((b) => b === buchstabe).length;
+                if (vorhanden < noetig[buchstabe]) {
+                    return buchstabe.toUpperCase() + " benutzen";
+                }
+            }
+        }
+        return "";
     },
 
     /* ---------------------------------------------------------------- *
@@ -342,7 +403,8 @@ const WORDLE = {
         return {
             "vorbei": "Runde vorbei",
             "zu-kurz": "Zu kurz",
-            "unbekannt": "Unbekanntes Wort"
+            "unbekannt": "Unbekanntes Wort",
+            "schwer": "Schwer-Modus"
         }[fehler] || "";
     },
 

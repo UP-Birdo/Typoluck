@@ -22,7 +22,10 @@
  *     &versuche=hause,tisch            angefangene Tageswort-Runde
  *     &datum=2026-09-24                so tun, als wäre heute dieser Tag
  *     &anmeldung                       NICHT angemeldet (Anmelde-Vollbild)
- *     &dunkel                          dunkle Darstellung erzwingen
+ *     &dunkel / &hell                  Darstellung festlegen (sonst wie
+ *                                      das Gerät)
+ *     &kontrast                        Kacheln Orange/Blau (seit 0.6.0)
+ *     &schwer                          Schwer-Modus an (seit 0.6.0)
  *     &menue                           das Menü hinter den drei Balken
  *                                      offen zeigen (seit 0.3.0, Start)
  *     &felder=.a..e&stelle=2           beim Bildschirm wordle: die Zeile,
@@ -30,6 +33,9 @@
  *                                      („." = leer) und Feld 3 markiert
  *     &regel                           beim Bildschirm wordle: die
  *                                      Spielregel offen (seit 0.4.0)
+ *     &intro / &intro=C                das UPCrew-Intro zeigen (sonst nie
+ *                                      in der Werkstatt); mit Buchstabe
+ *                                      A-F genau diese Art (seit 0.6.1)
  *
  * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
  * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
@@ -67,9 +73,19 @@ const WERKSTATT = {
                 speicher.removeItem(schluessel);
             }
         }
+        /* Darstellung über denselben Weg wie die Einstellungen (seit
+           0.6.0) — so zeigt auch der Einstellungen-Bildschirm die Wahl an.
+           DARSTELLUNG hat beim Laden schon den alten Stand angewendet;
+           nach dem Leeren oben wird hier neu angewendet. */
         if (WERKSTATT._parameter().has("dunkel")) {
-            document.documentElement.dataset.darstellung = "dunkel";
+            DARSTELLUNG.themaSetzen("dunkel");
+        } else if (WERKSTATT._parameter().has("hell")) {
+            DARSTELLUNG.themaSetzen("hell");
         }
+        if (WERKSTATT._parameter().has("kontrast")) {
+            DARSTELLUNG.kontrastSetzen(true);
+        }
+        DARSTELLUNG.anwenden();
 
         const heute = WORDLE.datumText(APP.jetzt());
         const namen = ["Werkstatt", "Anna", "Ben", "Clara", "Dora", "Emil"];
@@ -119,11 +135,15 @@ const WERKSTATT = {
             ICH.personSetzen(ids[0], namen[0]);
         }
 
+        const schwer = WERKSTATT._parameter().has("schwer");
+        if (schwer) {
+            ICH.einstellungSetzen("schwer", true);
+        }
         const versuche = WERKSTATT.wert("versuche");
         if (versuche) {
             const tag = WORDLE.tageswort(heute);
             let runde = WORDLE.neueRunde({ modus: "tag", datum: heute, nummer: tag.nummer,
-                loesung: tag.wort, zeitpunkt: 1 });
+                loesung: tag.wort, zeitpunkt: 1, schwer: schwer });
             for (const wort of versuche.split(",")) {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }

@@ -3,6 +3,35 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.6.1 — 25.09.2026
+
+**Das neue UPCrew-Studio-Intro.**
+
+- Beim Start kommt jetzt das neue Studio-Intro — bei **jedem** Start, nicht
+  mehr nur einmal je Besuch. Jedes Mal eine andere von sechs Arten
+  (Anzeige, Taste, Pads, Typenschild, Plus wird zum P — zwei Fassungen).
+- Es passt sich der Darstellung an: **hell oder dunkel**, wie die App.
+- Die Studio-Farbe ist jetzt Werkstatt-Orange statt Violett.
+- Antippen oder eine Taste überspringt es wie bisher.
+
+## 0.6.0 — 25.09.2026
+
+**Hell oder dunkel selbst wählen, Kachelfarben für Farbenblinde, und ein
+Schwer-Modus.**
+
+- **Schwer-Modus** (Einstellungen → Wordle): Was du gefunden hast, musst
+  du weiter benutzen — grüne Buchstaben an ihrer Stelle, gelbe irgendwo im
+  Wort. Sonst kommt z. B. „Feld 3: A" oder „E benutzen". Gilt ab der
+  nächsten Runde; eine angefangene bleibt, wie sie war. Unter dem Titel
+  steht dann klein „schwer".
+
+- **Darstellung:** In den Einstellungen unter „Dieses Gerät" wählst du
+  Auto (wie das Handy), Hell oder Dunkel.
+- **Kacheln Orange/Blau:** Wer Grün und Gelb schlecht unterscheidet,
+  stellt die Kacheln auf Orange (richtig) und Blau (woanders im Wort) um.
+  Gilt für Brett, Tastatur und Ranglisten-Muster. Ab Werk bleibt es bei
+  Grün/Gelb.
+
 ## 0.5.0 — 25.09.2026
 
 **Die Leiste unten ist zurück — und bleibt immer stehen. Neu: Einstellungen.**
