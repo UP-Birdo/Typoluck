@@ -31,9 +31,43 @@ global.geraet = speicherAttrappe();
 global.window = { localStorage: global.geraet };
 ICH._speicher = () => global.geraet;
 
+/* Der Baustein js\upcrew-aussehen.js spricht `localStorage` ohne `window.`
+   an. Node kennt je nach Fassung einen eigenen (oder einen, der nur mit
+   Schalter funktioniert) — deshalb fest auf die Attrappe gebogen. */
+function globalerSpeicher(speicher) {
+    try {
+        Object.defineProperty(globalThis, "localStorage", {
+            value: speicher, writable: true, configurable: true
+        });
+    } catch (fehler) {
+        global.localStorage = speicher;
+    }
+}
+globalerSpeicher(global.geraet);
+
 function geraetLeeren() {
     global.geraet = speicherAttrappe();
     global.window.localStorage = global.geraet;
+    globalerSpeicher(global.geraet);
 }
 
-module.exports = { geraetLeeren };
+/*
+ * Lädt den ECHTEN gemeinsamen Aussehen-Baustein (js\upcrew-aussehen.js,
+ * seit 0.8.0) frisch — jedes Mal neu, weil er sich das gelesene Aussehen
+ * merkt und ein neuer Gerätespeicher sonst nicht bei ihm ankäme. Er horcht
+ * beim Laden auf Fenster und Dokument; beides bekommt hier eine stumme
+ * Attrappe. Liefert den Baustein und setzt ihn global wie im Browser.
+ */
+function aussehenLaden() {
+    global.window.addEventListener = global.window.addEventListener || (() => {});
+    if (typeof global.document === "undefined") {
+        global.document = { addEventListener: () => {}, visibilityState: "visible" };
+    }
+    const pfad = require.resolve("../js/upcrew-aussehen.js");
+    delete require.cache[pfad];
+    require(pfad);
+    global.UPCREW_AUSSEHEN = global.window.UPCREW_AUSSEHEN;
+    return global.UPCREW_AUSSEHEN;
+}
+
+module.exports = { geraetLeeren, aussehenLaden };

@@ -23,9 +23,12 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
 | `js\fuehlen.js` | Oberfläche | Vibration: tippen, erfolg, fehler; Schalter in den Einstellungen (seit 0.4.0, bis 0.4.0 im Profil) |
 | `js\upcrew-farbwelten.js` | Oberfläche | Die UPCrew-Farbwelten → Farb-Variablen an `<html>` (seit 0.7.0; gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; lädt mit `upcrew-intro.js` VOR `darstellung.js`) |
-| `js\darstellung.js` | Oberfläche | Hell/dunkel/Gerät, wendet die Farbwelt „werkstatt" an, Kachelfarben-Sperre (NYT-Look) |
+| `js\upcrew-aussehen.js` | Oberfläche | **Ein Aussehen für alle UPCrew-Spiele** (seit 0.8.0): hell/dunkel, Farbwelt, Schrift, Knöpfe, Standard-Schrift unter `upcrew.aussehen`; zieht Blunderluck im selben Browser mit (gemeinsamer Baustein, kopiert, nie abwandeln) |
+| `js\darstellung.js` | Oberfläche | Typolucks Anschluss an `upcrew-aussehen.js` (seit 0.8.0 ohne eigene Werte; einmaliger Umzug der alten Wahl; früher Aufruf beim Laden), Kachelfarben-Sperre (NYT-Look) |
+| `js\upcrew-anpassen.js` | Oberfläche | Der Tab „Anpassen" samt Vorschau und Freischalt-Stufen (seit 0.8.0; gemeinsamer Baustein, kopiert, nie abwandeln; Stil `css\upcrew-anpassen.css`) |
+| `js\aussehen-abgleich.js` | Leitung | Das Aussehen am UPCrew-Konto: `konten/<uid>/aussehen` senden und holen, still bei Fehler (seit 0.8.0) |
 | `js\dialog.js` | Oberfläche | Eigene Dialoge und Kurzmeldung |
-| `js\navigation.js` | Oberfläche | Bildschirme, Menü hinter den drei Balken (seit 0.3.0 statt der Leiste unten), Zurück-Taste |
+| `js\navigation.js` | Oberfläche | Bildschirme, Menü hinter den drei Balken (seit 0.3.0), Leiste unten (seit 0.5.0; seit 0.8.0 fünf Plätze), Zurück-Taste |
 | `js\anmeldung.js` | Bildschirm | Anmelde-Vollbild, Konto anlegen, Name/Passwort ändern |
 | `js\bildschirm-start.js` | Bildschirm | Start mit Spiel-Kacheln und „Heute bei deinen Freunden" |
 | `js\bildschirm-wordle.js` | Bildschirm | Brett, Tastatur, Aufdecken, Ende |
@@ -33,7 +36,8 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\bildschirm-freunde.js` | Bildschirm | Anfragen, Freunde, Suche |
 | `js\bildschirm-profil.js` | Bildschirm | Spieler und Statistik |
 | `js\bildschirm-einstellungen.js` | Bildschirm | Wortspiel, dieses Gerät, UPCrew-Konto, Über Typoluck (seit 0.5.0) |
-| `js\bildschirm-herausforderungen.js` | Bildschirm | Tab „Aufgaben": vorerst Platzhalter „Kommt bald" (seit 0.7.0; Pfad und Inventar kommen in Runde 3) |
+| `js\bildschirm-herausforderungen.js` | Bildschirm | Tab „Aufgaben": vorerst Platzhalter „Kommt bald" (seit 0.7.0; Pfad und Inventar kommen später) |
+| `js\bildschirm-anpassen.js` | Bildschirm | Tab „Anpassen" ganz rechts in der Leiste: Kopfzeile + Baustein, Stufe 0 bis es den Pfad gibt (seit 0.8.0) |
 | `js\wunsch.js` | Oberfläche | Wunsch-/Fehler-Knopf → GitHub-Formular |
 | `js\werkstatt.js` | Werkzeug | Testzustand für Bildschirmfotos (`?werkstatt`), sonst untätig |
 | `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro samt den Grundfarben der Farbwelten (gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; Stil `css\upcrew-intro.css`; lädt seit 0.7.0 früh, vor `darstellung.js`) |
@@ -42,6 +46,8 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `css\stil.css` | Aussehen | Variablen (Farben, Tiefe, Ebenen), Knöpfe, Karten, Dialoge, Anmeldung |
 | `css\stil-bildschirme.css` | Aussehen | Start, Rangliste, Freunde, Profil |
 | `css\stil-wordle.css` | Aussehen | Brett, Kacheln, Tastatur, Bewegungen |
+| `css\upcrew-knoepfe.css` | Aussehen | Die Knopf-Familien K1–K6 für alle `up-kn`-Knöpfe (seit 0.8.0; kopiert, nie abwandeln; lädt NACH dem eigenen Stil) |
+| `schrift\` | Aussehen | Die zwölf Crew-Schriften (woff2) samt `LIZENZ.txt` (seit 0.8.0; kopiert aus `Design\3D-Schrift\final\schrift`, im Service Worker) |
 | `sw.js` | Offline | Service Worker (Dateiliste + Versionsnummer) |
 | `tools\` | Werkzeuge | Start, Tests, Deploy, Icons, Wünsche |
 | `tests\` | Tests | siehe `tests\README.md` |

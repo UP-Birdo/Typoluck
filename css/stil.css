@@ -32,6 +32,11 @@
     --haupt-schrift: #ffffff;
     --haupt-kante: #16457a;
     --gefahr: #b3261e;
+    /* Kante und Schrift des Gefahr-Knopfs (seit 0.8.0, braucht der
+       gemeinsame Baustein css\upcrew-knoepfe.css). Gefahr ist eine
+       Bedeutungsfarbe — keine Farbwelt ändert sie. */
+    --gefahr-kante: #7a1a14;
+    --gefahr-schrift: #ffffff;
     --gut: #1e7d43;
     --gut-flaeche: #e4f4ea;
     --warnung-flaeche: #fff4d6;
@@ -72,6 +77,9 @@
      * Kante in ihrer Kantenfarbe, Knöpfe und Tasten sinken beim Drücken um
      * die Tiefe ein; keine Zeile JavaScript nötig. Auf 0px gesetzt ist alles
      * wieder flach. Plan und nächste Stufen: docs\ARCHITECTURE.md, „3D".
+     * Seit 0.8.0 gilt --knopf-tiefe nur noch für die Tasten und Kacheln —
+     * die Knöpfe nehmen ihre Tiefe aus der gewählten Familie
+     * (css\upcrew-knoepfe.css, --kn-tiefe).
      */
     --knopf-tiefe: 4px;
     --kachel-tiefe: 3px;
@@ -97,12 +105,12 @@
     --rund-voll: 999px;
 
     /*
-     * DIE SCHRIFT (UPCrew-Standard, Abschnitt „Schrift"): Vorgesehen ist
-     * eine eigene, runde und verspielte Schrift, mit der App ausgeliefert
-     * (woff2 im Ordner schrift\, @font-face, im Service Worker). Welche,
-     * wählt der Nutzer nach Bild — bis dahin steht hier die Systemschrift,
-     * die danach der Rückfall bleibt. Wer die Schrift einbaut, setzt ihren
-     * Namen VOR die Liste und ändert sonst nichts.
+     * DIE SCHRIFT (UPCrew-Standard, Abschnitt „Schrift"). Seit 0.8.0 setzt
+     * der gemeinsame Baustein js\upcrew-aussehen.js diese Variable direkt an
+     * <html> — auf die gewählte Crew-Schrift (woff2 im Ordner schrift\, im
+     * Service Worker), gefolgt von genau dieser Liste. Der Wert HIER ist nur
+     * noch der Rückfall, falls der Baustein fehlt. Alles, was Text zeigt,
+     * erbt die Schrift vom <body>; niemand nennt eine Schrift selbst.
      */
     --schrift-familie: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
 
@@ -142,6 +150,8 @@
         --haupt-schrift: #0d1116;
         --haupt-kante: #2f6aa8;
         --gefahr: #e05a52;
+        --gefahr-kante: #9c302a;
+        --gefahr-schrift: #1a0c0b;
         --gut: #4cb87a;
         --gut-flaeche: #1d3327;
         --warnung-flaeche: #3a3016;
@@ -184,6 +194,8 @@
     --haupt-schrift: #0d1116;
     --haupt-kante: #2f6aa8;
     --gefahr: #e05a52;
+    --gefahr-kante: #9c302a;
+    --gefahr-schrift: #1a0c0b;
     --gut: #4cb87a;
     --gut-flaeche: #1d3327;
     --warnung-flaeche: #3a3016;
@@ -504,6 +516,17 @@ body.anmeldung-offen {
 
 /* ------------------------------------------------------------------ *
  * Knöpfe — genau EINE Hauptaktion je Bildschirm (Haus-Regel)
+ *
+ * SEIT 0.8.0 (UPCrew-Runde 3) kommt die FORM der Haupt-, Still- und
+ * Gefahr-Knöpfe allein aus dem kopierten Baustein css\upcrew-knoepfe.css
+ * (Klassen `up-kn` + `up-haupt`/`up-zweit`/`up-gefahr`, gesetzt in
+ * BAUSTEINE.knopf) — in der Familie K1-K6, die der Spieler im Tab
+ * „Anpassen" wählt. Hier steht für sie nur noch Grösse und Anordnung;
+ * Rundung, Kante, Schatten und Rahmen NICHT (tests\test-knoepfe.js zählt
+ * das). Die Regeln `.knopf-haupt`, `.knopf-still`, `.knopf-gefahr` und die
+ * Kante/Rundung/Einsinken von `.knopf` (bis 0.7.0) sind deshalb weg.
+ * `.knopf` ist nur noch das gemeinsame Innenleben (Zeichen und Text
+ * nebeneinander); `flach`, `menue` und `leiste` regeln ihre Form selbst.
  * ------------------------------------------------------------------ */
 
 .knopf {
@@ -511,20 +534,9 @@ body.anmeldung-offen {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 44px;
-    padding: 10px 18px;
-    border: 1px solid transparent;
-    border-radius: var(--rund-mittel);
     font: inherit;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 var(--knopf-tiefe) 0 var(--still-kante);
-    transition: transform 80ms ease, box-shadow 80ms ease, background-color 120ms ease;
-}
-
-.knopf:active:not(:disabled) {
-    transform: translateY(var(--knopf-tiefe));
-    box-shadow: 0 0 0 transparent;
 }
 
 .knopf:disabled {
@@ -541,46 +553,25 @@ body.anmeldung-offen {
     outline-offset: 2px;
 }
 
-.knopf-haupt {
-    background: var(--haupt);
-    color: var(--haupt-schrift);
-    box-shadow: 0 var(--knopf-tiefe) 0 var(--haupt-kante);
-}
-
-.knopf-still {
-    background: var(--karte);
-    color: var(--schrift);
-    border-color: var(--rahmen);
-}
-
-.knopf-gefahr {
-    background: var(--karte);
-    color: var(--gefahr);
-    border-color: var(--gefahr);
-    box-shadow: 0 var(--knopf-tiefe) 0 var(--gefahr);
-}
-
+/* Der flache Knopf (Zeichen in Kopfzeilen, Textverweise): kein Knopf im
+   Sinne des Standards — ohne Kante, sinkt nicht ein, bleibt ohne `up-kn`. */
 .knopf-flach {
     min-height: 44px;
     min-width: 44px;
     padding: 8px;
+    border: 1px solid transparent;
+    border-radius: var(--rund-mittel);
     background: transparent;
     color: var(--schrift);
-    box-shadow: none;
 }
 
-/* Wer keine Kante hat, sinkt auch nicht ein — sonst hüpft ein flacher
-   Knopf beim Antippen ohne sichtbaren Grund nach unten. (Die Leistenknöpfe,
-   die hier bis 0.2.1 mitstanden, gibt es seit 0.3.0 nicht mehr; die
-   Menü-Einträge regeln das in ihrem eigenen Abschnitt oben.) */
-.knopf-flach:active:not(:disabled) {
-    transform: none;
-}
-
-.knopf-klein {
+/* Die kleine Form für Zeilen (Freunde, Zustände): nur die Grösse. Zwei
+   Klassen, damit sie gegen `.up-kn` aus dem Baustein gewinnt, der NACH
+   diesem Stil lädt. Der Einzug links rechnet wie im Baustein den
+   Leuchtpunkt der Familie K3 mit ein (--kn-taste ist dort 1, sonst 0). */
+.up-kn.knopf-klein {
     min-height: 36px;
-    padding: 6px 12px;
-    font-size: 0.9rem;
+    padding: 0 12px 0 calc(12px + var(--kn-taste) * 6px);
 }
 
 .knopf-breit {

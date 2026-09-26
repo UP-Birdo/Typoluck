@@ -9,19 +9,39 @@
  * baut sich einen <button> selbst.
  *
  * Wie der 3D-Look später andockt (Plan, docs\ARCHITECTURE.md, „3D"):
- *   1. Stufe „Tiefe per Stil": Die Knöpfe tragen schon heute eine
- *      Tiefen-Variable (`--knopf-tiefe` in css\stil.css, heute 0). Wird sie
- *      grösser, bekommen alle Knöpfe eine Kante und sinken beim Drücken ein —
- *      ohne eine Zeile JavaScript.
+ *   1. Stufe „Tiefe per Stil": seit 0.8.0 die gemeinsamen UPCrew-Knöpfe
+ *      (unten, `UP_KLASSEN`) — Kante, Tiefe und Einsinken kommen aus
+ *      css\upcrew-knoepfe.css, ohne eine Zeile JavaScript.
  *   2. Stufe „echte Formen": `knopf()` bekommt einen Zweig, der zusätzlich
  *      ein gerendertes Bild bzw. eine three.js-Fläche einhängt. Die
  *      Bildschirme merken davon nichts, weil sie nur `knopf()` rufen.
+ *
+ * DIE UPCREW-KNÖPFE (seit 0.8.0, UPCrew-Runde 3): Haupt-, Still- und
+ * Gefahr-Knöpfe tragen zusätzlich `up-kn` + `up-haupt` | `up-zweit` |
+ * `up-gefahr` (nur Zeichen, kein Text: `up-rund`) und als erstes Kind den
+ * Leuchtpunkt `<i class="up-led">`. Die Form (Rundung, Kante, Schatten,
+ * Rahmen) kommt damit NUR aus dem kopierten Baustein css\upcrew-knoepfe.css
+ * — in der Familie, die der Spieler im Tab „Anpassen" wählt (K1-K6), gleich
+ * in Blunderluck. css\stil.css regelt für diese Knöpfe nur noch Grösse und
+ * Anordnung; ein Test zählt, dass es so bleibt. NICHT umgestellt sind die
+ * Knöpfe, die keine Knöpfe im Sinne des Standards sind: `flach` (Zeichen in
+ * Kopfzeilen, Textverweise), `menue` (Einträge hinter den drei Balken) und
+ * `leiste` (die Leiste unten) — wie Tasten und Kacheln behalten sie ihr
+ * eigenes Aussehen.
  *
  * Die Zeichen sind eigene Linienzeichnungen (24er-Raster, nur Striche), keine
  * Emojis (Haus-Regel) und keine fremde Zeichensammlung.
  */
 
 const BAUSTEINE = {
+
+    /* Welche Knopf-Art welche UPCrew-Klasse bekommt (seit 0.8.0). Arten,
+       die hier fehlen, bleiben ohne `up-kn`. */
+    UP_KLASSEN: {
+        haupt: "up-haupt",
+        still: "up-zweit",
+        gefahr: "up-gefahr"
+    },
 
     /*
      * Ein Knopf.
@@ -38,12 +58,20 @@ const BAUSTEINE = {
      *   beiKlick  Funktion
      */
     knopf(angaben) {
+        const art = angaben.art || "still";
+        const upKlasse = BAUSTEINE.UP_KLASSEN[art];
         const knopf = document.createElement("button");
         knopf.type = "button";
-        knopf.className = "knopf knopf-" + (angaben.art || "still")
+        knopf.className = "knopf knopf-" + art
+            + (upKlasse ? " up-kn " + upKlasse + (angaben.text ? "" : " up-rund") : "")
             + (angaben.klein ? " knopf-klein" : "")
             + (angaben.breit ? " knopf-breit" : "");
 
+        /* Der Leuchtpunkt der UPCrew-Knöpfe steht als ERSTES Kind (leuchtet
+           nur in der Familie K3, sonst unsichtbar). */
+        if (upKlasse) {
+            knopf.appendChild(BAUSTEINE.el("i", "up-led"));
+        }
         if (angaben.zeichen) {
             knopf.appendChild(BAUSTEINE.zeichen(angaben.zeichen));
         }
@@ -202,6 +230,13 @@ const BAUSTEINE = {
            oben rechts steigt. Pfad wörtlich aus den gemeinsamen Absprachen
            mit Blunderluck (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md). */
         aufgaben: "M4 20 L10 14 L14 17 L20 6 M15 6 H20 V11",
+        /* Der Tab „Anpassen" (seit 0.8.0): zwei Schieberegler. Pfad
+           wörtlich aus den gemeinsamen Absprachen mit Blunderluck
+           (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md). */
+        anpassen: "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19",
+        /* „Standard-Schrift" in den Einstellungen (seit 0.8.0): ein grosses
+           A mit Grundlinie. */
+        schrift: "M5 19 L12 4 L19 19 M8 13 H16 M3 21 H21",
         /* Hell/dunkel in den Einstellungen (seit 0.6.0): ein Kreis, halb
            geteilt, mit Strichen in der dunklen Hälfte. */
         darstellung: "M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 Z M12 3 V21 "

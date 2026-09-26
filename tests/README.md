@@ -20,7 +20,10 @@ Kopien. Sie gehen nie ins Netz — die Datenbank spielt eine Attrappe.
 | `test-versiegelung.js` | Passwort-Prüfsumme gleich wie Blunderluck (unabhängig gerechneter Vergleichswert) |
 | `test-ergebnisse-rangliste.js` | Ergebnis ohne Wort, Warteliste ohne/mit Netz, Punkte, Tabellen, Plätze, Serie |
 | `test-speicher-abgleich.js` | Lokaler Speicher in Teilen; Abgleich: behält Neue vom Server, schreibt nie ohne Server, Marke spart Laden |
-| `test-syntax.js` | Übersetzbarkeit aller Dateien, Version an allen Stellen, `sw.js` gegen `index.html` und Platte, kein confirm/alert/prompt, keine Emojis, keine Tabs, unantastbare Werte |
+| `test-syntax.js` | Übersetzbarkeit aller Dateien, Version an allen Stellen, `sw.js` gegen `index.html` und Platte (seit 0.8.0 auch die Crew-Schriften), kein confirm/alert/prompt, keine Emojis, keine Tabs, unantastbare Werte, Leiste mit fünf Plätzen, keine festgeschriebenen Standard-/Stufen-Werte. Die kopierten `upcrew-*`-Bausteine sind von Form- und Emoji-Prüfung ausgenommen (Begründung im Kopf der Datei) |
+| `test-darstellung.js` | Hell/dunkel und Standard-Schrift über das gemeinsame Aussehen (`upcrew-aussehen.js`), der einmalige Umzug der alten Wahl, Kachelfarben-Sperre für jede Kachelfarbe und jede Farbwelt |
+| `test-knoepfe.js` | `BAUSTEINE.knopf` vergibt `up-kn`-Klassen und Leuchtpunkt (in einem Ersatz-DOM); kein eigener Stil gibt diesen Knöpfen Rundung, Kante, Schatten oder Rahmen |
+| `test-aussehen-abgleich.js` | Aussehen am Konto: senden (mit Marke, fremde Felder bleiben), holen (neuer gewinnt), nichts für Gäste, still bei abgelehnter Regel |
 
 `pruefer.js` ist das kleine Prüfwerkzeug (`pruefe`, `gleich`, `spaeter`,
 `fazit`). **Neue Prüfungen gehören VOR `fazit()`** — dahinter laufen sie nie.

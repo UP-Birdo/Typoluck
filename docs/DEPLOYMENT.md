@@ -34,6 +34,16 @@ So wurde sie angelegt (zum Nachbauen oder Prüfen):
 
    Kommt ein Spiel dazu (oder zieht Blunderluck um), bekommt es hier eine
    eigene Zeile nach demselben Muster.
+
+   **Seit 0.8.0 schreibt Typoluck zusätzlich `spieler/konten/<uid>/aussehen`**
+   (das gemeinsame Aussehen aller UPCrew-Spiele, `js\aussehen-abgleich.js`).
+   Prüfen die echten Regeln die Felder eines Kontos einzeln, braucht dieser
+   Pfad eine eigene Regel — den Vorschlag (nur eigene uid; darstellung,
+   farbwelt, schrift, knoepfe als Text aus den erlaubten Werten,
+   leseschrift bool, stand Zahl) schreibt die Blunderluck-Sitzung in
+   `Apps\Blunderluck\SICHERHEIT.md` §11; einspielen tut der Nutzer. Bis
+   dahin lehnt die Datenbank ab, und Typoluck macht still weiter (das
+   Aussehen bleibt dann auf dem Gerät).
 4. **Veröffentlichen**. Die Adresse aus dem Reiter **Daten** steht in
    `js\konfig.js` bei `firebaseBasis`.
 

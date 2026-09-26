@@ -60,13 +60,15 @@ $Zweig      = "main"
 
 $freigegebeneDateien = @("index.html", "sw.js", "README.md", "CHANGELOG.md",
                          "manifest.webmanifest", "icon.svg")
-$freigegebeneOrdner  = @("css", "js", "icons", "docs", "tests", "tools", ".github")
+# "schrift" seit 0.8.0: die Crew-Schriften (woff2) samt LIZENZ.txt - der
+# Service Worker verlangt sie, ohne sie scheitert seine Installation.
+$freigegebeneOrdner  = @("css", "js", "icons", "schrift", "docs", "tests", "tools", ".github")
 $gesperrteDateien    = @("TODO.md", "TODO-Archiv.md", "ROADMAP.md", "ROADMAP-Archiv.md",
                          "CLAUDE.md", "STATUS.md", "github-token.dat")
 
 # Diese Endungen sind KEIN Text und muessen als eigener Datenklumpen (Blob)
 # hochgeladen werden.
-$binaerEndungen = @(".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".glb")
+$binaerEndungen = @(".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".glb", ".woff2")
 
 # ---------------------------------------------------------------------
 # Zugriffsschluessel hinterlegen

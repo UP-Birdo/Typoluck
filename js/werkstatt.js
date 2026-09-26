@@ -35,6 +35,11 @@
  *     &intro / &intro=C                das UPCrew-Intro zeigen (sonst nie
  *                                      in der Werkstatt); mit Buchstabe
  *                                      A-F genau diese Art (seit 0.6.1)
+ *     &schrift=S6 &knoepfe=K3          das gemeinsame Aussehen vorgeben
+ *     &farbwelt=studio                 (seit 0.8.0; sonst der Standard des
+ *     &leseschrift                     Bausteins). Im Tab „Anpassen" ist in
+ *                                      der Werkstatt alles freigeschaltet;
+ *                                      &bildschirm=anpassen zeigt ihn.
  *
  * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
  * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
@@ -72,10 +77,27 @@ const WERKSTATT = {
                 speicher.removeItem(schluessel);
             }
         }
+        /* Das Aussehen (seit 0.8.0 gemeinsam, js\upcrew-aussehen.js): erst
+           auf den Standard des Bausteins zurück — sonst hinge jedes
+           Bildschirmfoto davon ab, was vorher im Browser gewählt war —,
+           dann die Schalter aus der Adresse. Unbekannte Werte verwirft der
+           Baustein still. Die Werkstatt liegt auf localhost und teilt ihren
+           Speicher nicht mit der ausgelieferten App. */
+        if (typeof UPCREW_AUSSEHEN !== "undefined") {
+            UPCREW_AUSSEHEN.setzen(Object.assign({}, UPCREW_AUSSEHEN.STANDARD));
+            const wahl = {};
+            for (const teil of ["farbwelt", "schrift", "knoepfe"]) {
+                if (WERKSTATT.wert(teil)) {
+                    wahl[teil] = WERKSTATT.wert(teil);
+                }
+            }
+            if (WERKSTATT._parameter().has("leseschrift")) {
+                wahl.leseschrift = true;
+            }
+            UPCREW_AUSSEHEN.setzen(wahl);
+        }
         /* Darstellung über denselben Weg wie die Einstellungen (seit
-           0.6.0) — so zeigt auch der Einstellungen-Bildschirm die Wahl an.
-           DARSTELLUNG hat beim Laden schon den alten Stand angewendet;
-           nach dem Leeren oben wird hier neu angewendet. */
+           0.6.0) — so zeigt auch der Einstellungen-Bildschirm die Wahl an. */
         if (WERKSTATT._parameter().has("dunkel")) {
             DARSTELLUNG.themaSetzen("dunkel");
         } else if (WERKSTATT._parameter().has("hell")) {

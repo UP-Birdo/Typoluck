@@ -28,6 +28,11 @@
     <!-- Das UPCrew-Studio-Intro: gemeinsamer Baustein aller UPCrew-Apps,
          kopiert aus Design\3D-Schrift\final (seit 0.6.1). -->
     <link rel="stylesheet" href="css/upcrew-intro.css">
+    <!-- Seit 0.8.0 (UPCrew-Runde 3): die Knopf-Familien K1-K6 und der Tab
+         „Anpassen" — ebenfalls kopierte Bausteine, NACH dem eigenen Stil,
+         damit ihre Regeln gelten. -->
+    <link rel="stylesheet" href="css/upcrew-knoepfe.css">
+    <link rel="stylesheet" href="css/upcrew-anpassen.css">
 </head>
 <body>
 
@@ -42,7 +47,8 @@
     <main class="inhalt" id="inhalt"></main>
 
     <!-- Die Leiste unten (seit 0.5.0): steht fest auf JEDEM Bildschirm —
-         links ein Platzhalter, in der Mitte Start, rechts die Rangliste.
+         seit 0.8.0 fünf Plätze: Aufgaben, Bald (Platzhalter), in der
+         Mitte Start, Rangliste, ganz rechts Anpassen.
          Die Einträge baut js\navigation.js (NAVIGATION.LEISTE). -->
     <nav class="leiste" id="leiste" aria-label="Hauptbereiche" hidden></nav>
 
@@ -68,11 +74,16 @@
     <script src="js/ich.js"></script>
     <script src="js/fuehlen.js"></script>
     <!-- Die UPCrew-Bausteine (kopiert aus Design\3D-Schrift\final, nie
-         abwandeln) stehen VOR darstellung.js: Die Farbwelt wird schon beim
-         Laden angewendet, damit nichts in alten Farben aufblitzt. -->
+         abwandeln) stehen VOR darstellung.js: Das Aussehen wird schon beim
+         Laden angewendet, damit nichts in alten Farben aufblitzt. Seit 0.8.0
+         hält upcrew-aussehen.js hell/dunkel, Farbwelt, Schrift und Knöpfe
+         für ALLE UPCrew-Spiele; darstellung.js direkt danach ist der frühe
+         Aufruf (einmalig die alte Wahl übergeben, dann anwenden). -->
     <script src="js/upcrew-intro.js"></script>
     <script src="js/upcrew-farbwelten.js"></script>
+    <script src="js/upcrew-aussehen.js"></script>
     <script src="js/darstellung.js"></script>
+    <script src="js/upcrew-anpassen.js"></script>
     <script src="js/speicher.js"></script>
     <script src="js/abgleich.js"></script>
     <script src="js/woerter-de.js"></script>
@@ -91,6 +102,8 @@
     <script src="js/bildschirm-profil.js"></script>
     <script src="js/bildschirm-einstellungen.js"></script>
     <script src="js/bildschirm-herausforderungen.js"></script>
+    <script src="js/bildschirm-anpassen.js"></script>
+    <script src="js/aussehen-abgleich.js"></script>
     <script src="js/wunsch.js"></script>
     <script src="js/werkstatt.js"></script>
     <script src="js/intro.js"></script>

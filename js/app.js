@@ -90,6 +90,11 @@ const APP = {
         ANMELDUNG.verbinden(APP.abgleich, document.getElementById("anmeldung"));
         ANMELDUNG.beiAngemeldet = () => APP._beiAngemeldet();
 
+        /* Das gemeinsame Aussehen (seit 0.8.0): am Konto mitführen und auf
+           Änderungen horchen — auch auf die aus Blunderluck. */
+        AUSSEHEN_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid());
+        APP._aussehenBeobachten();
+
         /* 3. Bildschirme — die Reihenfolge ist die im Menü hinter den drei
            Balken (seit 0.3.0; wie Blunderluck: Profil zuerst; seit 0.5.0
            Einstellungen als letzter Eintrag). Die Leiste unten führt ihre
@@ -100,6 +105,7 @@ const APP = {
         EINSTELLUNGEN_BILDSCHIRM.anmelden();
         RANGLISTE_BILDSCHIRM.anmelden();
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
+        ANPASSEN_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
         NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"));
 
@@ -125,12 +131,59 @@ const APP = {
             ? SPIELER.freundeVon(APP.abgleich.daten, ich.id).offen.length : 0);
 
         /* Neu zeichnen — ausser mitten im Spiel (die getippten Buchstaben
-           gingen verloren) oder während jemand in ein Feld schreibt. */
+           gingen verloren), im Tab „Anpassen" (der Entwurf ginge verloren;
+           der Tab zeichnet sich selbst, seit 0.8.0) oder während jemand in
+           ein Feld schreibt. */
         const fokus = document.activeElement;
         const schreibt = fokus && (fokus.tagName === "INPUT" || fokus.tagName === "TEXTAREA");
-        if (NAVIGATION.aktuell !== "wordle" && !schreibt && !ANMELDUNG.offen) {
+        if (APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1 && !schreibt && !ANMELDUNG.offen) {
             NAVIGATION.auffrischen();
         }
+    },
+
+    /* Bildschirme, die neue Daten oder ein neues Aussehen NICHT neu bauen:
+       das laufende Spiel und der Entwurf im Tab „Anpassen". */
+    UNGESTOERT: ["wordle", "anpassen"],
+
+    /* ---------------------------------------------------------------- *
+     * Das gemeinsame Aussehen (seit 0.8.0, js\upcrew-aussehen.js)
+     * ---------------------------------------------------------------- */
+
+    /* Wer sein Aussehen am Konto mitführt: nur angemeldete Spieler mit
+       UPCrew-Konto — Gäste und die Werkstatt nicht. */
+    _aussehenUid() {
+        if (!KONTO.aktiv() || !ANMELDUNG.ich() || ANMELDUNG.istGast() || KONTO.istGastSitzung()) {
+            return null;
+        }
+        return KONTO.uid();
+    },
+
+    /*
+     * Der Baustein meldet jede Änderung mit ihrer Quelle:
+     *   "selbst"      in DIESER App gewählt (Einstellungen, Anpassen) —
+     *                 dann ans Konto schicken
+     *   "andere-app"  Blunderluck im selben Browser, "konto" vom Konto,
+     *   "geraet"      das Gerät wechselt hell/dunkel
+     * Angewendet hat er schon selbst (Farben, Schrift, Knöpfe hängen an
+     * <html>). Neu gebaut wird nur, was die Wahl als Text zeigt — die
+     * Einstellungen; Spiel und Anpassen-Tab bleiben ungestört.
+     */
+    _aussehenBeobachten() {
+        UPCREW_AUSSEHEN.beobachten((aussehen, quelle) => {
+            if (quelle === "selbst") {
+                AUSSEHEN_ABGLEICH.senden();
+            }
+            if (APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
+                NAVIGATION.auffrischen();
+            }
+        });
+        /* Zurück in den Vordergrund: am Konto nachsehen, ob ein anderes
+           Gerät umgestellt hat. */
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") {
+                AUSSEHEN_ABGLEICH.holen();
+            }
+        });
     },
 
     _beiStatus(status, text) {
@@ -157,6 +210,10 @@ const APP = {
         if (WERKSTATT.aktiv()) {
             WERKSTATT.nachDemZeigen();
         }
+
+        /* Das Aussehen vom Konto (seit 0.8.0): hat ein anderes Gerät
+           zuletzt umgestellt, gilt das jetzt auch hier. */
+        await AUSSEHEN_ABGLEICH.holen();
 
         const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);
         if (nachgereicht.gesendet > 0) {

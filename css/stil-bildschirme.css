@@ -335,6 +335,24 @@
     font-weight: 600;
 }
 
+/* ------------------------------------------------------------------ *
+ * Anpassen (seit 0.8.0) — der Tab selbst steht im kopierten Baustein
+ * css\upcrew-anpassen.css (Klassen „upa-"). Hier nur, wie Typoluck ihm
+ * Platz macht.
+ * ------------------------------------------------------------------ */
+
+/* Die Regale haben ihren eigenen Rand links und rechts — deshalb reicht
+   der Platz bis an die Kante des Inhalts, statt doppelt eingerückt. */
+.anpassen-ort {
+    margin: 0 calc(-1 * var(--inhalt-rand));
+}
+
+/* „Zurück / Übernehmen" klebt unten — bei Typoluck ÜBER der festen Leiste,
+   nicht dahinter (die Leiste liegt auf einer höheren Ebene). */
+.anpassen-ort .upa-aktion {
+    bottom: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom));
+}
+
 @media (max-width: 380px) {
     .statistik-raster {
         grid-template-columns: repeat(2, 1fr);

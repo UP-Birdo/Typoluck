@@ -17,10 +17,14 @@
     Aufruf:
         powershell -ExecutionPolicy Bypass -File "tools\Lokal-Starten.ps1"
     oder "tools\Typoluck lokal starten.cmd" doppelklicken. Ende mit Strg+C.
+
+    Mit -OhneBrowser startet nur der Server (fuer Bildschirmfotos mit Edge
+    kopflos, ohne dass ein Fenster aufgeht).
 #>
 
 param(
-    [int]$Port = 8091
+    [int]$Port = 8091,
+    [switch]$OhneBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -38,6 +42,8 @@ $inhaltstypen = @{
     ".png"         = "image/png"
     ".ico"         = "image/x-icon"
     ".md"          = "text/plain; charset=utf-8"
+    ".txt"         = "text/plain; charset=utf-8"
+    ".woff2"       = "font/woff2"
 }
 
 $zuhoerer = New-Object System.Net.HttpListener
@@ -57,10 +63,12 @@ Write-Host "Ordner: $projektOrdner"
 Write-Host "Beenden mit Strg+C."
 Write-Host ""
 
-try {
-    Start-Process "http://localhost:$Port/"
-} catch {
-    # Kein Browser gestartet - kein Grund abzubrechen.
+if (-not $OhneBrowser) {
+    try {
+        Start-Process "http://localhost:$Port/"
+    } catch {
+        # Kein Browser gestartet - kein Grund abzubrechen.
+    }
 }
 
 while ($zuhoerer.IsListening) {

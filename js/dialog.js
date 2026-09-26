@@ -108,24 +108,27 @@ const DIALOG = {
     },
 
     /* Erster Tipp: Beschriftung wird zu „Sicher?". Zweiter Tipp innerhalb
-       von drei Sekunden: ausführen. Sonst zurück auf den alten Text. */
+       von drei Sekunden: ausführen. Sonst zurück auf den alten Text.
+       Getauscht wird NUR die Beschriftung (`.knopf-text`) — seit 0.8.0 steht
+       davor der Leuchtpunkt der UPCrew-Knöpfe, der bleiben muss. */
     zweiSchritt(knopf, aktion) {
-        const alterText = knopf.textContent;
+        const beschriftung = knopf.querySelector(".knopf-text") || knopf;
+        const alterText = beschriftung.textContent;
         let scharf = false;
         let uhr = null;
         knopf.addEventListener("click", () => {
             if (scharf) {
                 clearTimeout(uhr);
                 scharf = false;
-                knopf.textContent = alterText;
+                beschriftung.textContent = alterText;
                 aktion();
                 return;
             }
             scharf = true;
-            knopf.textContent = "Sicher?";
+            beschriftung.textContent = "Sicher?";
             uhr = setTimeout(() => {
                 scharf = false;
-                knopf.textContent = alterText;
+                beschriftung.textContent = alterText;
             }, 3000);
         });
         return knopf;

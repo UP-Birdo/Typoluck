@@ -64,17 +64,32 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     _geraetBauen() {
         const karte = BAUSTEINE.karte("Dieses Gerät");
 
-        /* Hell / dunkel / wie das Gerät (seit 0.6.0, js\darstellung.js). */
+        /* Hell / dunkel / wie das Gerät (seit 0.6.0). Seit 0.8.0 über das
+           gemeinsame Aussehen (js\darstellung.js → js\upcrew-aussehen.js):
+           gilt damit auch in Blunderluck. Anwenden und neu zeichnen löst der
+           Baustein selbst aus (Beobachter in js\app.js). */
         karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("darstellung", "Darstellung",
             BAUSTEINE.segment(
                 [{ wert: "geraet", text: "Auto" }, { wert: "hell", text: "Hell" },
                     { wert: "dunkel", text: "Dunkel" }],
                 DARSTELLUNG.thema(),
-                (wert) => {
-                    DARSTELLUNG.themaSetzen(wert);
-                    DARSTELLUNG.anwenden();
-                    NAVIGATION.auffrischen();
-                }, "Darstellung")));
+                (wert) => DARSTELLUNG.themaSetzen(wert), "Darstellung")));
+
+        /* Standard-Schrift (seit 0.8.0): stellt die Standard-Schrift fest,
+           egal welche Crew-Schrift im Tab „Anpassen" gewählt ist. */
+        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("schrift", "Standard-Schrift",
+            BAUSTEINE.segment(
+                [{ wert: false, text: "Aus" }, { wert: true, text: "An" }],
+                DARSTELLUNG.leseschrift(),
+                (wert) => DARSTELLUNG.leseschriftSetzen(wert), "Standard-Schrift")));
+
+        /* Der Weg in den Tab „Anpassen" (seit 0.8.0): Farbwelt, Schrift,
+           Knöpfe. */
+        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("anpassen", "Anpassen",
+            BAUSTEINE.knopf({
+                art: "flach", zeichen: "weiter", titel: "Anpassen öffnen",
+                beiKlick: () => NAVIGATION.zeigen("anpassen", null)
+            })));
 
         /* Bis 0.6.1 stand hier der Schalter „Kacheln: Grün/Gelb –
            Orange/Blau". Seit 0.6.2 gibt es kein Grün/Gelb mehr (NYT-Look,

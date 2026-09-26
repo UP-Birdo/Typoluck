@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.7.0";
+const SPEICHER_NAME = "typoluck-v0.8.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -42,6 +42,24 @@ const DATEIEN = [
     "./css/stil-bildschirme.css",
     "./css/stil-wordle.css",
     "./css/upcrew-intro.css",
+    "./css/upcrew-knoepfe.css",
+    "./css/upcrew-anpassen.css",
+
+    /* Die Crew-Schriften (seit 0.8.0) — alle zwölf, damit jede Wahl im
+       Tab Anpassen auch offline trägt. (In dieser Liste keine geraden
+       Anführungszeichen: tests\test-syntax.js liest sie als Dateinamen.) */
+    "./schrift/crew-S1-normal.woff2",
+    "./schrift/crew-S1-fett.woff2",
+    "./schrift/crew-S2-normal.woff2",
+    "./schrift/crew-S2-fett.woff2",
+    "./schrift/crew-S3-normal.woff2",
+    "./schrift/crew-S3-fett.woff2",
+    "./schrift/crew-S4-normal.woff2",
+    "./schrift/crew-S4-fett.woff2",
+    "./schrift/crew-S5-normal.woff2",
+    "./schrift/crew-S5-fett.woff2",
+    "./schrift/crew-S6-normal.woff2",
+    "./schrift/crew-S6-fett.woff2",
 
     "./js/konfig.js",
     "./js/konto.js",
@@ -51,7 +69,9 @@ const DATEIEN = [
     "./js/fuehlen.js",
     "./js/upcrew-intro.js",
     "./js/upcrew-farbwelten.js",
+    "./js/upcrew-aussehen.js",
     "./js/darstellung.js",
+    "./js/upcrew-anpassen.js",
     "./js/speicher.js",
     "./js/abgleich.js",
     "./js/woerter-de.js",
@@ -70,6 +90,8 @@ const DATEIEN = [
     "./js/bildschirm-profil.js",
     "./js/bildschirm-einstellungen.js",
     "./js/bildschirm-herausforderungen.js",
+    "./js/bildschirm-anpassen.js",
+    "./js/aussehen-abgleich.js",
     "./js/wunsch.js",
     "./js/werkstatt.js",
     "./js/intro.js",

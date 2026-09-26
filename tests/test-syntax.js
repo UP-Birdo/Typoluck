@@ -21,6 +21,17 @@ const wurzel = path.join(__dirname, "..");
 const lesen = (datei) => fs.readFileSync(path.join(wurzel, datei), "utf8");
 const liste = (ordner) => fs.readdirSync(path.join(wurzel, ordner)).map((name) => ordner + "/" + name);
 
+/* Die kopierten UPCrew-Bausteine aus Design\3D-Schrift\final — hier NIE
+   abgewandelt. Für sie gelten die Form-Prüfungen des eigenen Stils nicht
+   (die Knopf-Familien haben eigene Rundungen, das ist ihr Zweck), und die
+   Emoji-Prüfung nicht (der Anpassen-Tab zeigt Schachfiguren U+265A-265F,
+   die in den geprüften Zeichenbereich fallen, aber keine Emojis sind).
+   Tabs und Übersetzbarkeit werden auch bei ihnen geprüft. */
+const KOPIEN = [
+    "js/upcrew-intro.js", "css/upcrew-intro.css", "js/upcrew-farbwelten.js",
+    "js/upcrew-aussehen.js", "js/upcrew-anpassen.js", "css/upcrew-anpassen.css", "css/upcrew-knoepfe.css"
+];
+
 /* ------------------------------------------------------------------ *
  * Übersetzbarkeit
  * ------------------------------------------------------------------ */
@@ -79,6 +90,15 @@ for (const eintrag of swListe.filter((e) => e !== "./")) {
 pruefe("index.html, Manifest und Zeichen im Service Worker",
     ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"].every((e) => swListe.indexOf(e) !== -1));
 
+/* Die Crew-Schriften (seit 0.8.0): alle zwölf offline — und die Lizenz liegt
+   daneben (SIL OFL verlangt, dass sie mitgeht). */
+const schriften = liste("schrift").filter((d) => d.endsWith(".woff2"));
+gleich("Zwölf Crew-Schriften im Ordner schrift", schriften.length, 12);
+for (const datei of schriften) {
+    pruefe("Im Service Worker eingetragen: " + datei, swListe.indexOf("./" + datei) !== -1);
+}
+pruefe("Die Schrift-Lizenz liegt bei", fs.existsSync(path.join(wurzel, "schrift", "LIZENZ.txt")));
+
 /* ------------------------------------------------------------------ *
  * Haus-Regeln
  * ------------------------------------------------------------------ */
@@ -95,7 +115,9 @@ const textDateien = ["index.html", "sw.js", "manifest.webmanifest", "icon.svg"]
 const emoji = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B50}\u{2B55}]/u;
 for (const datei of textDateien) {
     const text = lesen(datei);
-    pruefe("Keine Emojis: " + datei, !emoji.test(text));
+    if (KOPIEN.indexOf(datei) === -1) {
+        pruefe("Keine Emojis: " + datei, !emoji.test(text));
+    }
     pruefe("Keine Tabs (Einzug = 4 Leerzeichen): " + datei, text.indexOf("\t") === -1);
 }
 
@@ -115,7 +137,7 @@ for (const datei of liste("js").filter((d) => d.endsWith(".js"))) {
 
 /* Formen: jede Rundung verweist auf --rund-klein/-mittel/-voll, kein
    Schatten ist verschwommen (dritte Länge = Unschärfe muss 0 sein). */
-for (const datei of liste("css")) {
+for (const datei of liste("css").filter((d) => KOPIEN.indexOf(d) === -1)) {
     const stil = lesen(datei).replace(/\/\*[\s\S]*?\*\//g, "");
     const rundungen = stil.match(/border-radius:[^;]+;/g) || [];
     const fest = rundungen.filter((r) => !/var\(--rund-(klein|mittel|voll)\)/.test(r));
@@ -182,11 +204,36 @@ pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts",
     /<\/main>\s*(<!--[\s\S]*?-->\s*)?<nav class="leiste" id="leiste"/.test(index));
 const leisteText = (lesen("js/navigation.js").match(/LEISTE: \[([\s\S]*?)\],/) || ["", ""])[1];
 const leisteEintraege = leisteText.split("\n").filter((z) => z.indexOf("{") !== -1);
-gleich("Die Leiste hat drei Einträge", leisteEintraege.length, 3);
+/* Seit 0.8.0 (UPCrew-Runde 3) fünf Plätze wie in Blunderluck:
+   Aufgaben · Bald · Start · Rangliste · Anpassen — Start in der Mitte,
+   Anpassen ganz rechts. */
+gleich("Die Leiste hat fünf Einträge", leisteEintraege.length, 5);
 /* Links seit 0.7.0 „Aufgaben" (UPCrew-Runde 2, gleich wie Blunderluck);
    bis 0.6.x der Platzhalter „Bald". */
 pruefe("Links in der Leiste: Aufgaben",
     /id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben"/.test(leisteEintraege[0] || ""));
+pruefe("Platz 2: der Platzhalter „Bald“ (abgeschaltet, ohne Bildschirm)",
+    /text: "Bald", zeichen: "platzhalter", platzhalter: true/.test(leisteEintraege[1] || "")
+        && !/id:/.test(leisteEintraege[1] || ""));
+pruefe("Ganz rechts: Anpassen",
+    /id: "anpassen", text: "Anpassen", zeichen: "anpassen"/.test(leisteEintraege[4] || ""));
+gleich("Das Anpassen-Zeichen ist der gemeinsame Pfad mit Blunderluck",
+    (lesen("js/bausteine.js").match(/anpassen: "([^"]+)"/) || [])[1],
+    "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19");
+pruefe("Anpassen steht nicht im Menü",
+    /id: "anpassen"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-anpassen.js")));
+pruefe("Anpassen zeigt den gemeinsamen Tab als Typoluck, Stufe aus einer Stelle",
+    /UPCREW_ANPASSEN\.zeigen\(ort, \{\s*app: "typoluck",\s*stufe: ANPASSEN_BILDSCHIRM\.stufe\(\)/
+        .test(lesen("js/bildschirm-anpassen.js")));
+pruefe("Anpassen räumt beim Verlassen auf",
+    /verlassen: \(\) => ANPASSEN_BILDSCHIRM\.entfernen\(\)/.test(lesen("js/bildschirm-anpassen.js")));
+pruefe("Keine Freischalt-Stufen oder Standard-Werte in der App festgeschrieben",
+    liste("js").filter((d) => d.endsWith(".js") && KOPIEN.indexOf(d) === -1)
+        .every((d) => !/\b(S[1-6]|K[1-6])\b"|"(S[1-6]|K[1-6])"|STUFEN\s*[=:]/.test(
+            lesen(d).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
+pruefe("Einstellungen: Standard-Schrift und Weg zu Anpassen",
+    /"Standard-Schrift"/.test(lesen("js/bildschirm-einstellungen.js"))
+        && /NAVIGATION\.zeigen\("anpassen"/.test(lesen("js/bildschirm-einstellungen.js")));
 gleich("Das Aufgaben-Zeichen ist der gemeinsame Pfad mit Blunderluck",
     (lesen("js/bausteine.js").match(/aufgaben: "([^"]+)"/) || [])[1], "M4 20 L10 14 L14 17 L20 6 M15 6 H20 V11");
 pruefe("Herausforderungen: Titel und Satz wie abgesprochen",
@@ -202,8 +249,8 @@ pruefe("Start: kein Schriftzug „Typoluck“ mehr oben", lesen("js/bildschirm-s
 pruefe("Start: Kurzprofil mit Serie und Quote",
     /_kurzprofilBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
         && /"Serie " \+ werte\.serie \+ " · " \+ werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js")));
-pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[1] || ""));
-pruefe("Rechts in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[2] || ""));
+pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[2] || ""));
+pruefe("Platz 4 in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[3] || ""));
 pruefe("Einstellungen stehen im Menü",
     /id: "einstellungen"[\s\S]*?imMenue: true/.test(lesen("js/bildschirm-einstellungen.js")));
 pruefe("Die Rangliste steht nicht doppelt (nicht auch im Menü)",
@@ -218,13 +265,25 @@ pruefe("Die Rangliste steht nicht doppelt (nicht auch im Menü)",
    lassen, und ein Pfad nach draussen zur Laufzeit ginge an der
    Projekt-Schranke vorbei). Ob die Kopien gleich der Quelle sind, prüft
    der Mensch bzw. Claude beim Kopieren (Byte-Vergleich, STATUS.md). */
-for (const kopie of ["js/upcrew-intro.js", "css/upcrew-intro.css", "js/upcrew-farbwelten.js"]) {
+for (const kopie of KOPIEN) {
     pruefe("UPCrew-Baustein vorhanden: " + kopie, fs.existsSync(path.join(wurzel, kopie)));
 }
-const reihe = indexSkripte.join(" ");
+const reihe = indexSkripte;
 pruefe("Farbwelt lädt VOR darstellung.js (kein Aufblitzen alter Farben)",
     reihe.indexOf("js/upcrew-intro.js") !== -1
         && reihe.indexOf("js/upcrew-intro.js") < reihe.indexOf("js/upcrew-farbwelten.js")
         && reihe.indexOf("js/upcrew-farbwelten.js") < reihe.indexOf("js/darstellung.js"));
+/* Seit 0.8.0: nach upcrew-farbwelten.js kommt upcrew-aussehen.js, DIREKT
+   danach der frühe Aufruf (darstellung.js wendet beim Laden an). */
+gleich("Aussehen direkt nach der Farbwelt, darstellung.js direkt danach",
+    reihe.slice(reihe.indexOf("js/upcrew-farbwelten.js"), reihe.indexOf("js/upcrew-farbwelten.js") + 3),
+    ["js/upcrew-farbwelten.js", "js/upcrew-aussehen.js", "js/darstellung.js"]);
+pruefe("darstellung.js wendet beim Laden an (erst Umzug, dann anwenden)",
+    /\nDARSTELLUNG\.migrieren\(\);\nDARSTELLUNG\.anwenden\(\);\n/.test(lesen("js/darstellung.js").replace(/\r/g, "")));
+pruefe("Die alte Wahl „thema“ wird nur noch beim Umzug gelesen",
+    (lesen("js/darstellung.js").replace(/\/\*[\s\S]*?\*\//g, "").match(/"thema"/g) || []).length === 1);
+pruefe("Der Anpassen-Tab lädt nach seinen Bausteinen und vor seinem Bildschirm",
+    reihe.indexOf("js/upcrew-aussehen.js") < reihe.indexOf("js/upcrew-anpassen.js")
+        && reihe.indexOf("js/upcrew-anpassen.js") < reihe.indexOf("js/bildschirm-anpassen.js"));
 
 fazit();

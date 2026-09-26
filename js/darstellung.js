@@ -1,55 +1,48 @@
 /*
- * darstellung.js — wie die App aussieht: hell, dunkel oder wie das Gerät
- * (seit 0.6.0, ROADMAP Nr. 8), und die Sperre für Kachelfarben (seit 0.6.2).
+ * darstellung.js — wie die App aussieht: Typolucks Anschluss an das
+ * gemeinsame UPCrew-Aussehen, und die Sperre für Kachelfarben (seit 0.6.2).
  *
- * EIN Baustein, wie FUEHLEN für die Vibration:
- *
- *     DARSTELLUNG.thema()            "geraet" | "hell" | "dunkel"
+ *     DARSTELLUNG.thema()                "geraet" | "hell" | "dunkel"
  *     DARSTELLUNG.themaSetzen(wert)
- *     DARSTELLUNG.anwenden(wurzel)   schreibt die Wahl als Attribut an <html>
+ *     DARSTELLUNG.leseschrift()          true = immer die Standard-Schrift
+ *     DARSTELLUNG.leseschriftSetzen(an)
+ *     DARSTELLUNG.anwenden(wurzel)       schreibt alles an <html>
+ *     DARSTELLUNG.modus()                "hell" | "dunkel" (wie es gerade aussieht)
  *     DARSTELLUNG.kachelFarbeErlaubt(rolle, farbe)
  *
- * WIE ES WIRKT: Die Farben stehen nur als Variablen in css\stil.css. Dieser
- * Baustein setzt das Attribut `data-darstellung` ("hell" oder "dunkel";
- * fehlt es, gilt das Gerät) an <html>, und der Stil tauscht daraufhin die
- * Variablen. Keine Farbe steht hier.
+ * EIN AUSSEHEN FÜR ALLE UPCREW-SPIELE (seit 0.8.0, UPCrew-Runde 3; Nutzer
+ * 26.09.2026: „wenn man die eine App auf hell umstellt oder die
+ * Farbpalette / Schriftart nutzt, sollen sich alle anderen Apps auch so
+ * umstellen"). Hell/dunkel, Farbwelt, Schrift und Knöpfe stehen NUR noch im
+ * gemeinsamen Baustein js\upcrew-aussehen.js (Schlüssel `upcrew.aussehen`,
+ * kopiert aus Design\3D-Schrift\final, nie abwandeln). Diese Datei liest und
+ * schreibt nur über ihn — sie hält selbst keinen Wert mehr. Was ab Werk gilt
+ * (Standard-Schrift, Standard-Knöpfe), steht allein im Baustein; hier wird
+ * nichts davon festgeschrieben.
  *
- * Ab Werk: wie das Gerät. Gespeichert je Gerät über ICH.einstellung, wie die
- * Vibration.
+ * DER UMZUG DER ALTEN WAHL: Bis 0.7.0 lag hell/dunkel in den Einstellungen
+ * dieses Geräts (ICH.einstellung "thema"). Beim ersten Laden mit 0.8.0
+ * wird sie EINMAL per `UPCREW_AUSSEHEN.migrieren` übergeben — nur, wenn es
+ * noch kein gemeinsames Aussehen gibt (hat Blunderluck im selben Browser
+ * schon eins angelegt, gilt dessen). Danach wird "thema" nie mehr gelesen.
  *
- * DIE FARBWELT (seit 0.7.0, UPCrew-Runde 2): Die Farben kommen aus dem
- * gemeinsamen Baustein js\upcrew-farbwelten.js (kopiert aus
- * Design\3D-Schrift\final, nie abwandeln). `anwenden` setzt nach dem
- * Attribut die Farben der Welt als Variablen direkt an <html> — hell oder
- * dunkel, je nach `modus()`. Deshalb läuft `anwenden` bei JEDEM Wechsel:
- * beim Laden, nach der Wahl in den Einstellungen und wenn das Gerät
- * zwischen hell und dunkel wechselt (Horcher ganz unten). Die Werte in
- * css\stil.css bleiben der Rückfall, falls der Baustein fehlt.
- * Welt ist vorerst immer „werkstatt" (`FARBWELT`) — das Freischalten kommt
- * in Runde 3; was in `upcrew.farbwelt` steht, wird hier bewusst NICHT
- * gelesen.
+ * DER FRÜHE AUFRUF: Diese Datei steht in index.html direkt nach
+ * upcrew-aussehen.js und wendet beim Laden sofort an (ganz unten) — so
+ * blitzt nichts in alten Farben oder der falschen Schrift auf.
  *
  * DIE KACHELFARBEN-SPERRE (Nutzer-Entscheidung 25.09.2026): Die New York
  * Times geht gegen Nachbauten vor, die den Look ihres Spiels übernehmen —
  * ausdrücklich genannt: grüne, gelbe und graue Kacheln. Deshalb gilt, für
- * die Farben ab Werk UND für jedes künftige Farbpaket, das man freischalten
- * kann: „richtig" ist NIE grün, „vorhanden" ist NIE gelb. Jede Kachelfarbe
- * läuft durch `kachelFarbeErlaubt`; tests\test-darstellung.js prüft damit
- * jede Kachelfarbe im Stil. Wer ein Farbpaket baut, prüft seine Kacheln
- * hier — nicht mit dem Auge. Seit 0.6.2 gibt es deshalb auch keine Wahl
- * „Grün/Gelb" mehr (0.6.0 hatte einen Schalter Grün/Gelb – Orange/Blau).
- *
- * Angewendet wird SOFORT beim Laden dieser Datei (ganz unten) — die Datei
- * steht früh in index.html, damit kein Bild in der falschen Farbe aufblitzt.
+ * die Farben ab Werk UND für jede Farbwelt, die man freischalten kann:
+ * „richtig" ist NIE grün, „vorhanden" ist NIE gelb. Jede Kachelfarbe läuft
+ * durch `kachelFarbeErlaubt`; tests\test-darstellung.js prüft damit jede
+ * Kachelfarbe im Stil und jede Farbwelt des Bausteins, hell und dunkel.
+ * Seit 0.6.2 gibt es deshalb auch keine Wahl „Grün/Gelb" mehr.
  */
 
 const DARSTELLUNG = {
 
     THEMEN: ["geraet", "hell", "dunkel"],
-
-    /* Die Farbwelt der App (seit 0.7.0). Freischaltbare Welten kommen
-       später; bis dahin genau diese. */
-    FARBWELT: "werkstatt",
 
     /* Verbotene Farbtöne (Grad auf dem Farbkreis) je Kachel-Rolle. Grau und
        fast graue Farben haben keinen Farbton und fallen nie hinein. */
@@ -58,49 +51,78 @@ const DARSTELLUNG = {
         vorhanden: { name: "gelb", von: 38, bis: 70 }
     },
 
+    /* Der gemeinsame Baustein. Im Browser ein globaler Name; die Tests
+       setzen ihn ebenso. */
+    _aussehen() {
+        return (typeof UPCREW_AUSSEHEN !== "undefined") ? UPCREW_AUSSEHEN : null;
+    },
+
     thema() {
-        const wert = ICH.einstellung("thema", "geraet");
+        const aussehen = DARSTELLUNG._aussehen();
+        const wert = aussehen ? aussehen.lesen().darstellung : "geraet";
         return DARSTELLUNG.THEMEN.indexOf(wert) !== -1 ? wert : "geraet";
     },
 
+    /* Schreibt über den Baustein; der wendet selbst an und meldet es allen
+       Beobachtern (js\app.js zeichnet neu und schickt es ans Konto). */
     themaSetzen(wert) {
-        ICH.einstellungSetzen("thema", DARSTELLUNG.THEMEN.indexOf(wert) !== -1 ? wert : "geraet");
+        const aussehen = DARSTELLUNG._aussehen();
+        if (aussehen) {
+            aussehen.setzen({ darstellung: DARSTELLUNG.THEMEN.indexOf(wert) !== -1 ? wert : "geraet" });
+        }
     },
 
-    /* `wurzel` ist <html>; die Tests geben ein Ersatzobjekt mit `dataset`. */
+    /* „Standard-Schrift" in den Einstellungen (seit 0.8.0): wer mit der
+       gewählten Crew-Schrift schlecht liest, stellt hier die Standard-Schrift
+       fest — die Wahl im Tab „Anpassen" bleibt dabei gespeichert. */
+    leseschrift() {
+        const aussehen = DARSTELLUNG._aussehen();
+        return aussehen ? aussehen.lesen().leseschrift === true : false;
+    },
+
+    leseschriftSetzen(an) {
+        const aussehen = DARSTELLUNG._aussehen();
+        if (aussehen) {
+            aussehen.setzen({ leseschrift: an === true });
+        }
+    },
+
+    /* Einmalig: die bis 0.7.0 gespeicherte Wahl an den Baustein übergeben.
+       Liefert true, wenn übergeben wurde. */
+    migrieren() {
+        const aussehen = DARSTELLUNG._aussehen();
+        if (!aussehen) {
+            return false;
+        }
+        const alt = ICH.einstellung("thema", "geraet");
+        return aussehen.migrieren({
+            darstellung: DARSTELLUNG.THEMEN.indexOf(alt) !== -1 ? alt : "geraet"
+        });
+    },
+
+    /* `wurzel` ist <html>; die Tests geben ein Ersatzobjekt mit `dataset`.
+       Der Baustein setzt data-darstellung (fehlt = Gerät), data-farbwelt,
+       data-schrift, data-knoepfe, die Farben der Welt und --schrift-familie. */
     anwenden(wurzel) {
         const ziel = wurzel || (typeof document !== "undefined" ? document.documentElement : null);
         if (!ziel || !ziel.dataset) {
             return;
         }
-        const thema = DARSTELLUNG.thema();
-        if (thema === "geraet") {
-            delete ziel.dataset.darstellung;
-        } else {
-            ziel.dataset.darstellung = thema;
+        const aussehen = DARSTELLUNG._aussehen();
+        if (aussehen) {
+            aussehen.anwenden(ziel);
         }
         /* Bis 0.6.1 gab es data-farben="kontrast" (Orange/Blau als Wahl);
            seit 0.6.2 ist Orange/Blau der Standard. Ein altes Attribut darf
            nicht stehen bleiben. */
         delete ziel.dataset.farben;
-
-        /* Die Farbwelt (seit 0.7.0) — nur mit echtem <html> (die Tests
-           geben ein Ersatzobjekt ohne `style`) und wenn der Baustein da ist. */
-        if (ziel.style && typeof UPCREW_FARBWELTEN !== "undefined") {
-            UPCREW_FARBWELTEN.anwenden(DARSTELLUNG.FARBWELT, DARSTELLUNG.modus(), ziel);
-        }
     },
 
-    /* "hell" oder "dunkel" — wie die App gerade aussieht: die Wahl in den
-       Einstellungen, sonst das Gerät. Auch das Intro fragt hier. */
+    /* "hell" oder "dunkel" — wie die App gerade aussieht: die Wahl, sonst
+       das Gerät. Auch das Intro fragt hier. */
     modus() {
-        const thema = DARSTELLUNG.thema();
-        if (thema === "hell" || thema === "dunkel") {
-            return thema;
-        }
-        const geraetHell = typeof window !== "undefined" && !!(window.matchMedia
-            && window.matchMedia("(prefers-color-scheme: light)").matches);
-        return geraetHell ? "hell" : "dunkel";
+        const aussehen = DARSTELLUNG._aussehen();
+        return aussehen ? aussehen.modus() : "dunkel";
     },
 
     /* Farbton in Grad (0-360) und Sättigung (0-1) einer Farbe "#rrggbb". */
@@ -149,16 +171,11 @@ const DARSTELLUNG = {
     }
 };
 
+/* Der frühe Aufruf: erst die alte Wahl übergeben, dann anwenden. Wechselt
+   das Gerät zwischen hell und dunkel, zieht der Baustein selbst nach (bis
+   0.7.0 stand dafür hier ein eigener Horcher). */
+DARSTELLUNG.migrieren();
 DARSTELLUNG.anwenden();
-
-/* Wechselt das Gerät zwischen hell und dunkel (Auto), zieht die Farbwelt
-   mit (seit 0.7.0). Bei fester Wahl ändert sich dabei nichts. */
-if (typeof window !== "undefined" && window.matchMedia) {
-    const geraetDunkel = window.matchMedia("(prefers-color-scheme: dark)");
-    if (geraetDunkel.addEventListener) {
-        geraetDunkel.addEventListener("change", () => DARSTELLUNG.anwenden());
-    }
-}
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = DARSTELLUNG;

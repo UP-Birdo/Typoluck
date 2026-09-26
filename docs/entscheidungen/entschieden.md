@@ -2,6 +2,68 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## UPCrew-Runde 3: ein Aussehen, Crew-Schrift, UPCrew-Knöpfe, Tab „Anpassen" (26.09.2026, 0.8.0)
+
+Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md`, Block 1 („beginne").
+Blunderluck wurde gleichzeitig in einer eigenen Sitzung umgebaut — hier
+wurde nur in Typoluck geschrieben, die Bausteine nur kopiert.
+
+- **Ein Aussehen für beide Spiele** über den kopierten Baustein
+  `upcrew-aussehen.js` (Schlüssel `upcrew.aussehen`). `DARSTELLUNG` hält
+  keinen Wert mehr, nur noch den Anschluss: `thema`, `themaSetzen`,
+  `leseschrift`, `anwenden`, `modus` lesen und schreiben über den Baustein.
+  Die bis 0.7.0 gespeicherte Wahl (`ICH.einstellung "thema"`) geht EINMAL
+  per `migrieren` hinüber — nur wenn es noch kein gemeinsames Aussehen gibt;
+  hat Blunderluck im selben Browser schon eins angelegt, gilt dessen Wahl
+  (ein Aussehen, nicht zwei). Ein Test prüft, dass "thema" nur noch dort
+  gelesen wird.
+- **Der frühe Aufruf ist `darstellung.js` selbst**, direkt nach
+  `upcrew-aussehen.js` in `index.html`: erst Umzug, dann anwenden. So
+  braucht es keine eigene Einzeiler-Datei, und der Umzug läuft garantiert
+  VOR dem ersten Anwenden (sonst ein Aufblitzen in der Vorgabe).
+- **Keine Standard- oder Stufen-Werte in der App.** S1/K1 und die
+  Freischalt-Stufen stehen nur in den Bausteinen; die Werkstatt setzt auf
+  `UPCREW_AUSSEHEN.STANDARD` zurück statt auf feste Werte. Ein Test sucht
+  nach festgeschriebenen `S1`…`K6`/`STUFEN` im eigenen Code.
+- **Knöpfe:** Nur `haupt`, `still`, `gefahr` werden `up-kn`
+  (`up-haupt`/`up-zweit`/`up-gefahr`, ohne Text `up-rund`), mit
+  Leuchtpunkt als erstem Kind. `flach` (Zeichen in Kopfzeilen,
+  Textverweise), `menue` und `leiste` bleiben ohne — sie sind Navigation,
+  keine Knöpfe im Sinne des Standards, wie Tasten und Kacheln. Die Regeln
+  `.knopf-haupt/-still/-gefahr` und Kante/Rundung/Einsinken von `.knopf`
+  sind gelöscht; `knopf-klein` bleibt als reine Grösse (`.up-kn.knopf-klein`,
+  zwei Klassen, weil der Baustein nach dem eigenen Stil lädt).
+  `DIALOG.zweiSchritt` tauscht seitdem nur die Beschriftung, sonst löschte
+  „Sicher?" den Leuchtpunkt. Folge, bewusst so: Gefahr-Knöpfe
+  („Abmelden", „Entfernen") sind jetzt voll rot statt rot umrandet.
+- **Gefahr-Kante/-Schrift** in allen drei Farbblöcken von `stil.css`; Gefahr
+  ist Bedeutungsfarbe, keine Farbwelt ändert sie.
+- **Leiste mit fünf Plätzen** (Aufgaben · Bald · Start · Rangliste ·
+  Anpassen): „Bald" wieder als abgeschalteter Platzhalter mit dem alten
+  Zeichen `platzhalter`, damit Start in der Mitte bleibt wie in Blunderluck.
+- **Tab „Anpassen"**: eigener Bildschirm mit Kopfzeile, darunter der Baustein.
+  Stufe 0 an EINER Stelle (`ANPASSEN_BILDSCHIRM.stufe()`), weil es den
+  Herausforderungs-Pfad noch nicht gibt; `alleFrei` nur in der Werkstatt.
+  Der Tab räumt beim Verlassen UND vor jedem Neubau auf (sonst horchte ein
+  alter Tab weiter). Neue Daten und Aussehens-Wechsel bauen ihn NICHT neu
+  (`APP.UNGESTOERT`), sonst ginge der Entwurf verloren — er zeichnet sich
+  selbst. `--upa-oben` bleibt 0 (die Kopfzeile klebt nicht); „Zurück /
+  Übernehmen" klebt dafür über der festen Leiste (`stil-bildschirme.css`).
+- **Konto-Abgleich in eigener Datei** `aussehen-abgleich.js`, nicht in
+  `konto.js`: `konto.js` muss in allen UPCrew-Spielen gleich bleiben.
+  Geschrieben wird `konten/<uid>/aussehen` zusammen mit `geaendertAm` in
+  EINER Mehrpfad-Änderung (Regel 3 der Konten). Nur angemeldete Konten,
+  keine Gäste, nicht die Werkstatt. Nur eigene Änderungen (`quelle
+  "selbst"`) werden geschickt — was vom Konto oder aus Blunderluck kommt,
+  nicht zurück. Fehler (Regel noch nicht eingespielt) enden still.
+- **Test-Ausnahmen für die Kopien:** Die Form-Prüfungen (drei Rundungen)
+  und die Emoji-Prüfung gelten nicht für `upcrew-*` — die Knopf-Familien
+  haben eigene Rundungen (ihr Zweck), der Tab zeigt Schachfiguren
+  (U+265A–265F, im geprüften Bereich, aber keine Emojis). Die Dateien
+  dürfen nicht abgewandelt werden.
+- MINOR 0.8.0: Anpassen-Tab, Standard-Schrift und Abgleich zwischen den
+  Spielen gab es vorher nicht.
+
 ## UPCrew-Runde 2: Farbwelt, Kopfzeile, Tab „Aufgaben" (26.09.2026, 0.7.0)
 
 Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md`, Block 1 („fang an

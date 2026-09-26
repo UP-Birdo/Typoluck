@@ -13,6 +13,9 @@
 
 ## entschieden.md — getroffene Entscheidungen
 
+- UPCrew-Runde 3: ein Aussehen, Crew-Schrift, UPCrew-Knöpfe, Tab „Anpassen" (0.8.0)
+- UPCrew-Runde 2: Farbwelt, Kopfzeile, Tab „Aufgaben" (0.7.0)
+- Weg vom NYT-Look: Name Wordguesser, Kacheln Orange/Blau (0.6.2)
 - UPCrew-Standard, erster Schritt (0.4.0)
 - Blunderlucks Farben, Drei-Balken-Menü, antippbare Felder (0.3.0)
 - UP#Plus ist in allen UPCrew-Spielen nur Rollen-Verteiler (0.2.1)

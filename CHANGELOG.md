@@ -3,6 +3,31 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.8.0 — 26.09.2026
+
+**Neuer Tab „Anpassen", eigene Schrift, neue Knöpfe — und ein Aussehen für
+Typoluck und Blunderluck.**
+
+- **Neu: „Anpassen" ganz rechts in der Leiste unten.** Oben eine Vorschau,
+  darunter Farbwelt, Schrift, Knöpfe und hell/dunkel zum Ausprobieren,
+  dazu ein Würfel für eine zufällige Mischung und drei Plätze, um
+  Lieblings-Kombinationen zu merken. Was noch nicht freigeschaltet ist,
+  kannst du in der Vorschau ansehen, aber noch nicht übernehmen —
+  freigeschaltet wird später über die Herausforderungen.
+- **Ein Aussehen für beide Spiele:** Stellst du in Typoluck um (hell,
+  dunkel, Farbwelt, Schrift, Knöpfe), stellt sich Blunderluck mit um — und
+  umgekehrt. Mit UPCrew-Konto reist die Wahl auch auf deine anderen Geräte.
+  Deine bisherige Wahl hell/dunkel bleibt erhalten.
+- **Eigene Schrift:** Die App schreibt jetzt in der runden UPCrew-Schrift,
+  auch ohne Netz.
+- **Neue Knöpfe:** Knöpfe haben jetzt die UPCrew-Form mit Kante, die beim
+  Antippen einsinkt; „Abmelden" und „Löschen" sind rote Knöpfe.
+- **Einstellungen:** neu „Standard-Schrift" (liest sich die gewählte Schrift
+  schlecht, bleibt es bei der Standard-Schrift) und eine Zeile „Anpassen",
+  die in den neuen Tab führt.
+- Die Leiste unten hat jetzt fünf Plätze: Aufgaben · Bald · Start ·
+  Rangliste · Anpassen.
+
 ## 0.7.0 — 26.09.2026
 
 **Werkstatt-Farben, Kopfzeile wie in Blunderluck, und der Tab „Aufgaben".**
