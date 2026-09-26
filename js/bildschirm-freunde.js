@@ -144,10 +144,7 @@ const FREUNDE_BILDSCHIRM = {
         name.className = "freunde-name";
         name.appendChild(BAUSTEINE.kreis(spieler.name));
         name.appendChild(BAUSTEINE.el("span", null, ANMELDUNG.anzeigeName(spieler)));
-        name.addEventListener("click", () => {
-            FUEHLEN.tippen();
-            NAVIGATION.zeigen("profil", { id: spieler.id });
-        });
+        name.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: spieler.id }));
         zeile.appendChild(name);
 
         const leiste = BAUSTEINE.el("span", "freunde-knoepfe");
@@ -175,7 +172,6 @@ const FREUNDE_BILDSCHIRM = {
             FREUNDE_BILDSCHIRM.suchtext = "";
         }
         ANMELDUNG.abgleich.aendern(neu);
-        FUEHLEN.erfolg();
         DIALOG.kurzmeldung({
             anfragen: "Anfrage gesendet",
             annehmen: "Freunde: " + ANMELDUNG.anzeigeName(anderer),

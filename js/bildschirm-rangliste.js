@@ -120,10 +120,7 @@ const RANGLISTE_BILDSCHIRM = {
             const knopf = document.createElement("button");
             knopf.type = "button";
             knopf.className = "rangliste-knopf";
-            knopf.addEventListener("click", () => {
-                FUEHLEN.tippen();
-                NAVIGATION.zeigen("profil", { id: zeile.id });
-            });
+            knopf.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: zeile.id }));
 
             knopf.appendChild(BAUSTEINE.el("span", "rangliste-platz", zeile.platz + "."));
             knopf.appendChild(BAUSTEINE.kreis(zeile.name));

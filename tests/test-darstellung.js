@@ -41,7 +41,7 @@ DARSTELLUNG.themaSetzen("lila");
 gleich("Unbekannter Wert wird zu „wie das Gerät“", DARSTELLUNG.thema(), "geraet");
 
 DARSTELLUNG.themaSetzen("dunkel");
-gleich("Vibration bleibt unberührt", ICH.einstellung("vibration", true), true);
+gleich("Andere Geräte-Einstellungen bleiben unberührt", ICH.einstellung("schwer", false), false);
 
 /* Was eine andere App (Blunderluck) im selben Browser hineinschreibt, liest
    Typoluck — auch Kaputtes fällt still auf den Standard des Bausteins. */

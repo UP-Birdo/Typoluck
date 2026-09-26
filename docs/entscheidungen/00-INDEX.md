@@ -5,6 +5,7 @@
 
 ## erkenntnisse.md — Fallen und Bug-Ursachen
 
+- Das Deploy-Skript lädt nur freigegebene Ordner hoch
 - Eine Variable auf 0 versteckt, welche Regel wirklich gewinnt
 - window.open mit "noopener" liefert immer null
 - Eine CSS-Animation kann nicht „zur Farbe der Klasse" springen
@@ -13,6 +14,7 @@
 
 ## entschieden.md — getroffene Entscheidungen
 
+- Vibration raus, UPCrew-Icons, „Freunde heute" lebt (0.8.1)
 - UPCrew-Runde 3: ein Aussehen, Crew-Schrift, UPCrew-Knöpfe, Tab „Anpassen" (0.8.0)
 - UPCrew-Runde 2: Farbwelt, Kopfzeile, Tab „Aufgaben" (0.7.0)
 - Weg vom NYT-Look: Name Wordguesser, Kacheln Orange/Blau (0.6.2)

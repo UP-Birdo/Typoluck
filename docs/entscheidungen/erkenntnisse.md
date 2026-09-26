@@ -3,6 +3,19 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Das Deploy-Skript lädt nur freigegebene Ordner hoch (26.09.2026)
+
+0.8.0 brachte den neuen Ordner `schrift\` (Crew-Schriften). Alle Tests
+waren grün, auch „jede Datei aus `sw.js` existiert" — aber
+`tools\Deploy-Typoluck.ps1` lädt nur die Ordner aus `$freigegebeneOrdner`
+hoch und behandelt nur die Endungen aus `$binaerEndungen` als Binärdatei.
+Erst `-NurAnzeigen` zeigte, dass keine Schrift dabei war. Live hätte der
+Service Worker dann nicht installiert werden können (`addAll` scheitert an
+jeder fehlenden Datei), und die App hätte ohne Crew-Schrift ausgesehen.
+**Lehre:** Wer einen neuen Ordner oder eine neue Dateiart einführt, trägt sie
+im Deploy-Skript ein und liest vor dem Ausliefern die `-NurAnzeigen`-Liste
+gegen die `DATEIEN` in `sw.js`.
+
 ## Eine Variable auf 0 versteckt, welche Regel wirklich gewinnt (25.09.2026)
 
 Beim Einschalten der Tiefe (0.1.1) bekamen die Knöpfe der Leiste unten eine

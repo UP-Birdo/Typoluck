@@ -21,7 +21,6 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\rangliste.js` | Modell | Punkte, Tabellen, Statistik, Serie |
 | `js\bausteine.js` | Oberfläche | Knopf, Karte, Kopfzeile, Segment, Zeichen — **die 3D-Naht** |
 | `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
-| `js\fuehlen.js` | Oberfläche | Vibration: tippen, erfolg, fehler; Schalter in den Einstellungen (seit 0.4.0, bis 0.4.0 im Profil) |
 | `js\upcrew-farbwelten.js` | Oberfläche | Die UPCrew-Farbwelten → Farb-Variablen an `<html>` (seit 0.7.0; gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; lädt mit `upcrew-intro.js` VOR `darstellung.js`) |
 | `js\upcrew-aussehen.js` | Oberfläche | **Ein Aussehen für alle UPCrew-Spiele** (seit 0.8.0): hell/dunkel, Farbwelt, Schrift, Knöpfe, Standard-Schrift unter `upcrew.aussehen`; zieht Blunderluck im selben Browser mit (gemeinsamer Baustein, kopiert, nie abwandeln) |
 | `js\darstellung.js` | Oberfläche | Typolucks Anschluss an `upcrew-aussehen.js` (seit 0.8.0 ohne eigene Werte; einmaliger Umzug der alten Wahl; früher Aufruf beim Laden), Kachelfarben-Sperre (NYT-Look) |

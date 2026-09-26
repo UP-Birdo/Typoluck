@@ -50,8 +50,7 @@ const kontext = vm.createContext({
     document: {
         createElement: (tag) => element(tag),
         createElementNS: (ns, tag) => element(tag)
-    },
-    FUEHLEN: { tippen() {} }
+    }
 });
 vm.runInContext(fs.readFileSync(path.join(wurzel, "js", "bausteine.js"), "utf8"), kontext,
     { filename: "bausteine.js" });

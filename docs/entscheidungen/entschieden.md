@@ -2,6 +2,23 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Vibration raus, UPCrew-Icons, „Freunde heute" lebt (26.09.2026, 0.8.1)
+
+- **Vibration ganz entfernt, nicht nur abgeschaltet** (Absprache Runde 3,
+  Nutzer: „kommt erst wann anders"): `fuehlen.js` gelöscht statt stummer
+  Hülle — toter Code würde gewartet, ohne etwas zu tun. Kommt sie wieder,
+  dann als gemeinsamer Baustein für alle UPCrew-Spiele. Der gespeicherte
+  Wert „vibration" bleibt liegen, wird nur nicht mehr gelesen (additiver
+  Datenvertrag).
+- **Icons nur als PNG:** `icon.svg` zeigt das alte Logo; Android kann ein
+  SVG mit „any" dem PNG vorziehen — deshalb raus aus Manifest und Seite.
+  Die Datei bleibt, `Icons-Erzeugen.ps1` ist gesperrt (`-AltesLogo`), damit
+  niemand die neuen Icons versehentlich überzeichnet.
+- **„Freunde heute" still auffrischen** (30 s, nur auf dem Start, nicht in
+  der Werkstatt): stehende Tabelle bleibt, Neuzeichnen nur bei Änderung.
+- PATCH: nichts kann der Nutzer neu, was vorher gar nicht ging; alles in
+  EINER Auslieferung gebündelt, weil 0.8.1 noch nicht draussen war.
+
 ## UPCrew-Runde 3: ein Aussehen, Crew-Schrift, UPCrew-Knöpfe, Tab „Anpassen" (26.09.2026, 0.8.0)
 
 Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md`, Block 1 („beginne").

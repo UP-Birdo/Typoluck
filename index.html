@@ -9,10 +9,10 @@
     <title>Typoluck</title>
     <meta name="description" content="Wortspiele mit Freunden — jeden Tag ein neues Wort.">
 
-    <!-- Zeichen der App. SVG für moderne Browser, PNG für ältere und für
-         den Startbildschirm von iPhone und iPad (der nimmt nur PNG).
-         Erzeugt aus icon.svg mit tools\Icons-Erzeugen.ps1. -->
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <!-- Zeichen der App: nur PNG. Seit 0.8.1 die gerenderten UPCrew-Icons
+         aus der Design-Sitzung (Design\3D-Schrift\final\icons, dort
+         „vorläufig", kopiert mit Icons-Verteilen.cmd). Das alte icon.svg
+         zeigt das alte Logo und ist deshalb nicht mehr eingebunden. -->
     <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
     <link rel="apple-touch-icon" href="icons/icon-180.png">
     <link rel="manifest" href="manifest.webmanifest">
@@ -72,7 +72,6 @@
     <script src="js/versiegelung.js"></script>
     <script src="js/spieler.js"></script>
     <script src="js/ich.js"></script>
-    <script src="js/fuehlen.js"></script>
     <!-- Die UPCrew-Bausteine (kopiert aus Design\3D-Schrift\final, nie
          abwandeln) stehen VOR darstellung.js: Das Aussehen wird schon beim
          Laden angewendet, damit nichts in alten Farben aufblitzt. Seit 0.8.0

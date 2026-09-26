@@ -262,7 +262,6 @@ const WORDLE_BILDSCHIRM = {
             if (WORDLE_BILDSCHIRM._sperre || WORDLE_BILDSCHIRM.runde.zustand !== "laeuft") {
                 return;
             }
-            FUEHLEN.tippen();
             WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeWaehlen(WORDLE_BILDSCHIRM.eingabe, stelle);
             WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
         });
@@ -315,10 +314,7 @@ const WORDLE_BILDSCHIRM = {
                 knopf.classList.add("taste-" + bewertung);
             }
         }
-        knopf.addEventListener("click", () => {
-            FUEHLEN.tippen();
-            WORDLE_BILDSCHIRM._eingeben(taste);
-        });
+        knopf.addEventListener("click", () => WORDLE_BILDSCHIRM._eingeben(taste));
         return knopf;
     },
 
@@ -510,7 +506,6 @@ const WORDLE_BILDSCHIRM = {
             WORDLE.eingabeWort(WORDLE_BILDSCHIRM.eingabe), APP.jetzt().getTime());
 
         if (antwort.fehler) {
-            FUEHLEN.fehler();
             DIALOG.kurzmeldung(antwort.hinweis || WORDLE.fehlerText(antwort.fehler), 1500);
             const zeile = WORDLE_BILDSCHIRM._behaelter.querySelector(".wordle-zeile-aktiv");
             if (zeile) {
@@ -573,13 +568,9 @@ const WORDLE_BILDSCHIRM = {
         const runde = WORDLE_BILDSCHIRM.runde;
         WORDLE_BILDSCHIRM._zeichnen();
 
-        /* Das Ergebnis spürt man (UPCrew-Standard): Erfolg oder Fehler. */
-        if (runde.zustand === "gewonnen") {
-            FUEHLEN.erfolg();
-        } else {
-            FUEHLEN.fehler();
-        }
-
+        /* Bis 0.8.0 vibrierte hier Erfolg oder Fehler (FUEHLEN). Seit 0.8.1
+           ist die Vibration überall raus (Nutzer 26.09.2026: „kommt erst
+           wann anders"). */
         if (runde.zustand === "gewonnen") {
             const zeilen = WORDLE_BILDSCHIRM._behaelter.querySelectorAll(".wordle-zeile");
             const zeile = zeilen[runde.versuche.length - 1];

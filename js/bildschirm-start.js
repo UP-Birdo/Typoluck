@@ -47,9 +47,33 @@ const START = {
         }
     ],
 
-    /* Der Tages-Stand der Freunde, einmal je Anzeige geholt. */
+    /*
+     * „FREUNDE HEUTE" LEBT (seit 0.8.1, ROADMAP Nr. 9). Solange der Start
+     * zu sehen ist, holt er die Tageswertung alle AUFFRISCHEN_MS still nach
+     * — und sofort, wenn die App in den Vordergrund zurückkommt. Still
+     * heisst: Die stehende Tabelle bleibt stehen (kein Lade-Platzhalter,
+     * kein Flackern), neu gezeichnet wird nur, wenn sich wirklich etwas
+     * geändert hat; ein Fehler beim Nachholen lässt die alte Tabelle stehen.
+     * Nur wenn noch nichts für HEUTE da ist (erster Aufruf, neuer Tag), gibt
+     * es den Platzhalter. Die Uhr läuft nur auf dem Start (beim Verlassen
+     * aus) und nie in der Werkstatt (deren Daten ändern sich nicht, und ein
+     * Kopflos-Bild bliebe sonst nie stehen).
+     *
+     * Kosten: Der Tagesknoten ist klein (je Spieler ein Ergebnis) — alle
+     * 30 s ein paar Kilobyte, nur während jemand auf den Start schaut.
+     */
+    AUFFRISCHEN_MS: 30000,
+
+    /* Der Tages-Stand der Freunde, für welches Datum er gilt, und der
+       Fehler des letzten Ladens (nur, wenn nichts Brauchbares da ist). */
     _freundeHeute: null,
+    _freundeFuer: null,
     _freundeFehler: "",
+
+    /* Laufende Nummer der Ladevorgänge — eine ältere Antwort, die nach
+       einer neueren ankommt, wird verworfen. */
+    _ladeNr: 0,
+    _uhr: null,
 
     anmelden() {
         NAVIGATION.anmelden({
@@ -57,7 +81,16 @@ const START = {
             titel: "Start",
             zeichen: "start",
             imMenue: false,
-            zeigen: (behaelter) => START.zeigen(behaelter)
+            zeigen: (behaelter) => START.zeigen(behaelter),
+            verlassen: () => START._auffrischenAus()
+        });
+        /* Zurück in den Vordergrund: gleich nachsehen, statt bis zu 30 s
+           auf die Uhr zu warten. */
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible" && START._uhr !== null
+                && NAVIGATION.aktuell === "start") {
+                START._freundeLaden(true);
+            }
         });
     },
 
@@ -85,7 +118,28 @@ const START = {
         }
 
         behaelter.appendChild(START._freundeKarteBauen());
-        START._freundeLaden();
+        START._freundeLaden(false);
+        START._auffrischenAn();
+    },
+
+    /* Die Uhr einschalten — mehrfach gerufen (jeder Neubau des Starts)
+       bleibt es bei EINER. */
+    _auffrischenAn() {
+        if (START._uhr !== null || (typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv())) {
+            return;
+        }
+        START._uhr = setInterval(() => {
+            if (document.visibilityState === "visible" && NAVIGATION.aktuell === "start") {
+                START._freundeLaden(true);
+            }
+        }, START.AUFFRISCHEN_MS);
+    },
+
+    _auffrischenAus() {
+        if (START._uhr !== null) {
+            clearInterval(START._uhr);
+            START._uhr = null;
+        }
     },
 
     /*
@@ -221,19 +275,48 @@ const START = {
         }));
     },
 
-    /* Holt die Tageswertung. Zeigt sofort den Lade-Platzhalter — so taugt
-       dieselbe Funktion auch für den Knopf „Nochmal". */
-    async _freundeLaden() {
-        START._freundeHeute = null;
-        START._freundeFehler = "";
-        START._freundeKarteNeu();
-        try {
-            START._freundeHeute = await ERGEBNISSE.tagLaden(APP.spielSpeicher,
-                WORDLE.datumText(APP.jetzt()));
-        } catch (fehler) {
-            START._freundeFehler = fehler.message || "Fehler";
+    /*
+     * Holt die Tageswertung.
+     *   still = false  zeigt den Lade-Platzhalter, AUSSER es liegt schon
+     *                  eine Wertung für heute vor (dann bleibt sie stehen,
+     *                  bis die neue da ist — so flackert der Start nicht bei
+     *                  jedem Neubau). Taugt auch für den Knopf „Nochmal".
+     *   still = true   die Uhr: nie ein Platzhalter; ein Fehler lässt eine
+     *                  stehende Tabelle stehen.
+     * Neu gezeichnet wird nur, was sich geändert hat.
+     */
+    async _freundeLaden(still) {
+        const heute = WORDLE.datumText(APP.jetzt());
+        const vorhanden = START._freundeHeute !== null && START._freundeFuer === heute
+            && !START._freundeFehler;
+        const nr = ++START._ladeNr;
+        if (!vorhanden && !still) {
+            START._freundeHeute = null;
+            START._freundeFuer = null;
+            START._freundeFehler = "";
+            START._freundeKarteNeu();
         }
-        START._freundeKarteNeu();
+        let neu;
+        try {
+            neu = await ERGEBNISSE.tagLaden(APP.spielSpeicher, heute);
+        } catch (fehler) {
+            if (nr !== START._ladeNr || (still && vorhanden)) {
+                return;
+            }
+            START._freundeFehler = fehler.message || "Fehler";
+            START._freundeKarteNeu();
+            return;
+        }
+        if (nr !== START._ladeNr) {
+            return;
+        }
+        const geaendert = !vorhanden || JSON.stringify(neu) !== JSON.stringify(START._freundeHeute);
+        START._freundeHeute = neu;
+        START._freundeFuer = heute;
+        START._freundeFehler = "";
+        if (geaendert) {
+            START._freundeKarteNeu();
+        }
     },
 
     _freundeKarteNeu() {

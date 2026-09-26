@@ -87,8 +87,20 @@ for (const datei of aufPlatte) {
 for (const eintrag of swListe.filter((e) => e !== "./")) {
     pruefe("Datei aus sw.js existiert: " + eintrag, fs.existsSync(path.join(wurzel, eintrag)));
 }
-pruefe("index.html, Manifest und Zeichen im Service Worker",
-    ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"].every((e) => swListe.indexOf(e) !== -1));
+pruefe("index.html und Manifest im Service Worker",
+    ["./", "./index.html", "./manifest.webmanifest"].every((e) => swListe.indexOf(e) !== -1));
+
+/* Die App-Zeichen (seit 0.8.1): nur die PNGs aus der Design-Sitzung. Das
+   alte icon.svg zeigt das alte Logo — weder im Manifest noch in der Seite. */
+const manifest = JSON.parse(lesen("manifest.webmanifest"));
+gleich("Manifest: nur PNG-Zeichen 192 und 512", manifest.icons.map((z) => z.src),
+    ["icons/icon-192.png", "icons/icon-512.png"]);
+pruefe("Seite bindet icon.svg nicht mehr ein", !/href="icon\.svg"/.test(index));
+pruefe("Service Worker lädt icon.svg nicht mehr", swListe.indexOf("./icon.svg") === -1);
+for (const groesse of [32, 180, 192, 512]) {
+    pruefe("App-Zeichen vorhanden: icon-" + groesse + ".png",
+        fs.existsSync(path.join(wurzel, "icons", "icon-" + groesse + ".png")));
+}
 
 /* Die Crew-Schriften (seit 0.8.0): alle zwölf offline — und die Lizenz liegt
    daneben (SIL OFL verlangt, dass sie mitgeht). */
@@ -151,6 +163,15 @@ pruefe("Die drei Rundungen sind festgelegt",
 pruefe("Die Schrift steht nur als Variable im Stil",
     (lesen("css/stil.css").match(/font-family:\s*"/g) || []).length === 0
         && /--schrift-familie:/.test(lesen("css/stil.css")));
+
+/* Vibration überall raus (seit 0.8.1, Nutzer 26.09.2026: „kommt erst wann
+   anders") — auch in den kopierten Bausteinen, auch kein Schalter mehr. */
+for (const datei of liste("js").filter((d) => d.endsWith(".js"))) {
+    const ohneKommentare = lesen(datei).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+    pruefe("Keine Vibration: " + datei, !/vibrate|FUEHLEN/.test(ohneKommentare));
+}
+pruefe("Kein Schalter „Vibration“ in den Einstellungen",
+    !/"Vibration"/.test(lesen("js/bildschirm-einstellungen.js")));
 
 /* ------------------------------------------------------------------ *
  * Keine fremde Marke (seit 0.6.2)
@@ -249,6 +270,17 @@ pruefe("Start: kein Schriftzug „Typoluck“ mehr oben", lesen("js/bildschirm-s
 pruefe("Start: Kurzprofil mit Serie und Quote",
     /_kurzprofilBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
         && /"Serie " \+ werte\.serie \+ " · " \+ werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js")));
+/* „Freunde heute" lebt (seit 0.8.1, ROADMAP Nr. 9): die Uhr läuft nur auf
+   dem Start und nie in der Werkstatt, und sie zeigt nie den Platzhalter. */
+const startText = lesen("js/bildschirm-start.js");
+pruefe("Start: Uhr wird beim Verlassen abgeschaltet",
+    /verlassen: \(\) => START\._auffrischenAus\(\)/.test(startText)
+        && /clearInterval\(START\._uhr\)/.test(startText));
+pruefe("Start: keine Uhr in der Werkstatt",
+    /_auffrischenAn\(\) \{\s*if \(START\._uhr !== null \|\| \(typeof WERKSTATT !== "undefined" && WERKSTATT\.aktiv\(\)\)\)/
+        .test(startText));
+pruefe("Start: die Uhr lädt still", /setInterval\([\s\S]*?START\._freundeLaden\(true\)/.test(startText));
+gleich("Start: alle 30 Sekunden", (startText.match(/AUFFRISCHEN_MS: (\d+)/) || [])[1], "30000");
 pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[2] || ""));
 pruefe("Platz 4 in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[3] || ""));
 pruefe("Einstellungen stehen im Menü",

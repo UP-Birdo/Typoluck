@@ -136,8 +136,17 @@ Typoluck heißt das:
   „Bewegung reduzieren" still); Leer = Zeichen im runden Feld, höchstens
   drei Wörter, ein stiller Knopf; Fehler = durchgestrichenes Funknetz in
   Rot, „Nicht erreichbar" oder „Keine Antwort", Knopf „Nochmal".
-- **Vibration** (`js\fuehlen.js`): tippen 8 ms; Erfolg und Fehler je ein
-  eigenes Muster. Im Profil unter „Dieses Gerät" abschaltbar.
+- **Vibration:** seit 0.8.1 keine (Nutzer 26.09.2026: „kommt erst wann
+  anders"; gilt in allen UPCrew-Spielen, auch die Bausteine vibrieren nicht
+  mehr). 0.4.0–0.8.0 gab es `js\fuehlen.js` mit Schalter in den
+  Einstellungen.
+- **App-Zeichen:** seit 0.8.1 die gerenderten UPCrew-Icons (Würfelturm
+  „TYPO", weisser Stab dahinter) aus `Design\3D-Schrift\final\icons` —
+  vorerst die vorläufigen Proben, die finalen kommen vom Render-Stick.
+  Kopiert werden sie mit `Design\3D-Schrift\tools\Icons-Verteilen.cmd`;
+  `tools\Icons-Erzeugen.ps1` (altes Logo) ist stillgelegt, `icon.svg` nicht
+  mehr eingebunden. Kein „maskable" im Manifest: Android würde die Ränder
+  abschneiden, dann fluchtet das Plus über die Icons nicht mehr.
 - **Schrift:** seit 0.8.0 die Crew-Schriften (Abschnitt „Schrift").
 
 ## Das Menü hinter den drei Balken (seit 0.3.0)

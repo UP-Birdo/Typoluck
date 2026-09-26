@@ -17,9 +17,25 @@
 
     Bordmittel (System.Drawing), kein Node, kein Python. Pfade relativ zu
     diesem Skript.
+
+    STILLGELEGT SEIT 0.8.1: Die App-Zeichen kommen jetzt als gerenderte
+    UPCrew-Icons aus der Design-Sitzung (Design\3D-Schrift\final\icons,
+    verteilt mit Design\3D-Schrift\tools\Icons-Verteilen.cmd). Dieses Skript
+    zeichnet das ALTE Logo und wuerde sie ueberschreiben - deshalb bricht es
+    ohne den Schalter -AltesLogo ab.
 #>
 
+param(
+    [switch]$AltesLogo
+)
+
 $ErrorActionPreference = "Stop"
+
+if (-not $AltesLogo) {
+    Write-Host "Stillgelegt: Die Icons kommen seit 0.8.1 aus Design\3D-Schrift\final\icons." -ForegroundColor Yellow
+    Write-Host "Dieses Skript wuerde sie mit dem alten Logo ueberschreiben. Absichtlich? Dann mit -AltesLogo."
+    exit 1
+}
 
 Add-Type -AssemblyName System.Drawing
 

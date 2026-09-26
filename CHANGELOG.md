@@ -3,6 +3,24 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.8.1 — 26.09.2026
+
+**Neues App-Zeichen, keine Vibration mehr, und „Freunde heute" bleibt von
+selbst aktuell.**
+
+- **Neues App-Zeichen:** gestapelte Würfel „TYPO" im Lichtstreifen —
+  passend zu den neuen Zeichen von Blunderluck und Trainer. Vorerst in
+  einfacher Qualität, die fertige Fassung folgt.
+- **Keine Vibration mehr** — weder beim Tippen noch bei Gewinn oder Fehler;
+  der Schalter „Vibration" in den Einstellungen ist weg. Sie kommt später
+  wieder, in allen UPCrew-Spielen gleich.
+
+- Solange du auf den Start schaust, erscheinen neue Ergebnisse deiner
+  Freunde nach spätestens einer halben Minute — ohne dass du etwas tippen
+  musst. Kommst du in die App zurück, ist die Tabelle sofort frisch.
+- Die Tabelle flackert nicht mehr (kein kurzes Grau), wenn der Start neu
+  aufgebaut wird; ist das Netz kurz weg, bleibt die letzte Tabelle stehen.
+
 ## 0.8.0 — 26.09.2026
 
 **Neuer Tab „Anpassen", eigene Schrift, neue Knöpfe — und ein Aussehen für

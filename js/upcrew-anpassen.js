@@ -75,7 +75,6 @@
       && regale.every((r) => (a.extra || {})[r.schluessel] === (b.extra || {})[r.schluessel]);
     const modusVon = (d) => d === "hell" || d === "dunkel" ? d
       : (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel");
-    const tipp = () => navigator.vibrate && navigator.vibrate(8);
 
     ort.classList.add("upa");
     ort.innerHTML = `
@@ -193,7 +192,7 @@
     // ---------- Bedienung ----------
     function klick(e) {
       const weg = e.target.closest("[data-weg]");
-      if (weg) { const l = sets.lesen(); l[+weg.dataset.weg] = null; sets.schreiben(l); tipp(); zeichnen(); return; }
+      if (weg) { const l = sets.lesen(); l[+weg.dataset.weg] = null; sets.schreiben(l); zeichnen(); return; }
       const set = e.target.closest("[data-set]");
       if (set) {
         const l = sets.lesen(), i = +set.dataset.set;
@@ -206,24 +205,24 @@
           l[i] = TEILE.reduce((o, k) => (o[k] = entwurf[k], o), { extra: Object.assign({}, entwurf.extra) });
           sets.schreiben(l);
         }
-        tipp(); zeichnen(); return;
+        zeichnen(); return;
       }
       const st = e.target.closest(".upa-stueck[data-art]");
-      if (st) { entwurf[st.dataset.art] = st.dataset.wert; tipp(); zeichnen(); return; }
+      if (st) { entwurf[st.dataset.art] = st.dataset.wert; zeichnen(); return; }
       const ex = e.target.closest(".upa-stueck[data-extra]");
       if (ex) {
         entwurf.extra = Object.assign({}, entwurf.extra, { [ex.dataset.extra]: ex.dataset.wert });
         if (ex.dataset.extra === "brett") vorschauApp = "blunderluck";   // Brett zeigen, wenn man es antippt
-        tipp(); zeichnen(); return;
+        zeichnen(); return;
       }
       const app = e.target.closest(".upa-mini-seg button");
-      if (app) { vorschauApp = app.dataset.app; tipp(); vorschauZeichnen(); return; }
+      if (app) { vorschauApp = app.dataset.app; vorschauZeichnen(); return; }
       if (e.target.closest(".upa-zufall")) {
         const zufall = (l) => l[Math.floor(Math.random() * l.length)];
         for (const k of ["farbwelt", "schrift", "knoepfe"]) entwurf[k] = zufall(A.WAHL[k]);
-        tipp(); zeichnen(); return;
+        zeichnen(); return;
       }
-      if (e.target.closest(".upa-zurueck")) { entwurf = uebernommen(); tipp(); zeichnen(); return; }
+      if (e.target.closest(".upa-zurueck")) { entwurf = uebernommen(); zeichnen(); return; }
       if (e.target.closest(".upa-uebernehmen")) {
         A.setzen(TEILE.reduce((o, k) => (o[k] = entwurf[k], o), {}));
         for (const r of regale) {
@@ -231,7 +230,6 @@
           if (w !== r.wert) { r.wert = w; if (typeof r.uebernehmen === "function") r.uebernehmen(w); }
         }
         entwurf = uebernommen();
-        if (navigator.vibrate) navigator.vibrate([10, 40, 18]);
         zeichnen();
       }
     }

@@ -354,7 +354,6 @@ const ANMELDUNG = {
            die Seite gleich danach schliesst, verlöre es sonst. */
         abgleich.sofortSchreiben();
         ANMELDUNG._fertig();
-        FUEHLEN.erfolg();
         DIALOG.kurzmeldung("Angemeldet · " + name);
     },
 
@@ -398,7 +397,6 @@ const ANMELDUNG = {
         await ANMELDUNG._nachladen();
         ANMELDUNG._uebernehmen(ergebnis.eintrag);
         ANMELDUNG._fertig();
-        FUEHLEN.erfolg();
         DIALOG.kurzmeldung("Gast · " + KONTO.anzeigeName(ergebnis.eintrag));
     },
 
@@ -726,9 +724,8 @@ const ANMELDUNG = {
         await ANMELDUNG._nachladen();
         ANMELDUNG._uebernehmen(ergebnis.eintrag);
         ANMELDUNG._fertig();
-        /* Erfolg spürt man (UPCrew-Standard, seit 0.4.0); die Meldung ist
-           ein Stichwort mit Namen, keine Begrüßung. */
-        FUEHLEN.erfolg();
+        /* Die Meldung ist ein Stichwort mit Namen, keine Begrüßung. (Die
+           Vibration dazu ist seit 0.8.1 raus.) */
         DIALOG.kurzmeldung(gruss + KONTO.anzeigeName(ergebnis.eintrag));
     },
 

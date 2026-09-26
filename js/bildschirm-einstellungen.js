@@ -56,10 +56,8 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     },
 
     /*
-     * Dieses Gerät (seit 0.4.0): der Schalter für die Vibration
-     * (UPCrew-Standard, Abschnitt 5 — ab Werk an). Ein Segment-Schalter
-     * wie in der Rangliste. Kann das Gerät nicht vibrieren (iPhone), steht
-     * das als Stichwort daneben, statt einen Schalter ohne Wirkung zu zeigen.
+     * Dieses Gerät (seit 0.4.0): Darstellung, Standard-Schrift und der Weg
+     * zu „Anpassen" (seit 0.8.0).
      */
     _geraetBauen() {
         const karte = BAUSTEINE.karte("Dieses Gerät");
@@ -96,17 +94,10 @@ const EINSTELLUNGEN_BILDSCHIRM = {
            js\darstellung.js „Kachelfarben-Sperre"); die Kacheln folgen
            später den Farbpaketen, die man freischaltet. */
 
-        karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("vibration", "Vibration",
-            FUEHLEN.verfuegbar()
-                ? BAUSTEINE.segment(
-                    [{ wert: true, text: "An" }, { wert: false, text: "Aus" }],
-                    FUEHLEN.an(),
-                    (wert) => {
-                        FUEHLEN.anSetzen(wert);
-                        FUEHLEN.tippen();
-                        NAVIGATION.auffrischen();
-                    }, "Vibration")
-                : BAUSTEINE.el("span", "schild", "nicht möglich")));
+        /* 0.4.0 bis 0.8.0 stand hier der Schalter „Vibration". Seit 0.8.1
+           ist die Vibration überall raus (Nutzer 26.09.2026: „kommt erst
+           wann anders"); der gespeicherte Wert „vibration" wird nicht mehr
+           gelesen. */
         return karte;
     },
 
