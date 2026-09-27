@@ -117,6 +117,13 @@ const WERKSTATT = {
         }
         DARSTELLUNG.anwenden();
 
+        /* `&kerbe` (seit 0.15.8): der iPhone-Streifen oben zum Ansehen am
+           Rechner — 47 px statt env(safe-area-inset-top), das der Browser
+           hier mit 0 liefert (css\stil.css `--oben-frei`). */
+        if (WERKSTATT._parameter().has("kerbe")) {
+            document.documentElement.style.setProperty("--oben-frei", "47px");
+        }
+
         /* Das Kachel-Set (seit 0.14.0, js\kachelsets.js): `&kachelset=neon`
            zieht es an, sonst Papier. `&kachelwahl` legt oben eine Leiste
            zum schnellen Durchschalten aller Sets und von hell/dunkel über

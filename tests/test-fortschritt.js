@@ -330,8 +330,51 @@ gleich("Abzeichen: Serie = max(bester Lauf, laufende über beide)", werte.besteS
 const abz = FORTSCHRITT.abzeichen(profil, HEUTE);
 const viel = abz.find((a) => a.id === "partien");
 gleich("Viel gespielt 1637: 6 Stufen + 1 Schritt, nach oben offen", [viel.erreicht, viel.naechste], [7, 2000]);
-gleich("Abzeichen-Stufen wie im Entwurf", FORTSCHRITT.ABZEICHEN.map((a) => a.stufen), [
+const UPCREW_ABZEICHEN = require("../js/upcrew-abzeichen.js");
+gleich("Abzeichen-Stufen wie im Entwurf", UPCREW_ABZEICHEN.ABZEICHEN.map((a) => a.stufen), [
     [10, 50, 100, 250, 500, 1000], [3, 7, 30, 100, 365], [1, 10, 30, 100], [10, 30, 60, 100, 150], [1, 10, 50, 100, 365]]);
+
+/* Seit 0.15.9 rechnet der gemeinsame Baustein js\upcrew-abzeichen.js. Derselbe
+   Fortschritt muss dieselben Abzeichen ergeben wie die eigene Rechnung bis
+   0.15.8 — die Werte unten hat die ALTE Rechnung geliefert (vor dem Umbau
+   einmal ausgeführt): [id, wert, erreicht, naechste] je Abzeichen. */
+{
+    const bz = (angaben) => Object.assign({ xp: 0, partien: 0, gezaehlt: [], stand: 5 }, angaben);
+    const faelle = [
+        [{ version: 1, spiele: {} }, "2026-09-27"],
+        [profil, "2026-09-27"],
+        [{ version: 1, spiele: {
+            typoluck: { xp: 90000, partien: 4200, tage: ["2026-09-20", "2026-09-21", "2026-09-22", "2026-09-23",
+                "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"],
+                zaehler: { tagesaufgaben: 800, beideTage: 250, figuren: 400, besteSerie: 900 } },
+            blunderluck: bz({ partien: 3000, tage: ["2026-09-26", "2026-09-27"],
+                turm: { figuren: { "1-0": 3, "1-1": 3, "1-2": 3, "2-0": 9 } } }) } }, "2026-09-27"],
+        [{ version: 1, spiele: { blunderluck: bz({ partien: 12, tage: ["2026-09-25", "2026-09-26", "2026-09-27"] }) } },
+            "2026-09-27"],
+        [{ version: 1, spiele: { typoluck: { partien: 5, tage: ["2026-09-26", "2026-09-27", "kaputt", "2026-09-27"],
+            zaehler: { figuren: -3, besteSerie: "x" } } } }, "2026-09-28"],
+        [{ version: 1, spiele: { typoluck: { partien: 40, tage: ["2026-09-26"], zaehler: { besteSerie: 2 } } } }, null]
+    ];
+    const vorher = [
+        [["partien", 0, 0, 10], ["besteSerie", 0, 0, 3], ["beideTage", 0, 0, 1], ["figuren", 0, 0, 10], ["tagesaufgaben", 0, 0, 1]],
+        [["partien", 1637, 7, 2000], ["besteSerie", 4, 1, 7], ["beideTage", 2, 1, 10], ["figuren", 26, 1, 30], ["tagesaufgaben", 15, 2, 50]],
+        [["partien", 7200, 18, 7500], ["besteSerie", 900, 6, 1095], ["beideTage", 250, 5, 300], ["figuren", 412, 10, 450], ["tagesaufgaben", 802, 6, 1095]],
+        [["partien", 12, 1, 50], ["besteSerie", 3, 1, 7], ["beideTage", 0, 0, 1], ["figuren", 0, 0, 10], ["tagesaufgaben", 3, 1, 10]],
+        [["partien", 5, 0, 10], ["besteSerie", 2, 0, 3], ["beideTage", 0, 0, 1], ["figuren", 0, 0, 10], ["tagesaufgaben", 0, 0, 1]],
+        [["partien", 40, 1, 50], ["besteSerie", 2, 0, 3], ["beideTage", 0, 0, 1], ["figuren", 0, 0, 10], ["tagesaufgaben", 0, 0, 1]]
+    ];
+    faelle.forEach(([stand, datum], i) => {
+        gleich("Abzeichen aus dem Baustein = wie vorher, Fall " + (i + 1),
+            FORTSCHRITT.abzeichen(stand, datum).map((a) => [a.id, a.wert, a.erreicht, a.naechste]), vorher[i]);
+    });
+    gleich("Titel, Kurzname, Zeichen, Einheit wie vorher", UPCREW_ABZEICHEN.ABZEICHEN.map((a) =>
+        [a.titel, a.kurz, a.zeichen, a.weiter, a.einheit]), [
+        ["Viel gespielt", "Partien", "partie", 500, "Partien"], ["Serie", "Serie", "serie", 365, "Tage am Stück"],
+        ["Beide Spiele", "Beide", "beide", 100, "Tage"], ["Figuren", "Figuren", "koenig", 50, "Figuren"],
+        ["Tagesaufgaben", "Heute", "kalender", 365, "geschafft"]]);
+    pruefe("Keine eigene Abzeichen-Rechnung mehr in js\\fortschritt.js",
+        !/ABZEICHEN:\s*\[/.test(fs.readFileSync(path.join(__dirname, "..", "js", "fortschritt.js"), "utf8")));
+}
 gleich("Statistik aus dem Typoluck-Zweig", FORTSCHRITT.statistik(profil, HEUTE),
     { partien: 1600, figuren: 20, koennen: 75, bestesKoennen: 92, besteSerie: 4 });
 gleich("Statistik ohne Können: null", FORTSCHRITT.statistik(leer, HEUTE).koennen, null);
@@ -369,6 +412,6 @@ gleich("Tat-Titel", FORTSCHRITT.tatTitel("serie-7"), "7 Tage Serie");
 /* XP-Quellen aus denselben Zahlen */
 gleich("Quellen zum Anzeigen", FORTSCHRITT.quellen().map((q) => q.wert), ["+10", "+10", "+15…30", "×1,5", "+5…35"]);
 pruefe("Kurze Namen passen unter die Kacheln (höchstens 7 Zeichen)",
-    FORTSCHRITT.quellen().every((q) => q.titel.length <= 7) && FORTSCHRITT.ABZEICHEN.every((a) => a.kurz.length <= 7));
+    FORTSCHRITT.quellen().every((q) => q.titel.length <= 7) && UPCREW_ABZEICHEN.ABZEICHEN.every((a) => a.kurz.length <= 7));
 
 fazit();

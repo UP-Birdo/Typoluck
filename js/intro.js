@@ -63,6 +63,10 @@ const INTRO = {
         }
         const optionen = {
             modus: INTRO.modus(),
+            /* Die eigene Farbwelt (seit 0.15.13, wie Blunderluck v0.151.17):
+               Jedes Spiel hat sein eigenes Aussehen, der gemeinsame Merker
+               upcrew.farbwelt wird nicht mehr geschrieben. */
+            welt: (typeof UPCREW_AUSSEHEN !== "undefined") ? UPCREW_AUSSEHEN.lesen().farbwelt : undefined,
             app: { nr: INTRO.APP_NR, name: INTRO.APP_NAME, version: KONFIG.APP_VERSION }
         };
         if (typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv()) {

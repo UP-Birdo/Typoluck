@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.15.6";
+const SPEICHER_NAME = "typoluck-v0.16.3";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -44,6 +44,11 @@ const DATEIEN = [
     "./css/upcrew-intro.css",
     "./css/upcrew-knoepfe.css",
     "./css/upcrew-anpassen.css",
+    "./css/upcrew-sammlung.css",
+    "./css/upcrew-abzeichen.css",
+    "./css/upcrew-wischen.css",
+    "./css/upcrew-flamme.css",
+    "./css/upcrew-spielerliste.css",
     "./css/upcrew-leiste.css",
 
     /* Die Crew-Schriften (seit 0.8.0) — alle zwölf, damit jede Wahl im
@@ -73,12 +78,21 @@ const DATEIEN = [
     "./js/darstellung.js",
     "./js/kachelsets.js",
     "./js/upcrew-anpassen.js",
+    "./js/upcrew-abzeichen.js",
+    "./js/upcrew-sammlung.js",
+    "./js/upcrew-wischen.js",
+    "./js/upcrew-leiste.js",
+    "./js/upcrew-flamme.js",
+    "./js/upcrew-spielerliste.js",
     "./js/speicher.js",
     "./js/abgleich.js",
     "./js/woerter-de.js",
     "./js/wordle.js",
     "./js/ergebnisse.js",
     "./js/rangliste.js",
+    "./js/wortbewertung-daten.js",
+    "./js/wortbewertung-korrektur.js",
+    "./js/wortbewertung.js",
     "./js/wertung.js",
     "./js/fortschritt.js",
     "./js/bausteine.js",
@@ -91,6 +105,7 @@ const DATEIEN = [
     "./js/bildschirm-rangliste.js",
     "./js/bildschirm-freunde.js",
     "./js/bildschirm-profil.js",
+    "./js/bildschirm-verwaltung.js",
     "./js/bildschirm-einstellungen.js",
     "./js/bildschirm-herausforderungen.js",
     "./js/sammlung.js",

@@ -1,0 +1,112 @@
+/*
+ * upcrew-flamme.css — die Serien-Flamme (zu upcrew-flamme.js), gleich in Blunderluck und Typoluck.
+ * Quelle künftig Design\3D-Schrift\final — KOPIEREN, nie abwandeln.
+ *
+ * MARKUP (baut upcrew-flamme.js):
+ *   <button class="up-fl up-fl-voll up-fl-schutz" aria-label="Serie 12 Tage · heute geschafft · Schutz 1">
+ *     <svg class="up-fl-flamme">…</svg><span class="up-fl-zahl">12</span><svg class="up-fl-schild">…</svg>
+ *   </button>
+ * Ein Kreis, 44 px, immer gleich groß (die Zahl hat höchstens drei Zeichen: 0–999, „1k+“ …).
+ * Farben nur aus der Farbwelt: --haupt, --haupt-schrift, --karte, --karte-leise, --rahmen, --schrift-leise.
+ */
+.up-fl {
+    position: relative;
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll, 999px);
+    background: var(--karte);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.up-fl:focus-visible {
+    outline: 3px solid var(--haupt);
+    outline-offset: 2px;
+}
+
+.up-fl-flamme {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 36px;
+    height: 36px;
+    transform: translate(-50%, -52%);
+    fill: var(--haupt);
+    stroke: none;
+}
+
+/* Die Zahl sitzt im Bauch der Flamme. */
+.up-fl-zahl {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-18%);
+    text-align: center;
+    color: var(--haupt-schrift);
+    font-size: 0.64rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+    pointer-events: none;
+}
+
+/* Serie 0: erloschen. */
+.up-fl-aus .up-fl-flamme {
+    fill: var(--karte-leise);
+    stroke: var(--schrift-leise);
+    stroke-width: 1.2;
+}
+
+.up-fl-aus .up-fl-zahl {
+    color: var(--schrift-leise);
+}
+
+/* Heute geschafft: leuchtet. */
+.up-fl-voll .up-fl-flamme {
+    filter: drop-shadow(0 0 3px color-mix(in srgb, var(--haupt) 70%, transparent));
+}
+
+/* Serie läuft, heute noch offen: gedämpft und leise pulsierend. */
+.up-fl-offen .up-fl-flamme {
+    fill: color-mix(in srgb, var(--haupt) 55%, var(--karte));
+    animation: up-fl-puls 1.8s ease-in-out infinite;
+}
+
+@keyframes up-fl-puls {
+    0%, 100% { opacity: 0.75; }
+    50% { opacity: 1; }
+}
+
+/* Serien-Schutz: kleines Schild unten rechts am Kreis. */
+.up-fl-schild {
+    display: none;
+    position: absolute;
+    right: -3px;
+    bottom: -3px;
+    width: 16px;
+    height: 16px;
+    padding: 2px;
+    box-sizing: border-box;
+    border-radius: var(--rund-voll, 999px);
+    background: var(--karte);
+    fill: var(--haupt);
+    stroke: var(--karte);
+    stroke-width: 1.5;
+    box-shadow: 0 0 0 1px var(--rahmen);
+}
+
+.up-fl-schutz .up-fl-schild {
+    display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .up-fl-offen .up-fl-flamme {
+        animation: none;
+        opacity: 0.85;
+    }
+}

@@ -1,0 +1,177 @@
+/*
+ * upcrew-sammlung.css — das GERÜST des Tabs „Sammlung", gleich in Blunderluck und Typoluck (zu upcrew-sammlung.js).
+ * Quelle künftig Design\3D-Schrift\final — in die Apps KOPIEREN, nie abwandeln. Laden NACH upcrew-anpassen.css.
+ *
+ * Nutzer, 27.09.2026: „bei beiden Apps soll Sammlung gleich sein und immer gleich bleiben“. Vorlage: Blunderluck
+ * v0.151.4 (Kopf voll breit, Kante unter der Vorschau, flacher Balken), herausgezogen in Blunderluck v0.151.11.
+ *
+ * MARKUP-VERTRAG (baut upcrew-sammlung.js; die App füllt nur die Inhalte):
+ *   <section class="up-sm">                             ← der Tab selbst, DIREKTES Kind des rollenden Inhalts
+ *     <div class="up-sm-kopf">                          ← klebt oben, volle Breite
+ *       <h2 class="up-sm-titel">Sammlung</h2>
+ *       <span class="up-sm-anteil">66 %</span>
+ *     </div>
+ *     <div class="up-sm-ort upa">                       ← UPCREW_ANPASSEN.zeigen(ort, …):
+ *       <section class="upa-vorschau-rahmen">…</section>   Umschalter der Spiele + klebende Vorschau
+ *       <section class="upa-regal">…</section> …           Regale (eigene der App zuerst)
+ *       <div class="up-sm-rest">                        ← die reine Sammlung (vor dem Balken)
+ *         <section class="upa-regal up-sm-teil up-sm-abzeichen">…</section>   ← „Abzeichen“, in beiden Apps gleich
+ *                                                           (Raster aus upcrew-abzeichen.js/.css)
+ *         <section class="upa-regal up-sm-teil"><h2>Brettformen <span class="up-sm-zahl">12/12</span></h2>
+ *           <div class="up-sm-gitter">
+ *             <button class="up-sm-stueck up-sm-da">[Bild der App]<span class="up-sm-stueck-name">Kreuz</span></button>
+ *           </div>
+ *           <div class="up-sm-innen">[eigener Inhalt mit Regal-Einzug]</div>
+ *         </section>
+ *       </div>
+ *       <div class="upa-aktion">Zurück · Übernehmen</div>   ← klebt unten, über der Leiste
+ *     </div>
+ *   </section>
+ *
+ * STELLSCHRAUBEN (setzt die App an :root — der Innenabstand unten gilt dem ELTERN-Element, darum nicht an .up-sm):
+ *   --up-sm-rand    Innenrand des rollenden Inhalts (Kopf und Ort ziehen ihn auf volle Breite), Standard 12px
+ *   --up-sm-leiste  Höhe der festen Leiste unten samt iPhone-Streifen, Standard 0px
+ *   --oben-frei     was oben frei bleibt (iPhone-Statusleiste, Typoluck-Name), Standard 0px
+ * Dazu die Farbwelt-Variablen (--flaeche, --karte, --rahmen, --schrift, --schrift-leise, --haupt) und
+ * --rund-mittel. Keine festen Farben.
+ *
+ * WARUM KLEBEND (sticky) UND NICHT FEST (fixed) — Entscheidung 27.09.2026:
+ *   Blunderluck lief mit sticky am iPhone richtig (Nutzer-Bilder zu v0.151.4): Die Seite selbst rollt, Kopf,
+ *   Vorschau und Balken kleben am Fenster, und die Leiste ist fest. Typoluck maß am iPhone Versatz (Vorschau
+ *   ~53 pt zu tief, Balken ~130 pt zu hoch) — dort rollt ein anderer Ausschnitt als der, an dem die Leiste
+ *   hängt, und die obere Freihaltung kam doppelt dazu. Die Lösung dafür ist, dass die App wie Blunderluck die
+ *   SEITE rollen lässt (der Tab direkt im rollenden Inhalt) und `--oben-frei` genau einmal gilt — hier.
+ *   `fixed` mit per ResizeObserver freigehaltenen Höhen wurde verworfen: mehr bewegliche Teile, und bei 568 px
+ *   Höhe bliebe zwischen Vorschau, Balken und Leiste kaum Platz zum Rollen.
+ *   NIEDRIGE FENSTER (bis 600 px hoch): Die Vorschau rollt mit statt zu kleben — sonst bleiben am iPhone SE
+ *   neben Kopf, Vorschau (≈ 300 px), Balken und Leiste nur ein paar Zeilen für die Regale.
+ */
+
+/* Ein verborgener Tab bleibt verborgen: `display` hier würde das [hidden] des Browsers schlagen (Fehler bis
+   Blunderluck v0.151.14 — der Sammlungs-Kopf stand dann auf jedem anderen Tab unten im Bild). */
+.up-sm[hidden] {
+    display: none;
+}
+
+/* Kopf: klebt oben, über die volle Breite (sonst schaut beim Rollen am Rand der Inhalt vorbei). */
+.up-sm-kopf {
+    position: sticky;
+    top: var(--oben-frei, 0px);
+    z-index: 50;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 0 calc(-1 * var(--up-sm-rand, 12px));
+    padding: 8px var(--up-sm-rand, 12px) 10px;
+    background: var(--flaeche);
+    border-bottom: 1px solid var(--rahmen);
+}
+
+.up-sm-titel {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.up-sm-anteil {
+    margin-left: auto;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--haupt);
+}
+
+/* Der Ort des Anpassen-Bausteins: volle Breite (er rückt selbst 14 px ein). */
+.up-sm-ort {
+    margin: 0 calc(-1 * var(--up-sm-rand, 12px));
+}
+
+/* Die Vorschau klebt BÜNDIG unter dem Kopf (--upa-oben = Kopfhöhe, setzt upcrew-sammlung.js) und schließt
+   unten mit einer kräftigen, harten Kante ab — die Regale verschwinden sichtbar darunter. */
+.up-sm .upa-vorschau-rahmen {
+    top: calc(var(--oben-frei, 0px) + var(--upa-oben, 0px));
+    border-bottom: 2px solid var(--rahmen);
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--flaeche) 70%, transparent);
+    margin-bottom: 8px;
+}
+
+/* Der Balken „Zurück · Übernehmen“ klebt auf der festen Leiste, etwas flacher. */
+.up-sm .upa-aktion {
+    bottom: var(--up-sm-leiste, 0px);
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+/* Luft unten: Der rollende Inhalt hält unter dem Tab genau die Leiste frei — kein Streifen unter dem Balken,
+   durch den Inhalt rollt. */
+:where(*):has(> .up-sm:not([hidden])) {
+    padding-bottom: var(--up-sm-leiste, 0px);
+}
+
+/* ---- Die reine Sammlung ---- */
+
+.up-sm-rest {
+    padding-bottom: 12px;
+}
+
+.up-sm-zahl {
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.up-sm-innen {
+    padding: 0 14px;
+}
+
+.up-sm-gitter {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+    padding: 2px 14px 8px;
+}
+
+.up-sm-stueck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px 2px 8px;
+    font: inherit;
+    font-size: 0.66rem;
+    font-weight: 700;
+    color: var(--schrift-leise);
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel, 14px);
+    cursor: pointer;
+}
+
+.up-sm-stueck.up-sm-da {
+    color: var(--schrift);
+}
+
+/* Zwei Zeilen statt „…“: abgeschnitten sahen ähnliche Namen gleich aus. */
+.up-sm-stueck-name {
+    max-width: 100%;
+    padding: 0 3px;
+    text-align: center;
+    line-height: 1.2;
+    overflow-wrap: break-word;
+}
+
+@media (max-width: 600px) {
+    .up-sm-titel {
+        font-size: 1.05rem;
+    }
+}
+
+@media (max-height: 600px) {
+    .up-sm .upa-vorschau-rahmen {
+        position: relative;
+        top: auto;
+    }
+}

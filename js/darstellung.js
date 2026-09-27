@@ -173,7 +173,15 @@ const DARSTELLUNG = {
 
 /* Der frühe Aufruf: erst die alte Wahl übergeben, dann anwenden. Wechselt
    das Gerät zwischen hell und dunkel, zieht der Baustein selbst nach (bis
-   0.7.0 stand dafür hier ein eigener Horcher). */
+   0.7.0 stand dafür hier ein eigener Horcher).
+   Seit 0.15.13 hat jedes Spiel sein EIGENES Aussehen (Nutzer 27.09.2026:
+   „wenn man auf Übernehmen drückt, soll sich nur das Spiel ändern"; der
+   Baustein hält es unter `typoluck.aussehen`). Das Spiel erkennt er am
+   Pfad (/Typoluck/); gesetzt wird es hier trotzdem, damit es auch dort
+   greift, wo die Seite nicht unter /Typoluck/ liegt (lokal, Werkstatt). */
+if (typeof UPCREW_AUSSEHEN !== "undefined") {
+    UPCREW_AUSSEHEN.app = "typoluck";
+}
 DARSTELLUNG.migrieren();
 DARSTELLUNG.anwenden();
 

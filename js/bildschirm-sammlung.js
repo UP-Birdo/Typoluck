@@ -6,20 +6,24 @@
  * ersetzt den Tab „Anpassen" von 0.8.0 (bis dahin js\bildschirm-anpassen.js).
  * Auftrag: Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md.
  *
- * Von oben nach unten:
- *   1. Kopfzeile „Sammlung", rechts „NN %" gesammelt (SAMMLUNG.anteil).
- *      Sie klebt oben — die Vorschau des Bausteins klebt bündig darunter
- *      (--upa-oben in css\stil-bildschirme.css = Höhe der Kopfzeile).
- *   2. Der gemeinsame Baustein js\upcrew-anpassen.js DIREKT im Tab (kein
- *      Knopf, kein Blatt): Vorschau, Regale Farbwelt · Schrift · Knöpfe ·
- *      Darstellung · Sets. Kopiert aus Design\3D-Schrift\final, nie
- *      abwandeln — in Blunderluck derselbe.
- *   3. Unter den Regalen, VOR dem Balken „Zurück / Übernehmen", die reine
- *      Sammlung (js\sammlung.js, heute „Modi"). Der Balken klebt bündig auf
- *      der Leiste.
- *
- * Eigene Regale (wie Blunderlucks „Brett") hat Typoluck vorerst keins —
- * Kachel-Sets gibt es noch nicht.
+ * DAS GERÜST (seit 0.15.9) ist der gemeinsame Baustein js\upcrew-sammlung.js
+ * + css\upcrew-sammlung.css aus Design\3D-Schrift\final — in Blunderluck
+ * derselbe (Nutzer 27.09.2026: „bei beiden Apps soll Sammlung gleich sein
+ * und immer gleich bleiben", „1:1 bis auf die spieleigenen Items"). Er baut:
+ *   1. den klebenden Kopf „Sammlung" mit „NN %" (SAMMLUNG.anteil);
+ *   2. den Ort für js\upcrew-anpassen.js: Umschalter der Spiele, klebende
+ *      Vorschau, Regale Farbwelt · Schrift · Knöpfe · Darstellung · Sets,
+ *      Balken „Zurück · Übernehmen" auf der Leiste;
+ *   3. davor die reine Sammlung: zuerst „Abzeichen" (js\upcrew-abzeichen.js,
+ *      gleich in beiden Apps), dann die spieleigenen Gruppen (Modi,
+ *      Kachel-Sets aus js\sammlung.js).
+ * Eigen ist hier NUR, was Typoluck hat: die Gruppen, das Bild eines Stücks
+ * (`.stueck-bild`, Kürzel), die Markierung des getragenen Kachel-Sets
+ * (`.stueck-aktiv`) und was Antippen tut. Das Gerüst setzt die App nur über
+ * die Stellschrauben in css\stil.css (`--up-sm-rand`, `--up-sm-leiste`,
+ * `--oben-frei`). Der Tab steht DIREKT im rollenden Inhalt (`#inhalt`), und
+ * die Seite selbst rollt — sonst kleben Kopf, Vorschau und Balken am
+ * iPhone versetzt (Nutzer-Bild 27.09.2026).
  *
  * DIE STUFE ist seit 0.10.0 das Level (js\fortschritt.js): Was darüber
  * liegt, kann man in der Vorschau ansehen, aber nicht übernehmen. Ab welcher Stufe was frei ist,
@@ -72,58 +76,74 @@ const SAMMLUNG_BILDSCHIRM = {
             return;
         }
 
-        const anteil = SAMMLUNG.anteil(UPCREW_ANPASSEN.STUFEN, SAMMLUNG_BILDSCHIRM.stufe(),
-            SAMMLUNG_BILDSCHIRM._alleFrei(), SAMMLUNG_BILDSCHIRM._taten());
-        const prozent = BAUSTEINE.el("span", "sammlung-anteil", anteil.prozent + " %");
-        prozent.title = anteil.hat + " von " + anteil.alle + " gesammelt";
-        prozent.setAttribute("aria-label", prozent.title);
-        behaelter.appendChild(BAUSTEINE.kopfzeile(SAMMLUNG_BILDSCHIRM.TITEL, { rechts: prozent }));
+        const wurzel = BAUSTEINE.el("section");
+        behaelter.appendChild(wurzel);
+        const geruest = UPCREW_SAMMLUNG.bauen(wurzel, { titel: SAMMLUNG_BILDSCHIRM.TITEL });
 
-        const ort = BAUSTEINE.el("div", "sammlung-ort");
-        behaelter.appendChild(ort);
-        SAMMLUNG_BILDSCHIRM._tab = UPCREW_ANPASSEN.zeigen(ort, {
+        SAMMLUNG_BILDSCHIRM._tab = UPCREW_ANPASSEN.zeigen(geruest.ort, {
             app: "typoluck",
             stufe: SAMMLUNG_BILDSCHIRM.stufe(),
             alleFrei: SAMMLUNG_BILDSCHIRM._alleFrei()
         });
 
-        /* Die reine Sammlung in dieselbe Fläche, VOR den Übernehmen-Balken —
-           so bleibt der Balken immer ganz unten. */
-        ort.insertBefore(SAMMLUNG_BILDSCHIRM._gruppenBauen(), ort.querySelector(".upa-aktion"));
+        /* Die reine Sammlung VOR den Balken (das Gerüst weiß, wohin), „NN %"
+           in den Kopf, die Vorschau bündig darunter. */
+        geruest.restEinsetzen(SAMMLUNG_BILDSCHIRM._restBauen());
+        const anteil = SAMMLUNG.anteil(UPCREW_ANPASSEN.STUFEN, SAMMLUNG_BILDSCHIRM.stufe(),
+            SAMMLUNG_BILDSCHIRM._alleFrei(), SAMMLUNG_BILDSCHIRM._taten());
+        geruest.anteilSetzen(anteil.hat, anteil.alle);
+        geruest.obenSetzen();
     },
 
-    /* Je Gruppe ein Regal im Stil des Bausteins (Überschrift „Name n/m"),
-       darin ein Gitter aus Stücken. Antippen zeigt die eine Zeile dazu. */
     /* Die erfüllten Taten (seit 0.13.0) — aus dem Fortschritt. */
     _taten() {
         return FORTSCHRITT.erfuellteTaten(APP.fortschritt(), WORDLE.datumText(APP.jetzt()));
     },
 
-    _gruppenBauen() {
-        const teil = BAUSTEINE.el("div", "sammlung-rest");
+    /* Die reine Sammlung aus den Teilen des Gerüsts: zuerst die Abzeichen
+       (Stand von JETZT, über alle Spiele), dann je Gruppe ein Teil
+       „Name n/m" mit einem Gitter aus Stücken. */
+    _restBauen() {
+        const rest = UPCREW_SAMMLUNG.rest();
+        const datum = WORDLE.datumText(APP.jetzt());
+        rest.appendChild(UPCREW_SAMMLUNG.abzeichenTeil(FORTSCHRITT.abzeichen(APP.fortschritt(), datum),
+            (eintrag) => DIALOG.hinweis(eintrag.titel, "", UPCREW_ABZEICHEN.blatt(eintrag))));
+
         const gewaehlt = KACHELSETS.gewaehlt();
         for (const gruppe of SAMMLUNG.gruppen(SAMMLUNG_BILDSCHIRM._taten(), SAMMLUNG_BILDSCHIRM._alleFrei(),
             SAMMLUNG_BILDSCHIRM.stufe())) {
             const zahl = SAMMLUNG.gruppeZaehlen(gruppe);
-            const regal = BAUSTEINE.el("section", "upa-regal");
-            const kopf = BAUSTEINE.el("h2", null, gruppe.titel + " ");
-            kopf.appendChild(BAUSTEINE.el("span", "sammlung-zahl", zahl.hat + "/" + zahl.alle));
-            regal.appendChild(kopf);
-
-            const gitter = BAUSTEINE.el("div", "sammlung-gitter");
+            const teil = UPCREW_SAMMLUNG.teil(gruppe.titel, zahl.hat, zahl.alle);
+            const gitter = UPCREW_SAMMLUNG.gitter();
             for (const stueck of gruppe.stuecke) {
-                gitter.appendChild(BAUSTEINE.stueck({
-                    name: stueck.name, da: stueck.da,
-                    aktiv: stueck.anziehbar === true && stueck.id === gewaehlt,
-                    /* Gesperrt über das Level (seit 0.15.0): „ab 6" statt „···". */
-                    schloss: typeof stueck.ab === "number" ? "ab " + stueck.ab : null,
-                    beiKlick: () => SAMMLUNG_BILDSCHIRM._stueckAntippen(stueck, gewaehlt)
-                }));
+                gitter.appendChild(SAMMLUNG_BILDSCHIRM._stueckBauen(stueck, gewaehlt));
             }
-            regal.appendChild(gitter);
-            teil.appendChild(regal);
+            teil.appendChild(gitter);
+            rest.appendChild(teil);
         }
-        return teil;
+        return rest;
+    },
+
+    /* Ein Stück: das Gerüst baut den Knopf, Typoluck gibt das Bild (Kürzel
+       oder „?") und markiert das getragene Kachel-Set. Gesperrt über das
+       Level steht „ab 6" statt des Namens (seit 0.15.0). */
+    _stueckBauen(stueck, gewaehlt) {
+        const bild = BAUSTEINE.el("span", "stueck-bild", stueck.da ? String(stueck.name).slice(0, 2) : "?");
+        const schloss = typeof stueck.ab === "number" ? "ab " + stueck.ab : "···";
+        const knopf = UPCREW_SAMMLUNG.stueck({
+            name: stueck.da ? stueck.name : schloss,
+            bild: bild,
+            da: stueck.da,
+            beiKlick: () => SAMMLUNG_BILDSCHIRM._stueckAntippen(stueck, gewaehlt)
+        });
+        if (!stueck.da) {
+            knopf.setAttribute("aria-label", "Noch nicht da, " + schloss);
+        }
+        if (stueck.anziehbar === true && stueck.id === gewaehlt) {
+            knopf.classList.add("stueck-aktiv");
+            knopf.setAttribute("aria-current", "true");
+        }
+        return knopf;
     },
 
     /* Antippen: Gesperrt mit Tat zeigt die Tat (seit 0.13.0); ein

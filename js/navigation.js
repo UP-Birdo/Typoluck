@@ -9,6 +9,8 @@
  *         titel:     "Rangliste",        // Beschriftung im Menü
  *         zeichen:   "rangliste",        // Name aus BAUSTEINE.ZEICHEN
  *         imMenue:   true,               // steht er im Menü hinter den Balken?
+ *                                        // (seit 0.16.3 auch eine Frage: () => true/false,
+ *                                        // z. B. nur für Admins)
  *         zeigen(behaelter, parameter),  // baut seinen Inhalt in den Behälter
  *         verlassen()                    // optional: aufräumen (Tastatur usw.)
  *     }
@@ -104,6 +106,7 @@ const NAVIGATION = {
         NAVIGATION._inhaltEl = inhaltEl;
         if (leisteEl) {
             NAVIGATION.leisteBauen(leisteEl);
+            NAVIGATION.wischenEinrichten(inhaltEl);
         }
 
         window.addEventListener("popstate", (ereignis) => {
@@ -193,7 +196,7 @@ const NAVIGATION = {
 
         const halter = BAUSTEINE.el("div", "menue-halter");
         const summe = NAVIGATION._reihenfolge.reduce((zahl, id) =>
-            zahl + (NAVIGATION._bildschirme[id].imMenue ? (NAVIGATION._marken[id] || 0) : 0), 0);
+            zahl + (NAVIGATION._imMenue(NAVIGATION._bildschirme[id]) ? (NAVIGATION._marken[id] || 0) : 0), 0);
 
         const balken = BAUSTEINE.knopf({
             art: "flach", zeichen: "menue", titel: "Menü",
@@ -211,7 +214,7 @@ const NAVIGATION = {
         liste.hidden = true;
         for (const id of NAVIGATION._reihenfolge) {
             const bildschirm = NAVIGATION._bildschirme[id];
-            if (!bildschirm.imMenue) {
+            if (!NAVIGATION._imMenue(bildschirm)) {
                 continue;
             }
             const eintrag = BAUSTEINE.knopf({
@@ -232,6 +235,19 @@ const NAVIGATION = {
 
         NAVIGATION._menueHalter = halter;
         return halter;
+    },
+
+    /* Steht der Bildschirm im Menü? `imMenue` darf eine Frage sein (seit
+       0.16.3, Verwaltung nur für Admins). */
+    _imMenue(bildschirm) {
+        if (typeof bildschirm.imMenue === "function") {
+            try {
+                return bildschirm.imMenue() === true;
+            } catch (fehler) {
+                return false;
+            }
+        }
+        return bildschirm.imMenue === true;
     },
 
     _menueUmschalten() {
@@ -324,6 +340,61 @@ const NAVIGATION = {
         }
         leisteEl.hidden = false;
         NAVIGATION._leisteMarkieren();
+        /* Seit 0.15.12 („C · Gleiten + Hüpfen", Nutzer 27.09.2026: „die
+           Animation beim Tab-Wechseln unten muss besser werden"): EINE
+           Kapsel fährt zum neuen Tab, das Symbol hüpft — der gemeinsame
+           Baustein js/upcrew-leiste.js beobachtet `aria-current` selbst,
+           am Tab-Wechsel ändert sich hier nichts. */
+        if (typeof UPCREW_LEISTE !== "undefined") {
+            UPCREW_LEISTE.an(leisteEl);
+        }
+    },
+
+    /*
+     * WISCHEN (seit 0.15.10, Nutzer 27.09.2026: „mache, dass man in den
+     * Menüs swipen kann, um die Tabs zu wechseln" — in beiden Spielen
+     * gleich): der gemeinsame Baustein js\upcrew-wischen.js aus
+     * Design\3D-Schrift\final. Wischbar sind die Tabs der Leiste in ihrer
+     * Reihenfolge (Aufgaben · Sammlung · Start · Rangliste), „Bald" ist
+     * still. Gewechselt wird über denselben Weg wie ein Tipp auf die Leiste.
+     * Nicht gewischt wird während einer Runde (`body.im-spiel`, dort hat
+     * die Fläche wieder `touch-action: auto`, css\stil.css), in der
+     * Anmeldung, im Intro und bei offenen Dialogen; nie auf dem Spielfeld,
+     * der Tastatur und Umschaltern (`WISCHEN_SPERREN`, dazu die Sperren des
+     * Bausteins: Felder, Regal-Reihen, alles, was selbst waagrecht rollt).
+     */
+    WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl",
+
+    wischenTabs() {
+        return NAVIGATION.LEISTE.map((eintrag) => (eintrag.platzhalter
+            ? { id: "platz-" + eintrag.text.toLowerCase(), still: true } : eintrag.id));
+    },
+
+    wischenErlaubt() {
+        const body = document.body;
+        return !body.classList.contains("im-spiel")
+            && !body.classList.contains("anmeldung-offen")
+            && !body.classList.contains("dialog-offen")
+            && !(typeof ANMELDUNG !== "undefined" && ANMELDUNG.offen)
+            && !document.querySelector(".upi:not([hidden])");
+    },
+
+    wischenEinrichten(inhaltEl) {
+        if (typeof UPCREW_WISCHEN === "undefined" || !inhaltEl) {
+            return null;
+        }
+        return UPCREW_WISCHEN.an(inhaltEl, {
+            tabs: () => NAVIGATION.wischenTabs(),
+            aktiv: () => NAVIGATION.aktuell,
+            /* Derselbe Weg wie ein Tipp auf die Leiste (leisteBauen). */
+            wechseln: (id) => {
+                if (NAVIGATION.aktuell !== id) {
+                    NAVIGATION.zeigen(id, null);
+                }
+            },
+            erlaubt: () => NAVIGATION.wischenErlaubt(),
+            sperren: NAVIGATION.WISCHEN_SPERREN
+        });
     },
 
     _leisteMarkieren() {

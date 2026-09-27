@@ -3,6 +3,130 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.16.3 — 27.09.2026
+
+**Verwaltung für Admins.**
+
+- Admins finden im Menü „Verwaltung": das Lexikon mit allen Wörtern
+  (Lösungen mit ihrer Schwierigkeit, Zusatzwörter getrennt; suchen,
+  filtern, sortieren) und die Spielerliste mit Level, Serie, Partien je
+  Spiel, zuletzt aktiv und Abzeichen — antippen zeigt die Zahlen beider
+  Spiele. Nur ansehen, nichts ändern.
+- Für alle anderen ändert sich nichts; sie sehen den Eintrag nicht.
+
+## 0.16.2 — 27.09.2026
+
+- Im Kurzprofil oben steht nur noch „NN % gelöst" — die Serie zeigt die
+  Flamme daneben (über beide Spiele). So passt alles auch auf kleine
+  Handys.
+
+## 0.16.1 — 27.09.2026
+
+**Die Serien-Flamme oben neben deinem Profil.**
+
+- Auf dem Start steht neben dem Kurzprofil ein Kreis mit einer Flamme, in
+  der Flamme die Zahl deiner Serie (bis 999, darüber 1k+) — über beide
+  Spiele und mit deinem Konto zusammengezählt, gleich wie in Blunderluck.
+- Leuchtet, wenn du heute schon geschafft hast; gedämpft, wenn heute noch
+  offen ist; ein kleines Schild zeigt einen Serien-Schutz.
+- Antippen führt zu den Aufgaben.
+
+## 0.16.0 — 27.09.2026
+
+**Die Wörter haben jetzt eine echte Schwierigkeit.**
+
+- Jedes Lösungswort ist bewertet: Wie lange ein guter Rater braucht, wie
+  viele Vokale es hat (zwei verschiedene aus a, e, i, o, u = eher leicht),
+  ob es „Fallen" gibt (Wörter, die sich nur in einem Buchstaben
+  unterscheiden), doppelte Buchstaben, Umlaute, seltene Buchstaben.
+- Daraus kommt die Stufe des Tagesworts (leicht, mittel, schwer — +15,
+  +20, +30 XP wie bisher). Welches Wort an welchem Tag drankommt, bleibt
+  gleich.
+- Grundlage für den kommenden Turm: eine feinere Skala 1–10 je Wort.
+
+## 0.15.13 — 27.09.2026
+
+**Jedes Spiel sein eigenes Aussehen.**
+
+- Was du in der Sammlung übernimmst (Farbwelt, Schrift, Knöpfe, hell oder
+  dunkel), gilt nur noch für Typoluck — Blunderluck bleibt, wie es ist,
+  und umgekehrt.
+- Deine bisherige Wahl bleibt beim ersten Start erhalten.
+- Der Umschalter Typoluck/Blunderluck über der Vorschau ist weg.
+- Das Intro zeigt die Farbwelt von Typoluck.
+
+## 0.15.12 — 27.09.2026
+
+**Die Leiste unten gleitet.**
+
+- Beim Tab-Wechsel fährt die orange Kapsel gefedert zum neuen Tab, das
+  Zeichen hüpft kurz — beim Antippen wie beim Wischen, gleich wie in
+  Blunderluck.
+- Wer auf dem Gerät „Bewegung reduzieren" eingestellt hat, sieht den
+  Wechsel ohne Bewegung.
+
+## 0.15.11 — 27.09.2026
+
+**Links und rechts ist Stopp.**
+
+- Auf Aufgaben (ganz links) und Rangliste (ganz rechts) bewegt sich beim
+  Wischen nach außen nichts mehr — kein Nachgeben, kein Rundlauf.
+- Die Seite selbst lässt sich nicht mehr waagrecht verschieben oder
+  überrollen. Die waagrechten Reihen in der Sammlung rollen weiter.
+
+## 0.15.10 — 27.09.2026
+
+**Tabs wechseln durch Wischen.**
+
+- In Aufgaben, Sammlung, Start und Rangliste wechselt ein Wisch nach links
+  zum nächsten Tab rechts in der Leiste, nach rechts zum vorherigen. An den
+  Enden federt der Inhalt nur zurück.
+- Während einer Runde, auf dem Spielfeld und der Tastatur, auf Umschaltern
+  und in den waagrechten Reihen der Sammlung wird nicht gewischt; senkrecht
+  rollen geht wie immer. Gleich wie in Blunderluck.
+
+## 0.15.9 — 27.09.2026
+
+**Die Sammlung sieht aus wie in Blunderluck — und hat jetzt die Abzeichen.**
+
+- Kopf „Sammlung NN %", die Vorschau darunter mit klarer Kante, die Regale
+  und der Balken „Zurück · Übernommen" direkt auf der Leiste: in beiden
+  Apps dasselbe Gerüst. Eigen bleiben nur die Typoluck-Dinge (Modi,
+  Kachel-Sets).
+- Die Vorschau ist ganz zu sehen, auch die Tastatur.
+- Auf niedrigen Handys (bis 600 px Höhe) rollt die Vorschau mit, damit die
+  Regale Platz haben.
+- Neu in der Sammlung: die fünf Abzeichen (Partien, Serie, Beide, Figuren,
+  Heute) — dieselben wie im Profil, über beide Spiele gerechnet.
+
+## 0.15.8 — 27.09.2026
+
+**Oben nichts mehr unter der Uhrzeit; „Wunsch oder Fehler" nimmt nur Text.**
+
+- Als App vom Home-Bildschirm lief beim Rollen das Spielfeld unter die
+  Uhrzeit des iPhones. Jetzt liegt dort eine feste Fläche in der Grundfarbe,
+  und alles beginnt darunter — auf jedem Bildschirm, auch in Dialogen, in
+  der Anmeldung und bei den kurzen Meldungen.
+- „Wunsch oder Fehler melden": nur noch Buchstaben, Ziffern, Leerzeichen,
+  Zeilenumbrüche und . , ! ? - ( ) : ; — alles andere (Klammern wie < > [ ] { },
+  Zeichen wie $ % & * = / \ |, Emojis, unsichtbare Zeichen) verschwindet
+  schon beim Tippen. Höchstens 500 Zeichen, doppelte Leerzeichen werden zu
+  einem. Das Feld hat jetzt mehrere Zeilen.
+- Die Sammlung bekommt ihr neues Gerüst gleich in beiden Apps (gemeinsamer
+  Baustein, folgt); in dieser Fassung rückt sie nur unter den Streifen oben.
+
+## 0.15.7 — 27.09.2026
+
+**Gleicher Name, gleiches Passwort? Dann fragt die App: „Welches Konto?"**
+
+- Zwei Konten dürfen denselben Namen und dasselbe Passwort haben — sie
+  unterscheiden sich nur in der Nummer.
+- Passt dein Passwort zu mehreren Konten, zeigt die App eine kurze Liste:
+  je Konto der Name, darunter klein die Nummer, dein Level und wann du
+  zuletzt gespielt hast. Antippen meldet dich an; „Abbrechen" meldet
+  niemanden an.
+- Haben die Konten verschiedene Passwörter, bist du wie bisher sofort drin.
+
 ## 0.15.6 — 27.09.2026
 
 **Anmelden nur mit Namen — um die Nummer musst du dich nicht kümmern.**

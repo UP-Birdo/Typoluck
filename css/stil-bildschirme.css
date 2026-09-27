@@ -12,6 +12,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+    /* Abstand Kurzprofil – Serien-Flamme (seit 0.16.1, wie Blunderluck
+       `.start-oben`). */
+    gap: 8px;
     min-height: 64px;
     margin-bottom: 8px;
 }
@@ -358,104 +361,21 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Sammlung (seit 0.9.0, bis 0.8.1 „Anpassen") — Vorschau, Regale und
- * Übernehmen stehen im kopierten Baustein css\upcrew-anpassen.css (Klassen
- * „upa-"). Hier nur, wie Typoluck ihm Platz macht, und die reine Sammlung
- * darunter (js\bildschirm-sammlung.js).
- *
- * Auftrag (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md): Die Vorschau klebt
- * BÜNDIG unter der Kopfzeile, „Zurück / Übernehmen" bündig auf der Leiste —
- * kein Innenabstand oben oder unten, sonst scrollt der Inhalt sichtbar
- * durch die Lücke. Deshalb klebt auf diesem Bildschirm auch die Kopfzeile.
+ * Sammlung (seit 0.9.0, bis 0.8.1 „Anpassen"). SEIT 0.15.9 kommt das
+ * GANZE Gerüst — Kopf „Sammlung NN %", klebende Vorschau mit Abschluss,
+ * Regale, reine Sammlung, Balken „Zurück · Übernehmen" — aus den
+ * gemeinsamen Bausteinen css\upcrew-sammlung.css + css\upcrew-anpassen.css
+ * (Design\3D-Schrift\final, gleich in Blunderluck). Stellschrauben in
+ * css\stil.css (`--up-sm-rand`, `--up-sm-leiste`, `--oben-frei`). Hier
+ * steht nur, was Typoluck eigen ist: das Bild eines Stücks und die
+ * Markierung des getragenen Kachel-Sets.
  * ------------------------------------------------------------------ */
-
-.inhalt[data-bildschirm="sammlung"] {
-    padding-top: 0;
-    /* Unten genau die Leiste: Der Balken „Übernehmen" klebt auf ihr und
-       endet am Ende der Seite dort, wo sie beginnt. */
-    padding-bottom: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom));
-    --sammlung-kopf: 52px;
-    --upa-oben: var(--sammlung-kopf);
-}
-
-.inhalt[data-bildschirm="sammlung"] > .kopfzeile {
-    position: sticky;
-    top: 0;
-    z-index: 3;
-    height: var(--sammlung-kopf);
-    min-height: 0;
-    margin: 0 calc(-1 * var(--inhalt-rand));
-    padding: 0 var(--inhalt-rand);
-    background: var(--flaeche);
-}
-
-/* „NN %" gesammelt, rechts in der Kopfzeile. */
-.sammlung-anteil {
-    display: block;
-    text-align: right;
-    white-space: nowrap;
-    font-size: 0.9rem;
-    font-weight: 800;
-    color: var(--haupt);
-}
-
-/* Die Regale haben ihren eigenen Rand links und rechts — deshalb reicht
-   der Platz bis an die Kante des Inhalts, statt doppelt eingerückt. */
-.sammlung-ort {
-    margin: 0 calc(-1 * var(--inhalt-rand));
-}
-
-/* „Zurück / Übernehmen" klebt unten — bei Typoluck ÜBER der festen Leiste,
-   nicht dahinter (die Leiste liegt auf einer höheren Ebene). */
-.sammlung-ort .upa-aktion {
-    bottom: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom));
-}
-
-/* Die reine Sammlung: je Gruppe ein Regal des Bausteins, darin ein Gitter. */
-.sammlung-rest {
-    padding-bottom: 20px;
-}
-
-.sammlung-zahl {
-    font-weight: 600;
-    text-transform: none;
-    letter-spacing: 0;
-}
-
-.sammlung-gitter {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 0 14px;
-}
-
-.stueck {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-    min-width: 0;
-    padding: 10px 2px 8px;
-    border: 1px solid var(--rahmen);
-    border-radius: var(--rund-mittel);
-    background: var(--karte);
-    color: var(--schrift-leise);
-    font: inherit;
-    font-size: 0.7rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-
-.stueck-da {
-    border-color: var(--haupt);
-    color: var(--schrift);
-}
 
 /* Die Leiste „Neue Version" (seit 0.15.2, js\aktualisierung.js): oben in
    der Mitte über allem; antippen lädt sofort. */
 .aktualisierung {
     position: fixed;
-    top: calc(8px + env(safe-area-inset-top));
+    top: calc(8px + var(--oben-frei));
     left: 50%;
     z-index: 60;
     transform: translateX(-50%);
@@ -465,7 +385,7 @@
    Bildschirm zum Durchschalten der Kachel-Sets und von hell/dunkel. */
 .werkstatt-kachelwahl {
     position: fixed;
-    top: 0;
+    top: var(--oben-frei);
     right: 0;
     left: 0;
     z-index: 50;
@@ -478,7 +398,7 @@
 
 /* Der Inhalt rückt unter die Leiste, damit nichts verdeckt ist. */
 body:has(#werkstatt-kachelwahl) #inhalt {
-    padding-top: 96px;
+    padding-top: calc(96px + var(--oben-frei));
 }
 
 .werkstatt-kachelwahl .segment {
@@ -492,16 +412,30 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     white-space: nowrap;
 }
 
+/* Am Handy hat Blunderluck 12 px Rand statt 16 (dort `--inhalt-rand` bis
+   600 px). Damit das Gerüst in beiden Apps gleich sitzt, rückt die Sammlung
+   hier genauso ein — Kopf und Ort ziehen den Rand über `--up-sm-rand`
+   wieder auf volle Breite. */
+@media (max-width: 600px) {
+    .inhalt:has(> .up-sm) {
+        --up-sm-rand: 12px;
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+}
+
 /* Das Stück, das man trägt (seit 0.14.0, Kachel-Sets): doppelte Kante. */
 .stueck-aktiv {
     box-shadow: 0 0 0 2px var(--karte), 0 0 0 4px var(--haupt);
 }
 
+/* Das Bild eines Stücks: Kürzel (oder „?") auf einer kleinen Kachel. */
 .stueck-bild {
     display: grid;
     place-items: center;
     width: 36px;
     height: 36px;
+    box-sizing: border-box;
     border-radius: var(--rund-klein);
     background: var(--karte-leise);
     color: var(--schrift-leise);
@@ -509,17 +443,9 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     font-weight: 900;
 }
 
-.stueck-da .stueck-bild {
+.up-sm-da .stueck-bild {
     background: var(--haupt);
     color: var(--haupt-schrift);
-}
-
-.stueck-name {
-    max-width: 100%;
-    padding: 0 3px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* ------------------------------------------------------------------ *
@@ -753,8 +679,7 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     margin: 16px 0 4px;
 }
 
-.level-quelle,
-.abzeichen {
+.level-quelle {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -766,15 +691,13 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     font-size: 0.8rem;
 }
 
-.level-quelle .zeichen,
-.abzeichen .zeichen {
+.level-quelle .zeichen {
     width: 20px;
     height: 20px;
     color: var(--haupt);
 }
 
-.level-quelle-name,
-.abzeichen-name {
+.level-quelle-name {
     max-width: 100%;
     overflow: hidden;
     color: var(--schrift-leise);
@@ -826,17 +749,6 @@ body:has(#werkstatt-kachelwahl) #inhalt {
 
 .level-belohnung-leer {
     color: var(--schrift-leise);
-}
-
-.level-abzeichen {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 6px;
-}
-
-/* Ein Abzeichen ohne erreichte Stufe bleibt blass. */
-.abzeichen:not(.abzeichen-an) {
-    opacity: 0.5;
 }
 
 /* ------------------------------------------------------------------ *
@@ -945,74 +857,129 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     grid-template-columns: repeat(3, 1fr);
 }
 
-/* Abzeichen als Knopf (BAUSTEINE.abzeichen): Punkte je Stufe. */
-button.abzeichen {
-    border: 0;
-    color: var(--schrift);
-    font: inherit;
-    cursor: pointer;
-}
-
-.abzeichen-punkte {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 3px;
-    max-width: 46px;
-    min-height: 6px;
-}
-
-.abzeichen-punkte i {
-    width: 6px;
-    height: 6px;
-    border-radius: var(--rund-voll);
-    background: var(--rahmen);
-}
-
-.abzeichen-punkte i.an {
-    background: var(--figur);
-}
-
-.abzeichen-punkte b {
-    font-size: 0.62rem;
-}
-
-.abzeichen-wert {
-    margin: 0 0 10px;
-}
-
-.abzeichen-wert strong {
-    font-size: 1.6rem;
-}
-
-.abzeichen-stufen {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    align-items: center;
-}
-
-.abzeichen-stufen span {
-    padding: 4px 10px;
-    border-radius: var(--rund-voll);
-    background: var(--karte-leise);
-    font-size: 0.82rem;
-    font-weight: 800;
-}
-
-.abzeichen-stufen span.an {
-    background: var(--figur);
-    color: #1a1406;
-}
-
-.abzeichen-stufen span.leise {
-    background: none;
-    color: var(--schrift-leise);
-}
-
 @media (max-width: 380px) {
     .statistik-raster {
         grid-template-columns: repeat(2, 1fr);
     }
+}
+
+/* ------------------------------------------------------------------ *
+ * Verwaltung (seit 0.16.3, nur für Admins, js/bildschirm-verwaltung.js):
+ * Lexikon als Karten — handytauglich ab 320 px. Die Spielerliste kommt
+ * aus css/upcrew-spielerliste.css.
+ * ------------------------------------------------------------------ */
+
+.verwaltung-ort {
+    margin-top: 12px;
+}
+
+.verwaltung-ort .segment {
+    margin-bottom: 10px;
+}
+
+.verwaltung-hinweis {
+    margin: 6px 0;
+    font-size: 0.8rem;
+    color: var(--schrift-leise);
+}
+
+.lexikon-leiste {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.lexikon-suche {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 8px 10px;
+    font: inherit;
+    color: var(--schrift);
+    background: var(--karte-leise);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-klein);
+}
+
+.lexikon-wahl {
+    padding: 8px 6px;
+    font: inherit;
+    color: var(--schrift);
+    background: var(--karte-leise);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-klein);
+}
+
+.lexikon-haken {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.85rem;
+    color: var(--schrift-leise);
+}
+
+.lexikon-liste {
+    display: grid;
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 0;
+    list-style: none;
+}
+
+.lexikon-karte {
+    padding: 8px 12px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+}
+
+.lexikon-kopf {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.lexikon-wort {
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lexikon-zahl {
+    margin-left: auto;
+    font-size: 0.85rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.lexikon-stufe {
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+}
+
+.lexikon-s3 {
+    background: var(--haupt);
+    color: var(--haupt-schrift);
+}
+
+.lexikon-teile {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    color: var(--schrift-leise);
+    font-variant-numeric: tabular-nums;
+}
+
+.lexikon-ungeeignet .lexikon-wort {
+    text-decoration: line-through;
+}
+
+.lexikon-wolke {
+    font-size: 0.85rem;
+    line-height: 1.8;
+    word-spacing: 2px;
 }

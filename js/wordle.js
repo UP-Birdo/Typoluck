@@ -152,7 +152,13 @@ const WORDLE = {
     /* Ein Wort für die Übung. `zufall` ist eine Zahl in [0, 1) — sie kommt
        von aussen, damit das Modell selbst nie würfelt (und testbar bleibt). */
     uebungswort(zufall) {
-        const liste = WORDLE_WOERTER.loesungen;
+        /* Seit 0.16.0: Wörter, die von Hand als „ungeeignet" markiert sind
+           (js/wortbewertung-korrektur.js), kommen in der Übung nicht dran.
+           Das Tageswort bleibt unberührt — Datum → Wort ändert sich nie. */
+        const alle = WORDLE_WOERTER.loesungen;
+        const wb = (typeof WORTBEWERTUNG !== "undefined") ? WORTBEWERTUNG : null;
+        const geeignet = wb ? alle.filter((wort) => !wb.ungeeignet(wort)) : alle;
+        const liste = geeignet.length ? geeignet : alle;
         const stelle = Math.min(liste.length - 1, Math.max(0, Math.floor(zufall * liste.length)));
         return liste[stelle];
     },

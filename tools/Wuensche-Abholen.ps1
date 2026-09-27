@@ -58,6 +58,24 @@ function Anfragen-Holen {
     }
 }
 
+# NUR TEXT (seit 0.15.8, gleiche Regel wie js\wunsch.js): Auf GitHub kann
+# jeder direkt schreiben, an der App vorbei - deshalb wird hier noch einmal
+# gesaeubert, bevor etwas in TODO.md landet. Erlaubt: lateinische Buchstaben
+# (mit Umlauten, ss, Akzenten), Ziffern, Leerzeichen und . , ! ? - ( ) : ;
+# Die App nimmt \p{Script=Latin}; .NET kennt keine Schrift-Klassen, darum
+# hier die lateinischen Buchstaben-Bereiche von Unicode (ohne x und / im
+# Latin-1-Block). Zeilenumbrueche werden zu Leerzeichen (eine Zeile je Wunsch).
+function Text-Saeubern {
+    param([string] $Text, [int] $MaxLaenge = 500)
+
+    if (-not $Text) { return "" }
+    $erlaubt = '[^A-Za-zÀ-ÖØ-öø-ɏḀ-ỿ0-9 .,!?\-():;]'
+    $sauber = ($Text -replace "\r?\n|\r|\t", " ") -replace $erlaubt, ""
+    $sauber = ($sauber -replace " {2,}", " ").Trim()
+    if ($sauber.Length -gt $MaxLaenge) { $sauber = $sauber.Substring(0, $MaxLaenge) }
+    return $sauber
+}
+
 # Zieht aus dem Formular-Text die eigentliche Idee heraus (Abschnitt
 # "### Was wuenschst du dir?").
 function Idee-Auslesen {
@@ -135,11 +153,13 @@ foreach ($anfrage in $anfragen) {
         continue
     }
     $idee = Idee-Auslesen -Rumpf $anfrage.body
-    if (-not $idee) { $idee = $anfrage.title }
+    $idee = Text-Saeubern -Text $idee
+    if (-not $idee) { $idee = Text-Saeubern -Text $anfrage.title }
+    if (-not $idee) { $idee = "(nur Sonderzeichen - auf GitHub ansehen)" }
     $neue += [PSCustomObject]@{
         Marke = "[#$($anfrage.number)]"
         Text  = $idee
-        Von   = $anfrage.user.login
+        Von   = ($anfrage.user.login -replace '[^A-Za-z0-9-]', '')
     }
 }
 

@@ -1,0 +1,13 @@
+/*
+ * upcrew-wischen.css — zu upcrew-wischen.js (Tabs wechseln durch Wischen), gleich in Blunderluck und Typoluck.
+ * Quelle künftig Design\3D-Schrift\final — KOPIEREN, nie abwandeln.
+ *
+ * Die Fläche mit `.up-wischen` überlässt dem Browser nur das senkrechte Rollen und das Zoomen; waagrechte
+ * Bewegungen kommen als Zeiger-Ereignisse beim Baustein an. Alles, was selbst waagrecht rollt (Regal-Reihen …),
+ * ist ein eigener Rollbereich und behält sein waagrechtes Rollen — dort startet der Baustein auch kein Wischen.
+ * Die App kann die Fläche zurücksetzen, wenn Wischen gerade nie gilt (z. B. während einer Partie):
+ *     body.partie-laeuft .up-wischen { touch-action: auto; }
+ */
+.up-wischen {
+    touch-action: pan-y pinch-zoom;
+}

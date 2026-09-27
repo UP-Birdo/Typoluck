@@ -46,6 +46,9 @@ const WERTUNG_WOERTER = (typeof WOERTER_DE !== "undefined")
 const WERTUNG_WORDLE = (typeof WORDLE !== "undefined")
     ? WORDLE
     : require("./wordle.js");
+const WERTUNG_WB = (typeof WORTBEWERTUNG !== "undefined")
+    ? WORTBEWERTUNG
+    : require("./wortbewertung.js");
 
 const WERTUNG = {
 
@@ -53,52 +56,15 @@ const WERTUNG = {
     SCHWELLEN: [55, 75],
 
     /*
-     * DIE SCHWIERIGKEIT DES TAGESWORTS (seit 0.14.0, Nachtrag Runde 6:
-     * Grund-XP der Tagesaufgabe „je nachdem, wie schwer was ist" — leicht
-     * 15, mittel 20, schwer 30, in beiden Spielen gleich).
-     * Gerechnet aus der Seltenheit der Buchstaben: Für jeden Buchstaben
-     * zählt, in wie vielen Wörtern der Lösungsliste er vorkommt; ein Wort
-     * bekommt die Summe über seine VERSCHIEDENEN Buchstaben (ein doppelter
-     * zählt einmal — Doppelte machen es schwerer). Wenig = seltene
-     * Buchstaben = schwer. Das schwächste Drittel der Liste ist schwer
-     * (3), das mittlere mittel (2), das oberste leicht (1). Fest je Wort,
+     * DIE SCHWIERIGKEIT DES TAGESWORTS (seit 0.14.0: Grund-XP leicht 15,
+     * mittel 20, schwer 30 — bleibt). SEIT 0.16.0 aus der Wort-Bewertung
+     * (js/wortbewertung.js: Löser, Vokale, Fallen, Muster, vorab gerechnet,
+     * Korrektur von Hand gewinnt). Bis 0.15.x stand hier die Seltenheit der
+     * Buchstaben — sie steckt jetzt als ein Teil in „Muster". Fest je Wort,
      * also fest je Datum; kein Zufall, keine Uhr.
      */
-    _schwierigkeitTabelle: null,
-
-    _buchstabenWert(wort, anteil) {
-        const verschiedene = Array.from(new Set(String(wort).toLowerCase().split("")));
-        return verschiedene.reduce((summe, zeichen) => summe + (anteil[zeichen] || 0), 0);
-    },
-
-    _schwierigkeitVorbereiten() {
-        if (WERTUNG._schwierigkeitTabelle) {
-            return WERTUNG._schwierigkeitTabelle;
-        }
-        const liste = WERTUNG_WOERTER.loesungen;
-        const anteil = {};
-        for (const wort of liste) {
-            for (const zeichen of new Set(wort.toLowerCase().split(""))) {
-                anteil[zeichen] = (anteil[zeichen] || 0) + 1 / liste.length;
-            }
-        }
-        const werte = liste.map((wort) => WERTUNG._buchstabenWert(wort, anteil)).sort((a, b) => a - b);
-        WERTUNG._schwierigkeitTabelle = {
-            anteil: anteil,
-            schwer: werte[Math.floor(werte.length / 3)],
-            mittel: werte[Math.floor(2 * werte.length / 3)]
-        };
-        return WERTUNG._schwierigkeitTabelle;
-    },
-
-    /* 1 leicht, 2 mittel, 3 schwer. */
     schwierigkeit(wort) {
-        const tabelle = WERTUNG._schwierigkeitVorbereiten();
-        const wert = WERTUNG._buchstabenWert(wort, tabelle.anteil);
-        if (wert < tabelle.schwer) {
-            return 3;
-        }
-        return wert < tabelle.mittel ? 2 : 1;
+        return WERTUNG_WB.stufe(wort);
     },
 
     /* Die Namen der Stufen — für die Anzeige (kurz). */

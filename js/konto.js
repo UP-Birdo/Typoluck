@@ -672,23 +672,42 @@ const KONTO = {
         return { ok: true, spieler: spieler };
     },
 
-    /* Den Namen gibt es mehrmals und die Nummer fehlt: die Konten dieses
-       Namens reihum mit dem Passwort versuchen (höchstens
-       ANMELDEN_REIHUM_MAX). Jeder Versuch trifft ein anderes Firebase-Konto;
-       bricht bei „zu viele Versuche" oder Netzfehler sofort ab. */
+    /* Den Namen gibt es mehrmals und die Nummer fehlt: ALLE Konten dieses
+       Namens mit dem Passwort prüfen (höchstens ANMELDEN_REIHUM_MAX; seit
+       v0.151.9 nicht mehr beim ersten Treffer aufhören — zwei gleichnamige
+       Konten dürfen dasselbe Passwort haben). Geprüft wird ohne Sitzung
+       (`_pruefen`); die Antworten der Treffer bleiben nur im Speicher.
+       Ein Treffer → angemeldet. Mehrere → { fehler: "auswahl", auswahl },
+       dann `anmeldenAuswahl`. Bricht bei „zu viele Versuche" oder
+       Netzfehler sofort ab. Jeder Versuch trifft ein anderes Firebase-Konto. */
     async _anmeldenReihum(kandidaten, passwort) {
+        KONTO.auswahlVerwerfen();
         const echte = (kandidaten || []).filter((spieler) =>
             spieler.gast !== true && spieler.neuVerbinden !== true);
         const liste = echte.slice(0, KONTO.ANMELDEN_REIHUM_MAX);
+        const treffer = [];
         for (const spieler of liste) {
-            const ergebnis = await KONTO.anmelden(KONTO.kennungVon(spieler), passwort);
+            const kennung = KONTO.kennungVon(spieler);
+            const ergebnis = await KONTO._pruefen(kennung, passwort);
             if (ergebnis.ok) {
-                return { ok: true, spieler: spieler };
+                treffer.push({ spieler: spieler, kennung: kennung, daten: ergebnis.daten,
+                    zeit: Date.now() });
+                continue;
             }
             if (ergebnis.fehler !== "falsch") {
                 return { ok: false, feld: "passwort", fehler: ergebnis.fehler,
                     text: KONTO.fehlerText(ergebnis.fehler) };
             }
+        }
+        if (treffer.length === 1) {
+            KONTO._sitzungSetzen(treffer[0].kennung, treffer[0].daten, false);
+            return { ok: true, spieler: treffer[0].spieler };
+        }
+        if (treffer.length > 1) {
+            KONTO._auswahl = treffer;
+            return { ok: false, feld: "name", fehler: "auswahl",
+                auswahl: treffer.map((eintrag) => eintrag.spieler),
+                text: "Welches Konto?" };
         }
         const freigegeben = (kandidaten || []).filter((spieler) =>
             spieler.gast !== true && spieler.neuVerbinden === true);
@@ -698,6 +717,44 @@ const KONTO = {
         }
         return { ok: false, feld: "passwort", fehler: "falsch", reihum: true,
             text: "Name oder Passwort falsch." };
+    },
+
+    /* Die Treffer einer Reihum-Prüfung (nur im Speicher, nie auf dem Gerät). */
+    _auswahl: null,
+    AUSWAHL_GUELTIG_MS: 10 * 60 * 1000,
+
+    /* Passwort prüfen, OHNE die Sitzung zu ändern: { ok, daten } oder
+       { ok: false, fehler }. */
+    async _pruefen(kennung, passwort) {
+        return KONTO._rufen("accounts:signInWithPassword", {
+            email: KONTO.adresse(kennung), password: String(passwort),
+            returnSecureToken: true
+        });
+    },
+
+    /* Nach „Welches Konto?": in das gewählte anmelden. Die Antwort der
+       Prüfung wird wiederverwendet — kein zweiter Versuch bei Firebase.
+       Fehlt sie (verworfen) oder ist sie älter als AUSWAHL_GUELTIG_MS
+       (der Schlüssel liefe sonst bald ab), wird einmal neu angemeldet. */
+    async anmeldenAuswahl(spieler, passwort) {
+        const gemerkt = (KONTO._auswahl || []).find((eintrag) =>
+            eintrag.spieler === spieler || (eintrag.spieler.uid && eintrag.spieler.uid === spieler.uid));
+        KONTO.auswahlVerwerfen();
+        if (gemerkt && Date.now() - gemerkt.zeit < KONTO.AUSWAHL_GUELTIG_MS) {
+            KONTO._sitzungSetzen(gemerkt.kennung, gemerkt.daten, false);
+            return { ok: true, spieler: gemerkt.spieler };
+        }
+        const ergebnis = await KONTO.anmelden(KONTO.kennungVon(spieler), passwort);
+        if (!ergebnis.ok) {
+            return { ok: false, feld: "passwort", fehler: ergebnis.fehler,
+                text: KONTO.fehlerText(ergebnis.fehler) };
+        }
+        return { ok: true, spieler: spieler };
+    },
+
+    /* Auswahl abgebrochen: die gemerkten Antworten vergessen. */
+    auswahlVerwerfen() {
+        KONTO._auswahl = null;
     },
 
     fehlerText(art) {

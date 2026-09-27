@@ -31,9 +31,9 @@
  * DIE TABS DER LEISTE UNTEN (seit 0.9.0, UPCrew-Runde 4) entstehen in
  * `tab()`, nicht in `knopf()`: Ihr Aussehen kommt ganz aus dem kopierten
  * Baustein css\upcrew-leiste.css, und der verlangt genau sein Markup
- * (`up-tab`, Zeichen, Name). Die Stücke der Sammlung entstehen in
- * `stueck()`. Beide sind — wie Tasten und Segment-Schalter — an genau
- * einer Stelle gebaut.
+ * (`up-tab`, Zeichen, Name) — wie Tasten und Segment-Schalter an genau
+ * einer Stelle gebaut. Stücke der Sammlung und Abzeichen baut seit 0.15.9
+ * der gemeinsame Baustein (js\upcrew-sammlung.js, js\upcrew-abzeichen.js).
  *
  * Die Zeichen sind eigene Linienzeichnungen (24er-Raster, nur Striche), keine
  * Emojis (Haus-Regel) und keine fremde Zeichensammlung.
@@ -135,38 +135,6 @@ const BAUSTEINE = {
     },
 
     /*
-     * Ein Stück der Sammlung (seit 0.9.0): Kachel mit Bild und Name. Was man
-     * noch nicht hat, zeigt „?" statt Bild und Namen.
-     *   name      kurz
-     *   kuerzel   was im Bild steht, wenn man es hat (Vorgabe: die ersten
-     *             zwei Buchstaben des Namens)
-     *   da        hat man es?
-     *   beiKlick  Funktion
-     */
-    stueck(angaben) {
-        const stueck = document.createElement("button");
-        stueck.type = "button";
-        /* `aktiv` (seit 0.14.0): das Stück, das man gerade trägt
-           (Kachel-Set). */
-        stueck.className = "stueck" + (angaben.da ? " stueck-da" : "") + (angaben.aktiv ? " stueck-aktiv" : "");
-        if (angaben.aktiv) {
-            stueck.setAttribute("aria-current", "true");
-        }
-        /* `schloss` (seit 0.15.0): kurzer Hinweis statt „···", z. B.
-           „ab 6" für ein Stück, das mit dem Level kommt. */
-        stueck.setAttribute("aria-label", angaben.da ? angaben.name
-            : (angaben.schloss ? "Noch nicht da, " + angaben.schloss : "Noch nicht da"));
-        stueck.appendChild(BAUSTEINE.el("span", "stueck-bild",
-            angaben.da ? (angaben.kuerzel || String(angaben.name).slice(0, 2)) : "?"));
-        stueck.appendChild(BAUSTEINE.el("span", "stueck-name",
-            angaben.da ? angaben.name : (angaben.schloss || "···")));
-        if (angaben.beiKlick) {
-            stueck.addEventListener("click", angaben.beiKlick);
-        }
-        return stueck;
-    },
-
-    /*
      * Die Wertung als Schachfiguren (seit 0.10.0, UPCrew-Runde 5; Nutzer
      * 27.09.2026: „Nimm Schachfiguren als Wertung"): Bauer, Springer,
      * König — die ersten `anzahl` leuchten. Gefüllte Formen, deshalb eigene
@@ -224,38 +192,6 @@ const BAUSTEINE = {
         zahl.setAttribute("aria-label", "Level " + level);
         ring.appendChild(zahl);
         return ring;
-    },
-
-    /*
-     * Ein Abzeichen (seit 0.12.0, wie im Entwurf): Zeichen, je Stufe ein
-     * Punkt (erreichte golden), darunter der Kurzname. Über die letzte
-     * Stufe hinaus („nach oben offen") steht die Zahl der Extra-Stufen
-     * neben den Punkten. Als Knopf, weil es antippbar ist — an dieser
-     * einen Stelle gebaut (wie `stueck`).
-     *   eintrag   aus FORTSCHRITT.abzeichen
-     *   beiKlick  Funktion
-     */
-    abzeichen(eintrag, beiKlick) {
-        const feld = document.createElement("button");
-        feld.type = "button";
-        feld.className = "abzeichen" + (eintrag.erreicht > 0 ? " abzeichen-an" : "");
-        feld.setAttribute("aria-label", eintrag.titel + ": " + eintrag.wert + ", Stufe " + eintrag.erreicht);
-        feld.appendChild(BAUSTEINE.zeichen(eintrag.zeichen));
-        const punkte = BAUSTEINE.el("span", "abzeichen-punkte");
-        punkte.setAttribute("aria-hidden", "true");
-        eintrag.stufen.forEach((stufe, i) => {
-            punkte.appendChild(BAUSTEINE.el("i", i < eintrag.erreicht ? "an" : null));
-        });
-        const extra = eintrag.erreicht - eintrag.stufen.length;
-        if (extra > 0) {
-            punkte.appendChild(BAUSTEINE.el("b", null, "+" + extra));
-        }
-        feld.appendChild(punkte);
-        feld.appendChild(BAUSTEINE.el("span", "abzeichen-name", eintrag.kurz));
-        if (beiKlick) {
-            feld.addEventListener("click", beiKlick);
-        }
-        return feld;
     },
 
     /* Eine Karte mit optionaler Überschrift. */
@@ -362,6 +298,8 @@ const BAUSTEINE = {
             + "M16 4.3 A3.3 3.3 0 0 1 16 10.7 M18 14.4 C20 15.2 21.5 17.2 21.5 20",
         profil: "M12 12 A4 4 0 1 0 12 4 A4 4 0 0 0 12 12 Z M4 21 C4 17 7.6 14 12 14 C16.4 14 20 17 20 21",
         zurueck: "M15 5 L8 12 L15 19",
+        /* Verwaltung (seit 0.16.3, nur für Admins): ein Schild. */
+        schild: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z M9 12 L11 14 L15 10",
         /* Drei gleich lange Balken wie in Blunderluck (seit 0.3.0) —
            ungleiche Striche sähen nach Aufzählung aus, nicht nach Menü. */
         menue: "M4.2 7 H19.8 M4.2 12 H19.8 M4.2 17 H19.8",

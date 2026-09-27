@@ -1,10 +1,24 @@
 /*
- * upcrew-aussehen.js — EIN Aussehen für alle UPCrew-Spiele (Blunderluck, Typoluck; NICHT Trainer).
+ * upcrew-aussehen.js — das Aussehen der UPCrew-Spiele (Blunderluck, Typoluck; NICHT Trainer).
  *
- * Nutzer, 26.09.2026: „wenn man die eine App auf hell umstellt oder die Farbpalette / Schriftart nutzt, sollen
- * sich alle anderen Apps auch so umstellen.“
+ * DER SCHALTER `GETEILT` (Entwickler-Schalter, nichts für Spieler; Nutzer 27.09.2026: „mach es doch so, dass es
+ * nicht sync ist, also die Designs — wenn man auf Übernehmen drückt, soll sich nur das Spiel ändern. Aber mach einen
+ * Schalter rein für die Zukunft, falls ich beide wieder sync haben will“):
+ *   GETEILT = false (Standard seit 27.09.2026): JEDES SPIEL HAT SEIN EIGENES AUSSEHEN.
+ *     - Gerät: Schlüssel je Spiel, `<app>.aussehen` (z. B. `blunderluck.aussehen`, `typoluck.aussehen`). Das Spiel
+ *       ergibt sich aus dem ersten Pfad-Teil der Seite (/Blunderluck/ → "blunderluck"); die App kann es auch setzen:
+ *       `UPCREW_AUSSEHEN.app = "typoluck"` (VOR dem ersten Lesen). Unbekanntes Spiel → wie GETEILT.
+ *     - Kein Mitziehen über das `storage`-Ereignis: Die andere App hat einen anderen Schlüssel.
+ *     - EINMALIGER UMZUG: Fehlt der eigene Schlüssel, startet das Spiel mit dem bisherigen gemeinsamen
+ *       `upcrew.aussehen` (nur gelesen, nie mehr geschrieben) — niemand verliert seine Wahl.
+ *     - Konto: je Spiel (`konten/<uid>/aussehenJe/<app>`, Regel SICHERHEIT.md §11c in Blunderluck) — das
+ *       entscheidet die App; `fuerKonto`/`uebernehmen` liefern und nehmen weiter die sechs Felder.
+ *   GETEILT = true: EIN Aussehen für alle Spiele, genau wie bis 27.09.2026 (Rest dieses Kopfs).
  *
- * Was hier liegt (ein JSON unter `upcrew.aussehen`):
+ * Nutzer, 26.09.2026 (gilt bei GETEILT = true): „wenn man die eine App auf hell umstellt oder die Farbpalette /
+ * Schriftart nutzt, sollen sich alle anderen Apps auch so umstellen.“
+ *
+ * Was hier liegt (ein JSON unter `upcrew.aussehen`, bei GETEILT = false unter `<app>.aussehen`):
  *     darstellung  "geraet" | "hell" | "dunkel"
  *     farbwelt     "werkstatt" | "studio" | "feld" | "tiefsee" | "gold"
  *     schrift      "S1" … "S6"   (Crew-Schnitte, docs\SCHRIFT-KNOEPFE.md)
@@ -33,8 +47,20 @@
 (function () {
   "use strict";
 
-  const SCHLUESSEL = "upcrew.aussehen";
-  const ALT_FARBWELT = "upcrew.farbwelt";   // liest das Intro; wird mitgeschrieben
+  // ENTWICKLER-SCHALTER (siehe Kopf): false = jedes Spiel sein eigenes Aussehen, true = eins für alle.
+  const GETEILT = false;
+  const GEMEINSAM = "upcrew.aussehen";
+  const SPIELE = ["blunderluck", "typoluck"];
+  const ALT_FARBWELT = "upcrew.farbwelt";   // liest das Intro; nur bei GETEILT mitgeschrieben
+
+  let app = (function () {
+    try {
+      const teil = String((typeof location !== "undefined" && location.pathname) || "").split("/").filter(Boolean)[0] || "";
+      return SPIELE.indexOf(teil.toLowerCase()) !== -1 ? teil.toLowerCase() : "";
+    } catch (e) { return ""; }
+  })();
+  /* Der Schlüssel dieses Spiels (bei GETEILT oder unbekanntem Spiel der gemeinsame). */
+  const schluessel = () => (GETEILT || !app) ? GEMEINSAM : app + ".aussehen";
 
   const WAHL = {
     darstellung: ["geraet", "hell", "dunkel"],
@@ -79,7 +105,13 @@
   function lesen() {
     if (!aktuell) {
       let roh = null;
-      try { roh = JSON.parse(lies(SCHLUESSEL) || "null"); } catch (e) { roh = null; }
+      try { roh = JSON.parse(lies(schluessel()) || "null"); } catch (e) { roh = null; }
+      if (!roh && schluessel() !== GEMEINSAM) {
+        // Einmaliger Umzug: das bisher gemeinsame Aussehen als Start — sofort als EIGENES abgelegt, damit spätere
+        // Änderungen am gemeinsamen Schlüssel (ein Spiel mit älterem Baustein) hier nicht mehr ankommen.
+        try { roh = JSON.parse(lies(GEMEINSAM) || "null"); } catch (e) { roh = null; }
+        if (roh) schreib(schluessel(), JSON.stringify(bereinigen(roh)));
+      }
       if (!roh) {
         // Erststart mit diesem Baustein: die schon gewählte Farbwelt übernehmen
         const welt = lies(ALT_FARBWELT);
@@ -92,8 +124,8 @@
 
   function speichern(neu) {
     aktuell = bereinigen(neu);
-    schreib(SCHLUESSEL, JSON.stringify(aktuell));
-    schreib(ALT_FARBWELT, aktuell.farbwelt);
+    schreib(schluessel(), JSON.stringify(aktuell));
+    if (schluessel() === GEMEINSAM) schreib(ALT_FARBWELT, aktuell.farbwelt);
   }
 
   function melden(quelle) {
@@ -104,7 +136,8 @@
   /* Einmalig je App: die bisherige eigene Wahl (z. B. Typoluck `thema`) mitgeben, solange es noch keine gemeinsame
      gibt. Danach ist `upcrew.aussehen` führend. */
   function migrieren(alt) {
-    if (lies(SCHLUESSEL)) return false;
+    if (lies(schluessel())) return false;
+    if (schluessel() !== GEMEINSAM && lies(GEMEINSAM)) return false;   // der Umzug aus dem gemeinsamen gewinnt
     speichern(Object.assign(lesen(), alt || {}, { stand: 0 }));
     return true;
   }
@@ -165,7 +198,7 @@
   // Andere App/Tab im selben Browser hat umgestellt
   if (typeof window !== "undefined") {
     window.addEventListener("storage", (e) => {
-      if (e.key !== SCHLUESSEL && e.key !== null) return;
+      if (e.key !== schluessel() && e.key !== null) return;   // bei GETEILT = false zieht die andere App nicht mit
       aktuell = null;
       anwenden();
       melden("andere-app");
@@ -184,7 +217,10 @@
   }
 
   window.UPCREW_AUSSEHEN = {
-    SCHLUESSEL, WAHL, STANDARD,
+    GETEILT, GEMEINSAM, WAHL, STANDARD,
+    get SCHLUESSEL() { return schluessel(); },
+    get app() { return app; },
+    set app(name) { const n = String(name || "").toLowerCase(); app = SPIELE.indexOf(n) !== -1 ? n : ""; aktuell = null; },
     lesen, setzen, anwenden, modus, beobachten, uebernehmen, fuerKonto, migrieren, schriftLaden,
     get schriftPfad() { return schriftPfad; }, set schriftPfad(p) { schriftPfad = String(p); },
     erlaubtSetzen: (fn) => { erlaubt = typeof fn === "function" ? fn : () => true; },

@@ -161,6 +161,13 @@ const SPIELER = {
                     ? eintrag[feld].filter((wert) => typeof wert === "string" && wert !== "")
                     : [];
             }
+            /* Das Aussehen (gemeinsam `aussehen`, seit 0.15.13 je Spiel
+               `aussehenJe`): nur ein Objekt zählt, sonst fliegt es raus. */
+            for (const feld of ["aussehen", "aussehenJe"]) {
+                if (feld in eintrag && !SPIELER._istObjekt(eintrag[feld])) {
+                    delete eintrag[feld];
+                }
+            }
             daten.spieler.push(eintrag);
         }
 
@@ -368,7 +375,7 @@ const SPIELER = {
         ergebnis.spieler = fremdStand.spieler.map((spieler) => {
             if (meiner && spieler.id === eigeneId) {
                 gefunden = true;
-                return meiner;
+                return SPIELER._neueresAussehenJe(SPIELER._neueresAussehen(meiner, spieler), spieler);
             }
             return spieler;
         });
@@ -377,6 +384,44 @@ const SPIELER = {
             ergebnis.spieler.push(meiner);
         }
         return ergebnis;
+    },
+
+    /*
+     * DAS AUSSEHEN IST DIE AUSNAHME VON „DER EIGENE EINTRAG GEWINNT" (wie
+     * Blunderluck `_neueresAussehen`/`_neueresAussehenJe`): Es schreiben
+     * mehrere Spiele daran — Typoluck nur als Teilpfad
+     * (js\aussehen-abgleich.js), Blunderluck mit dem ganzen Eintrag. Beim
+     * Zusammenführen gewinnt deshalb je Feld bzw. je Spiel der neuere
+     * `stand`; sonst schriebe dieses Gerät beim nächsten Speichern des
+     * eigenen Eintrags (Freunde, Name) eine ältere Kopie zurück.
+     */
+    _istObjekt(wert) {
+        return !!wert && typeof wert === "object" && !Array.isArray(wert);
+    },
+
+    _stand(aussehen) {
+        return (SPIELER._istObjekt(aussehen) && typeof aussehen.stand === "number") ? aussehen.stand : -1;
+    },
+
+    _neueresAussehen(meiner, vomServer) {
+        if (!vomServer || SPIELER._stand(vomServer.aussehen) <= SPIELER._stand(meiner.aussehen)) {
+            return meiner;
+        }
+        return Object.assign({}, meiner, { aussehen: JSON.parse(JSON.stringify(vomServer.aussehen)) });
+    },
+
+    _neueresAussehenJe(meiner, vomServer) {
+        const fremd = (vomServer && SPIELER._istObjekt(vomServer.aussehenJe)) ? vomServer.aussehenJe : null;
+        if (!fremd) {
+            return meiner;
+        }
+        const zusammen = JSON.parse(JSON.stringify(SPIELER._istObjekt(meiner.aussehenJe) ? meiner.aussehenJe : {}));
+        for (const app of Object.keys(fremd)) {
+            if (SPIELER._stand(fremd[app]) > SPIELER._stand(zusammen[app])) {
+                zusammen[app] = JSON.parse(JSON.stringify(fremd[app]));
+            }
+        }
+        return Object.assign({}, meiner, { aussehenJe: zusammen });
     },
 
     /* Inhaltlicher Vergleich ohne Marke — nur bei echten Unterschieden

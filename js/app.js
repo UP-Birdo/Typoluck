@@ -115,6 +115,7 @@ const APP = {
         START.anmelden();
         PROFIL_BILDSCHIRM.anmelden();
         FREUNDE_BILDSCHIRM.anmelden();
+        VERWALTUNG_BILDSCHIRM.anmelden();
         EINSTELLUNGEN_BILDSCHIRM.anmelden();
         RANGLISTE_BILDSCHIRM.anmelden();
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
@@ -306,6 +307,14 @@ const APP = {
         if (geaendert && APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
             NAVIGATION.auffrischen();
         }
+        /* Die Serien-Flamme (seit 0.16.1) zieht auch ohne Neuzeichnen nach. */
+        APP._flammeAktualisieren();
+    },
+
+    _flammeAktualisieren() {
+        if (typeof START !== "undefined" && typeof START.flammeAktualisieren === "function") {
+            START.flammeAktualisieren();
+        }
     },
 
     /* Ein Gast von 0.10.0 stand unter seiner Konto-Id — sein Stand zieht
@@ -364,6 +373,7 @@ const APP = {
             schwer: runde.schwer === true
         }, APP._stufen()));
         FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        APP._flammeAktualisieren();
 
         /* Level-Aufstieg und neue Stücke aus Taten (seit 0.13.0) als EINE
            Kurzmeldung — die Namen der Stücke kennt das Sammlungs-Modell. */

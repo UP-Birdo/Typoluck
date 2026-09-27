@@ -6,7 +6,9 @@
  *
  *     await DIALOG.frage(titel, text, jaText, gefaehrlich)   → true/false
  *     await DIALOG.hinweis(titel, text, inhalt)               → (nichts)
- *     await DIALOG.eingabe(titel, text, vorgabe, okText, verdeckt) → Text oder null
+ *     await DIALOG.eingabe(titel, text, vorgabe, okText, verdeckt, zusatz) → Text oder null
+ *         zusatz (seit 0.15.8, optional): { mehrzeilig, filter, maxLaenge }
+ *     await DIALOG.liste(titel, text, eintraege, abbrechenText)    → wert oder null
  *
  * Dazu zwei kleine Helfer:
  *
@@ -61,15 +63,38 @@ const DIALOG = {
         });
     },
 
-    eingabe(titel, text, vorgabe, okText, verdeckt) {
+    /* `zusatz` (seit 0.15.8, für „Wunsch oder Fehler"): `mehrzeilig` macht
+       ein Textfeld mit Zeilenumbrüchen (Eingabetaste = neue Zeile),
+       `filter(text)` räumt bei jedem Tippen auf (die Einfügemarke bleibt
+       an ihrer Stelle), `maxLaenge` begrenzt die Länge. */
+    eingabe(titel, text, vorgabe, okText, verdeckt, zusatz) {
+        const extra = zusatz || {};
         return DIALOG._einreihen((fertig) => {
             const kasten = DIALOG._kastenBauen(titel, text);
 
-            const feld = document.createElement("input");
-            feld.className = "feld";
-            feld.type = verdeckt ? "password" : "text";
-            feld.value = vorgabe || "";
+            const feld = document.createElement(extra.mehrzeilig ? "textarea" : "input");
+            feld.className = extra.mehrzeilig ? "feld feld-mehrzeilig" : "feld";
+            if (!extra.mehrzeilig) {
+                feld.type = verdeckt ? "password" : "text";
+            } else {
+                feld.rows = 5;
+            }
+            if (extra.maxLaenge) {
+                feld.maxLength = extra.maxLaenge;
+            }
+            feld.value = extra.filter ? extra.filter(vorgabe || "") : (vorgabe || "");
             feld.autocomplete = "off";
+            if (typeof extra.filter === "function") {
+                feld.addEventListener("input", () => {
+                    const vorher = feld.value;
+                    const sauber = extra.filter(vorher);
+                    if (sauber !== vorher) {
+                        const stelle = Math.max(0, (feld.selectionStart || 0) - (vorher.length - sauber.length));
+                        feld.value = sauber;
+                        feld.setSelectionRange(stelle, stelle);
+                    }
+                });
+            }
             kasten.appendChild(feld);
 
             const leiste = DIALOG._leisteBauen(kasten);
@@ -80,12 +105,50 @@ const DIALOG = {
                 text: okText || "OK", art: "haupt", beiKlick: () => fertig(feld.value)
             }));
             feld.addEventListener("keydown", (ereignis) => {
-                if (ereignis.key === "Enter") {
+                if (ereignis.key === "Enter" && !extra.mehrzeilig) {
                     ereignis.preventDefault();
                     fertig(feld.value);
                 }
             });
             return { fokus: feld, abbrechen: () => fertig(null) };
+        });
+    },
+
+    /* Seit 0.15.7 (wie Blunderluck `DIALOG.liste`): eine kurze Auswahl.
+       `eintraege` = [{ beschriftung, hinweis, wert }]; jede Zeile ist ein
+       Knopf mit dem Namen und darunter klein dem Hinweis. Liefert den `wert`
+       der angetippten Zeile oder null (Abbrechen, Escape). */
+    liste(titel, text, eintraege, abbrechenText) {
+        return DIALOG._einreihen((fertig) => {
+            const kasten = DIALOG._kastenBauen(titel, text);
+            const liste = document.createElement("div");
+            liste.className = "dialog-liste";
+            let erster = null;
+            for (const eintrag of eintraege || []) {
+                const zeile = document.createElement("button");
+                zeile.type = "button";
+                zeile.className = "dialog-listeneintrag";
+                const name = document.createElement("span");
+                name.className = "dialog-listenname";
+                name.textContent = eintrag.beschriftung;
+                zeile.appendChild(name);
+                if (eintrag.hinweis) {
+                    const hinweis = document.createElement("span");
+                    hinweis.className = "dialog-listenhinweis";
+                    hinweis.textContent = eintrag.hinweis;
+                    zeile.appendChild(hinweis);
+                }
+                zeile.addEventListener("click", () => fertig(eintrag.wert));
+                liste.appendChild(zeile);
+                erster = erster || zeile;
+            }
+            kasten.appendChild(liste);
+            const leiste = DIALOG._leisteBauen(kasten);
+            const abbrechen = BAUSTEINE.knopf({
+                text: abbrechenText || "Abbrechen", art: "still", beiKlick: () => fertig(null)
+            });
+            leiste.appendChild(abbrechen);
+            return { fokus: erster || abbrechen, abbrechen: () => fertig(null) };
         });
     },
 

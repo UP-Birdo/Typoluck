@@ -251,6 +251,19 @@ const ANMELDUNG = {
                     ANMELDUNG._neuVerbindenZeigen(ergebnis.spieler);
                     return;
                 }
+                if (ergebnis.fehler === "auswahl") {
+                    const gewaehlt = await ANMELDUNG._kontoAuswaehlen(ergebnis.auswahl,
+                        passwort.feld.value);
+                    if (gewaehlt.ok) {
+                        ANMELDUNG._fertig();
+                        return;
+                    }
+                    if (!gewaehlt.abgebrochen) {
+                        passwort.fehler.textContent = gewaehlt.text || KONTO.fehlerText("netz");
+                    }
+                    pruefen();
+                    return;
+                }
                 if (ergebnis.fehler === "falsch") {
                     falsch();
                     return;
@@ -519,6 +532,51 @@ const ANMELDUNG = {
        Nutzer 27.09.2026: „man soll ihn in den Einstellungen ändern
        können"). Leer lassen = eine zufällige freie würfeln. Nur mit echtem
        UPCrew-Konto; Gäste haben keine eigene Nummer. */
+    /*
+     * „Welches Konto?" (seit 0.15.7, wie Blunderluck v0.151.9): Name und
+     * Passwort passen zu mehreren gleichnamigen Konten. Hier — und nur hier
+     * im Ablauf — steht die Nummer, weil die Konten sonst nicht zu
+     * unterscheiden sind; dazu Level und letzter Spieltag, soweit im Eintrag
+     * lesbar. Liefert { ok } oder { abgebrochen } oder { ok:false, text }.
+     */
+    async _kontoAuswaehlen(auswahl, passwort) {
+        const eintraege = auswahl.map((spieler, nummer) => ({
+            beschriftung: spieler.name,
+            hinweis: ANMELDUNG._kontoErkennung(spieler),
+            wert: String(nummer)
+        }));
+        const wahl = await DIALOG.liste("Welches Konto?",
+            "Dein Passwort passt zu mehreren Konten", eintraege, "Abbrechen");
+        if (wahl === null || wahl === undefined || !auswahl[Number(wahl)]) {
+            KONTO.auswahlVerwerfen();
+            return { abgebrochen: true };
+        }
+        const ergebnis = await KONTO.anmeldenAuswahl(auswahl[Number(wahl)], passwort);
+        if (!ergebnis.ok) {
+            return ergebnis;
+        }
+        ANMELDUNG._uebernehmen(ergebnis.spieler);
+        return { ok: true };
+    },
+
+    /* „#1234 · Level 5 · zuletzt 26.09." — was ohne Anmeldung lesbar ist. */
+    _kontoErkennung(spieler) {
+        const teile = ["#" + spieler.tag];
+        if (typeof FORTSCHRITT !== "undefined" && spieler.fortschritt) {
+            try {
+                teile.push("Level " + FORTSCHRITT.level(spieler.fortschritt).level);
+                const tage = Array.from(FORTSCHRITT.alleTage(spieler.fortschritt)).sort();
+                const letzter = tage[tage.length - 1];
+                if (letzter) {
+                    teile.push("zuletzt " + letzter.slice(8, 10) + "." + letzter.slice(5, 7) + ".");
+                }
+            } catch (fehler) {
+                /* Unlesbarer Fortschritt: dann nur die Nummer. */
+            }
+        }
+        return teile.join(" · ");
+    },
+
     async nummerAendern() {
         const ich = ANMELDUNG.ich();
         if (!ich || !KONTO.aktiv() || ich.gast === true) {

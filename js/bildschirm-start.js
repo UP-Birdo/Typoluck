@@ -107,6 +107,9 @@ const START = {
         const kopf = BAUSTEINE.el("header", "start-kopf");
         if (name) {
             kopf.appendChild(START._kurzprofilBauen(ich, name));
+            /* Die Serien-Flamme gleich daneben (seit 0.16.1, wie Blunderluck
+               v0.151.18). */
+            START._flammeBauen(kopf);
         }
         const rechts = BAUSTEINE.el("div", "start-kopf-rechts");
         rechts.appendChild(NAVIGATION.menueBauen());
@@ -120,6 +123,42 @@ const START = {
         behaelter.appendChild(START._freundeKarteBauen());
         START._freundeLaden(false);
         START._auffrischenAn();
+    },
+
+    /*
+     * DIE SERIEN-FLAMME (seit 0.16.1, gemeinsamer Baustein
+     * js/upcrew-flamme.js; Nutzer 27.09.2026: „die Flamme soll oben in
+     * deinem Profil bei beiden Spielen sein — ein Kreis mit einer Flamme und
+     * in der Flamme die Anzeige, ausgelegt für 3 Stellen, alles drüber 1k+ …
+     * sync mit deinem Profil"). Die Zahlen kommen aus dem gemeinsamen
+     * Fortschritt (APP.fortschritt(): Gerät und Konto, je Zweig der neuere;
+     * FORTSCHRITT.serieHeute: Serie über ALLE Zweige, heute geschafft,
+     * freier Schutz) — an der Serien-Rechnung ändert sich nichts. Ein Tipp
+     * führt zum Tab Aufgaben (dort Woche, Schutz, Tagesaufgaben).
+     */
+    _flamme: null,
+
+    _flammeBauen(halter) {
+        if (typeof UPCREW_FLAMME === "undefined") {
+            START._flamme = null;
+            return;
+        }
+        START._flamme = UPCREW_FLAMME.bauen(halter, {
+            beiKlick: () => NAVIGATION.zeigen("herausforderungen", null)
+        });
+        START.flammeAktualisieren();
+    },
+
+    /* Auch ohne Neuzeichnen: nach jeder Runde und wenn der Konto-Stand
+       eintrifft (js/app.js). Liefert die gesetzten Werte (für Tests). */
+    flammeAktualisieren() {
+        if (!START._flamme) {
+            return null;
+        }
+        const heute = FORTSCHRITT.serieHeute(APP.fortschritt(), WORDLE.datumText(APP.jetzt()));
+        const werte = { serie: heute.tage, heuteGeschafft: heute.heute, schutz: heute.schutz };
+        START._flamme.setzen(werte);
+        return werte;
     },
 
     /* Die Uhr einschalten — mehrfach gerufen (jeder Neubau des Starts)
@@ -144,7 +183,9 @@ const START = {
 
     /*
      * Das Kurzprofil oben links (seit 0.7.0): Kreis mit Anfangsbuchstabe,
-     * Name, darunter „Serie 4 · 83 % gelöst". Ein Tipp öffnet das eigene
+     * Name, darunter „83 % gelöst" (bis 0.16.1 „Serie 4 · 83 % gelöst" — seit
+     * 0.16.2 zeigt die Serie allein die Flamme daneben, über alle Spiele;
+     * so hat die Pille auch bei 320 px Platz). Ein Tipp öffnet das eigene
      * Profil. Die Zahlen rechnet RANGLISTE.statistik — dieselbe Zählung wie
      * auf der Profilseite, aus dem eigenen Verlauf samt noch nicht
      * gesendeter Ergebnisse. Ohne Konto (nur Gerät bekannt) steht nur der
@@ -169,7 +210,7 @@ const START = {
             const verlauf = ERGEBNISSE.verlaufMitAusstehendem(APP.eigenerVerlauf, ich.id);
             const werte = RANGLISTE.statistik(verlauf, WORDLE.datumText(APP.jetzt()));
             texte.appendChild(BAUSTEINE.el("span", "start-profil-werte",
-                "Serie " + werte.serie + " · " + werte.quote + " % gelöst"));
+                werte.quote + " % gelöst"));
         }
         knopf.appendChild(texte);
         return knopf;

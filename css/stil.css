@@ -125,9 +125,12 @@
        Anmeldung, Intro und Dialoge decken sie zu. */
     --ebene-menue: 10;
     --ebene-leiste: 15;
+    --ebene-oben: 18;
     --ebene-hinweis: 20;
-    --ebene-kurzmeldung: 40;
-    --ebene-vollbild: 50;
+    /* Seit 0.15.9 über dem klebenden Kopf der Sammlung (Baustein
+       css\upcrew-sammlung.css, z-index 50): bis dahin 40 und 50. */
+    --ebene-kurzmeldung: 52;
+    --ebene-vollbild: 51;
     --ebene-intro: 55;
     --ebene-dialog: 60;
 
@@ -137,11 +140,26 @@
        css\upcrew-leiste.css (bis 0.8.1 60 px). */
     --leiste-hoehe: 64px;
 
+    /* Der iPhone-Streifen OBEN (Uhrzeit, Dynamic Island) — seit 0.15.8.
+       Mit `viewport-fit=cover` liegt die Seite bis unter ihn; ohne eigene
+       Fläche lief beim Rollen das Spielfeld unter die Uhrzeit (Nutzer-Bild
+       27.09.2026). Die Werkstatt setzt ihn mit `&kerbe` zum Ansehen auf
+       47 px (js\werkstatt.js). */
+    --oben-frei: env(safe-area-inset-top, 0px);
+
+    /* Die Stellschrauben des Sammlungs-Gerüsts (seit 0.15.9,
+       css\upcrew-sammlung.css, gleich in Blunderluck): Innenrand des
+       rollenden Inhalts und die Leiste unten samt iPhone-Streifen. */
+    --up-sm-rand: var(--inhalt-rand);
+    --up-sm-leiste: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom, 0px));
+
     /* Gold der Wertungs-Figuren (seit 0.10.0) — hell und dunkel gleich,
        wie im Entwurf der Design-Sitzung. Keine Kachelfarbe: Die
        Kachelfarben-Sperre (js\darstellung.js) betrifft nur die Kacheln. */
     --figur: #f2c14e;
     --figur-kante: #7a5210;
+    /* Schrift auf Gold (Stufen im Abzeichen-Blatt, css\upcrew-abzeichen.css). */
+    --figur-schrift: #1a1406;
 }
 
 /* Dunkel, wenn das Gerät dunkel ist — AUSSER der Spieler hat in den
@@ -240,6 +258,18 @@ html {
     -webkit-text-size-adjust: 100%;
 }
 
+/* Kein waagrechtes Rollen und Überrollen der Seite selbst (seit 0.15.11,
+   Nutzer 27.09.2026: „man soll nicht infinite scrollen können, sprich
+   rechts und links ist Stopp"). `clip` statt `hidden`: Es macht aus der
+   Seite keinen eigenen Rollbereich, das Kleben der Sammlung bleibt heil.
+   Waagrechte Rollbereiche IN der Seite (Regal-Reihen, Umschalter) rollen
+   weiter; sie geben am Ende nichts an die Seite weiter. */
+html,
+body {
+    overflow-x: clip;
+    overscroll-behavior-x: none;
+}
+
 body {
     margin: 0;
     background: var(--flaeche);
@@ -250,6 +280,21 @@ body {
     font-variant-numeric: tabular-nums;
     line-height: 1.45;
     -webkit-tap-highlight-color: transparent;
+}
+
+/* Die deckende Fläche unter dem iPhone-Streifen oben (seit 0.15.8): fest,
+   in der Grundfarbe, über allem Inhalt und der Leiste, unter Dialogen und
+   Vollbildern. Ohne Streifen (Browser, Android) ist sie 0 hoch. */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--ebene-oben);
+    height: var(--oben-frei);
+    background: var(--flaeche);
+    pointer-events: none;
 }
 
 body.dialog-offen,
@@ -274,7 +319,8 @@ body.anmeldung-offen {
 .inhalt {
     max-width: var(--inhalt-breite);
     margin: 0 auto;
-    padding: 8px var(--inhalt-rand) calc(24px + var(--leiste-hoehe) + env(safe-area-inset-bottom));
+    padding: calc(8px + var(--oben-frei)) var(--inhalt-rand)
+        calc(24px + var(--leiste-hoehe) + env(safe-area-inset-bottom));
 }
 
 /* ------------------------------------------------------------------ *
@@ -321,13 +367,20 @@ body.im-spiel .leiste.up-leiste {
     display: none;
 }
 
+/* Während einer Runde wird nie gewischt (js\navigation.js): Die Fläche
+   gibt dem Browser dann wieder jede Geste zurück (seit 0.15.10, wie
+   Blunderluck `partie-laeuft`). */
+body.im-spiel .up-wischen {
+    touch-action: auto;
+}
+
 body.im-spiel .inhalt {
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .hinweis {
     position: sticky;
-    top: 0;
+    top: var(--oben-frei);
     z-index: var(--ebene-hinweis);
     margin: 0;
     padding: 8px var(--inhalt-rand);
@@ -632,6 +685,14 @@ body.im-spiel .inhalt {
     font: inherit;
 }
 
+/* Mehrzeilig (seit 0.15.8, „Wunsch oder Fehler"): Platz für ein paar Sätze. */
+.feld-mehrzeilig {
+    display: block;
+    min-height: 120px;
+    resize: vertical;
+    line-height: 1.4;
+}
+
 .feld:focus {
     outline: 2px solid var(--haupt);
     outline-offset: 0;
@@ -821,7 +882,8 @@ body.im-spiel .inhalt {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: var(--inhalt-rand);
+    padding: max(var(--inhalt-rand), var(--oben-frei)) var(--inhalt-rand)
+        max(var(--inhalt-rand), env(safe-area-inset-bottom));
     background: rgba(10, 8, 20, 0.55);
 }
 
@@ -861,10 +923,55 @@ body.im-spiel .inhalt {
     gap: 8px;
 }
 
+/* Die Auswahl-Liste (seit 0.15.7, „Welches Konto?"). */
+.dialog-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+.dialog-listeneintrag {
+    appearance: none;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 12px 14px;
+    font: inherit;
+    text-align: left;
+    color: var(--schrift);
+    background: var(--karte-leise);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-klein);
+    box-shadow: 0 2px 0 var(--still-kante);
+    cursor: pointer;
+}
+
+.dialog-listeneintrag:hover {
+    border-color: var(--haupt);
+}
+
+.dialog-listeneintrag:focus-visible {
+    outline: 2px solid var(--haupt);
+    outline-offset: 1px;
+}
+
+.dialog-listenname {
+    font-weight: 700;
+}
+
+.dialog-listenhinweis {
+    font-size: 0.8rem;
+    color: var(--schrift-leise);
+}
+
 .kurzmeldung {
     position: fixed;
     left: 50%;
-    top: 16px;
+    top: calc(16px + var(--oben-frei));
     z-index: var(--ebene-kurzmeldung);
     max-width: calc(100% - 32px);
     margin: 0;
@@ -913,7 +1020,8 @@ body.im-spiel .inhalt {
     align-items: center;
     justify-content: center;
     overflow-y: auto;
-    padding: var(--inhalt-rand);
+    padding: max(var(--inhalt-rand), var(--oben-frei)) var(--inhalt-rand)
+        max(var(--inhalt-rand), env(safe-area-inset-bottom));
     background: var(--flaeche);
 }
 

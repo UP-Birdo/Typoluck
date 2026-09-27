@@ -76,13 +76,16 @@
     const modusVon = (d) => d === "hell" || d === "dunkel" ? d
       : (matchMedia("(prefers-color-scheme: light)").matches ? "hell" : "dunkel");
 
+    /* Der Umschalter Typoluck/Blunderluck zeigt das Aussehen im ANDEREN Spiel — nur sinnvoll, wenn beide dasselbe
+       Aussehen teilen (UPCREW_AUSSEHEN.GETEILT, seit 27.09.2026 Standard false: jedes Spiel sein eigenes). */
+    const geteilt = A.GETEILT !== false;
     ort.classList.add("upa");
     ort.innerHTML = `
       <section class="upa-vorschau-rahmen">
         <div class="upa-leiste">
-          <div class="upa-mini-seg" role="group" aria-label="Vorschau">
+          ${geteilt ? `<div class="upa-mini-seg" role="group" aria-label="Vorschau">
             <button type="button" data-app="typoluck">Typoluck</button><button type="button" data-app="blunderluck">Blunderluck</button>
-          </div>
+          </div>` : ""}
           <span class="upa-hinweis" hidden>${sym("schloss", "upa-klein")}<span></span></span>
           <button type="button" class="up-kn up-zweit up-rund upa-zufall" aria-label="Zufall"><i class="up-led"></i>${sym("zufall")}</button>
         </div>
@@ -212,7 +215,7 @@
       const ex = e.target.closest(".upa-stueck[data-extra]");
       if (ex) {
         entwurf.extra = Object.assign({}, entwurf.extra, { [ex.dataset.extra]: ex.dataset.wert });
-        if (ex.dataset.extra === "brett") vorschauApp = "blunderluck";   // Brett zeigen, wenn man es antippt
+        if (ex.dataset.extra === "brett" && geteilt) vorschauApp = "blunderluck";   // Brett zeigen, wenn man es antippt
         zeichnen(); return;
       }
       const app = e.target.closest(".upa-mini-seg button");

@@ -1,0 +1,304 @@
+/*
+ * bildschirm-verwaltung.js — „Verwaltung" für Admins (seit 0.16.3).
+ *
+ * Nutzer 27.09.2026: „der Admin soll in Typoluck das Lexikon sehen mit den
+ * Wörtern, und in beiden generell eine Spielerliste mit Statistiken und co —
+ * aber nur der Admin-Account".
+ *
+ * NUR FÜR ADMINS (KONTO.istAdmin: UP#Plus oder Rolle „admin"): Der Eintrag
+ * im Menü (drei Balken) erscheint nur für sie (`imMenue` als Frage), und der Bildschirm
+ * prüft beim Zeichnen selbst noch einmal — wer anders hierher kommt (Adresse
+ * mit &bildschirm=verwaltung, Zurück-Taste), landet sofort auf dem Start und
+ * sieht nichts. In der Werkstatt gibt es `&admin` zum Ansehen, aber NUR auf
+ * dem eigenen Rechner (localhost/127.0.0.1) — ausgeliefert wirkt es nicht.
+ *
+ * EHRLICH ZUR SICHERHEIT: Das ist eine Sperre der OBERFLÄCHE. Die Konten
+ * (`spieler`) sind laut Datenbank-Regel für jeden lesbar, und die Wortliste
+ * samt Bewertung liegt öffentlich im Repository. Wer technisch nachsieht,
+ * kommt an die Daten (siehe STATUS.md, Vorschlag zu den Regeln).
+ *
+ * Zwei Teile (Umschalter oben):
+ *   Lexikon  alle Wörter — Lösungen (bewertet) und Zusatzwörter getrennt;
+ *            die volle Bewertung wird erst beim Öffnen nachgeladen
+ *            (js/lexikon-daten.js, nicht im Vorabspeicher). Nur ansehen:
+ *            Korrekturen bleiben im lokalen Werkzeug (werkzeug\).
+ *   Spieler  der gemeinsame Baustein js/upcrew-spielerliste.js — nur lesen.
+ */
+
+const VERWALTUNG_BILDSCHIRM = {
+
+    TITEL: "Verwaltung",
+    LEXIKON_DATEI: "js/lexikon-daten.js",
+    SEITE: 60,
+
+    _teil: "lexikon",
+    _lexikonLaden: null,
+    _filter: { suche: "", stufe: "", vokale: "", umlaut: false, doppelt: false, nach: "zahl", liste: "loesungen" },
+    _zeigenBis: 60,
+
+    anmelden() {
+        NAVIGATION.anmelden({
+            id: "verwaltung",
+            titel: VERWALTUNG_BILDSCHIRM.TITEL,
+            zeichen: "schild",
+            /* Nur für Admins im Menü — eine Frage statt eines festen Werts. */
+            imMenue: () => VERWALTUNG_BILDSCHIRM.erlaubt(),
+            zeigen: (behaelter) => VERWALTUNG_BILDSCHIRM.zeigen(behaelter)
+        });
+    },
+
+    /* Werkstatt-Schalter `&admin` — nur auf dem eigenen Rechner. */
+    _werkstattAdmin() {
+        const lokal = typeof location !== "undefined"
+            && ["localhost", "127.0.0.1", "[::1]"].indexOf(location.hostname) !== -1;
+        return lokal && typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv()
+            && WERKSTATT._parameter().has("admin");
+    },
+
+    /* Darf dieses Gerät die Verwaltung sehen? */
+    erlaubt() {
+        if (VERWALTUNG_BILDSCHIRM._werkstattAdmin()) {
+            return true;
+        }
+        if (typeof KONTO === "undefined" || !KONTO.aktiv() || typeof ANMELDUNG === "undefined"
+                || !ANMELDUNG.abgleich) {
+            return false;
+        }
+        return KONTO.istAdmin(ANMELDUNG.abgleich.daten, KONTO.uid());
+    },
+
+    zeigen(behaelter) {
+        if (!VERWALTUNG_BILDSCHIRM.erlaubt()) {
+            /* Nichts zeigen, gleich zurück zum Start. */
+            setTimeout(() => NAVIGATION.zeigen("start", null, true), 0);
+            return;
+        }
+        behaelter.appendChild(BAUSTEINE.kopfzeile(VERWALTUNG_BILDSCHIRM.TITEL, {
+            zurueck: () => NAVIGATION.zurueck()
+        }));
+        behaelter.appendChild(BAUSTEINE.segment([
+            { wert: "lexikon", text: "Lexikon" },
+            { wert: "spieler", text: "Spieler" }
+        ], VERWALTUNG_BILDSCHIRM._teil, (wert) => {
+            VERWALTUNG_BILDSCHIRM._teil = wert;
+            NAVIGATION.auffrischen();
+        }, "Teil der Verwaltung"));
+
+        const ort = BAUSTEINE.el("div", "verwaltung-ort");
+        behaelter.appendChild(ort);
+        if (VERWALTUNG_BILDSCHIRM._teil === "spieler") {
+            VERWALTUNG_BILDSCHIRM._spielerZeigen(ort);
+        } else {
+            VERWALTUNG_BILDSCHIRM._lexikonZeigen(ort);
+        }
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Lexikon
+     * ---------------------------------------------------------------- */
+
+    /* Lädt js/lexikon-daten.js EINMAL nach (Skript-Element). */
+    lexikonLaden() {
+        if (typeof LEXIKON_DATEN !== "undefined") {
+            return Promise.resolve(LEXIKON_DATEN);
+        }
+        if (!VERWALTUNG_BILDSCHIRM._lexikonLaden) {
+            VERWALTUNG_BILDSCHIRM._lexikonLaden = new Promise((erfuellen, ablehnen) => {
+                const skript = document.createElement("script");
+                skript.src = VERWALTUNG_BILDSCHIRM.LEXIKON_DATEI;
+                skript.onload = () => (typeof LEXIKON_DATEN !== "undefined"
+                    ? erfuellen(LEXIKON_DATEN) : ablehnen(new Error("leer")));
+                skript.onerror = () => {
+                    VERWALTUNG_BILDSCHIRM._lexikonLaden = null;
+                    ablehnen(new Error("nicht geladen"));
+                };
+                document.head.appendChild(skript);
+            });
+        }
+        return VERWALTUNG_BILDSCHIRM._lexikonLaden;
+    },
+
+    /* Die Zeilen des Lexikons aus der vollen Bewertung + Korrektur. */
+    lexikonZeilen(voll) {
+        return WOERTER_DE.loesungen.map((wort) => {
+            const r = (voll && voll.woerter[wort]) || [null, null, null, null, 0, 0, 0, null];
+            const e = WORTBEWERTUNG.eintrag(wort) || { stufe: 2, skala: 5, ungeeignet: false, korrigiert: false };
+            return { wort: wort, zahl: r[0], versuche: r[1], nachbarn: r[2], muster: r[3], doppelt: r[4],
+                umlaut: r[5], vokale: r[7], stufe: e.stufe, skala: e.skala, ungeeignet: e.ungeeignet,
+                korrigiert: e.korrigiert };
+        });
+    },
+
+    /* Filtern und sortieren — rein, für den Test. */
+    lexikonFiltern(zeilen, f) {
+        const suche = String(f.suche || "").trim().toLowerCase();
+        const nach = f.nach || "zahl";
+        return zeilen.filter((z) => (!suche || z.wort.indexOf(suche) !== -1)
+            && (!f.stufe || z.stufe === Number(f.stufe))
+            && (f.vokale === "" || f.vokale === undefined
+                || (f.vokale === "3" ? z.vokale >= 3 : z.vokale === Number(f.vokale)))
+            && (!f.umlaut || z.umlaut)
+            && (!f.doppelt || z.doppelt > 0))
+            .sort((a, b) => {
+                if (nach === "wort") {
+                    return a.wort.localeCompare(b.wort, "de");
+                }
+                return ((b[nach] || 0) - (a[nach] || 0)) || a.wort.localeCompare(b.wort, "de");
+            });
+    },
+
+    _lexikonZeigen(ort) {
+        const f = VERWALTUNG_BILDSCHIRM._filter;
+        ort.appendChild(BAUSTEINE.segment([
+            { wert: "loesungen", text: "Lösungen · " + WOERTER_DE.loesungen.length },
+            { wert: "zusatz", text: "Zusatz · " + WOERTER_DE.zusatz.length }
+        ], f.liste, (wert) => {
+            f.liste = wert;
+            NAVIGATION.auffrischen();
+        }, "Wortliste"));
+
+        if (f.liste === "zusatz") {
+            ort.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis",
+                "Dürfen geraten werden, kommen nie als Lösung — nicht bewertet."));
+            const wolke = BAUSTEINE.el("p", "lexikon-wolke", WOERTER_DE.zusatz.slice().sort((a, b) =>
+                a.localeCompare(b, "de")).join(" · "));
+            ort.appendChild(wolke);
+            return;
+        }
+
+        const platz = ZUSTAND.laden({ zeilen: 6, nochmal: () => NAVIGATION.auffrischen() });
+        ort.appendChild(platz);
+        VERWALTUNG_BILDSCHIRM.lexikonLaden().then((voll) => {
+            if (!platz.isConnected) {
+                return;
+            }
+            const inhalt = BAUSTEINE.el("div", "lexikon");
+            platz.replaceWith(inhalt);
+            VERWALTUNG_BILDSCHIRM._lexikonBauen(inhalt, VERWALTUNG_BILDSCHIRM.lexikonZeilen(voll), voll);
+        }).catch(() => {
+            if (platz.isConnected) {
+                platz.replaceWith(ZUSTAND.fehler({ text: "Nicht geladen", nochmal: () => NAVIGATION.auffrischen() }));
+            }
+        });
+    },
+
+    _auswahl(klasse, optionen, wert, beiWahl, beschriftung) {
+        const s = BAUSTEINE.el("select", klasse);
+        s.setAttribute("aria-label", beschriftung);
+        for (const [w, text] of optionen) {
+            const o = BAUSTEINE.el("option", null, text);
+            o.value = w;
+            s.appendChild(o);
+        }
+        s.value = wert;
+        s.addEventListener("change", () => beiWahl(s.value));
+        return s;
+    },
+
+    _lexikonBauen(inhalt, alle, voll) {
+        const f = VERWALTUNG_BILDSCHIRM._filter;
+        const leiste = BAUSTEINE.el("div", "lexikon-leiste");
+        const suche = BAUSTEINE.el("input", "lexikon-suche");
+        suche.type = "search";
+        suche.placeholder = "Wort suchen";
+        suche.setAttribute("aria-label", "Wort suchen");
+        suche.autocomplete = "off";
+        suche.value = f.suche;
+        leiste.appendChild(suche);
+        leiste.appendChild(VERWALTUNG_BILDSCHIRM._auswahl("lexikon-wahl", [["", "alle Stufen"], ["1", "leicht"],
+            ["2", "mittel"], ["3", "schwer"]], f.stufe, (w) => { f.stufe = w; neu(); }, "Stufe"));
+        leiste.appendChild(VERWALTUNG_BILDSCHIRM._auswahl("lexikon-wahl", [["", "alle Vokale"], ["0", "0 Vokale"],
+            ["1", "1 Vokal"], ["2", "2 Vokale"], ["3", "3+ Vokale"]], f.vokale, (w) => { f.vokale = w; neu(); }, "Vokale"));
+        leiste.appendChild(VERWALTUNG_BILDSCHIRM._auswahl("lexikon-wahl", [["zahl", "nach Zahl"],
+            ["versuche", "nach Löser"], ["nachbarn", "nach Fallen"], ["muster", "nach Muster"],
+            ["wort", "nach Wort"]], f.nach, (w) => { f.nach = w; neu(); }, "Sortieren"));
+        for (const [feld, text] of [["umlaut", "Umlaut"], ["doppelt", "Doppelbuchstabe"]]) {
+            const label = BAUSTEINE.el("label", "lexikon-haken");
+            const kasten = BAUSTEINE.el("input");
+            kasten.type = "checkbox";
+            kasten.checked = !!f[feld];
+            kasten.addEventListener("change", () => { f[feld] = kasten.checked; neu(); });
+            label.appendChild(kasten);
+            label.appendChild(document.createTextNode(" " + text));
+            leiste.appendChild(label);
+        }
+        inhalt.appendChild(leiste);
+        if (voll) {
+            inhalt.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", "Gerechnet am " + voll.erstellt
+                + " · mittel ab " + voll.stufen[0] + ", schwer ab " + voll.stufen[1]
+                + " · Korrekturen im lokalen Werkzeug"));
+        }
+        const zahl = BAUSTEINE.el("p", "verwaltung-hinweis");
+        inhalt.appendChild(zahl);
+        const liste = BAUSTEINE.el("ul", "lexikon-liste");
+        inhalt.appendChild(liste);
+        const mehr = BAUSTEINE.knopf({ text: "Mehr zeigen", art: "still", breit: true,
+            beiKlick: () => { VERWALTUNG_BILDSCHIRM._zeigenBis += VERWALTUNG_BILDSCHIRM.SEITE; zeichnen(); } });
+        inhalt.appendChild(mehr);
+
+        function zeichnen() {
+            const treffer = VERWALTUNG_BILDSCHIRM.lexikonFiltern(alle, f);
+            zahl.textContent = treffer.length + " von " + alle.length + " Wörtern";
+            liste.textContent = "";
+            for (const z of treffer.slice(0, VERWALTUNG_BILDSCHIRM._zeigenBis)) {
+                const li = BAUSTEINE.el("li", "lexikon-karte" + (z.ungeeignet ? " lexikon-ungeeignet" : ""));
+                const kopf = BAUSTEINE.el("div", "lexikon-kopf");
+                kopf.appendChild(BAUSTEINE.el("span", "lexikon-wort", z.wort));
+                kopf.appendChild(BAUSTEINE.el("span", "lexikon-stufe lexikon-s" + z.stufe,
+                    WORTBEWERTUNG.STUFEN_NAMEN[z.stufe]));
+                kopf.appendChild(BAUSTEINE.el("span", "lexikon-zahl", (z.zahl === null ? "—" : z.zahl) + " · Skala " + z.skala));
+                li.appendChild(kopf);
+                const teile = ["Löser " + (z.versuche === null ? "—" : z.versuche.toFixed(2)),
+                    "Vokale " + (z.vokale === null ? "—" : z.vokale), "Fallen " + (z.nachbarn === null ? "—" : z.nachbarn),
+                    "Muster " + (z.muster === null ? "—" : z.muster.toFixed(2))];
+                if (z.ungeeignet) {
+                    teile.push("ungeeignet");
+                }
+                if (z.korrigiert) {
+                    teile.push("korrigiert");
+                }
+                li.appendChild(BAUSTEINE.el("p", "lexikon-teile", teile.join(" · ")));
+                liste.appendChild(li);
+            }
+            mehr.hidden = treffer.length <= VERWALTUNG_BILDSCHIRM._zeigenBis;
+        }
+        function neu() {
+            VERWALTUNG_BILDSCHIRM._zeigenBis = VERWALTUNG_BILDSCHIRM.SEITE;
+            zeichnen();
+        }
+        suche.addEventListener("input", () => { f.suche = suche.value; neu(); });
+        zeichnen();
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Spieler — der gemeinsame Baustein, nur lesen
+     * ---------------------------------------------------------------- */
+
+    /* Die Zeilen aus der Spielerliste — rein, für den Test. */
+    spielerZeilen(daten, heute) {
+        const stand = (daten && Array.isArray(daten.spieler)) ? daten.spieler : [];
+        return UPCREW_SPIELERLISTE.zeilen(stand.filter((s) => !SPIELER.istVerteiler(s)), {
+            rolle: (uid) => KONTO.rolleVon(daten, uid),
+            level: (fortschritt) => {
+                const l = FORTSCHRITT.level(fortschritt);
+                return { level: l.level, xp: FORTSCHRITT.gesamtXp(fortschritt) };
+            },
+            serie: (fortschritt) => FORTSCHRITT.serieHeute(fortschritt, heute).tage,
+            abzeichen: (fortschritt) => {
+                const liste = FORTSCHRITT.abzeichen(fortschritt, heute);
+                return { erreicht: liste.filter((a) => a.erreicht > 0).length, alle: liste.length };
+            }
+        });
+    },
+
+    _spielerZeigen(ort) {
+        const daten = ANMELDUNG.abgleich ? ANMELDUNG.abgleich.daten : null;
+        const zeilen = VERWALTUNG_BILDSCHIRM.spielerZeilen(daten, WORDLE.datumText(APP.jetzt()));
+        ort.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis",
+            "Nur lesen · Rechte und Umbenennen in der Blunderluck-Verwaltung"));
+        UPCREW_SPIELERLISTE.bauen(ort, {
+            zeilen: zeilen,
+            beiAuswahl: (zeile) => DIALOG.hinweis(zeile.name + (zeile.tag ? " #" + zeile.tag : ""), "", UPCREW_SPIELERLISTE.details(zeile))
+        });
+    }
+};

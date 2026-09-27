@@ -154,21 +154,6 @@ const FORTSCHRITT = {
         ];
     },
 
-    /* Abzeichen: Stufen aus dem Entwurf, danach feste Schritte ohne Ende.
-       `kurz` passt unter die Kachel, `einheit` steht im Blatt. */
-    ABZEICHEN: [
-        { id: "partien", titel: "Viel gespielt", kurz: "Partien", zeichen: "partie",
-            stufen: [10, 50, 100, 250, 500, 1000], weiter: 500, einheit: "Partien" },
-        { id: "besteSerie", titel: "Serie", kurz: "Serie", zeichen: "serie",
-            stufen: [3, 7, 30, 100, 365], weiter: 365, einheit: "Tage am Stück" },
-        { id: "beideTage", titel: "Beide Spiele", kurz: "Beide", zeichen: "beide",
-            stufen: [1, 10, 30, 100], weiter: 100, einheit: "Tage" },
-        { id: "figuren", titel: "Figuren", kurz: "Figuren", zeichen: "koenig",
-            stufen: [10, 30, 60, 100, 150], weiter: 50, einheit: "Figuren" },
-        { id: "tagesaufgaben", titel: "Tagesaufgaben", kurz: "Heute", zeichen: "kalender",
-            stufen: [1, 10, 50, 100, 365], weiter: 365, einheit: "geschafft" }
-    ],
-
     /* Die Taten (seit 0.13.0, Nutzer 27.09.2026: „Taten bauen, damit ich
        sie sehe"): Jede schaltet ein NEUES Sammelstück frei (js\sammlung.js,
        Feld `tat`). Nur, was sicher messbar ist. Erfüllt wird eine Tat beim
@@ -541,14 +526,6 @@ const FORTSCHRITT = {
         return summe;
     },
 
-    /* Geschaffte Tagesaufgaben eines Zweigs: der Zähler, wo es ihn gibt,
-       sonst die gemerkten Tage (Blunderluck führt keinen Zähler). */
-    _tagesaufgabenVon(zweig) {
-        const hatZaehler = zweig && FORTSCHRITT._istObjekt(zweig.zaehler)
-            && typeof zweig.zaehler.tagesaufgaben === "number";
-        return hatZaehler ? FORTSCHRITT._zaehlerVon(zweig, "tagesaufgaben") : FORTSCHRITT._tageVon(zweig).length;
-    },
-
     /* Die Tagesaufgabe eines Spiels an `datum`: Figuren 0..3. */
     heuteVon(stand, app, datum) {
         const zweig = FORTSCHRITT.zweig(stand, app);
@@ -895,53 +872,38 @@ const FORTSCHRITT = {
      * Profil: Abzeichen, Statistik, Spiele (seit 0.12.0)
      * ---------------------------------------------------------------- */
 
-    /* Die Werte der Abzeichen über ALLE Spiele. */
-    abzeichenWerte(stand, datum) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        const zweige = Object.keys(sauber.spiele).map((app) => sauber.spiele[app]);
-        const summe = (rechnung) => zweige.reduce((s, zweig) => s + rechnung(zweig), 0);
-
-        /* Beide Spiele: gezählte Tage aller Zweige — mindestens aber die
-           Tage, die in zwei Zweigen stehen (falls das zweite Spiel keinen
-           Zähler führt). */
-        const gesehen = {};
-        let gemeinsam = 0;
-        for (const zweig of zweige) {
-            for (const tag of FORTSCHRITT._tageVon(zweig)) {
-                gesehen[tag] = (gesehen[tag] || 0) + 1;
-                if (gesehen[tag] === 2) {
-                    gemeinsam++;
-                }
-            }
+    /*
+     * DIE ABZEICHEN (seit 0.15.9) rechnet der gemeinsame Baustein
+     * js\upcrew-abzeichen.js aus Design\3D-Schrift\final — gleich in
+     * Blunderluck, über ALLE Zweige (Rechnung 1:1 aus Typoluck 0.12.0, die
+     * eigene Kopie hier ist weg; tests\test-fortschritt.js prüft, dass
+     * derselbe Fortschritt dieselben Abzeichen ergibt). Nur die LAUFENDE
+     * Serie kennt der Baustein nicht — die gibt Typoluck mit.
+     */
+    _abzeichenBaustein() {
+        if (typeof UPCREW_ABZEICHEN !== "undefined") {
+            return UPCREW_ABZEICHEN;
         }
-
-        const laufend = datum ? FORTSCHRITT.serieHeute(sauber, datum).tage : 0;
-        return {
-            partien: summe((z) => FORTSCHRITT._zahl(z.partien)),
-            besteSerie: Math.max(laufend, ...zweige.map((z) => FORTSCHRITT._zaehlerVon(z, "besteSerie")), 0),
-            beideTage: Math.max(summe((z) => FORTSCHRITT._zaehlerVon(z, "beideTage")), gemeinsam),
-            figuren: summe((z) => FORTSCHRITT._figurenVon(z)),
-            tagesaufgaben: summe((z) => FORTSCHRITT._tagesaufgabenVon(z))
-        };
+        /* In den Tests (Node) liegt der Baustein neben dieser Datei. */
+        return require("./upcrew-abzeichen.js");
     },
 
-    /* Abzeichen mit erreichter Stufe: [{ …abzeichen, wert, erreicht,
-       naechste }]. Über die letzte Stufe hinaus geht es in festen Schritten
-       weiter (nach oben offen). */
+    /* Die laufende Serie über alle Spiele (0 ohne Datum). */
+    laufendeSerie(stand, datum) {
+        return datum ? FORTSCHRITT.serieHeute(FORTSCHRITT.normalisieren(stand), datum).tage : 0;
+    },
+
+    /* Die Werte der Abzeichen: { partien, besteSerie, beideTage, figuren,
+       tagesaufgaben }. */
+    abzeichenWerte(stand, datum) {
+        return FORTSCHRITT._abzeichenBaustein().werte(FORTSCHRITT.normalisieren(stand),
+            FORTSCHRITT.laufendeSerie(stand, datum));
+    },
+
+    /* Die Abzeichen mit erreichter Stufe (UPCREW_ABZEICHEN.liste). */
     abzeichen(stand, datum) {
-        const werte = FORTSCHRITT.abzeichenWerte(stand, datum);
-        return FORTSCHRITT.ABZEICHEN.map((abzeichen) => {
-            const wert = werte[abzeichen.id] || 0;
-            let erreicht = abzeichen.stufen.filter((stufe) => wert >= stufe).length;
-            let naechste = abzeichen.stufen[erreicht];
-            if (naechste === undefined) {
-                const letzte = abzeichen.stufen[abzeichen.stufen.length - 1];
-                const dazu = Math.floor((wert - letzte) / abzeichen.weiter);
-                erreicht += dazu;
-                naechste = letzte + (dazu + 1) * abzeichen.weiter;
-            }
-            return Object.assign({}, abzeichen, { wert: wert, erreicht: erreicht, naechste: naechste });
-        });
+        return FORTSCHRITT._abzeichenBaustein().liste(FORTSCHRITT.normalisieren(stand),
+            FORTSCHRITT.laufendeSerie(stand, datum));
     },
 
     /* Die Typoluck-Statistik aus dem eigenen Zweig: { partien, figuren,

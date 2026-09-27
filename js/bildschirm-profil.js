@@ -195,32 +195,15 @@ const PROFIL_BILDSCHIRM = {
     },
 
     /* Die Abzeichen (seit 0.10.0; seit 0.12.0 eigene Karte wie im
-       Entwurf): Zeichen und je Stufe ein Punkt; antippen zeigt Wert und
-       Stufen. Werte über alle Spiele (js\fortschritt.js). */
+       Entwurf; seit 0.15.9 aus dem gemeinsamen Baustein
+       js\upcrew-abzeichen.js, gleich in Blunderluck und in der Sammlung):
+       Zeichen und je Stufe ein Punkt; antippen zeigt Wert und Stufen. */
     _abzeichenBauen() {
         const karte = BAUSTEINE.karte("Abzeichen", "profil-abzeichen");
-        const raster = BAUSTEINE.el("div", "level-abzeichen");
         const datum = WORDLE.datumText(APP.jetzt());
-        for (const eintrag of FORTSCHRITT.abzeichen(APP.fortschritt(), datum)) {
-            raster.appendChild(BAUSTEINE.abzeichen(eintrag, () => PROFIL_BILDSCHIRM._abzeichenZeigen(eintrag)));
-        }
-        karte.appendChild(raster);
+        karte.appendChild(UPCREW_ABZEICHEN.raster(FORTSCHRITT.abzeichen(APP.fortschritt(), datum),
+            (eintrag) => DIALOG.hinweis(eintrag.titel, "", UPCREW_ABZEICHEN.blatt(eintrag))));
         return karte;
-    },
-
-    _abzeichenZeigen(eintrag) {
-        const inhalt = BAUSTEINE.el("div", "abzeichen-blatt");
-        const wert = BAUSTEINE.el("p", "abzeichen-wert");
-        wert.appendChild(BAUSTEINE.el("strong", null, String(eintrag.wert)));
-        wert.appendChild(BAUSTEINE.el("span", null, " " + eintrag.einheit));
-        inhalt.appendChild(wert);
-        const stufen = BAUSTEINE.el("div", "abzeichen-stufen");
-        for (const stufe of eintrag.stufen) {
-            stufen.appendChild(BAUSTEINE.el("span", eintrag.wert >= stufe ? "an" : null, String(stufe)));
-        }
-        stufen.appendChild(BAUSTEINE.el("span", "leise", "+" + eintrag.weiter + " …"));
-        inhalt.appendChild(stufen);
-        DIALOG.hinweis(eintrag.titel, "", inhalt);
     },
 
     /* Wie eine Belohnung heisst (kurz). */

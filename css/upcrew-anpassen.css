@@ -20,7 +20,7 @@
 .upa-hinweis[hidden] { display: none; }
 
 .upa-vorschau { background: var(--flaeche); color: var(--schrift); border: 2px solid var(--rahmen); border-radius: var(--upa-rund);
-  padding: 12px; display: flex; flex-direction: column; gap: 10px; height: 280px; overflow: hidden; pointer-events: none; }
+  padding: 12px; display: flex; flex-direction: column; gap: 10px; height: auto; min-height: 280px; overflow: hidden; pointer-events: none; }
 .upa-vorschau.upa-neu { animation: upa-neu 220ms ease-out; }
 @keyframes upa-neu { from { opacity: .55; } to { opacity: 1; } }
 .upa-v-kopf { display: flex; justify-content: space-between; align-items: baseline; }

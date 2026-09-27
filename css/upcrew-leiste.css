@@ -18,6 +18,11 @@
  *   Schrift … mach, dass es schön aussieht“ → aus vier Vorschlägen `entwuerfe\Leiste-Schrift\` gewählt: „die untere
  *   Variante“ = C · Kapsel. Vorher stand der Name unter einer hochgehobenen Kachel und stieß an deren Unterkante.)
  * - Symbole: 24er-Raster, Strich 2, runde Enden (wie bisher). Aufgaben-Pfeil NEU (27.09.): M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14
+ * - WECHSEL (Nutzer 27.09.2026 „die Animation beim Tab-Wechseln muss besser werden“ → aus `entwuerfe\Leiste-Schrift\
+ *   wechsel.html` gewählt: „C“ = Gleiten + Hüpfen): EINE Kapsel fährt gefedert vom alten zum neuen Tab, das Symbol
+ *   hüpft beim Ankommen kurz. Dafür gehört `upcrew-leiste.js` dazu (nach dieser Datei laden, einmal
+ *   `UPCREW_LEISTE.an(nav)` je Leiste). Es beobachtet `aria-current` selbst — die App ändert an ihrem Tab-Wechsel
+ *   NICHTS. Ohne Skript (oder bevor es läuft) gilt der Rückfall: jede Kapsel wächst an ihrem Platz (::before).
  * Braucht die Farbwelt-Variablen (--karte, --rahmen, --schrift-leise, --haupt, --haupt-kante, --haupt-schrift).
  */
 .up-leiste { position: relative; z-index: 3; display: flex; height: 64px; flex: none; overflow: visible;
@@ -42,4 +47,21 @@
   text-shadow: 0 1px 0 rgb(255 255 255 / .35); }
 .up-tab:focus-visible { outline: 2px solid var(--haupt); outline-offset: -4px; border-radius: 12px; }
 .up-tab-still, .up-tab:disabled { opacity: .35; cursor: default; }
-@media (prefers-reduced-motion: reduce) { .up-tab, .up-tab svg, .up-tab::before, .up-tab span { transition: none; } }
+
+/* Mit upcrew-leiste.js: EINE wandernde Kapsel statt ::before je Tab; Name blendet nach dem Ankommen ein. */
+.up-leiste.up-mit-kapsel .up-tab { transition: flex 320ms cubic-bezier(.3, 1.35, .5, 1); }
+.up-leiste.up-mit-kapsel .up-tab::before { display: none; }
+.up-leiste.up-mit-kapsel .up-tab svg { transition: transform 320ms cubic-bezier(.3, 1.35, .5, 1), color 200ms; }
+.up-leiste.up-mit-kapsel .up-tab span { transition: max-width 320ms cubic-bezier(.3, 1.35, .5, 1),
+  margin 320ms cubic-bezier(.3, 1.35, .5, 1), opacity 180ms 120ms, transform 320ms cubic-bezier(.3, 1.35, .5, 1); }
+.up-kapsel { position: absolute; z-index: 0; top: 0; left: 0; height: 44px; border-radius: 16px; background: var(--haupt);
+  box-shadow: 0 5px 0 var(--haupt-kante), 0 8px 18px rgb(0 0 0 / .35); pointer-events: none;
+  transition: transform 320ms cubic-bezier(.3, 1.35, .5, 1), width 320ms cubic-bezier(.3, 1.35, .5, 1); }
+.up-kapsel.up-ohne-weg { transition: none; }
+.up-tab.up-hopp svg { animation: up-hopp 420ms cubic-bezier(.3, 1.35, .5, 1); }
+@keyframes up-hopp { 0% { transform: translateY(-5px) scale(1); } 35% { transform: translateY(-11px) scale(1.18); }
+  100% { transform: translateY(-5px) scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .up-tab, .up-tab svg, .up-tab::before, .up-tab span, .up-kapsel,
+  .up-leiste.up-mit-kapsel .up-tab, .up-leiste.up-mit-kapsel .up-tab svg, .up-leiste.up-mit-kapsel .up-tab span { transition: none; }
+  .up-tab.up-hopp svg { animation: none; } }

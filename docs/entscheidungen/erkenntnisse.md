@@ -3,6 +3,23 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Ein `const` oben im Skript steht nicht an `globalThis` (27.09.2026)
+
+`const WOERTER_DE = {…}` in einem klassischen Skript ist im ganzen Fenster
+sichtbar, aber KEINE Eigenschaft von `window`/`globalThis`. Wer
+`globalThis["WOERTER_DE"]` fragt, bekommt `undefined` — die Wort-Bewertung
+fand so im Browser ihre Daten nicht (in Node lief es, dort kam `require`).
+Immer `typeof WOERTER_DE !== "undefined"` direkt schreiben.
+
+## Der eingebaute Browser behält Skripte je Tab (27.09.2026)
+
+Nach Änderungen an `js\upcrew-aussehen.js` lief im selben Tab immer noch die
+alte Fassung — trotz abgemeldetem Worker, geleerten Caches und
+`fetch(…, {cache:"reload"})` (Ressource „aus dem Cache", 0 Byte). Ein NEUER
+Tab lud sofort die neue. Beim Ansehen nach Änderungen: neuen Tab öffnen.
+Ausserdem: In einem Hintergrund-Tab laufen keine CSS-Übergänge — Messungen
+der Leisten-Kapsel nur im vorderen Tab.
+
 ## Weisse Seite am iPhone: kein Stil, kein Skript (27.09.2026)
 
 Handy-Bild des Nutzers (iPhone, 17:54, live 0.15.2): weisse Seite, nur

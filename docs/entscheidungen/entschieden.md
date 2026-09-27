@@ -2,6 +2,80 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Verwaltung für Admins: Lexikon und Spielerliste (27.09.2026, 0.16.3)
+
+Nutzer: „der Admin soll in Typoluck das Lexikon sehen mit den Wörtern, und
+in beiden generell eine Spielerliste mit Statistiken und co — aber nur der
+Admin-Account".
+- **0.16.3, nicht 0.17.0:** nur eine neue Ansicht für Admins; für Spieler
+  ändert sich nichts, kein Datenmodell, keine Regel.
+- **Wer:** `KONTO.istAdmin` (UP#Plus oder Rolle „admin"). Menü-Eintrag nur
+  für sie (`imMenue` darf eine Frage sein); der Bildschirm prüft selbst noch
+  einmal und schickt sonst sofort zum Start. Werkstatt-Schalter `&admin`
+  nur auf localhost.
+- **Lexikon:** die volle Bewertung (`js\lexikon-daten.js`) wird erst beim
+  Öffnen nachgeladen — nicht in index.html, nicht im Vorabspeicher. Nur
+  ansehen; Korrekturen bleiben im lokalen Werkzeug.
+- **Spielerliste:** gemeinsamer Baustein `js\upcrew-spielerliste.js` +
+  `css\upcrew-spielerliste.css` (Vorschlag für final), nur lesen, Karten
+  statt breiter Tabelle. Blunderluck hängt ihn in seine Verwaltung neben
+  Rechte/Umbenennen.
+- **Nur eine Sperre der Oberfläche** (siehe STATUS: Vorschlag zu den Regeln).
+
+## Die Wort-Bewertung (27.09.2026, 0.16.0)
+
+Nutzer: „ein Bewertungssystem … Wörter bewerten, wie schwierig diese sind,
+damit in einem Level-System mit Boss die Schwierigkeit erhöht wird" — dazu
+„also einfache Worte sind welche mit zwei unterschiedlichen a e i o u" und
+„nur ich soll diese filtern und die ganze Library sehen können".
+- **Zahl 0–100 aus fünf Teilen** (`js\wortbewertung.js`, Gewichte im Kopf):
+  Löser 0,40 (WordleBot-Art: kleinste erwartete Restmenge, gegen die eigene
+  Liste, drei beste Startwörter ALTER/LASER/KLARE, Mittel der Versuche —
+  misst, was ein guter Spieler erlebt), Vokale 0,25 (Nutzer-Regel: genau
+  zwei verschiedene aus a/e/i/o/u = 0, drei = 0,3, vier+ = 0,5, einer =
+  0,8, keiner = 1 — deutlich, damit sie sichtbar wirkt), Fallen 0,15
+  (Nachbarn an genau einer Stelle, trifft Menschen härter als den Löser),
+  Muster 0,20 (Doppelte, Umlaut, seltene Buchstaben — der alte Maßstab
+  lebt hier weiter), Bekanntheit 0 (Platz vorgesehen; die Quelle einer
+  Häufigkeitsliste entscheidet der Nutzer).
+- **Stufen = Drittel** der Zahlen (leicht < 27 ≤ mittel < 42 ≤ schwer):
+  so kommen +15/+20/+30 XP im Mittel gleich oft vor; **Skala 1–10 =
+  Zehntel** für den Turm. Schwellen stehen in den Daten, ändern sich nur
+  beim Neurechnen.
+- **Vorab gerechnet, nicht live:** `werkzeug\Woerter-Bewerten.ps1`
+  (1 Sekunde). Die App bekommt NUR Stufe und Skala je Wort
+  (`js\wortbewertung-daten.js`, zwei Ziffernfolgen); die volle Bewertung
+  liegt in `werkzeug\wortbewertung-voll.js`.
+- **Nur für den Nutzer:** Werkzeug-Seite `werkzeug\woerter-werkzeug.html`
+  (Tabelle, Filter, Korrektur, Tageswort-Plan), Ordner `werkzeug\` steht
+  nicht in der Freigabe von `tools\Deploy-Typoluck.ps1`, kein Einstieg aus
+  der App (Test).
+- **Korrektur von Hand gewinnt immer** (`js\wortbewertung-korrektur.js`).
+  Weg: Werkzeug-Seite → „Korrekturen herunterladen" →
+  `werkzeug\Wortkorrektur-Uebernehmen.ps1` (prüft und legt nach `js\`).
+  Einfacher ginge es nur mit einem Schreib-Dienst am lokalen Server — mehr
+  bewegliche Teile als ein Klick plus ein Skript. „Ungeeignet" nimmt ein
+  Wort aus der Übung (und später aus dem Turm), nie aus dem Tageswort.
+- **Tageswort-Auswahl NICHT umgestellt:** Sie rechnet Datum → Wort ohne
+  Stufen; jede Umstellung zur ausgewogenen Mischung änderte künftige
+  Tage, die Geräte mit älterer Fassung anders sähen. Die Werkzeug-Seite
+  zeigt den Plan der nächsten 30 Tage mit Stufen (Vorschlag/Ansicht).
+
+## Gleicher Name und gleiches Passwort erlaubt (27.09.2026, 0.15.7)
+
+Nutzer-Entscheid (über den Koordinator), gleich Blunderluck v0.151.9:
+- Zwei Konten dürfen **denselben Namen UND dasselbe Passwort** haben; sie
+  unterscheiden sich nur in der Nummer. Beim Anmelden nur mit Namen prüft
+  die App **alle** gleichnamigen Konten (höchstens 20) und fragt bei
+  mehreren Treffern „Welches Konto?".
+- In dieser Liste — und nur dort im Anmelde-Ablauf — steht die Nummer,
+  dazu Level und letzter Spieltag, soweit ohne Anmeldung lesbar; sonst
+  wären die Konten nicht zu unterscheiden.
+- Die Treffer bleiben nur im Speicher (nie auf dem Gerät), 10 Minuten
+  gültig; danach wird beim Antippen einmal neu angemeldet. Abbrechen
+  verwirft sie und meldet niemanden an.
+- `js\konto.js` bleibt Blunderlucks Fassung (nur `SCHLUESSEL` eigen).
+
 ## Nachtrag Runde 6: XP nach Schwierigkeit, eine Rahmen-Regel, Kachel-Sets (27.09.2026, 0.14.0)
 
 Nutzer-Antworten `AUFTRAEGE-RUNDE-6.md`, D0 „Nachtrag".

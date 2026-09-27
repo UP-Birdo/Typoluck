@@ -5,6 +5,8 @@
 
 ## erkenntnisse.md — Fallen und Bug-Ursachen
 
+- Ein `const` oben im Skript steht nicht an `globalThis`
+- Der eingebaute Browser behält Skripte je Tab
 - Weisse Seite am iPhone: kein Stil, kein Skript
 - Ein neuer Service Worker macht die offene Seite nicht neu
 - Der Service Worker füllt sich aus der HTTP-Ablage

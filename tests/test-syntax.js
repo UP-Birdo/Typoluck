@@ -30,7 +30,18 @@ const liste = (ordner) => fs.readdirSync(path.join(wurzel, ordner)).map((name) =
 const KOPIEN = [
     "js/upcrew-intro.js", "css/upcrew-intro.css", "js/upcrew-farbwelten.js",
     "js/upcrew-aussehen.js", "js/upcrew-anpassen.js", "css/upcrew-anpassen.css", "css/upcrew-knoepfe.css",
-    "css/upcrew-leiste.css"
+    "css/upcrew-leiste.css",
+    /* seit 0.15.9: Sammlungs-Gerüst und Abzeichen, gleich in Blunderluck */
+    "js/upcrew-sammlung.js", "css/upcrew-sammlung.css", "js/upcrew-abzeichen.js", "css/upcrew-abzeichen.css",
+    /* seit 0.15.10: Tabs wechseln durch Wischen, gleich in Blunderluck */
+    "js/upcrew-wischen.js", "css/upcrew-wischen.css",
+    /* seit 0.15.12: die wandernde Kapsel der Leiste („C · Gleiten + Hüpfen") */
+    "js/upcrew-leiste.js",
+    /* seit 0.16.1: die Serien-Flamme oben neben dem Kurzprofil */
+    "js/upcrew-flamme.js", "css/upcrew-flamme.css",
+    /* seit 0.16.3: Spielerliste der Admins — Vorschlag aus Typoluck für final,
+       ab dort wie jede Kopie behandelt (nie abwandeln) */
+    "js/upcrew-spielerliste.js", "css/upcrew-spielerliste.css"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -82,7 +93,14 @@ gleich("sw.js: Stildateien in der Reihenfolge von index.html",
 
 const aufPlatte = liste("js").concat(liste("css"), liste("icons"))
     .filter((datei) => /\.(js|css|png)$/.test(datei)).map((datei) => "./" + datei);
-for (const datei of aufPlatte) {
+/* Ausnahme (seit 0.16.3): das Lexikon der Admins wird nur nachgeladen,
+   NIE vorab gespeichert (js/bildschirm-verwaltung.js). */
+const NUR_NACHGELADEN = ["./js/lexikon-daten.js"];
+for (const datei of NUR_NACHGELADEN) {
+    pruefe("Nur nachgeladen, nicht im Service Worker und nicht in index.html: " + datei,
+        swListe.indexOf(datei) === -1 && indexSkripte.indexOf(datei.slice(2)) === -1);
+}
+for (const datei of aufPlatte.filter((d) => NUR_NACHGELADEN.indexOf(d) === -1)) {
     pruefe("Im Service Worker eingetragen: " + datei, swListe.indexOf(datei) !== -1);
 }
 for (const eintrag of swListe.filter((e) => e !== "./")) {
@@ -294,17 +312,61 @@ pruefe("Der Tab „Anpassen“ ist weg (in der Sammlung aufgegangen)",
         && !/ANPASSEN_BILDSCHIRM/.test(liste("js").filter((d) => d.endsWith(".js")).map(lesen).join("")));
 const sammlungText = lesen("js/bildschirm-sammlung.js");
 pruefe("Sammlung steht nicht im Menü", /id: "sammlung"[\s\S]*?imMenue: false/.test(sammlungText));
-pruefe("Sammlung zeigt den gemeinsamen Tab direkt, als Typoluck, Stufe aus einer Stelle",
-    /UPCREW_ANPASSEN\.zeigen\(ort, \{\s*app: "typoluck",\s*stufe: SAMMLUNG_BILDSCHIRM\.stufe\(\)/.test(sammlungText));
-pruefe("Sammlung: reine Sammlung VOR dem Übernehmen-Balken",
-    /ort\.insertBefore\([\s\S]*?ort\.querySelector\("\.upa-aktion"\)\)/.test(sammlungText));
-pruefe("Sammlung: Kopfzeile zeigt den Anteil aus dem Modell",
-    /SAMMLUNG\.anteil\(UPCREW_ANPASSEN\.STUFEN/.test(sammlungText) && /rechts: prozent/.test(sammlungText));
+/* Seit 0.15.9 baut das Gerüst der gemeinsame Baustein js\upcrew-sammlung.js
+   (Nutzer: „bei beiden Apps soll Sammlung gleich sein und immer gleich
+   bleiben"). Typoluck setzt nur die Stellschrauben und liefert Inhalte. */
+pruefe("Sammlung: Gerüst aus UPCREW_SAMMLUNG, Tab direkt im rollenden Inhalt",
+    /const wurzel = BAUSTEINE\.el\("section"\);\s*behaelter\.appendChild\(wurzel\);\s*const geruest = UPCREW_SAMMLUNG\.bauen\(wurzel/
+        .test(sammlungText));
+pruefe("Sammlung zeigt den gemeinsamen Tab im Ort des Gerüsts, als Typoluck, Stufe aus einer Stelle",
+    /UPCREW_ANPASSEN\.zeigen\(geruest\.ort, \{\s*app: "typoluck",\s*stufe: SAMMLUNG_BILDSCHIRM\.stufe\(\)/.test(sammlungText));
+pruefe("Sammlung: reine Sammlung übers Gerüst VOR den Balken, Anteil aus dem Modell, Vorschau bündig",
+    /geruest\.restEinsetzen\(/.test(sammlungText) && /SAMMLUNG\.anteil\(UPCREW_ANPASSEN\.STUFEN/.test(sammlungText)
+        && /geruest\.anteilSetzen\(anteil\.hat, anteil\.alle\)/.test(sammlungText) && /geruest\.obenSetzen\(\)/.test(sammlungText));
+pruefe("Sammlung: Abzeichen als erste Gruppe, aus dem gemeinsamen Baustein",
+    /UPCREW_SAMMLUNG\.rest\(\);[\s\S]*?UPCREW_SAMMLUNG\.abzeichenTeil\(FORTSCHRITT\.abzeichen\(/.test(sammlungText));
+pruefe("Sammlung: Teile, Gitter und Stücke aus dem Gerüst",
+    /UPCREW_SAMMLUNG\.teil\(/.test(sammlungText) && /UPCREW_SAMMLUNG\.gitter\(\)/.test(sammlungText)
+        && /UPCREW_SAMMLUNG\.stueck\(/.test(sammlungText));
 pruefe("Sammlung räumt beim Verlassen auf",
     /verlassen: \(\) => SAMMLUNG_BILDSCHIRM\.entfernen\(\)/.test(sammlungText));
-pruefe("Sammlung: Vorschau klebt bündig unter der Kopfzeile, Balken bündig auf der Leiste",
-    /--upa-oben: var\(--sammlung-kopf\)/.test(lesen("css/stil-bildschirme.css"))
-        && /\.sammlung-ort \.upa-aktion \{\s*bottom: calc\(var\(--leiste-hoehe\)/.test(lesen("css/stil-bildschirme.css")));
+{
+    const bildschirme = lesen("css/stil-bildschirme.css").replace(/\/\*[\s\S]*?\*\//g, "");
+    pruefe("Sammlung: kein eigenes Gerüst mehr (Kopf, Ort, Balken, Vorschau-Lage kommen aus dem Baustein)",
+        !/sammlung-(kopf|ort|rest|gitter|anteil|zahl)|data-bildschirm="sammlung"|upa-aktion|upa-vorschau|--upa-oben/
+            .test(bildschirme));
+    pruefe("Sammlung: Stellschrauben des Gerüsts in css\\stil.css",
+        /--up-sm-rand: var\(--inhalt-rand\);/.test(lesen("css/stil.css"))
+            && /--up-sm-leiste: calc\(var\(--leiste-hoehe\) \+ env\(safe-area-inset-bottom, 0px\)\);/.test(lesen("css/stil.css")));
+    pruefe("Die Seite selbst rollt: kein Inhalt mit eigenem Rollbereich",
+        !/\.inhalt[^{]*\{[^}]*overflow(-y)?:\s*(auto|scroll)/.test(lesen("css/stil.css") + bildschirme));
+    const stile = indexStile;
+    pruefe("Sammlungs- und Abzeichen-Stil laden NACH upcrew-anpassen.css",
+        stile.indexOf("css/upcrew-sammlung.css") > stile.indexOf("css/upcrew-anpassen.css")
+            && stile.indexOf("css/upcrew-abzeichen.css") > stile.indexOf("css/upcrew-anpassen.css"));
+    pruefe("Abzeichen- und Sammlungs-Baustein laden vor der Sammlung und dem Profil",
+        indexSkripte.indexOf("js/upcrew-abzeichen.js") !== -1
+            && indexSkripte.indexOf("js/upcrew-sammlung.js") !== -1
+            && indexSkripte.indexOf("js/upcrew-sammlung.js") < indexSkripte.indexOf("js/bildschirm-sammlung.js")
+            && indexSkripte.indexOf("js/upcrew-abzeichen.js") < indexSkripte.indexOf("js/bildschirm-profil.js"));
+}
+/* Der iPhone-Streifen oben (seit 0.15.8, Nutzer-Bild: Spielfeld lief unter
+   die Uhrzeit): eine feste, deckende Fläche, der Inhalt beginnt darunter,
+   und nichts Festes oder Klebendes sitzt mehr bei `top: 0` ohne sie. */
+{
+    const stil = lesen("css/stil.css");
+    const alle = stil + lesen("css/stil-bildschirme.css") + lesen("css/stil-wordle.css");
+    pruefe("Streifen oben: --oben-frei aus env(safe-area-inset-top)",
+        /--oben-frei: env\(safe-area-inset-top, 0px\)/.test(stil));
+    pruefe("Streifen oben: feste Fläche in Grundfarbe, so hoch wie der Streifen",
+        /body::before \{[^}]*position: fixed;[^}]*top: 0;[^}]*height: var\(--oben-frei\);[^}]*background: var\(--flaeche\);/.test(stil));
+    pruefe("Streifen oben: der Inhalt beginnt darunter",
+        /\.inhalt \{[^}]*padding: calc\(8px \+ var\(--oben-frei\)\)/.test(stil));
+    pruefe("Streifen oben: kein klebendes/festes Teil mehr mit top: 0 (ausser der Fläche selbst)",
+        !/position: (sticky|fixed);\s*top: 0;/.test(alle.replace(/body::before \{[^}]*\}/, "")));
+    pruefe("Streifen oben: env(safe-area-inset-top) nur noch an einer Stelle",
+        (alle.match(/safe-area-inset-top/g) || []).length === 1);
+}
 pruefe("Neu gezeichnet wird die Sammlung nicht von fremden Daten (der Entwurf bliebe sonst nicht)",
     /UNGESTOERT: \["wordle", "sammlung"\]/.test(lesen("js/app.js")));
 pruefe("Keine Freischalt-Stufen oder Standard-Werte in der App festgeschrieben",
@@ -364,8 +426,9 @@ pruefe("Profil: Nächste Level, Spiele, Statistik, Abzeichen wie im Entwurf",
 pruefe("Profil: Werte aus dem Modell (Spiele, Statistik, Abzeichen, Rahmen, Titel)",
     ["FORTSCHRITT.spiele(", "FORTSCHRITT.statistik(", "FORTSCHRITT.abzeichen(", "FORTSCHRITT.rahmenVon(",
         "FORTSCHRITT.titelVon("].every((t) => profilText.indexOf(t) !== -1));
-pruefe("Profil: Abzeichen entstehen in BAUSTEINE.abzeichen",
-    /BAUSTEINE\.abzeichen\(/.test(profilText) && profilText.indexOf("\"button\"") === -1);
+pruefe("Profil: Abzeichen aus dem gemeinsamen Baustein (seit 0.15.9), keine eigene Kopie",
+    /UPCREW_ABZEICHEN\.raster\(FORTSCHRITT\.abzeichen\(/.test(profilText) && /UPCREW_ABZEICHEN\.blatt\(/.test(profilText)
+        && profilText.indexOf("\"button\"") === -1 && !/abzeichen\(eintrag, beiKlick\)/.test(lesen("js/bausteine.js")));
 pruefe("Profil: Orte von Blunderluck aus KONFIG",
     /KONFIG\.andereSpiele\.blunderluck/.test(profilText)
         && KONFIG.andereSpiele.blunderluck.orte.length === 6);
@@ -378,9 +441,10 @@ pruefe("Herausforderungen stehen nicht im Menü",
 /* Kopfzeile auf dem Start (seit 0.7.0, wie Blunderluck): kein Schriftzug
    mehr, links das Kurzprofil, rechts das Menü. */
 pruefe("Start: kein Schriftzug „Typoluck“ mehr oben", lesen("js/bildschirm-start.js").indexOf("start-logo") === -1);
-pruefe("Start: Kurzprofil mit Serie und Quote",
+pruefe("Start: Kurzprofil mit Quote, die Serie zeigt nur die Flamme (seit 0.16.2)",
     /_kurzprofilBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
-        && /"Serie " \+ werte\.serie \+ " · " \+ werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js")));
+        && /werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js"))
+        && !/"Serie " \+ werte\.serie/.test(lesen("js/bildschirm-start.js")));
 /* „Freunde heute" lebt (seit 0.8.1, ROADMAP Nr. 9): die Uhr läuft nur auf
    dem Start und nie in der Werkstatt, und sie zeigt nie den Platzhalter. */
 const startText = lesen("js/bildschirm-start.js");

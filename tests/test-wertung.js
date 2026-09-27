@@ -87,8 +87,9 @@ const wertungVerloren = WERTUNG.runde(verloren);
 gleich("Verloren: 0 Figuren", wertungVerloren.figuren, 0);
 gleich("Verloren: sechs Versuche gewertet", wertungVerloren.versuche.length, 6);
 
-/* Schwierigkeit des Tageworts (seit 0.14.0): 1–3, fest je Wort, etwa je
-   ein Drittel der Lösungsliste, seltene Buchstaben = schwer. */
+/* Schwierigkeit des Tageworts (seit 0.14.0; seit 0.16.0 aus der
+   Wort-Bewertung js/wortbewertung.js): 1–3, fest je Wort, etwa je ein
+   Drittel der Lösungsliste. */
 const liste = WOERTER_DE.loesungen;
 const stufen = liste.map((wort) => WERTUNG.schwierigkeit(wort));
 pruefe("Schwierigkeit: nur 1, 2, 3", stufen.every((s) => s === 1 || s === 2 || s === 3));
@@ -98,8 +99,9 @@ for (const stufe of [1, 2, 3]) {
         anteil > 0.25 && anteil < 0.42);
 }
 gleich("Schwierigkeit: fest je Wort", liste.slice(0, 20).map((w) => WERTUNG.schwierigkeit(w)), stufen.slice(0, 20));
-pruefe("Schwierigkeit: seltene Buchstaben schwerer als häufige",
-    WERTUNG.schwierigkeit("xylyx") >= WERTUNG.schwierigkeit("reise"));
+gleich("Schwierigkeit = Stufe der Wort-Bewertung", liste.map((w) => WERTUNG.schwierigkeit(w)),
+    liste.map((w) => require("../js/wortbewertung.js").stufe(w)));
+gleich("Unbekanntes Wort: mittel", WERTUNG.schwierigkeit("xylyx"), 2);
 gleich("Schwierigkeit: fest je Datum", WERTUNG.schwierigkeit(WORDLE.tageswort("2026-09-27").wort),
     WERTUNG.schwierigkeit(WORDLE.tageswort("2026-09-27").wort));
 gleich("Stufen-Namen", WERTUNG.STUFEN_NAMEN, { 1: "leicht", 2: "mittel", 3: "schwer" });

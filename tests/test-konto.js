@@ -245,7 +245,7 @@ function firebaseNachbauen() {
 
 function appLaden(fb) {
     const geraet = speicherAttrappe();
-    const dialog = { antworten: [], hinweise: [], kurz: [] };
+    const dialog = { antworten: [], hinweise: [], kurz: [], listen: [] };
     const umgebung = {
         console, URL, URLSearchParams, AbortController, TextEncoder, Uint8Array, Uint32Array,
         crypto: globalThis.crypto,
@@ -257,6 +257,10 @@ function appLaden(fb) {
         DIALOG: {
             async frage() { return dialog.antworten.shift(); },
             async eingabe() { return dialog.antworten.shift(); },
+            async liste(titel, text, eintraege) {
+                dialog.listen.push({ titel, text, eintraege });
+                return dialog.antworten.shift();
+            },
             async hinweis(t, x) { dialog.hinweise.push(t + ": " + x); },
             kurzmeldung(t) { dialog.kurz.push(t); }
         },
@@ -422,9 +426,13 @@ spaeter("UPCrew-Konto", (async () => {
         JSON.stringify([max1, max2]));
     w.KONTO.abmelden();
     await nachladen(w);
+    const vorNurName = fb.aufrufe.length;
     const nurName = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Max", "Zwei#Pass2");
     pruefe("Nur Name + Passwort: reihum das richtige Konto", nurName.ok && w.KONTO.uid() === max2Uid,
         JSON.stringify(nurName));
+    gleich("Verschiedene Passwörter: direkt angemeldet, keine Auswahl, je Konto eine Prüfung",
+        [w.dialog.listen.length, fb.aufrufe.slice(vorNurName)
+            .filter((a) => a.adresse.indexOf("signInWithPassword") !== -1).length], [0, 2]);
     w.KONTO.abmelden();
     const nurNameEins = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "max", "Eins#Pass1");
     pruefe("… auch das erste (klein geschrieben)", nurNameEins.ok && w.KONTO.uid() === max1Uid);
@@ -435,9 +443,9 @@ spaeter("UPCrew-Konto", (async () => {
         [false, "falsch", true, "Name oder Passwort falsch."]);
 
     /* Höchstens 20 Versuche je Name */
-    const echtesAnmelden = w.KONTO.anmelden;
+    const echtesPruefen = w.KONTO._pruefen;
     let versuche = 0;
-    w.KONTO.anmelden = async () => {
+    w.KONTO._pruefen = async () => {
         versuche++;
         return { ok: false, fehler: "falsch" };
     };
@@ -448,13 +456,84 @@ spaeter("UPCrew-Konto", (async () => {
     await w.KONTO._anmeldenReihum(viele, "Gar#Nix99");
     gleich("Reihum: höchstens 20 Versuche", [versuche, w.KONTO.ANMELDEN_REIHUM_MAX], [20, 20]);
     versuche = 0;
-    w.KONTO.anmelden = async () => {
+    w.KONTO._pruefen = async () => {
         versuche++;
-        return { ok: false, fehler: "zuViele" };
+        return { ok: false, fehler: versuche === 2 ? "zuViele" : "falsch" };
     };
-    await w.KONTO._anmeldenReihum(viele, "x");
-    gleich("Reihum: Abbruch bei „zu viele Versuche“", versuche, 1);
-    w.KONTO.anmelden = echtesAnmelden;
+    const bremse = await w.KONTO._anmeldenReihum(viele, "x");
+    gleich("Reihum: Abbruch bei „zu viele Versuche“", [versuche, bremse.fehler], [2, "zuViele"]);
+    w.KONTO._pruefen = echtesPruefen;
+
+    /* ---------------------------------------------------------------- *
+     * Seit 0.15.7 (wie Blunderluck v0.151.9): gleicher Name UND gleiches
+     * Passwort erlaubt → „Welches Konto?"
+     * ---------------------------------------------------------------- */
+    w.KONTO.abmelden();
+    await nachladen(w);
+    const sam1 = await w.KONTO.kontoAnlegen(w.speicher, w.abgleich.daten, "Sam", "Same#Pw11");
+    const sam1Uid = w.KONTO.uid();
+    w.KONTO.abmelden();
+    await nachladen(w);
+    const sam2 = await w.KONTO.kontoAnlegen(w.speicher, w.abgleich.daten, "Sam", "Same#Pw11");
+    const sam2Uid = w.KONTO.uid();
+    pruefe("Zweites „Sam“ mit gleichem Passwort angelegt, andere Nummer",
+        sam1.ok && sam2.ok && sam1.eintrag.tag !== sam2.eintrag.tag, JSON.stringify([sam1, sam2]));
+    w.KONTO.abmelden();
+    await nachladen(w);
+
+    /* Abbrechen: niemand angemeldet, nichts gemerkt */
+    let vorAuswahl = fb.aufrufe.length;
+    const mehrere = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Sam", "Same#Pw11");
+    gleich("Mehrere Treffer: fehler „auswahl“ mit beiden Konten, niemand angemeldet",
+        [mehrere.ok, mehrere.fehler, mehrere.auswahl.length, w.KONTO.angemeldet()],
+        [false, "auswahl", 2, false]);
+    w.dialog.antworten = [null];
+    const ab = await w.ANMELDUNG._kontoAuswaehlen(mehrere.auswahl, "Same#Pw11");
+    gleich("Abbrechen: abgebrochen, nicht angemeldet, Auswahl verworfen",
+        [ab.abgebrochen, w.KONTO.angemeldet(), w.KONTO._auswahl, w.ANMELDUNG.ichId],
+        [true, false, null, null]);
+    const liste = w.dialog.listen[w.dialog.listen.length - 1];
+    gleich("Liste „Welches Konto?“ mit Zeile", [liste.titel, liste.text, liste.eintraege.length],
+        ["Welches Konto?", "Dein Passwort passt zu mehreren Konten", 2]);
+    pruefe("Jede Zeile: Name, darunter #Nummer",
+        liste.eintraege.every((e) => e.beschriftung === "Sam" && /^#[0-9]{4}/.test(e.hinweis)),
+        JSON.stringify(liste.eintraege));
+
+    /* Das zweite wählen: angemeldet, genau eine Prüfung je Konto, keine dritte */
+    vorAuswahl = fb.aufrufe.length;
+    const samWieder = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Sam", "Same#Pw11");
+    const liste2 = samWieder.auswahl.map((spieler) => w.ANMELDUNG._kontoErkennung(spieler));
+    const index = liste2.findIndex((hinweis) => hinweis.indexOf("#" + sam2.eintrag.tag) === 0);
+    w.dialog.antworten = [String(index)];
+    const gewaehlt = await w.ANMELDUNG._kontoAuswaehlen(samWieder.auswahl, "Same#Pw11");
+    pruefe("Gewählt: ins richtige Konto angemeldet", gewaehlt.ok && w.KONTO.uid() === sam2Uid
+        && w.ANMELDUNG.ichId === sam2.eintrag.id, JSON.stringify(gewaehlt));
+    gleich("… mit genau 2 Prüfungen (je Konto eine, keine dritte)", fb.aufrufe.slice(vorAuswahl)
+        .filter((a) => a.adresse.indexOf("signInWithPassword") !== -1).length, 2);
+    gleich("… Auswahl danach vergessen", w.KONTO._auswahl, null);
+
+    /* Das erste — und nach Ablauf der Frist wird einmal neu angemeldet */
+    w.KONTO.abmelden();
+    const dritte = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Sam", "Same#Pw11");
+    const erstes = dritte.auswahl.find((spieler) => spieler.tag === sam1.eintrag.tag);
+    w.KONTO._auswahl.forEach((eintrag) => { eintrag.zeit -= w.KONTO.AUSWAHL_GUELTIG_MS + 1; });
+    vorAuswahl = fb.aufrufe.length;
+    const spaet = await w.KONTO.anmeldenAuswahl(erstes, "Same#Pw11");
+    pruefe("Abgelaufene Auswahl: einmal neu angemeldet, erstes Konto",
+        spaet.ok && w.KONTO.uid() === sam1Uid && fb.aufrufe.slice(vorAuswahl)
+            .filter((a) => a.adresse.indexOf("signInWithPassword") !== -1).length === 1);
+
+    /* Level und letzter Tag, soweit ohne Anmeldung lesbar */
+    vm.runInContext(fs.readFileSync(pfad.join(__dirname, "..", "js", "fortschritt.js"), "utf8")
+        + ";\nglobalThis.FORTSCHRITT = FORTSCHRITT;", w.umgebung);
+    const mitStand = { name: "Sam", tag: "1234", fortschritt: { version: 1, spiele: {
+        typoluck: { xp: 5000, tage: ["2026-09-20", "2026-09-26"] } } } };
+    const erkennung = w.ANMELDUNG._kontoErkennung(mitStand);
+    pruefe("Zeile: „#1234 · Level n · zuletzt TT.MM.“", /^#1234 · Level [0-9]+ · zuletzt 26\.09\.$/.test(erkennung),
+        erkennung);
+    gleich("Unlesbarer Fortschritt: nur die Nummer",
+        w.ANMELDUNG._kontoErkennung({ name: "Sam", tag: "1234" }), "#1234");
+    delete w.umgebung.FORTSCHRITT;
 
     /* Nummer ändern: wählen, würfeln, besetzt, Gast */
     w.KONTO.abmelden();
