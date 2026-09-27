@@ -1,0 +1,38 @@
+/*
+ * upcrew-leiste.css — die Tab-Leiste unten, gleich in Blunderluck und Typoluck (Runde 4).
+ * Quelle NUR hier (Design\3D-Schrift\final), in die Apps KOPIEREN, nie abwandeln.
+ *
+ * Nutzer, 27.09.2026: „unten das Tab-Band soll keine Schrift haben bis auf den Tab, wo man derzeit ist, und das
+ * Symbol soll nach vorne gehoben werden.“
+ *
+ * Aufbau (die App erzeugt genau das):
+ *   <nav class="up-leiste">
+ *     <button type="button" class="up-tab" aria-current="page" aria-label="Start">
+ *       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="…"/></svg><span>Start</span>
+ *     </button>
+ *     <button type="button" class="up-tab up-tab-still" aria-label="Bald" disabled>…</button>
+ *   </nav>
+ * - Nur Symbole; der Name steht NUR am aktiven Tab (aria-current="page"). aria-label trägt den Namen für Vorleser.
+ * - Der aktive Tab sitzt auf einer Kachel in der Hauptfarbe, die über die Leiste nach oben ragt; Wechsel federt.
+ * - Symbole: 24er-Raster, Strich 2, runde Enden (wie bisher). Aufgaben-Pfeil NEU (27.09.): M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14
+ * Braucht die Farbwelt-Variablen (--karte, --rahmen, --schrift-leise, --haupt, --haupt-kante, --haupt-schrift).
+ */
+.up-leiste { position: relative; z-index: 3; display: flex; height: 64px; flex: none; overflow: visible;
+  border-top: 1px solid var(--rahmen); background: var(--karte); padding-bottom: env(safe-area-inset-bottom, 0); }
+.up-tab { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; border: 0; background: none;
+  color: var(--schrift-leise); cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; }
+.up-tab svg { position: relative; width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.2;
+  stroke-linecap: round; stroke-linejoin: round; transition: transform 240ms cubic-bezier(.3, 1.5, .5, 1), color 160ms; }
+.up-tab span { position: absolute; bottom: 6px; left: 50%; transform: translate(-50%, 4px); opacity: 0; white-space: nowrap;
+  font-size: .66rem; font-weight: 800; color: var(--haupt); pointer-events: none; transition: opacity 160ms, transform 200ms; }
+.up-tab::before { content: ""; position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 18px;
+  transform: translate(-50%, -50%) scale(.6); opacity: 0; background: var(--haupt);
+  box-shadow: 0 5px 0 var(--haupt-kante), 0 8px 18px rgb(0 0 0 / .35);
+  transition: transform 240ms cubic-bezier(.3, 1.5, .5, 1), opacity 160ms; }
+.up-tab[aria-current="page"] { color: var(--haupt-schrift); }
+.up-tab[aria-current="page"]::before { opacity: 1; transform: translate(-50%, -78%) scale(1); }
+.up-tab[aria-current="page"] svg { transform: translateY(-15px) scale(1.12); }
+.up-tab[aria-current="page"] span { opacity: 1; transform: translate(-50%, 0); }
+.up-tab:focus-visible { outline: 2px solid var(--haupt); outline-offset: -4px; border-radius: 12px; }
+.up-tab-still, .up-tab:disabled { opacity: .35; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .up-tab svg, .up-tab::before, .up-tab span { transition: none; } }

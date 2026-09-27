@@ -39,6 +39,14 @@
     font-size: 1.4rem;
 }
 
+/* Seit 0.10.0 sitzt der Kreis im Level-Ring — etwas kleiner, damit die
+   Pille gleich hoch bleibt. */
+.start-profil .level-ring .namens-kreis {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+}
+
 .start-profil-texte {
     display: flex;
     flex-direction: column;
@@ -336,21 +344,419 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Anpassen (seit 0.8.0) — der Tab selbst steht im kopierten Baustein
- * css\upcrew-anpassen.css (Klassen „upa-"). Hier nur, wie Typoluck ihm
- * Platz macht.
+ * Sammlung (seit 0.9.0, bis 0.8.1 „Anpassen") — Vorschau, Regale und
+ * Übernehmen stehen im kopierten Baustein css\upcrew-anpassen.css (Klassen
+ * „upa-"). Hier nur, wie Typoluck ihm Platz macht, und die reine Sammlung
+ * darunter (js\bildschirm-sammlung.js).
+ *
+ * Auftrag (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md): Die Vorschau klebt
+ * BÜNDIG unter der Kopfzeile, „Zurück / Übernehmen" bündig auf der Leiste —
+ * kein Innenabstand oben oder unten, sonst scrollt der Inhalt sichtbar
+ * durch die Lücke. Deshalb klebt auf diesem Bildschirm auch die Kopfzeile.
  * ------------------------------------------------------------------ */
+
+.inhalt[data-bildschirm="sammlung"] {
+    padding-top: 0;
+    /* Unten genau die Leiste: Der Balken „Übernehmen" klebt auf ihr und
+       endet am Ende der Seite dort, wo sie beginnt. */
+    padding-bottom: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom));
+    --sammlung-kopf: 52px;
+    --upa-oben: var(--sammlung-kopf);
+}
+
+.inhalt[data-bildschirm="sammlung"] > .kopfzeile {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    height: var(--sammlung-kopf);
+    min-height: 0;
+    margin: 0 calc(-1 * var(--inhalt-rand));
+    padding: 0 var(--inhalt-rand);
+    background: var(--flaeche);
+}
+
+/* „NN %" gesammelt, rechts in der Kopfzeile. */
+.sammlung-anteil {
+    display: block;
+    text-align: right;
+    white-space: nowrap;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--haupt);
+}
 
 /* Die Regale haben ihren eigenen Rand links und rechts — deshalb reicht
    der Platz bis an die Kante des Inhalts, statt doppelt eingerückt. */
-.anpassen-ort {
+.sammlung-ort {
     margin: 0 calc(-1 * var(--inhalt-rand));
 }
 
 /* „Zurück / Übernehmen" klebt unten — bei Typoluck ÜBER der festen Leiste,
    nicht dahinter (die Leiste liegt auf einer höheren Ebene). */
-.anpassen-ort .upa-aktion {
+.sammlung-ort .upa-aktion {
     bottom: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom));
+}
+
+/* Die reine Sammlung: je Gruppe ein Regal des Bausteins, darin ein Gitter. */
+.sammlung-rest {
+    padding-bottom: 20px;
+}
+
+.sammlung-zahl {
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.sammlung-gitter {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 0 14px;
+}
+
+.stueck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px 2px 8px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte);
+    color: var(--schrift-leise);
+    font: inherit;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.stueck-da {
+    border-color: var(--haupt);
+    color: var(--schrift);
+}
+
+.stueck-bild {
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--rund-klein);
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+    font-size: 0.9rem;
+    font-weight: 900;
+}
+
+.stueck-da .stueck-bild {
+    background: var(--haupt);
+    color: var(--haupt-schrift);
+}
+
+.stueck-name {
+    max-width: 100%;
+    padding: 0 3px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ *
+ * Herausforderungen = „Heute" (seit 0.10.0, UPCrew-Runde 5)
+ * ------------------------------------------------------------------ */
+
+.heute-titel {
+    margin: 4px 0 10px;
+    font-size: 1rem;
+}
+
+.heute-karte {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.heute-karte-erledigt .heute-name {
+    color: var(--schrift-leise);
+}
+
+.heute-texte {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+}
+
+.heute-spiel {
+    color: var(--schrift-leise);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.heute-name {
+    font-size: 1.15rem;
+}
+
+.heute-zusatz {
+    margin-bottom: 6px;
+    color: var(--schrift-leise);
+    font-size: 0.82rem;
+}
+
+/* Das Bild des Tagesworts: fünf Kacheln, geschafft in der Kachelfarbe
+   „richtig". */
+.heute-wort {
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 3px;
+    width: 130px;
+}
+
+.heute-wort i {
+    aspect-ratio: 1;
+    border: 2px solid var(--kachel-rahmen);
+    border-radius: var(--rund-klein);
+}
+
+.heute-wort i.heute-wort-an {
+    border-color: var(--kachel-richtig-kante);
+    background: var(--kachel-richtig);
+}
+
+/* Das Bild des Tagesbretts: ein kleines Schachbrett. */
+.heute-brett {
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(4, 1fr);
+    width: 64px;
+    overflow: hidden;
+    border-radius: var(--rund-klein);
+}
+
+.heute-brett i {
+    aspect-ratio: 1;
+    background: var(--karte-leise);
+}
+
+.heute-brett i:nth-child(8n + 2),
+.heute-brett i:nth-child(8n + 4),
+.heute-brett i:nth-child(8n + 5),
+.heute-brett i:nth-child(8n + 7) {
+    background: var(--haupt);
+}
+
+.heute-beide {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin: 0 0 var(--abstand);
+    padding: 8px;
+    border: 2px dashed var(--rahmen);
+    border-radius: var(--rund-voll);
+    color: var(--schrift-leise);
+}
+
+.heute-beide .zeichen {
+    width: 18px;
+    height: 18px;
+}
+
+.heute-beide-an {
+    border-style: solid;
+    border-color: var(--haupt);
+    color: var(--haupt);
+}
+
+.heute-serie {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte);
+}
+
+.heute-flammen {
+    display: flex;
+    flex: 1;
+    justify-content: space-between;
+}
+
+.heute-flamme {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+}
+
+.heute-flamme .zeichen {
+    width: 17px;
+    height: 17px;
+}
+
+.heute-flamme-an {
+    background: var(--kachel-richtig);
+    color: var(--kachel-schrift);
+}
+
+.heute-serie-zahl {
+    min-width: 20px;
+    font-size: 1.1rem;
+    text-align: right;
+}
+
+.heute-schutz {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding-left: 10px;
+    border-left: 1px solid var(--rahmen);
+    color: var(--kachel-vorhanden);
+    font-weight: 800;
+}
+
+.heute-schutz .zeichen {
+    width: 18px;
+    height: 18px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Level im Profil (seit 0.10.0)
+ * ------------------------------------------------------------------ */
+
+.level-kopf {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.level-texte {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+}
+
+.level-titel {
+    font-size: 1.2rem;
+}
+
+.level-balken {
+    display: block;
+    height: 10px;
+    border-radius: var(--rund-voll);
+    background: linear-gradient(90deg, var(--haupt) calc(var(--anteil, 0) * 100%), var(--karte-leise) 0);
+}
+
+.level-xp {
+    color: var(--schrift-leise);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.level-quellen {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin: 16px 0 4px;
+}
+
+.level-quelle,
+.abzeichen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    padding: 8px 2px;
+    border-radius: var(--rund-klein);
+    background: var(--karte-leise);
+    font-size: 0.8rem;
+}
+
+.level-quelle .zeichen,
+.abzeichen .zeichen {
+    width: 20px;
+    height: 20px;
+    color: var(--haupt);
+}
+
+.level-quelle-name,
+.abzeichen-name {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--schrift-leise);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.level-zwischen {
+    margin: 16px 0 6px;
+    color: var(--schrift-leise);
+    font-size: 0.78rem;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.level-naechstes {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+}
+
+.level-nummer {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    font-weight: 800;
+}
+
+.level-belohnungen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.level-belohnung {
+    padding: 3px 9px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.level-belohnung-leer {
+    color: var(--schrift-leise);
+}
+
+.level-abzeichen {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+}
+
+/* Ein Abzeichen ohne erreichte Stufe bleibt blass. */
+.abzeichen:not(.abzeichen-an) {
+    opacity: 0.5;
 }
 
 @media (max-width: 380px) {

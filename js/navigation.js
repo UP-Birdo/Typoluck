@@ -36,6 +36,14 @@
  * „Aufgaben" (bis 0.6.x ein abgeschalteter Platzhalter „Bald"), seit 0.8.0
  * fünf Plätze mit „Anpassen" ganz rechts.
  *
+ * SEIT 0.9.0 (UPCrew-Runde 4, Nutzer 27.09.2026: „keine Schrift bis auf
+ * den Tab, wo man derzeit ist, und das Symbol nach vorne gehoben") ist die
+ * Leiste der gemeinsame Baustein css\upcrew-leiste.css, gleich in
+ * Blunderluck: nur Zeichen, der aktive Tab hebt sich auf einer Kachel in
+ * der Hauptfarbe heraus und zeigt als einziger seinen Namen. Die Tabs baut
+ * `BAUSTEINE.tab`; „aktiv" ist allein aria-current="page". Reihenfolge in
+ * beiden Spielen: Aufgaben · Sammlung · Start · Rangliste · Bald.
+ *
  * DIE ZURÜCK-TASTE DES HANDYS gehört dazu: Jeder Wechsel legt einen Eintrag
  * in den Browser-Verlauf (history.pushState). Drückt man Zurück, kommt der
  * vorige Bildschirm — nicht die Seite, von der man kam. Wer einen Eintrag
@@ -64,7 +72,7 @@ const NAVIGATION = {
      * Die Einträge der Leiste unten, von links nach rechts.
      *   id           der Bildschirm, den der Eintrag zeigt (fehlt beim
      *                Platzhalter)
-     *   text         Beschriftung unter dem Zeichen — ein Wort
+     *   text         Name — ein Wort; sichtbar nur am aktiven Tab
      *   zeichen      Name aus BAUSTEINE.ZEICHEN
      *   auchAktivBei weitere Bildschirme, bei denen der Eintrag als
      *                „hier bin ich" markiert ist (ein Spiel gehört zum Start)
@@ -73,17 +81,16 @@ const NAVIGATION = {
      * `platzhalter` weg — sonst ändert sich nichts.
      */
     LEISTE: [
-        /* Seit 0.7.0 (UPCrew-Runde 2) statt des Platzhalters „Bald":
-           Aufgaben = die Herausforderungen, gleich wie in Blunderluck.
-           Seit 0.8.0 (UPCrew-Runde 3) fünf Plätze wie in Blunderluck:
-           Anpassen ganz rechts, Start bleibt in der Mitte — Platz 2 hält
-           dafür wieder ein Platzhalter „Bald" frei (in Blunderluck steht dort
-           „Fähigkeiten"). */
+        /* Seit 0.7.0 (UPCrew-Runde 2): Aufgaben = die Herausforderungen.
+           Seit 0.9.0 (UPCrew-Runde 4) in BEIDEN Spielen gleich:
+           Aufgaben · Sammlung · Start · Rangliste · Bald — Start in der
+           Mitte, die Sammlung (Album + Anpassen) ersetzt den Tab
+           „Anpassen" von 0.8.0, Platz 5 bleibt vorerst still. */
         { id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben" },
-        { text: "Bald", zeichen: "platzhalter", platzhalter: true },
+        { id: "sammlung", text: "Sammlung", zeichen: "sammlung" },
         { id: "start", text: "Start", zeichen: "start", auchAktivBei: ["wordle"] },
         { id: "rangliste", text: "Rangliste", zeichen: "rangliste" },
-        { id: "anpassen", text: "Anpassen", zeichen: "anpassen" }
+        { text: "Bald", zeichen: "bald", platzhalter: true }
     ],
 
     _leisteEl: null,
@@ -300,9 +307,9 @@ const NAVIGATION = {
         NAVIGATION._leisteEl = leisteEl;
         leisteEl.innerHTML = "";
         for (const eintrag of NAVIGATION.LEISTE) {
-            const knopf = BAUSTEINE.knopf({
-                art: "leiste", zeichen: eintrag.zeichen, text: eintrag.text,
-                beiKlick: eintrag.platzhalter ? null : () => {
+            const tab = BAUSTEINE.tab({
+                name: eintrag.text, zeichen: eintrag.zeichen, still: !!eintrag.platzhalter,
+                beiKlick: () => {
                     /* Ein Tipp auf den Eintrag, auf dem man schon steht,
                        legt keinen neuen Verlaufseintrag an. */
                     if (NAVIGATION.aktuell !== eintrag.id) {
@@ -310,13 +317,10 @@ const NAVIGATION = {
                     }
                 }
             });
-            if (eintrag.platzhalter) {
-                knopf.disabled = true;
-                knopf.classList.add("knopf-leiste-platzhalter");
-            } else {
-                knopf.dataset.bildschirm = eintrag.id;
+            if (!eintrag.platzhalter) {
+                tab.dataset.bildschirm = eintrag.id;
             }
-            leisteEl.appendChild(knopf);
+            leisteEl.appendChild(tab);
         }
         leisteEl.hidden = false;
         NAVIGATION._leisteMarkieren();
@@ -327,15 +331,14 @@ const NAVIGATION = {
         if (!leiste) {
             return;
         }
-        for (const knopf of leiste.querySelectorAll(".knopf-leiste")) {
-            const eintrag = NAVIGATION.LEISTE.find((e) => e.id && e.id === knopf.dataset.bildschirm);
+        for (const tab of leiste.querySelectorAll(".up-tab")) {
+            const eintrag = NAVIGATION.LEISTE.find((e) => e.id && e.id === tab.dataset.bildschirm);
             const aktiv = !!eintrag && (eintrag.id === NAVIGATION.aktuell
                 || (eintrag.auchAktivBei || []).indexOf(NAVIGATION.aktuell) !== -1);
-            knopf.classList.toggle("knopf-leiste-aktiv", aktiv);
             if (aktiv) {
-                knopf.setAttribute("aria-current", "page");
+                tab.setAttribute("aria-current", "page");
             } else {
-                knopf.removeAttribute("aria-current");
+                tab.removeAttribute("aria-current");
             }
         }
     },

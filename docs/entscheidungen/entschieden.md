@@ -2,6 +2,73 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## UPCrew-Runde 5, Typoluck-Teil „Heute + Level" (27.09.2026, 0.10.0)
+
+Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md` (Regeln und Zahlen:
+`Apps\UPCrew\docs\FORTSCHRITT.md`, „GÜLTIGER STAND"). Die offenen Fragen
+der Auftragsdatei, soweit sie Typoluck betreffen, hat der Nutzer am
+27.09.2026 beantwortet (die Fragen 1, 3, 5 gehören Blunderluck):
+
+- **Erst Runde 4, dann Runde 5 — je eine Version** (0.9.0, 0.10.0).
+  Beide liegen lokal; 0.9.0 wurde nicht einzeln ausgeliefert, weil Runde 5
+  in derselben Sitzung darauf gebaut wurde. Geht 0.10.0 live, ist 0.9.0 im
+  `CHANGELOG.md` die Zwischenstufe.
+- **Frage 4 — kein Typoluck-Turm jetzt:** „erst Heute + Level". Der Turm
+  braucht ein eigenes Wort-Thema (Orte, Gegner, Bosse); das legt der
+  Nutzer später fest. Damit entfällt auch die Art-Wahl Turm/Frei am
+  Spielen-Knopf — ohne Turm gäbe es nur eine Art.
+- **Frage 6 — nach Level 10:** alle 5 Level ein Rahmen, dazwischen je ein
+  Serien-Schutz („so übernehmen"). Der Schutz wird beim Aufstieg sofort
+  gutgeschrieben; Rahmen und Titel stehen vorerst nur in der Liste der
+  Belohnungen, getragen werden sie noch nirgends.
+- **Speicher — erst nur auf dem Gerät:** Browser-Schlüssel
+  `upcrew.fortschritt`, je Spieler-Id ein Eintrag. Bewusst ein
+  `upcrew.`-Schlüssel und nicht `typoluck.`: Das Level gehört allen
+  UPCrew-Spielen, und Typoluck und Blunderluck teilen auf
+  up-birdo.github.io denselben Browser-Speicher (wie bei
+  `upcrew.aussehen`). Je Spieler-Id, damit zwei Menschen am selben Gerät
+  nicht ein Level teilen. Der Abgleich übers Konto
+  (`spieler/konten/<uid>/fortschritt`) kommt mit der Datenbank-Regel.
+- **Datenvertrag wie im Auftrag vorgeschlagen, additiv ergänzt:**
+  `heute.xp` (für das rückwirkende ×1,5) und die Zähler `tagesaufgaben`,
+  `figuren`, `besteSerie` (für die Abzeichen). `level` wird aus `xp`
+  gerechnet, nie übernommen — so kann ein kaputter oder fremder Stand kein
+  falsches Level behaupten.
+- **Wertung Typoluck:** Können je Versuch gegen den besten möglichen
+  Versuch (Logarithmus der erwarteten Restmenge), Glück getrennt; Figuren
+  nach den Schwellen 55/75 des ersten Typoluck-Orts im Entwurf. Figuren
+  gibt es nur für die Tagesaufgabe; die Übung bringt nur die Partie-XP —
+  sonst liesse sich das Level mit Übungsrunden hochtreiben, ohne dass
+  „neue Figur" noch etwas bedeutet.
+- **Tagesaufgabe = Tageswort gelöst**, an seinem eigenen Tag. Verloren
+  zählt es als Partie, nicht als Tagesaufgabe, und hält die Serie nicht.
+- **Serie = Tage mit mindestens einer geschafften Tagesaufgabe**, egal in
+  welchem Spiel — die Flammen gehören UPCrew, nicht Typoluck. Die alte
+  Kennzahl „Serie" im Kurzprofil (gelöste Tageswörter in Folge) bleibt,
+  sie misst etwas anderes.
+- **Die andere App** (Tagesbrett) wird nur gelesen: Was Blunderluck unter
+  `heute.brett` einträgt, zeigt Typoluck; sonst „Zu Blunderluck". Die
+  Adresse steht in `KONFIG.andereSpiele`.
+
+## UPCrew-Runde 4: Leiste nur Symbole, Tab „Sammlung" (27.09.2026, 0.9.0)
+
+Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md`, Blöcke „Gemeinsam"
+und „Typoluck".
+
+- **Leiste = kopierter Baustein** `css\upcrew-leiste.css`; die Tabs baut
+  `BAUSTEINE.tab` (nicht `knopf`), weil der Baustein genau sein Markup
+  verlangt und der eigene Knopf-Stil sich sonst einmischen würde. Nur die
+  feste Lage unten bleibt Typoluck-eigen (`.leiste.up-leiste`).
+- **Sammlung ersetzt Anpassen**, der Baustein steht direkt im Tab. Die
+  Kopfzeile klebt auf diesem Bildschirm mit, damit die Vorschau bündig
+  darunter kleben kann (Typoluck scrollt die ganze Seite, der Entwurf nur
+  einen Rahmen).
+- **Modi mit den Namen der App** („Übung", „Schwer") statt „Frei" und
+  „Schwer-Modus" aus dem Auftrag: Der Spieler soll dasselbe Wort sehen wie
+  auf dem Start; „Schwer-Modus" brach in der Kachel um.
+- **„NN %"** zählt Farbwelt, Schrift, Knöpfe und die Modi — die
+  Darstellung nicht (immer ganz frei, kein Sammelstück).
+
 ## Vibration raus, UPCrew-Icons, „Freunde heute" lebt (26.09.2026, 0.8.1)
 
 - **Vibration ganz entfernt, nicht nur abgeschaltet** (Absprache Runde 3,

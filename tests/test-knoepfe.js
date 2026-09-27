@@ -4,7 +4,8 @@
  *   1. BAUSTEINE.knopf gibt Haupt-, Still- und Gefahr-Knöpfen die Klassen
  *      des gemeinsamen Bausteins (up-kn + up-haupt/up-zweit/up-gefahr, nur
  *      Zeichen: up-rund) und den Leuchtpunkt als ERSTES Kind; flache
- *      Knöpfe, Menü- und Leisten-Einträge bleiben ohne.
+ *      Knöpfe und Menü-Einträge bleiben ohne. Die Tabs der Leiste (seit
+ *      0.9.0, BAUSTEINE.tab) tragen genau das Markup von upcrew-leiste.css.
  *   2. Kein eigener Stil gibt diesen Knöpfen noch Rundung, Kante, Schatten
  *      oder Rahmen — die Form kommt allein aus css\upcrew-knoepfe.css.
  *      Gezählt wird in jeder eigenen Stil-Datei (die kopierten Bausteine
@@ -40,6 +41,12 @@ function element(tag) {
             this.attribute[name] = String(wert);
             if (name === "class") {
                 this.className = String(wert);
+            }
+        },
+        removeAttribute(name) {
+            delete this.attribute[name];
+            if (name === "class") {
+                this.className = "";
             }
         },
         addEventListener() {}
@@ -81,11 +88,25 @@ pruefe("Klein und breit bleiben Zusätze",
     ["knopf-klein", "knopf-breit"].every((z) =>
         klassen(BAUSTEINE.knopf({ text: "x", art: "haupt", klein: true, breit: true })).indexOf(z) !== -1));
 
-for (const art of ["flach", "menue", "leiste"]) {
+for (const art of ["flach", "menue"]) {
     const knopf = BAUSTEINE.knopf({ text: "x", art: art, zeichen: "start" });
     pruefe("Knopf " + art + ": bleibt ohne up-kn", klassen(knopf).indexOf("up-kn") === -1, knopf.className);
     pruefe("Knopf " + art + ": ohne Leuchtpunkt", erstesKind(knopf).className !== "up-led");
 }
+
+/* Die Tabs der Leiste (seit 0.9.0, UPCrew-Runde 4): genau das Markup des
+   Bausteins css\upcrew-leiste.css — up-tab, darin Zeichen (ohne eigene
+   Klasse) und Name; der Name steht auch in aria-label. */
+const tab = BAUSTEINE.tab({ name: "Start", zeichen: "start", beiKlick: () => {} });
+gleich("Tab: nur up-tab", klassen(tab), ["up-tab"]);
+gleich("Tab: Zeichen, dann Name", tab.children.map((kind) => kind.tagName), ["SVG", "SPAN"]);
+gleich("Tab: Name im Text", tab.children[1].textContent, "Start");
+gleich("Tab: Name für Vorleser", tab.attribute["aria-label"], "Start");
+pruefe("Tab: kein Knopf-Stil (weder knopf noch up-kn)",
+    klassen(tab).every((k) => k !== "knopf" && k !== "up-kn"));
+const still = BAUSTEINE.tab({ name: "Bald", zeichen: "bald", still: true });
+gleich("Stiller Tab: up-tab-still", klassen(still), ["up-tab", "up-tab-still"]);
+pruefe("Stiller Tab: abgeschaltet", still.disabled === true);
 
 /* ------------------------------------------------------------------ *
  * 2. Keine eigenen Form-Regeln mehr für diese Knöpfe

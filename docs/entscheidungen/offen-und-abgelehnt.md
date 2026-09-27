@@ -5,6 +5,45 @@ nicht gebaut wird (nicht erneut vorschlagen).
 
 ## Braucht eine Nutzer-Entscheidung
 
+### Der Typoluck-Turm (Runde 5, zurückgestellt 27.09.2026)
+
+Nutzer: „erst Heute + Level". Offen: das eigene Wort-Thema (Orte, im
+Entwurf „Leseecke … Wortolymp", je Ort eine Regel und ein Bob), Gegner je
+Stufe und Boss, Schwellen je Ort, und damit die Art-Wahl Turm/Frei am
+Spielen-Knopf. Nicht ungefragt ausdenken — der Nutzer legt das Thema fest.
+
+### Fortschritt am Konto (Runde 5)
+
+Level, Serie und „Heute" liegen nur im Browser (`upcrew.fortschritt`).
+Auf ein anderes Gerät oder zwischen zwei Home-Bildschirm-Apps kommen sie
+erst über `spieler/konten/<uid>/fortschritt` — das braucht eine Regel in
+der UPCrew-Datenbank (Vorschlag gehört nach
+`Apps\Blunderluck\SICHERHEIT.md` §11: nur eigene uid, nur diese Felder,
+Zahlen begrenzt). Einspielen kann nur der Nutzer. Ergebnisse im Browser
+sind fälschbar — für Solo in Ordnung, für einen Rang gegen Menschen nicht.
+
+### Blunderluck an denselben Fortschritt anschliessen (Runde 5)
+
+Typoluck zeigt das Tagesbrett und das ×1,5 nur, wenn Blunderluck
+denselben Schlüssel `upcrew.fortschritt` (je Spieler-Id) und dieselbe Form
+nutzt (`heute: { datum, brett, wort, xp }`, Figuren 0..3). Das ist Arbeit
+der Blunderluck-Sitzung; die Abstimmung läuft über die Design-Sitzung.
+Ebenfalls zu bestätigen: die Adresse
+`https://up-birdo.github.io/Blunderluck/` in `KONFIG.andereSpiele`.
+
+### Rahmen, Titel und Taten (Runde 5)
+
+Rahmen (Kupfer, Silber, ab Level 15 alle 5 Level) und Titel (Neuling,
+Stammgast) stehen als Belohnung in der Level-Liste, werden aber noch nicht
+getragen. Ebenso offen: Freischalten von Sammlungs-Stücken über Taten
+(„Gewinne …"). Bei beiden gilt: nichts sperren, was heute frei ist.
+
+### Zwei gleiche Zeichen: Wordguesser und Sammlung
+
+Das Zeichen des Wordguesser auf dem Start (vier Kacheln) ist fast gleich
+dem gemeinsamen Sammlung-Zeichen der Leiste (Runde 4). Das Sammlung-Zeichen
+ist mit Blunderluck abgesprochen; ändern liesse sich das Spiel-Zeichen.
+
 ### App-Zeichen blau oder violett (seit 0.3.0)
 
 Die App ist seit 0.3.0 blau wie Blunderluck, das Zeichen auf dem

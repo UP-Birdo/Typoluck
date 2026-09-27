@@ -37,9 +37,13 @@
  *                                      A-F genau diese Art (seit 0.6.1)
  *     &schrift=S6 &knoepfe=K3          das gemeinsame Aussehen vorgeben
  *     &farbwelt=studio                 (seit 0.8.0; sonst der Standard des
- *     &leseschrift                     Bausteins). Im Tab „Anpassen" ist in
+ *     &leseschrift                     Bausteins). Im Tab „Sammlung" ist in
  *                                      der Werkstatt alles freigeschaltet;
- *                                      &bildschirm=anpassen zeigt ihn.
+ *                                      &bildschirm=sammlung zeigt ihn (bis
+ *                                      0.8.1 hiess er „anpassen").
+ *     &xp=640&serie=4&schutz=1         der Fortschritt (seit 0.10.0): XP,
+ *     &wort=3&brett=2                  Serie, Schutz, heute geschaffte
+ *                                      Figuren je Tagesaufgabe (sonst leer)
  *
  * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
  * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
@@ -151,6 +155,23 @@ const WERKSTATT = {
 
         if (!WERKSTATT._parameter().has("anmeldung")) {
             ICH.personSetzen(ids[0], namen[0]);
+        }
+
+        /* Der Fortschritt (seit 0.10.0, js\fortschritt.js) liegt unter
+           `upcrew.fortschritt`, nicht unter „typoluck." — deshalb eigens
+           frisch anlegen, auf Wunsch mit Werten aus der Adresse. */
+        speicher.removeItem(FORTSCHRITT.SCHLUESSEL);
+        const zahl = (name) => Math.max(0, parseInt(WERKSTATT.wert(name), 10) || 0);
+        if (["xp", "serie", "schutz", "brett", "wort"].some((name) => WERKSTATT._parameter().has(name))) {
+            const stand = FORTSCHRITT.leer();
+            stand.xp = zahl("xp");
+            stand.serie = { tage: zahl("serie"), schutz: zahl("schutz"), zuletzt: zahl("serie") ? heute : "" };
+            stand.heute = { datum: heute, brett: Math.min(3, zahl("brett")), wort: Math.min(3, zahl("wort")), xp: 0 };
+            stand.zaehler = Object.assign(stand.zaehler, {
+                partien: Math.floor(stand.xp / 12), tagesaufgaben: zahl("serie"), besteSerie: zahl("serie"),
+                figuren: zahl("serie") * 2, beideTage: zahl("brett") && zahl("wort") ? 1 : 0
+            });
+            FORTSCHRITT.aendern(ids[0], () => ({ stand: FORTSCHRITT.normalisieren(stand) }), 1);
         }
 
         const schwer = WERKSTATT._parameter().has("schwer");

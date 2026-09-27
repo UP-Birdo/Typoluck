@@ -81,12 +81,13 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                 DARSTELLUNG.leseschrift(),
                 (wert) => DARSTELLUNG.leseschriftSetzen(wert), "Standard-Schrift")));
 
-        /* Der Weg in den Tab „Anpassen" (seit 0.8.0): Farbwelt, Schrift,
-           Knöpfe. */
+        /* Der Weg zu Farbwelt, Schrift und Knöpfen (seit 0.8.0). Seit 0.9.0
+           springt die Zeile in den Tab „Sammlung", der das Anpassen
+           enthält (UPCrew-Runde 4). */
         karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("anpassen", "Anpassen",
             BAUSTEINE.knopf({
                 art: "flach", zeichen: "weiter", titel: "Anpassen öffnen",
-                beiKlick: () => NAVIGATION.zeigen("anpassen", null)
+                beiKlick: () => NAVIGATION.zeigen("sammlung", null)
             })));
 
         /* Bis 0.6.1 stand hier der Schalter „Kacheln: Grün/Gelb –

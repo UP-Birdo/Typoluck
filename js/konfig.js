@@ -15,7 +15,7 @@ const KONFIG = {
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.8.1",
+    APP_VERSION: "0.10.0",
 
     speicher: {
 
@@ -84,6 +84,13 @@ const KONFIG = {
         /* Die erfundene Adresse `<kennung>@<domain>` — nie zustellbar, ohne
            Namen. In jedem UPCrew-Spiel gleich und UNANTASTBAR. */
         domain: "konten.upcrew.invalid"
+    },
+
+    /* Die anderen UPCrew-Spiele (seit 0.10.0): Der Tab „Heute" zeigt ihre
+       Tagesaufgabe als Karte mit „Zu …". Gleicher Ursprung
+       (up-birdo.github.io) — dort teilen sie den Fortschritt im Browser. */
+    andereSpiele: {
+        blunderluck: { name: "Blunderluck", adresse: "https://up-birdo.github.io/Blunderluck/" }
     }
 };
 

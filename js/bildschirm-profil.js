@@ -57,12 +57,25 @@ const PROFIL_BILDSCHIRM = {
         }
 
         const kopf = BAUSTEINE.karte(null, "profil-kopf");
-        kopf.appendChild(BAUSTEINE.kreis(spieler.name, "namens-kreis-gross"));
+        /* Das eigene Profil zeigt den Kreis mit Level-Ring (seit 0.10.0). */
+        if (eigenes) {
+            const stufe = FORTSCHRITT.levelVon(APP.fortschritt().xp);
+            kopf.appendChild(BAUSTEINE.levelRing(spieler.name, stufe.hat / stufe.kosten, stufe.level, true));
+        } else {
+            kopf.appendChild(BAUSTEINE.kreis(spieler.name, "namens-kreis-gross"));
+        }
         kopf.appendChild(BAUSTEINE.el("h2", "profil-name", ANMELDUNG.anzeigeName(spieler)));
         if (!eigenes && ich) {
             kopf.appendChild(PROFIL_BILDSCHIRM._freundschaftBauen(ich, spieler));
         }
         behaelter.appendChild(kopf);
+
+        /* Das Level (seit 0.10.0, UPCrew-Runde 5) — nur im eigenen Profil:
+           Der Fortschritt liegt vorerst nur auf dem Gerät, von anderen
+           Spielern ist er nicht bekannt. */
+        if (eigenes) {
+            behaelter.appendChild(PROFIL_BILDSCHIRM._levelBauen());
+        }
 
         const statistik = BAUSTEINE.karte(WORDLE.NAME, "profil-statistik");
         statistik.id = "profil-statistik";
@@ -72,6 +85,98 @@ const PROFIL_BILDSCHIRM = {
         if (PROFIL_BILDSCHIRM._verlauf === null && !PROFIL_BILDSCHIRM._fehler) {
             PROFIL_BILDSCHIRM._laden(id, eigenes);
         }
+    },
+
+    /*
+     * Die Level-Karte (seit 0.10.0): Level mit XP-Balken, woher XP kommen,
+     * die nächsten drei Level mit ihren Belohnungen und die Abzeichen.
+     * Alle Zahlen aus js\fortschritt.js.
+     */
+    _levelBauen() {
+        const fortschritt = APP.fortschritt();
+        const stufe = FORTSCHRITT.levelVon(fortschritt.xp);
+        const karte = BAUSTEINE.karte(null, "profil-level");
+
+        /* Der Ring selbst steht in der Kopfkarte darüber. */
+        const kopf = BAUSTEINE.el("div", "level-kopf");
+        const texte = BAUSTEINE.el("div", "level-texte");
+        texte.appendChild(BAUSTEINE.el("strong", "level-titel", "Level " + stufe.level));
+        const balken = BAUSTEINE.el("span", "level-balken");
+        balken.style.setProperty("--anteil", String(stufe.hat / stufe.kosten));
+        balken.setAttribute("aria-hidden", "true");
+        texte.appendChild(balken);
+        texte.appendChild(BAUSTEINE.el("span", "level-xp", stufe.hat + " / " + stufe.kosten + " XP"));
+        kopf.appendChild(texte);
+        karte.appendChild(kopf);
+
+        const quellen = BAUSTEINE.el("div", "level-quellen");
+        for (const quelle of FORTSCHRITT.quellen()) {
+            const feld = BAUSTEINE.el("span", "level-quelle");
+            feld.title = quelle.titel;
+            feld.appendChild(BAUSTEINE.zeichen(quelle.zeichen));
+            feld.appendChild(BAUSTEINE.el("strong", null, quelle.wert));
+            feld.appendChild(BAUSTEINE.el("span", "level-quelle-name", quelle.titel));
+            quellen.appendChild(feld);
+        }
+        karte.appendChild(quellen);
+
+        karte.appendChild(BAUSTEINE.el("h3", "level-zwischen", "Nächste Level"));
+        const stufen = APP._stufen();
+        for (let level = stufe.level + 1; level <= stufe.level + 3; level++) {
+            const zeile = BAUSTEINE.el("div", "level-naechstes");
+            zeile.appendChild(BAUSTEINE.el("span", "level-nummer", String(level)));
+            const belohnungen = FORTSCHRITT.belohnungen(level, stufen, PROFIL_BILDSCHIRM._belohnungsNamen(stufen));
+            const liste = BAUSTEINE.el("span", "level-belohnungen");
+            for (const belohnung of belohnungen) {
+                liste.appendChild(BAUSTEINE.el("span", "level-belohnung",
+                    PROFIL_BILDSCHIRM.BELOHNUNG_ARTEN[belohnung.art] + " · " + belohnung.name));
+            }
+            if (!belohnungen.length) {
+                liste.appendChild(BAUSTEINE.el("span", "level-belohnung-leer", "—"));
+            }
+            zeile.appendChild(liste);
+            karte.appendChild(zeile);
+        }
+
+        karte.appendChild(BAUSTEINE.el("h3", "level-zwischen", "Abzeichen"));
+        const abzeichen = BAUSTEINE.el("div", "level-abzeichen");
+        for (const eintrag of FORTSCHRITT.abzeichen(fortschritt)) {
+            const feld = BAUSTEINE.el("span", "abzeichen" + (eintrag.erreicht > 0 ? " abzeichen-an" : ""));
+            feld.title = eintrag.titel + ": " + eintrag.wert + " / " + eintrag.naechste;
+            feld.appendChild(BAUSTEINE.zeichen(eintrag.zeichen));
+            feld.appendChild(BAUSTEINE.el("strong", null, String(eintrag.wert)));
+            feld.appendChild(BAUSTEINE.el("span", "abzeichen-name", eintrag.kurz));
+            abzeichen.appendChild(feld);
+        }
+        karte.appendChild(abzeichen);
+        return karte;
+    },
+
+    /* Wie eine Belohnung heisst (kurz). */
+    BELOHNUNG_ARTEN: {
+        farbwelt: "Farbwelt",
+        schrift: "Schrift",
+        knoepfe: "Knöpfe",
+        titel: "Titel",
+        rahmen: "Rahmen",
+        schutz: "Schutz"
+    },
+
+    /* Anzeigenamen der Aussehen-Stücke — aus den Bausteinen gelesen, nie
+       hier festgeschrieben: Farbwelten aus UPCREW_INTRO.WELTEN, Schriften
+       als „Crew n" wie im Anpassen-Regal. Knopf-Familien zeigen ihre
+       Kennung (die Namen stecken im Baustein und sind nicht nach aussen
+       gereicht). */
+    _belohnungsNamen(stufen) {
+        const namen = { farbwelt: {}, schrift: {}, knoepfe: {} };
+        const welten = (typeof UPCREW_INTRO !== "undefined" && UPCREW_INTRO.WELTEN) || {};
+        for (const wert of Object.keys((stufen && stufen.farbwelt) || {})) {
+            namen.farbwelt[wert] = (welten[wert] && welten[wert].name) || wert;
+        }
+        for (const wert of Object.keys((stufen && stufen.schrift) || {})) {
+            namen.schrift[wert] = "Crew " + wert.slice(1);
+        }
+        return namen;
     },
 
     _statistikFuellen(karte, id, eigenes) {

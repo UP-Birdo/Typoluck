@@ -25,9 +25,15 @@
  * in Blunderluck. css\stil.css regelt für diese Knöpfe nur noch Grösse und
  * Anordnung; ein Test zählt, dass es so bleibt. NICHT umgestellt sind die
  * Knöpfe, die keine Knöpfe im Sinne des Standards sind: `flach` (Zeichen in
- * Kopfzeilen, Textverweise), `menue` (Einträge hinter den drei Balken) und
- * `leiste` (die Leiste unten) — wie Tasten und Kacheln behalten sie ihr
- * eigenes Aussehen.
+ * Kopfzeilen, Textverweise) und `menue` (Einträge hinter den drei Balken) —
+ * wie Tasten und Kacheln behalten sie ihr eigenes Aussehen.
+ *
+ * DIE TABS DER LEISTE UNTEN (seit 0.9.0, UPCrew-Runde 4) entstehen in
+ * `tab()`, nicht in `knopf()`: Ihr Aussehen kommt ganz aus dem kopierten
+ * Baustein css\upcrew-leiste.css, und der verlangt genau sein Markup
+ * (`up-tab`, Zeichen, Name). Die Stücke der Sammlung entstehen in
+ * `stueck()`. Beide sind — wie Tasten und Segment-Schalter — an genau
+ * einer Stelle gebaut.
  *
  * Die Zeichen sind eigene Linienzeichnungen (24er-Raster, nur Striche), keine
  * Emojis (Haus-Regel) und keine fremde Zeichensammlung.
@@ -46,11 +52,11 @@ const BAUSTEINE = {
     /*
      * Ein Knopf.
      *   text      Beschriftung
-     *   art       "haupt" | "still" | "gefahr" | "flach" | "menue" | "leiste"
+     *   art       "haupt" | "still" | "gefahr" | "flach" | "menue"
      *             (Vorgabe: still). Haupt = DIE eine Hauptaktion des
      *             Bildschirms; menue = Eintrag im Menü hinter den drei
-     *             Balken (seit 0.3.0); leiste = Eintrag der Leiste unten
-     *             (seit 0.5.0) — beide gebaut in js\navigation.js.
+     *             Balken (seit 0.3.0, gebaut in js\navigation.js). Die Art
+     *             „leiste" (0.5.0 bis 0.8.1) ist seit 0.9.0 `tab()`.
      *   zeichen   optional ein Name aus ZEICHEN (steht vor dem Text)
      *   klein     true = kleinere Form für Zeilen und Leisten
      *   breit     true = volle Breite
@@ -92,6 +98,116 @@ const BAUSTEINE = {
             knopf.addEventListener("click", angaben.beiKlick);
         }
         return knopf;
+    },
+
+    /*
+     * Ein Tab der Leiste unten (seit 0.9.0) — Markup genau wie im Kopf von
+     * css\upcrew-leiste.css, gleich in Blunderluck:
+     *     <button type="button" class="up-tab" aria-label="Start">
+     *         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="…"/></svg><span>Start</span>
+     *     </button>
+     * Der Name ist nur am aktiven Tab zu sehen (aria-current="page", setzt
+     * js\navigation.js); aria-label trägt ihn für Vorleseprogramme.
+     *   name      ein Wort
+     *   zeichen   Name aus ZEICHEN
+     *   still     true = abgeschaltet, hält nur den Platz frei (up-tab-still)
+     *   beiKlick  Funktion
+     */
+    tab(angaben) {
+        const tab = document.createElement("button");
+        tab.type = "button";
+        tab.className = "up-tab" + (angaben.still ? " up-tab-still" : "");
+        tab.setAttribute("aria-label", angaben.name);
+
+        /* Das Zeichen ohne die Klasse „zeichen": Strich und Grösse regelt
+           hier der Baustein, nicht der eigene Stil. */
+        const zeichen = BAUSTEINE.zeichen(angaben.zeichen);
+        zeichen.removeAttribute("class");
+        tab.appendChild(zeichen);
+        tab.appendChild(BAUSTEINE.el("span", null, angaben.name));
+
+        if (angaben.still) {
+            tab.disabled = true;
+        } else if (angaben.beiKlick) {
+            tab.addEventListener("click", angaben.beiKlick);
+        }
+        return tab;
+    },
+
+    /*
+     * Ein Stück der Sammlung (seit 0.9.0): Kachel mit Bild und Name. Was man
+     * noch nicht hat, zeigt „?" statt Bild und Namen.
+     *   name      kurz
+     *   kuerzel   was im Bild steht, wenn man es hat (Vorgabe: die ersten
+     *             zwei Buchstaben des Namens)
+     *   da        hat man es?
+     *   beiKlick  Funktion
+     */
+    stueck(angaben) {
+        const stueck = document.createElement("button");
+        stueck.type = "button";
+        stueck.className = "stueck" + (angaben.da ? " stueck-da" : "");
+        stueck.setAttribute("aria-label", angaben.da ? angaben.name : "Noch nicht da");
+        stueck.appendChild(BAUSTEINE.el("span", "stueck-bild",
+            angaben.da ? (angaben.kuerzel || String(angaben.name).slice(0, 2)) : "?"));
+        stueck.appendChild(BAUSTEINE.el("span", "stueck-name", angaben.da ? angaben.name : "···"));
+        if (angaben.beiKlick) {
+            stueck.addEventListener("click", angaben.beiKlick);
+        }
+        return stueck;
+    },
+
+    /*
+     * Die Wertung als Schachfiguren (seit 0.10.0, UPCrew-Runde 5; Nutzer
+     * 27.09.2026: „Nimm Schachfiguren als Wertung"): Bauer, Springer,
+     * König — die ersten `anzahl` leuchten. Gefüllte Formen, deshalb eigene
+     * Pfade (FIGUREN) statt der Linien-Zeichen; Pfade wörtlich aus dem
+     * Entwurf Design\3D-Schrift\entwuerfe\Herausforderungen.
+     *   anzahl  0..3
+     *   klein   true = für Zeilen und Karten
+     */
+    FIGUREN: [
+        "M12 3.5 A3.2 3.2 0 1 1 11.99 3.5 Z M9 11 H15 L14 12.5 L16.5 18 H7.5 L10 12.5 Z M6 19 H18 V21.5 H6 Z",
+        "M7 21.5 H18.5 V19 H17.2 C17.4 14.5 18.2 10.5 15.8 6.8 C14.3 4.4 11.8 3.2 9.6 3.6 L10.6 5.2 "
+            + "C9.3 5.8 6.9 8 5.5 10.2 L6.4 12.3 L9.2 11.4 L11.3 10.4 C10.2 13 8.3 15 8.4 19 H7 Z",
+        "M11 1.5 H13 V3.5 H15 V5.5 H13 V7.5 H11 V5.5 H9 V3.5 H11 Z M7.5 9 C9 8 15 8 16.5 9 L15 17.5 H9 Z "
+            + "M6 18.5 H18 V21.5 H6 Z"
+    ],
+
+    figuren(anzahl, klein) {
+        const reihe = BAUSTEINE.el("span", "figuren" + (klein ? " figuren-klein" : ""));
+        reihe.setAttribute("role", "img");
+        reihe.setAttribute("aria-label", ["Keine Figur", "Bauer", "Springer", "König"][anzahl] || "Keine Figur");
+        const ns = "http://www.w3.org/2000/svg";
+        BAUSTEINE.FIGUREN.forEach((d, i) => {
+            const svg = document.createElementNS(ns, "svg");
+            svg.setAttribute("viewBox", "0 0 24 24");
+            svg.setAttribute("class", "figur" + (i < anzahl ? " figur-an" : ""));
+            svg.setAttribute("aria-hidden", "true");
+            const pfad = document.createElementNS(ns, "path");
+            pfad.setAttribute("d", d);
+            svg.appendChild(pfad);
+            reihe.appendChild(svg);
+        });
+        return reihe;
+    },
+
+    /*
+     * Der Namens-Kreis mit Level-Ring (seit 0.10.0): Der Ring füllt sich mit
+     * den XP im laufenden Level, unten rechts steht die Level-Zahl.
+     *   name     für den Anfangsbuchstaben
+     *   anteil   0..1 (XP im Level / Kosten des Levels)
+     *   level    Zahl
+     *   gross    true = für das Profil
+     */
+    levelRing(name, anteil, level, gross) {
+        const ring = BAUSTEINE.el("span", "level-ring" + (gross ? " level-ring-gross" : ""));
+        ring.style.setProperty("--anteil", String(Math.max(0, Math.min(1, anteil || 0))));
+        ring.appendChild(BAUSTEINE.kreis(name, gross ? "namens-kreis-gross" : null));
+        const zahl = BAUSTEINE.el("span", "level-zahl", String(level));
+        zahl.setAttribute("aria-label", "Level " + level);
+        ring.appendChild(zahl);
+        return ring;
     },
 
     /* Eine Karte mit optionaler Überschrift. */
@@ -217,16 +333,34 @@ const BAUSTEINE = {
         leer: "M3 13 L6 5 H18 L21 13 V19 H3 Z M3 13 H8 L9.5 15.5 H14.5 L16 13 H21",
         "kein-netz": "M2.5 9 A14 14 0 0 1 21.5 9 M5.5 12.5 A9.5 9.5 0 0 1 18.5 12.5 "
             + "M8.8 16 A4.8 4.8 0 0 1 15.2 16 M12 19.5 V19.6 M4 4 L20 20",
-        /* Der freie Platz links in der Leiste unten (seit 0.5.0): ein
-           Kästchen mit Plus — „hier kommt noch etwas hin". */
-        platzhalter: "M4.5 4.5 H19.5 V19.5 H4.5 Z M12 8.5 V15.5 M8.5 12 H15.5",
+        /* Der freie Platz 5 der Leiste (seit 0.9.0): eine Uhr — „kommt
+           noch". Bis 0.8.1 hielt ein Kästchen mit Plus den Platz frei.
+           Pfad wörtlich aus den gemeinsamen Absprachen mit Blunderluck
+           (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md). */
+        bald: "M12 7 V12 L15 14 M12 3 A9 9 0 1 0 12.01 3",
+        /* Der Tab „Sammlung" (seit 0.9.0): vier Kacheln. Pfad wörtlich aus
+           derselben Absprache. */
+        sammlung: "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z",
         /* Die Aufgaben / Herausforderungen (seit 0.7.0): ein Weg, der nach
            oben rechts steigt. Pfad wörtlich aus den gemeinsamen Absprachen
            mit Blunderluck (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md). */
-        aufgaben: "M4 20 L10 14 L14 17 L20 6 M15 6 H20 V11",
-        /* Der Tab „Anpassen" (seit 0.8.0): zwei Schieberegler. Pfad
-           wörtlich aus den gemeinsamen Absprachen mit Blunderluck
-           (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md). */
+        aufgaben: "M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14",
+        /* Fortschritt (seit 0.10.0, UPCrew-Runde 5) — Pfade wörtlich aus
+           dem Entwurf Design\3D-Schrift\entwuerfe\Herausforderungen, damit
+           Blunderluck dieselben zeigt: Flamme (Serie), Schild
+           (Serien-Schutz), zwei Karten (beide Spiele), Kalender
+           (Tagesaufgabe), Dreieck (Partie). */
+        serie: "M12 3 C15 7 18 9 18 14 A6 6 0 0 1 6 14 C6 11 8 9 9 7 C10 10 11 11 12 11 C12 8 11 6 12 3 Z",
+        schutz: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z",
+        beide: "M4 9 H14 V20 H4 Z M10 4 H20 V15 H16",
+        kalender: "M4 6 H20 V20 H4 Z M4 10 H20 M8 3 V7 M16 3 V7",
+        partie: "M8 5 L19 12 L8 19 Z",
+        koenig: "M11 1.5 H13 V3.5 H15 V5.5 H13 V7.5 H11 V5.5 H9 V3.5 H11 Z M7.5 9 C9 8 15 8 16.5 9 L15 17.5 H9 Z "
+            + "M6 18.5 H18 V21.5 H6 Z",
+        /* „Anpassen" (seit 0.8.0): zwei Schieberegler. Pfad wörtlich aus
+           den gemeinsamen Absprachen mit Blunderluck
+           (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md). Seit 0.9.0 kein
+           eigener Tab mehr, nur noch die Zeile in den Einstellungen. */
         anpassen: "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19",
         /* „Standard-Schrift" in den Einstellungen (seit 0.8.0): ein grosses
            A mit Grundlinie. */

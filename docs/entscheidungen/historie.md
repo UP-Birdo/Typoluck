@@ -3,6 +3,91 @@
 Je Version das Warum. Das Was für Nutzer steht im `CHANGELOG.md`.
 Archiv: suchen, nicht blättern.
 
+## Aus der STATUS.md (ausgelagert 27.09.2026)
+
+**0.8.1 — Icons, Vibration raus, „Freunde heute" lebt (26.09.2026, ausgeliefert,
+Commit `836690a`).**
+Auftrag 1: „neue app icons" — die Auftragsdatei Runde 3 hatte inzwischen
+zwei neue Absprachen (Icons, Vibration raus):
+- Icons: die vorläufigen aus `Design\3D-Schrift\final\icons\vorlaeufig`
+  lagen schon in `icons\` (vom Nutzer per `Icons-Verteilen.cmd` kopiert,
+  Byte-gleich). `icon.svg` (altes Logo) raus aus Manifest, Seite und
+  `sw.js`; die Datei bleibt liegen. `tools\Icons-Erzeugen.ps1` stillgelegt
+  (würde sonst das alte Logo drüberzeichnen; nur mit `-AltesLogo`).
+- Vibration: `js\fuehlen.js` und `tests\test-fuehlen.js` gelöscht, jeder
+  Aufruf und der Schalter raus; `js\upcrew-anpassen.js` neu kopiert (Quelle
+  vibriert nicht mehr, Byte-gleich). Test: kein `vibrate`/`FUEHLEN` in
+  `js\`. **Hinweis:** Das Deploy-Skript löscht nichts auf GitHub —
+  `js/fuehlen.js` bleibt dort liegen, ist aber nirgends eingebunden.
+- **Offen bei den finalen Icons:** Kommen sie vom Render-Stick, kopiert der
+  Nutzer sie mit `Icons-Verteilen.cmd -Stufe final`; hier dann nur Version
+  und `sw.js` hochzählen (PATCH).
+
+Auftrag 2: „mach weiter" → ROADMAP Nr. 9 (erster Punkt ohne
+Nutzer-Entscheidung; Eingangskorb und GitHub-Meldungen leer).
+- `js\bildschirm-start.js`: Uhr (`AUFFRISCHEN_MS` 30 s) nur auf dem Start,
+  aus beim Verlassen, nie in der Werkstatt; Nachholen beim Zurückkehren in
+  den Vordergrund. Still: stehende Tabelle bleibt, neu gezeichnet nur bei
+  Änderung, Fehler lässt die alte stehen, veraltete Antworten werden
+  verworfen (`_ladeNr`). Nebenbei weg: das graue Aufblitzen bei jedem
+  Neubau des Starts.
+- PATCH, weil eine bestehende Anzeige verbessert wird.
+- Tests über `test-syntax.js` (Uhr aus beim Verlassen, keine in der
+  Werkstatt, lädt still). **Nicht angesehen:** das Nachladen selbst — in
+  der Werkstatt läuft bewusst keine Uhr; zeigt sich live mit zwei Geräten.
+
+**0.8.0 — UPCrew-Runde 3 (26.09.2026, ausgeliefert, Commit `5192226`).** Auftrag:
+`Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md`, Block 1. Warum so:
+`entschieden.md`, oberster Eintrag (damals).
+- Kopiert (Byte-gleich mit `final`): `js\upcrew-aussehen.js`,
+  `js\upcrew-anpassen.js`, `css\upcrew-anpassen.css`,
+  `css\upcrew-knoepfe.css`, `schrift\` (12 woff2 + `LIZENZ.txt`); alles in
+  `sw.js`.
+- `js\darstellung.js` nur noch Anschluss an das gemeinsame Aussehen,
+  einmaliger Umzug der alten Wahl „thema"; feste Welt „werkstatt" weg.
+- Knöpfe `haupt/still/gefahr` → `up-kn` mit Leuchtpunkt
+  (`BAUSTEINE.knopf`); eigene Form-Regeln raus; `--gefahr-kante/-schrift`;
+  `DIALOG.zweiSchritt` tauscht nur noch die Beschriftung.
+- Leiste: Aufgaben · Bald · Start · Rangliste · Anpassen; neuer
+  `js\bildschirm-anpassen.js` (Stufe 0, alles frei nur in der Werkstatt).
+- Einstellungen: Darstellung über den Baustein, „Standard-Schrift", Zeile
+  „Anpassen".
+- `js\aussehen-abgleich.js`: Aussehen am Konto (senden nach eigener
+  Änderung, holen nach Anmeldung und bei Rückkehr in den Vordergrund),
+  still bei Fehler.
+- Werkstatt: `&schrift=`, `&knoepfe=`, `&farbwelt=`, `&leseschrift`;
+  setzt vorher auf den Standard des Bausteins zurück.
+  `tools\Lokal-Starten.ps1`: woff2 und `-OhneBrowser`.
+- Tests 868 ok, 0 Fehler (neu: `test-knoepfe.js`,
+  `test-aussehen-abgleich.js`; Darstellung, Leiste, Lade-Reihenfolge,
+  Schriften im Service Worker). Angesehen (Edge kopflos, 390 px): Start
+  dunkel (S1/K1) und hell (S6/K3), Anpassen dunkel und hell (S6, ganz),
+  Einstellungen hell und dunkel (S6/K4), Freunde dunkel (S2), Spielbrett
+  hell (S6, Farbwelt Studio), Rangliste hell (S2/K2) — nichts läuft über,
+  keine Leisten-Beschriftung bricht um.
+- **Nicht angesehen:** das Mitziehen zwischen Typoluck und Blunderluck —
+  lokal laufen die Apps auf verschiedenen Ursprüngen; zeigt sich erst live
+  oder mit `Design\3D-Schrift\final\Aussehen-Probe.cmd`. Ebenso der echte
+  Konto-Abgleich (Regel fehlt noch; im Test gegen die lokale Rückwand
+  geprüft).
+
+**0.7.0 — UPCrew-Runde 2 (26.09.2026, ausgeliefert, Commit `a718b2f`).** Auftrag:
+`Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md`, Block 1. Warum so:
+`entschieden.md`.
+- `js\upcrew-farbwelten.js` kopiert (Byte-gleich mit `final`, ebenso
+  Intro-JS/-CSS samt Reparatur B); lädt mit dem Intro VOR
+  `darstellung.js`. `DARSTELLUNG.anwenden` setzt die Welt „werkstatt",
+  `DARSTELLUNG.modus()` neu, Horcher auf Gerät hell/dunkel.
+- Start: Kurzprofil links (`START._kurzprofilBauen`), Menü rechts,
+  Schriftzug weg (`css\stil-bildschirme.css` `.start-profil…`).
+- Leiste links „Aufgaben" → neuer `js\bildschirm-herausforderungen.js`
+  (Platzhalter), Zeichen `aufgaben`.
+- Tests 727 ok, 0 Fehler (neu: Farbwelten alle fünf Welten, Leiste,
+  Kopfzeile, Lade-Reihenfolge). Angesehen (Edge kopflos, 390 px): Start
+  dunkel und hell, Herausforderungen dunkel, Brett hell.
+- **Nicht in dieser Runde:** Herausforderungs-Pfad, Inventar, Freischalten
+  (Runde 3); Profil mit Reitern.
+
 ## Aus der STATUS.md (ausgelagert 26.09.2026)
 
 **0.6.2 — weg vom NYT-Look (25.09.2026, ausgeliefert mit 0.7.0).** Auftrag: prüfen, was

@@ -105,7 +105,7 @@ const APP = {
         EINSTELLUNGEN_BILDSCHIRM.anmelden();
         RANGLISTE_BILDSCHIRM.anmelden();
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
-        ANPASSEN_BILDSCHIRM.anmelden();
+        SAMMLUNG_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
         NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"));
 
@@ -131,7 +131,7 @@ const APP = {
             ? SPIELER.freundeVon(APP.abgleich.daten, ich.id).offen.length : 0);
 
         /* Neu zeichnen — ausser mitten im Spiel (die getippten Buchstaben
-           gingen verloren), im Tab „Anpassen" (der Entwurf ginge verloren;
+           gingen verloren), im Tab „Sammlung" (der Entwurf ginge verloren;
            der Tab zeichnet sich selbst, seit 0.8.0) oder während jemand in
            ein Feld schreibt. */
         const fokus = document.activeElement;
@@ -142,8 +142,9 @@ const APP = {
     },
 
     /* Bildschirme, die neue Daten oder ein neues Aussehen NICHT neu bauen:
-       das laufende Spiel und der Entwurf im Tab „Anpassen". */
-    UNGESTOERT: ["wordle", "anpassen"],
+       das laufende Spiel und der Entwurf im Tab „Sammlung" (bis 0.8.1
+       „Anpassen"). */
+    UNGESTOERT: ["wordle", "sammlung"],
 
     /* ---------------------------------------------------------------- *
      * Das gemeinsame Aussehen (seit 0.8.0, js\upcrew-aussehen.js)
@@ -257,6 +258,53 @@ const APP = {
             DIALOG.kurzmeldung("Ergebnis auf diesem Gerät gemerkt — es wird gesendet, "
                 + "sobald die Verbindung klappt.", 4000);
         }
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Der Fortschritt (seit 0.10.0, UPCrew-Runde 5): Level, XP, Heute
+     * ---------------------------------------------------------------- */
+
+    /* Die Stufen des Aussehens (für die Belohnungen je Level) — allein aus
+       dem Baustein, nie hier festgeschrieben. */
+    _stufen() {
+        if (typeof UPCREW_ANPASSEN === "undefined") {
+            return null;
+        }
+        return UPCREW_ANPASSEN.STUFEN;
+    },
+
+    /* Der eigene Fortschritt (ohne Anmeldung: der leere). */
+    fortschritt() {
+        const ich = ICH.person();
+        return FORTSCHRITT.laden(ich ? ich.id : null);
+    },
+
+    /*
+     * Eine beendete Runde zählt: Wertung rechnen (js\wertung.js), dann XP,
+     * Heute und Serie (js\fortschritt.js). Vom Wordle-Bildschirm gerufen,
+     * GENAU EINMAL je Runde — im Augenblick, in dem sie endet. Das Tageswort
+     * ist nur am eigenen Tag die Tagesaufgabe; Figuren gibt es nur dort (in
+     * der Übung nur die Partie). Liefert { wertung, ergebnis } oder null.
+     */
+    fortschrittMelden(runde) {
+        const wertung = WERTUNG.runde(runde);
+        if (!wertung) {
+            return null;
+        }
+        const ich = ICH.person();
+        const datum = WORDLE.datumText(APP.jetzt());
+        const tagesaufgabe = runde.modus === "tag" && runde.datum === datum;
+        const ergebnis = FORTSCHRITT.aendern(ich ? ich.id : null, (stand) => FORTSCHRITT.partie(stand, {
+            spiel: "typoluck",
+            datum: datum,
+            tagesaufgabe: tagesaufgabe,
+            figuren: tagesaufgabe ? wertung.figuren : 0
+        }, APP._stufen()));
+
+        if (ergebnis.levelNachher > ergebnis.levelVorher) {
+            DIALOG.kurzmeldung("Level " + ergebnis.levelNachher, 2500);
+        }
+        return { wertung: wertung, ergebnis: ergebnis };
     },
 
     /* ---------------------------------------------------------------- *

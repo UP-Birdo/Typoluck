@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.8.1";
+const SPEICHER_NAME = "typoluck-v0.10.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -43,9 +43,10 @@ const DATEIEN = [
     "./css/upcrew-intro.css",
     "./css/upcrew-knoepfe.css",
     "./css/upcrew-anpassen.css",
+    "./css/upcrew-leiste.css",
 
     /* Die Crew-Schriften (seit 0.8.0) — alle zwölf, damit jede Wahl im
-       Tab Anpassen auch offline trägt. (In dieser Liste keine geraden
+       Tab Sammlung auch offline trägt. (In dieser Liste keine geraden
        Anführungszeichen: tests\test-syntax.js liest sie als Dateinamen.) */
     "./schrift/crew-S1-normal.woff2",
     "./schrift/crew-S1-fett.woff2",
@@ -76,6 +77,8 @@ const DATEIEN = [
     "./js/wordle.js",
     "./js/ergebnisse.js",
     "./js/rangliste.js",
+    "./js/wertung.js",
+    "./js/fortschritt.js",
     "./js/bausteine.js",
     "./js/zustand.js",
     "./js/dialog.js",
@@ -88,7 +91,8 @@ const DATEIEN = [
     "./js/bildschirm-profil.js",
     "./js/bildschirm-einstellungen.js",
     "./js/bildschirm-herausforderungen.js",
-    "./js/bildschirm-anpassen.js",
+    "./js/sammlung.js",
+    "./js/bildschirm-sammlung.js",
     "./js/aussehen-abgleich.js",
     "./js/wunsch.js",
     "./js/werkstatt.js",

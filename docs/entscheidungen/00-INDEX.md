@@ -5,6 +5,9 @@
 
 ## erkenntnisse.md — Fallen und Bug-Ursachen
 
+- Eine Wertung darf nicht bestrafen, was der Spieler nicht wissen kann
+- Der Bedingungs-Operator löst die Stufen-Prüfung aus
+- Leiste mit fester Höhe und iPhone-Streifen
 - Das Deploy-Skript lädt nur freigegebene Ordner hoch
 - Eine Variable auf 0 versteckt, welche Regel wirklich gewinnt
 - window.open mit "noopener" liefert immer null
@@ -14,6 +17,8 @@
 
 ## entschieden.md — getroffene Entscheidungen
 
+- UPCrew-Runde 5, Typoluck-Teil „Heute + Level" (0.10.0)
+- UPCrew-Runde 4: Leiste nur Symbole, Tab „Sammlung" (0.9.0)
 - Vibration raus, UPCrew-Icons, „Freunde heute" lebt (0.8.1)
 - UPCrew-Runde 3: ein Aussehen, Crew-Schrift, UPCrew-Knöpfe, Tab „Anpassen" (0.8.0)
 - UPCrew-Runde 2: Farbwelt, Kopfzeile, Tab „Aufgaben" (0.7.0)
@@ -37,6 +42,11 @@
 ## offen-und-abgelehnt.md
 
 Braucht eine Nutzer-Entscheidung:
+- Der Typoluck-Turm (zurückgestellt)
+- Fortschritt am Konto (Datenbank-Regel)
+- Blunderluck an denselben Fortschritt anschliessen
+- Rahmen, Titel und Taten
+- Zwei gleiche Zeichen: Wordguesser und Sammlung
 - Die grosse Wortliste
 - Ergebnis teilen
 - Blunderlucks Umzug zu UPCrew

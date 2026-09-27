@@ -335,6 +335,7 @@ const WORDLE_BILDSCHIRM = {
         loesung.appendChild(BAUSTEINE.el("span", "wordle-ende-wort-titel", "Lösung"));
         loesung.appendChild(BAUSTEINE.el("strong", null, runde.loesung.toUpperCase()));
         karte.appendChild(loesung);
+        karte.appendChild(WORDLE_BILDSCHIRM._wertungBauen(runde));
 
         if (runde.modus === "tag") {
             const punkte = RANGLISTE.punkte(ERGEBNISSE.ausRunde(runde));
@@ -356,6 +357,58 @@ const WORDLE_BILDSCHIRM = {
             }));
         }
         return karte;
+    },
+
+    /* Was die gerade beendete Runde an XP brachte (seit 0.10.0) — gesetzt
+       in _beiRundenende, gilt nur für genau diese Runde. */
+    _gewinn: null,
+
+    /*
+     * Die Wertung (seit 0.10.0, UPCrew-Runde 5; js\wertung.js): Figuren,
+     * Genauigkeit und Glück getrennt, je Versuch das Können und wie viele
+     * Wörter danach noch möglich waren. In der Übung ohne Figuren — die
+     * gibt es nur für die Tagesaufgabe. Gerechnet wird im Modell, hier nur
+     * gezeigt.
+     */
+    _wertungBauen(runde) {
+        const wertung = WERTUNG.runde(runde);
+        const teil = BAUSTEINE.el("div", "wertung");
+        if (!wertung) {
+            return teil;
+        }
+        const kopf = BAUSTEINE.el("div", "wertung-kopf");
+        if (runde.modus === "tag") {
+            kopf.appendChild(BAUSTEINE.figuren(wertung.figuren));
+        }
+        const zahlen = BAUSTEINE.el("div", "wertung-zahlen");
+        zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl(wertung.genauigkeit + " %", "Können"));
+        zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl(wertung.glueck + " %", "Glück"));
+        const gewinn = WORDLE_BILDSCHIRM._gewinn;
+        if (gewinn && gewinn.loesung === runde.loesung && gewinn.begonnenAm === runde.begonnenAm) {
+            zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl("+" + gewinn.xp, "XP"));
+        }
+        kopf.appendChild(zahlen);
+        teil.appendChild(kopf);
+
+        const liste = BAUSTEINE.el("ol", "wertung-versuche");
+        for (const versuch of wertung.versuche) {
+            const zeile = BAUSTEINE.el("li", "wertung-versuch");
+            zeile.appendChild(BAUSTEINE.el("span", "wertung-wort", versuch.wort.toUpperCase()));
+            /* „—" = die Lösung stand schon fest, der Versuch zählt nicht. */
+            zeile.appendChild(BAUSTEINE.el("span", "wertung-koennen",
+                versuch.gewertet ? versuch.koennen + " %" : "—"));
+            zeile.appendChild(BAUSTEINE.el("span", "wertung-uebrig", versuch.vorher + " → " + versuch.nachher));
+            liste.appendChild(zeile);
+        }
+        teil.appendChild(liste);
+        return teil;
+    },
+
+    _wertungZahl(wert, name) {
+        const feld = BAUSTEINE.el("span", "wertung-zahl");
+        feld.appendChild(BAUSTEINE.el("strong", null, wert));
+        feld.appendChild(BAUSTEINE.el("span", null, name));
+        return feld;
     },
 
     _schonGespieltZeigen(ergebnis) {
@@ -566,6 +619,12 @@ const WORDLE_BILDSCHIRM = {
 
     _beiRundenende() {
         const runde = WORDLE_BILDSCHIRM.runde;
+        /* Seit 0.10.0: Wertung, XP, Heute — genau hier, einmal je Runde. Was
+           dabei herauskam, zeigt das Ende-Feld (nur für DIESE Runde). */
+        const gemeldet = APP.fortschrittMelden(runde);
+        WORDLE_BILDSCHIRM._gewinn = gemeldet
+            ? { loesung: runde.loesung, begonnenAm: runde.begonnenAm, xp: gemeldet.ergebnis.xp }
+            : null;
         WORDLE_BILDSCHIRM._zeichnen();
 
         /* Bis 0.8.0 vibrierte hier Erfolg oder Fehler (FUEHLEN). Seit 0.8.1

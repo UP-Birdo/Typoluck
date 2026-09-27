@@ -156,7 +156,10 @@ const START = {
             beiKlick: () => NAVIGATION.zeigen("profil", null)
         });
         knopf.classList.add("start-profil");
-        knopf.appendChild(BAUSTEINE.kreis(name));
+        /* Seit 0.10.0 (UPCrew-Runde 5): der Kreis trägt den Level-Ring —
+           Ring = XP im laufenden Level, Zahl = Level (js\fortschritt.js). */
+        const stufe = FORTSCHRITT.levelVon(APP.fortschritt().xp);
+        knopf.appendChild(BAUSTEINE.levelRing(name, stufe.hat / stufe.kosten, stufe.level));
 
         const texte = BAUSTEINE.el("span", "start-profil-texte");
         texte.appendChild(BAUSTEINE.el("span", "start-profil-name", name));

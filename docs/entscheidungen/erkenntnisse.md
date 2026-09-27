@@ -3,6 +3,34 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Eine Wertung darf nicht bestrafen, was der Spieler nicht wissen kann (27.09.2026)
+
+Erster Probelauf der Wertung (0.10.0): TISCH liess von 567 möglichen
+Lösungen nur BLICK übrig. Streng gerechnet (wie WordleBot) bekam BLUME
+danach 0 % — ein anderes Wort als das einzig mögliche — und drückte die
+Runde von Springer auf Bauer. Der Spieler kennt die Lösungsliste aber
+nicht; er kann nicht wissen, dass nur noch ein Wort bleibt. Deshalb:
+Versuche mit nur noch einem Kandidaten werden nicht gewertet (`—`).
+Lehre: Eine Kennzahl erst an einer echten Runde ansehen, bevor sie Figuren
+vergibt — die Formel allein sah richtig aus.
+
+## Der Bedingungs-Operator löst die Stufen-Prüfung aus (27.09.2026)
+
+`test-syntax.js` sucht festgeschriebene Freischalt-Stufen mit
+`/STUFEN\s*[=:]/`. `x ? UPCREW_ANPASSEN.STUFEN : null` trifft das auch —
+der Doppelpunkt des Bedingungs-Operators. Nicht die Prüfung lockern (sie
+fängt echte Tabellen), sondern die Stelle als `if` schreiben
+(`APP._stufen`).
+
+## Leiste mit fester Höhe und iPhone-Streifen (27.09.2026)
+
+Der Baustein `css\upcrew-leiste.css` setzt `height: 64px` und
+`padding-bottom: env(safe-area-inset-bottom)`. Mit `box-sizing:
+border-box` (hier überall) zählt das Polster zur Höhe — auf dem iPhone
+bliebe für die Tabs 64 px minus Streifen. Typoluck rechnet die Höhe in
+`.leiste.up-leiste` selbst (`--leiste-hoehe` + Streifen); der Baustein
+bleibt unverändert, der Befund ging an die Design-Sitzung (`STATUS.md`).
+
 ## Das Deploy-Skript lädt nur freigegebene Ordner hoch (26.09.2026)
 
 0.8.0 brachte den neuen Ordner `schrift\` (Crew-Schriften). Alle Tests

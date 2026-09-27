@@ -29,7 +29,8 @@ const liste = (ordner) => fs.readdirSync(path.join(wurzel, ordner)).map((name) =
    Tabs und Übersetzbarkeit werden auch bei ihnen geprüft. */
 const KOPIEN = [
     "js/upcrew-intro.js", "css/upcrew-intro.css", "js/upcrew-farbwelten.js",
-    "js/upcrew-aussehen.js", "js/upcrew-anpassen.js", "css/upcrew-anpassen.css", "css/upcrew-knoepfe.css"
+    "js/upcrew-aussehen.js", "js/upcrew-anpassen.js", "css/upcrew-anpassen.css", "css/upcrew-knoepfe.css",
+    "css/upcrew-leiste.css"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -221,46 +222,91 @@ gleich("Manifest: Name", JSON.parse(lesen("manifest.webmanifest")).name, "Typolu
  * Platzhalter"; „in die drei Balken auch Einstellungen")
  * ------------------------------------------------------------------ */
 
-pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts",
-    /<\/main>\s*(<!--[\s\S]*?-->\s*)?<nav class="leiste" id="leiste"/.test(index));
+pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts, als Baustein up-leiste",
+    /<\/main>\s*(<!--[\s\S]*?-->\s*)?<nav class="leiste up-leiste" id="leiste"/.test(index));
 const leisteText = (lesen("js/navigation.js").match(/LEISTE: \[([\s\S]*?)\],/) || ["", ""])[1];
 const leisteEintraege = leisteText.split("\n").filter((z) => z.indexOf("{") !== -1);
-/* Seit 0.8.0 (UPCrew-Runde 3) fünf Plätze wie in Blunderluck:
-   Aufgaben · Bald · Start · Rangliste · Anpassen — Start in der Mitte,
-   Anpassen ganz rechts. */
+/* Seit 0.9.0 (UPCrew-Runde 4) in BEIDEN Spielen gleich:
+   Aufgaben · Sammlung · Start · Rangliste · Bald — Start in der Mitte,
+   Platz 5 still. (0.8.0: Aufgaben · Bald · Start · Rangliste · Anpassen.) */
 gleich("Die Leiste hat fünf Einträge", leisteEintraege.length, 5);
 /* Links seit 0.7.0 „Aufgaben" (UPCrew-Runde 2, gleich wie Blunderluck);
    bis 0.6.x der Platzhalter „Bald". */
 pruefe("Links in der Leiste: Aufgaben",
     /id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben"/.test(leisteEintraege[0] || ""));
-pruefe("Platz 2: der Platzhalter „Bald“ (abgeschaltet, ohne Bildschirm)",
-    /text: "Bald", zeichen: "platzhalter", platzhalter: true/.test(leisteEintraege[1] || "")
-        && !/id:/.test(leisteEintraege[1] || ""));
-pruefe("Ganz rechts: Anpassen",
-    /id: "anpassen", text: "Anpassen", zeichen: "anpassen"/.test(leisteEintraege[4] || ""));
-gleich("Das Anpassen-Zeichen ist der gemeinsame Pfad mit Blunderluck",
-    (lesen("js/bausteine.js").match(/anpassen: "([^"]+)"/) || [])[1],
-    "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19");
-pruefe("Anpassen steht nicht im Menü",
-    /id: "anpassen"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-anpassen.js")));
-pruefe("Anpassen zeigt den gemeinsamen Tab als Typoluck, Stufe aus einer Stelle",
-    /UPCREW_ANPASSEN\.zeigen\(ort, \{\s*app: "typoluck",\s*stufe: ANPASSEN_BILDSCHIRM\.stufe\(\)/
-        .test(lesen("js/bildschirm-anpassen.js")));
-pruefe("Anpassen räumt beim Verlassen auf",
-    /verlassen: \(\) => ANPASSEN_BILDSCHIRM\.entfernen\(\)/.test(lesen("js/bildschirm-anpassen.js")));
+pruefe("Platz 2: Sammlung",
+    /id: "sammlung", text: "Sammlung", zeichen: "sammlung"/.test(leisteEintraege[1] || ""));
+pruefe("Platz 5: „Bald“ (still, ohne Bildschirm)",
+    /text: "Bald", zeichen: "bald", platzhalter: true/.test(leisteEintraege[4] || "")
+        && !/id:/.test(leisteEintraege[4] || ""));
+gleich("Das Sammlung-Zeichen ist der gemeinsame Pfad mit Blunderluck",
+    (lesen("js/bausteine.js").match(/sammlung: "([^"]+)"/) || [])[1],
+    "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z");
+gleich("Das Bald-Zeichen ist der gemeinsame Pfad mit Blunderluck",
+    (lesen("js/bausteine.js").match(/bald: "([^"]+)"/) || [])[1], "M12 7 V12 L15 14 M12 3 A9 9 0 1 0 12.01 3");
+pruefe("Die Leiste baut ihre Tabs mit BAUSTEINE.tab, aktiv nur über aria-current",
+    /BAUSTEINE\.tab\(/.test(lesen("js/navigation.js"))
+        && !/knopf-leiste/.test(lesen("js/navigation.js") + lesen("css/stil.css")));
+pruefe("Keine eigenen Regeln mehr für Schrift, Farbbalken oder Höhe der Tabs",
+    !/\.up-tab/.test(lesen("css/stil.css") + lesen("css/stil-bildschirme.css")));
+pruefe("Der Tab „Anpassen“ ist weg (in der Sammlung aufgegangen)",
+    !fs.existsSync(path.join(wurzel, "js", "bildschirm-anpassen.js"))
+        && !/ANPASSEN_BILDSCHIRM/.test(liste("js").filter((d) => d.endsWith(".js")).map(lesen).join("")));
+const sammlungText = lesen("js/bildschirm-sammlung.js");
+pruefe("Sammlung steht nicht im Menü", /id: "sammlung"[\s\S]*?imMenue: false/.test(sammlungText));
+pruefe("Sammlung zeigt den gemeinsamen Tab direkt, als Typoluck, Stufe aus einer Stelle",
+    /UPCREW_ANPASSEN\.zeigen\(ort, \{\s*app: "typoluck",\s*stufe: SAMMLUNG_BILDSCHIRM\.stufe\(\)/.test(sammlungText));
+pruefe("Sammlung: reine Sammlung VOR dem Übernehmen-Balken",
+    /ort\.insertBefore\([\s\S]*?ort\.querySelector\("\.upa-aktion"\)\)/.test(sammlungText));
+pruefe("Sammlung: Kopfzeile zeigt den Anteil aus dem Modell",
+    /SAMMLUNG\.anteil\(UPCREW_ANPASSEN\.STUFEN/.test(sammlungText) && /rechts: prozent/.test(sammlungText));
+pruefe("Sammlung räumt beim Verlassen auf",
+    /verlassen: \(\) => SAMMLUNG_BILDSCHIRM\.entfernen\(\)/.test(sammlungText));
+pruefe("Sammlung: Vorschau klebt bündig unter der Kopfzeile, Balken bündig auf der Leiste",
+    /--upa-oben: var\(--sammlung-kopf\)/.test(lesen("css/stil-bildschirme.css"))
+        && /\.sammlung-ort \.upa-aktion \{\s*bottom: calc\(var\(--leiste-hoehe\)/.test(lesen("css/stil-bildschirme.css")));
+pruefe("Neu gezeichnet wird die Sammlung nicht von fremden Daten (der Entwurf bliebe sonst nicht)",
+    /UNGESTOERT: \["wordle", "sammlung"\]/.test(lesen("js/app.js")));
 pruefe("Keine Freischalt-Stufen oder Standard-Werte in der App festgeschrieben",
     liste("js").filter((d) => d.endsWith(".js") && KOPIEN.indexOf(d) === -1)
         .every((d) => !/\b(S[1-6]|K[1-6])\b"|"(S[1-6]|K[1-6])"|STUFEN\s*[=:]/.test(
             lesen(d).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
-pruefe("Einstellungen: Standard-Schrift und Weg zu Anpassen",
+pruefe("Einstellungen: Standard-Schrift und die Zeile „Anpassen“ springt in die Sammlung",
     /"Standard-Schrift"/.test(lesen("js/bildschirm-einstellungen.js"))
-        && /NAVIGATION\.zeigen\("anpassen"/.test(lesen("js/bildschirm-einstellungen.js")));
+        && /"Anpassen"[\s\S]*?NAVIGATION\.zeigen\("sammlung"/.test(lesen("js/bildschirm-einstellungen.js")));
 gleich("Das Aufgaben-Zeichen ist der gemeinsame Pfad mit Blunderluck",
-    (lesen("js/bausteine.js").match(/aufgaben: "([^"]+)"/) || [])[1], "M4 20 L10 14 L14 17 L20 6 M15 6 H20 V11");
-pruefe("Herausforderungen: Titel und Satz wie abgesprochen",
-    lesen("js/bildschirm-herausforderungen.js").indexOf('TITEL: "Herausforderungen"') !== -1
-        && lesen("js/bildschirm-herausforderungen.js")
-            .indexOf("TEXT: \"Kommt bald – hier siehst du deinen Weg durch beide Spiele.\"") !== -1);
+    (lesen("js/bausteine.js").match(/aufgaben: "([^"]+)"/) || [])[1], "M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14");
+/* Seit 0.10.0 (UPCrew-Runde 5) zeigen die Herausforderungen „Heute" statt
+   des Platzhalters: Tageswort, Tagesbrett von Blunderluck, ×1,5, Serie. */
+const heuteText = lesen("js/bildschirm-herausforderungen.js");
+pruefe("Herausforderungen: Titel wie abgesprochen, kein Platzhalter mehr",
+    heuteText.indexOf('TITEL: "Herausforderungen"') !== -1 && heuteText.indexOf("Kommt bald") === -1);
+pruefe("Heute: Tageswort, Tagesbrett, ×1,5 und Serie",
+    ["_tageswortBauen", "_tagesbrettBauen", "\"×1,5\"", "_serieBauen"].every((t) => heuteText.indexOf(t) !== -1));
+pruefe("Heute: die andere App aus KONFIG, nicht festgeschrieben",
+    /KONFIG\.andereSpiele\.blunderluck/.test(heuteText) && !/github\.io/.test(heuteText));
+pruefe("Heute: Serie aus dem Modell", /FORTSCHRITT\.serieAn\(/.test(heuteText));
+
+/* Fortschritt und Wertung (seit 0.10.0): Modelle vor den Bausteinen
+   geladen; jede beendete Runde meldet sich GENAU EINMAL — im Augenblick
+   des Endes, nie beim Zeichnen. */
+pruefe("Wertung und Fortschritt laden nach dem Spiel-Modell und vor den Bausteinen",
+    indexSkripte.indexOf("js/wordle.js") < indexSkripte.indexOf("js/wertung.js")
+        && indexSkripte.indexOf("js/wertung.js") < indexSkripte.indexOf("js/fortschritt.js")
+        && indexSkripte.indexOf("js/fortschritt.js") < indexSkripte.indexOf("js/bausteine.js")
+        && indexSkripte.indexOf("js/fortschritt.js") < indexSkripte.indexOf("js/werkstatt.js"));
+const wordleBildschirm = lesen("js/bildschirm-wordle.js").replace(/\/\*[\s\S]*?\*\//g, "");
+gleich("Der Fortschritt wird an genau einer Stelle gemeldet",
+    (wordleBildschirm.match(/APP\.fortschrittMelden\(/g) || []).length, 1);
+pruefe("… und zwar beim Rundenende",
+    /_beiRundenende\(\) \{[\s\S]*?APP\.fortschrittMelden\(runde\)/.test(wordleBildschirm));
+pruefe("Sammlung: Stufe = Level", /stufe\(\) \{\s*return APP\.fortschritt\(\)\.level;/.test(lesen("js/bildschirm-sammlung.js")));
+pruefe("Start: Kurzprofil mit Level-Ring", /BAUSTEINE\.levelRing\(/.test(lesen("js/bildschirm-start.js")));
+pruefe("Profil: Level-Karte nur im eigenen Profil",
+    /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._levelBauen/.test(lesen("js/bildschirm-profil.js")));
+pruefe("XP-Zahlen stehen nur im Modell",
+    liste("js").filter((d) => d.endsWith(".js") && d !== "js/fortschritt.js")
+        .every((d) => !/tagesaufgabe:\s*20|beideFaktor:/.test(lesen(d))));
 pruefe("Herausforderungen stehen nicht im Menü",
     /id: "herausforderungen"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-herausforderungen.js")));
 
@@ -314,8 +360,14 @@ pruefe("darstellung.js wendet beim Laden an (erst Umzug, dann anwenden)",
     /\nDARSTELLUNG\.migrieren\(\);\nDARSTELLUNG\.anwenden\(\);\n/.test(lesen("js/darstellung.js").replace(/\r/g, "")));
 pruefe("Die alte Wahl „thema“ wird nur noch beim Umzug gelesen",
     (lesen("js/darstellung.js").replace(/\/\*[\s\S]*?\*\//g, "").match(/"thema"/g) || []).length === 1);
-pruefe("Der Anpassen-Tab lädt nach seinen Bausteinen und vor seinem Bildschirm",
+pruefe("Der Anpassen-Baustein lädt nach seinen Bausteinen und vor der Sammlung",
     reihe.indexOf("js/upcrew-aussehen.js") < reihe.indexOf("js/upcrew-anpassen.js")
-        && reihe.indexOf("js/upcrew-anpassen.js") < reihe.indexOf("js/bildschirm-anpassen.js"));
+        && reihe.indexOf("js/upcrew-anpassen.js") !== -1
+        && reihe.indexOf("js/upcrew-anpassen.js") < reihe.indexOf("js/bildschirm-sammlung.js"));
+pruefe("Das Sammlungs-Modell lädt vor seinem Bildschirm",
+    reihe.indexOf("js/sammlung.js") !== -1 && reihe.indexOf("js/sammlung.js") < reihe.indexOf("js/bildschirm-sammlung.js"));
+pruefe("Der Leisten-Baustein lädt NACH dem eigenen Stil",
+    indexStile.indexOf("css/upcrew-leiste.css") > indexStile.indexOf("css/stil.css")
+        && indexStile.indexOf("css/upcrew-leiste.css") > indexStile.indexOf("css/stil-bildschirme.css"));
 
 fazit();

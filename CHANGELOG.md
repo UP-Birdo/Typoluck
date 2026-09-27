@@ -3,6 +3,41 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.10.0 — 27.09.2026
+
+**Level, Tagesaufgaben und eine Wertung für jede Runde.**
+
+- **Neu: Level.** Jede Runde bringt XP — mehr für das Tageswort, für gute
+  Figuren und für jeden Tag in Folge. Der Ring um dein Profilbild oben
+  links füllt sich, die Zahl daneben ist dein Level. Mit jedem Level wird
+  in der Sammlung mehr frei (Farbwelten, Schriften, Knöpfe).
+- **Neu: „Heute" im Tab Aufgaben.** Das Tageswort und das Tagesbrett aus
+  Blunderluck. Schaffst du beide am selben Tag, zählt der Tag ×1,5. Darunter
+  deine Serie als sieben Flammen und dein Serien-Schutz, der einen
+  verpassten Tag rettet.
+- **Neu: Wertung nach jeder Runde.** Wie gut war jeder Versuch — wie viele
+  Wörter er ausgeschlossen hat, verglichen mit dem besten möglichen. Glück
+  steht getrennt daneben und zählt nicht. Beim Tageswort gibt es dafür
+  Figuren: Bauer (gelöst), Springer (gut), König (sehr gut).
+- **Neu im Profil:** Level mit XP-Balken, woher XP kommen, was die nächsten
+  drei Level bringen, und fünf Abzeichen.
+- Level und Serie liegen vorerst nur auf diesem Gerät. Im selben Browser
+  teilt Blunderluck sie mit dir.
+
+## 0.9.0 — 27.09.2026
+
+**Neue Leiste unten und der Tab „Sammlung" — gleich wie in Blunderluck.**
+
+- **Die Leiste unten zeigt nur noch Zeichen.** Der Tab, auf dem du gerade
+  bist, hebt sich als farbige Kachel heraus und zeigt als einziger seinen
+  Namen. Reihenfolge: Aufgaben · Sammlung · Start · Rangliste · Bald.
+- **Neu: der Tab „Sammlung"** an Platz 2. Er ersetzt „Anpassen": oben die
+  Vorschau, darunter Farbwelt, Schrift, Knöpfe und hell/dunkel zum
+  Ausprobieren — jetzt direkt im Tab, ohne extra Knopf. Darunter deine
+  Modi (Tageswort, Übung, Schwer-Modus; Blitzwort und Wort-Duell kommen
+  noch). Oben rechts steht, wie viel du schon gesammelt hast.
+- Die Zeile „Anpassen" in den Einstellungen führt jetzt in die Sammlung.
+
 ## 0.8.1 — 26.09.2026
 
 **Neues App-Zeichen, keine Vibration mehr, und „Freunde heute" bleibt von
