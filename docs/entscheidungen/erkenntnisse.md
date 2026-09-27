@@ -3,6 +3,26 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Ein neuer Service Worker macht die offene Seite nicht neu (27.09.2026)
+
+Nutzer: „ich bekomme die neuste Version nicht mehr aufgerufen" (live
+nachgemessen an Blunderluck, dasselbe Muster hier). Der Server lieferte
+längst die neue Fassung. Die Seite startete aber aus dem Zwischenspeicher
+des ALTEN Workers. Der neue installierte sich im Hintergrund und übernahm
+mit skipWaiting/claim — doch eine schon geladene Seite behält ihre alten
+Skripte. Erst der übernächste Start zeigt die neue Fassung, und eine App vom
+Home-Bildschirm wird kaum neu gestartet, nur hervorgeholt: Dort kam die
+neue Fassung praktisch nie an. `register()` allein fragt ausserdem nur beim
+Laden nach, nicht bei der Rückkehr.
+Seit 0.15.2 (`js\aktualisierung.js`, gleich in Blunderluck v0.151.2):
+`registration.update()` beim Start und bei Rückkehr (höchstens alle 5 min),
+bei `controllerchange` — nur wenn es vorher einen Controller gab — EINMAL
+neu laden an einer sicheren Stelle, sonst Leiste „Neue Version"; Merker in
+sessionStorage gegen Schleifen. **Lehre:** Wer skipWaiting/claim nutzt,
+braucht auch den Schritt „Seite neu laden", sonst wirkt die Auslieferung
+erst Tage später. Die Fassung, die den Fehler noch hat, braucht einmal
+einen Neustart von Hand — erst ab 0.15.2 geht es von selbst.
+
 ## Der Service Worker füllt sich aus der HTTP-Ablage (27.09.2026)
 
 Auf 8093 lief nach einer Änderung an `js\sammlung.js` weiter die alte

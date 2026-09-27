@@ -437,6 +437,16 @@
     color: var(--schrift);
 }
 
+/* Die Leiste „Neue Version" (seit 0.15.2, js\aktualisierung.js): oben in
+   der Mitte über allem; antippen lädt sofort. */
+.aktualisierung {
+    position: fixed;
+    top: calc(8px + env(safe-area-inset-top));
+    left: 50%;
+    z-index: 60;
+    transform: translateX(-50%);
+}
+
 /* Nur Werkstatt (`&kachelwahl`, seit 0.14.0): eine Leiste oben über jedem
    Bildschirm zum Durchschalten der Kachel-Sets und von hell/dunkel. */
 .werkstatt-kachelwahl {

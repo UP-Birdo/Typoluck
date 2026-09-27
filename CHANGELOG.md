@@ -3,6 +3,21 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.15.2 — 27.09.2026
+
+**Behoben: Die neue Version kam nicht an.**
+
+- Bisher startete die App aus dem Zwischenspeicher mit der alten Fassung;
+  die neue lud sich nur im Hintergrund und zeigte sich erst beim
+  übernächsten Start — als App vom Home-Bildschirm praktisch nie.
+- Jetzt fragt die App beim Start und bei jeder Rückkehr nach einer neuen
+  Version (höchstens alle 5 Minuten). Ist eine da, lädt sie einmal neu —
+  aber nie, während du Buchstaben tippst oder ein Fenster offen ist. Dann
+  erscheint oben „Neue Version" zum Antippen, und sie lädt beim nächsten
+  ruhigen Moment von selbst.
+- **Einmal noch von Hand:** Wer gerade eine ältere Fassung offen hat,
+  bekommt diese Verbesserung erst mit dem nächsten Neustart der App.
+
 ## 0.15.1 — 27.09.2026
 
 **Dein Fortschritt reist mit deinem Konto.**

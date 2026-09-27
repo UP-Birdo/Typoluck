@@ -415,9 +415,27 @@ const APP = {
         if (werkstatt || !("serviceWorker" in navigator) || window.location.protocol === "file:") {
             return;
         }
-        navigator.serviceWorker.register("sw.js").catch(() => {
-            /* Ohne Worker läuft die App trotzdem — nur nicht offline. */
-        });
+        /* Seit 0.15.2: nachfragen und die neue Version auch zeigen
+           (js\aktualisierung.js — bis 0.15.1 blieb die offene Seite alt). */
+        navigator.serviceWorker.register("sw.js")
+            .then((registrierung) => AKTUALISIERUNG.einrichten(registrierung, () => APP._lageFuerNeuladen()))
+            .catch(() => {
+                /* Ohne Worker läuft die App trotzdem — nur nicht offline. */
+            });
+    },
+
+    /* Wie es gerade aussieht — für „darf jetzt neu geladen werden?"
+       (AKTUALISIERUNG.sicher). */
+    _lageFuerNeuladen() {
+        const fokus = document.activeElement;
+        const eingabe = (NAVIGATION.aktuell === "wordle" && WORDLE_BILDSCHIRM.eingabe)
+            ? WORDLE_BILDSCHIRM.eingabe.felder : [];
+        return {
+            getippt: (eingabe || []).filter((zeichen) => zeichen).length,
+            schreibt: !!fokus && (fokus.tagName === "INPUT" || fokus.tagName === "TEXTAREA"),
+            dialogOffen: document.body.classList.contains("dialog-offen"),
+            anmeldungOffen: !!ANMELDUNG.offen
+        };
     }
 };
 
