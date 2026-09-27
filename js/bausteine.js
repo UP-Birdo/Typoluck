@@ -146,11 +146,20 @@ const BAUSTEINE = {
     stueck(angaben) {
         const stueck = document.createElement("button");
         stueck.type = "button";
-        stueck.className = "stueck" + (angaben.da ? " stueck-da" : "");
-        stueck.setAttribute("aria-label", angaben.da ? angaben.name : "Noch nicht da");
+        /* `aktiv` (seit 0.14.0): das Stück, das man gerade trägt
+           (Kachel-Set). */
+        stueck.className = "stueck" + (angaben.da ? " stueck-da" : "") + (angaben.aktiv ? " stueck-aktiv" : "");
+        if (angaben.aktiv) {
+            stueck.setAttribute("aria-current", "true");
+        }
+        /* `schloss` (seit 0.15.0): kurzer Hinweis statt „···", z. B.
+           „ab 6" für ein Stück, das mit dem Level kommt. */
+        stueck.setAttribute("aria-label", angaben.da ? angaben.name
+            : (angaben.schloss ? "Noch nicht da, " + angaben.schloss : "Noch nicht da"));
         stueck.appendChild(BAUSTEINE.el("span", "stueck-bild",
             angaben.da ? (angaben.kuerzel || String(angaben.name).slice(0, 2)) : "?"));
-        stueck.appendChild(BAUSTEINE.el("span", "stueck-name", angaben.da ? angaben.name : "···"));
+        stueck.appendChild(BAUSTEINE.el("span", "stueck-name",
+            angaben.da ? angaben.name : (angaben.schloss || "···")));
         if (angaben.beiKlick) {
             stueck.addEventListener("click", angaben.beiKlick);
         }
@@ -199,15 +208,54 @@ const BAUSTEINE = {
      *   anteil   0..1 (XP im Level / Kosten des Levels)
      *   level    Zahl
      *   gross    true = für das Profil
+     *   rahmen   wahlfrei (seit 0.12.0): FORTSCHRITT.rahmenVon(level) —
+     *            der erreichte Rahmen als äussere Kante (Kupfer, Silber,
+     *            Glanz, Gold)
      */
-    levelRing(name, anteil, level, gross) {
-        const ring = BAUSTEINE.el("span", "level-ring" + (gross ? " level-ring-gross" : ""));
+    levelRing(name, anteil, level, gross, rahmen) {
+        const ring = BAUSTEINE.el("span", "level-ring" + (gross ? " level-ring-gross" : "")
+            + (rahmen ? " level-rahmen level-rahmen-" + rahmen.stufe : ""));
+        if (rahmen) {
+            ring.title = "Rahmen " + rahmen.name;
+        }
         ring.style.setProperty("--anteil", String(Math.max(0, Math.min(1, anteil || 0))));
         ring.appendChild(BAUSTEINE.kreis(name, gross ? "namens-kreis-gross" : null));
         const zahl = BAUSTEINE.el("span", "level-zahl", String(level));
         zahl.setAttribute("aria-label", "Level " + level);
         ring.appendChild(zahl);
         return ring;
+    },
+
+    /*
+     * Ein Abzeichen (seit 0.12.0, wie im Entwurf): Zeichen, je Stufe ein
+     * Punkt (erreichte golden), darunter der Kurzname. Über die letzte
+     * Stufe hinaus („nach oben offen") steht die Zahl der Extra-Stufen
+     * neben den Punkten. Als Knopf, weil es antippbar ist — an dieser
+     * einen Stelle gebaut (wie `stueck`).
+     *   eintrag   aus FORTSCHRITT.abzeichen
+     *   beiKlick  Funktion
+     */
+    abzeichen(eintrag, beiKlick) {
+        const feld = document.createElement("button");
+        feld.type = "button";
+        feld.className = "abzeichen" + (eintrag.erreicht > 0 ? " abzeichen-an" : "");
+        feld.setAttribute("aria-label", eintrag.titel + ": " + eintrag.wert + ", Stufe " + eintrag.erreicht);
+        feld.appendChild(BAUSTEINE.zeichen(eintrag.zeichen));
+        const punkte = BAUSTEINE.el("span", "abzeichen-punkte");
+        punkte.setAttribute("aria-hidden", "true");
+        eintrag.stufen.forEach((stufe, i) => {
+            punkte.appendChild(BAUSTEINE.el("i", i < eintrag.erreicht ? "an" : null));
+        });
+        const extra = eintrag.erreicht - eintrag.stufen.length;
+        if (extra > 0) {
+            punkte.appendChild(BAUSTEINE.el("b", null, "+" + extra));
+        }
+        feld.appendChild(punkte);
+        feld.appendChild(BAUSTEINE.el("span", "abzeichen-name", eintrag.kurz));
+        if (beiKlick) {
+            feld.addEventListener("click", beiKlick);
+        }
+        return feld;
     },
 
     /* Eine Karte mit optionaler Überschrift. */

@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.10.0";
+const SPEICHER_NAME = "typoluck-v0.15.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -70,6 +70,7 @@ const DATEIEN = [
     "./js/upcrew-farbwelten.js",
     "./js/upcrew-aussehen.js",
     "./js/darstellung.js",
+    "./js/kachelsets.js",
     "./js/upcrew-anpassen.js",
     "./js/speicher.js",
     "./js/abgleich.js",
@@ -105,7 +106,11 @@ self.addEventListener("install", (ereignis) => {
         const speicher = await caches.open(SPEICHER_NAME);
         /* Absichtlich hart: Scheitert EINE Datei, bleibt der alte Worker in
            Betrieb. Ein halb gefüllter Speicher wäre schlimmer als keiner. */
-        await speicher.addAll(DATEIEN);
+        /* `cache: "reload"` (seit 0.13.0): an der HTTP-Ablage des Browsers
+           vorbei. Sonst legt ein neuer Worker eine Datei in der ALTEN
+           Fassung ab, solange der Browser sie noch für frisch hält
+           (GitHub Pages: 10 Minuten) — neue und alte Dateien gemischt. */
+        await speicher.addAll(DATEIEN.map((datei) => new Request(datei, { cache: "reload" })));
         await self.skipWaiting();
     })());
 });
@@ -153,7 +158,10 @@ async function speicherZuerst(anfrage) {
 
 async function netzZuerst(anfrage) {
     try {
-        return await fetch(anfrage);
+        /* Beim Bauen immer beim Server nachfragen (seit 0.13.0) — der
+           einfache Python-Server erlaubt dem Browser sonst, geänderte
+           Dateien eine Weile aus seiner eigenen Ablage zu nehmen. */
+        return await fetch(anfrage, { cache: "no-cache" });
     } catch (fehler) {
         const treffer = await caches.match(anfrage, { ignoreSearch: true });
         if (treffer) {

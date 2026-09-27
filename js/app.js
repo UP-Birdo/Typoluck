@@ -57,6 +57,12 @@ const APP = {
         }
         const erzwungen = werkstatt ? "lokal" : null;
 
+        /* Der Fortschritt zieht einmal in die Zweig-Form um (seit 0.11.0,
+           js\fortschritt.js, „DER UMZUG") — vor dem ersten Bildschirm, damit
+           jeder schon die neue Form sieht. Tut nichts, wenn alles umgezogen
+           ist. */
+        FORTSCHRITT.umziehenAlle();
+
         /* Das UPCrew-Konto (seit v0.2.0, js\konto.js) — nie in der Werkstatt,
            die immer lokal spielt. Jede Anfrage an die Datenbank trägt den
            Anmelde-Schlüssel; die Regeln lassen nur angemeldete Konten
@@ -265,18 +271,46 @@ const APP = {
      * ---------------------------------------------------------------- */
 
     /* Die Stufen des Aussehens (für die Belohnungen je Level) — allein aus
-       dem Baustein, nie hier festgeschrieben. */
+       dem Baustein, nie hier festgeschrieben. Seit 0.15.0 dazu die
+       Kachel-Sets, die über das Level kommen (aus js\sammlung.js). */
     _stufen() {
+        const stufen = { kachelset: SAMMLUNG.kachelsetStufen() };
         if (typeof UPCREW_ANPASSEN === "undefined") {
-            return null;
+            return stufen;
         }
-        return UPCREW_ANPASSEN.STUFEN;
+        return Object.assign({}, UPCREW_ANPASSEN.STUFEN, stufen);
     },
 
-    /* Der eigene Fortschritt (ohne Anmeldung: der leere). */
+    /* Der eigene Fortschritt (ohne Anmeldung: der leere) — alle Zweige,
+       also auch der von Blunderluck (seit 0.11.0). */
     fortschritt() {
+        APP._gastUmzug();
+        return FORTSCHRITT.laden(APP.fortschrittId());
+    },
+
+    /* Ein Gast von 0.10.0 stand unter seiner Konto-Id — sein Stand zieht
+       einmal unter „gast" um (seit 0.11.0). Tut nichts, wenn „gast" schon
+       einen Typoluck-Zweig hat. */
+    _gastUmzug() {
         const ich = ICH.person();
-        return FORTSCHRITT.laden(ich ? ich.id : null);
+        if (ich && ich.id && APP.fortschrittId() === FORTSCHRITT.GAST) {
+            FORTSCHRITT.gastUebernehmen(ich.id);
+        }
+    },
+
+    /* Unter welchem Eintrag der Fortschritt steht — wie Blunderluck
+       (js\fortschritt-konto.js `_person`, seit v0.150.0): die Spieler-Id
+       des eigenen Kontos, für Gäste und Nicht-Angemeldete „gast". Nur so
+       sehen beide Spiele im selben Browser denselben Eintrag. */
+    fortschrittId() {
+        const ich = ICH.person();
+        const gast = typeof ANMELDUNG !== "undefined" && ANMELDUNG.istGast();
+        return (ich && ich.id && !gast) ? ich.id : FORTSCHRITT.GAST;
+    },
+
+    /* Das Level über alle Spiele: { level, hat, kosten }. */
+    level() {
+        return FORTSCHRITT.level(APP.fortschritt());
     },
 
     /*
@@ -291,18 +325,37 @@ const APP = {
         if (!wertung) {
             return null;
         }
-        const ich = ICH.person();
         const datum = WORDLE.datumText(APP.jetzt());
         const tagesaufgabe = runde.modus === "tag" && runde.datum === datum;
-        const ergebnis = FORTSCHRITT.aendern(ich ? ich.id : null, (stand) => FORTSCHRITT.partie(stand, {
-            spiel: "typoluck",
+        APP._gastUmzug();
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => FORTSCHRITT.partie(stand, {
             datum: datum,
             tagesaufgabe: tagesaufgabe,
-            figuren: tagesaufgabe ? wertung.figuren : 0
+            figuren: tagesaufgabe ? wertung.figuren : 0,
+            stufe: WERTUNG.schwierigkeit(runde.loesung),
+            koennen: wertung.genauigkeit,
+            zeitpunkt: Date.now(),
+            geloest: runde.zustand === "gewonnen",
+            versuche: runde.versuche.length,
+            schwer: runde.schwer === true
         }, APP._stufen()));
 
+        /* Level-Aufstieg und neue Stücke aus Taten (seit 0.13.0) als EINE
+           Kurzmeldung — die Namen der Stücke kennt das Sammlungs-Modell. */
+        const meldung = [];
         if (ergebnis.levelNachher > ergebnis.levelVorher) {
-            DIALOG.kurzmeldung("Level " + ergebnis.levelNachher, 2500);
+            meldung.push("Level " + ergebnis.levelNachher);
+        }
+        for (const stueck of SAMMLUNG.stueckeZuTaten(ergebnis.taten)) {
+            meldung.push("Neu: " + stueck.name);
+        }
+        /* Kachel-Sets, die mit dem Level kamen (seit 0.15.0). */
+        const namen = SAMMLUNG.kachelsetNamen();
+        for (const belohnung of ergebnis.neu.filter((b) => b.art === "kachelset")) {
+            meldung.push("Neu: " + (namen[belohnung.name] || belohnung.name));
+        }
+        if (meldung.length) {
+            DIALOG.kurzmeldung(meldung.join(" · "), 2500);
         }
         return { wertung: wertung, ergebnis: ergebnis };
     },

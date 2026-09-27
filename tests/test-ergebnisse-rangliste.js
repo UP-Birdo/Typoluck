@@ -125,5 +125,8 @@ gleich("Ein Tag ausgelassen: Serie gerissen", RANGLISTE.statistik(verlauf, "2026
 gleich("Lücke im Verlauf unterbricht die Serie",
     RANGLISTE.statistik({ "2026-09-01": e(2, true), "2026-09-03": e(2, true) }, "2026-09-03").serie, 1);
 gleich("Leerer Verlauf", RANGLISTE.statistik({}, "2026-09-24").quote, 0);
+/* Seit 0.12.0: Tageswort Ø — Versuche 2, 3, 4, 5 → 3,5 */
+gleich("Statistik: Ø Versuche der gelösten Tage", statistik.durchschnitt, 3.5);
+gleich("Statistik: ohne Lösung kein Ø", RANGLISTE.statistik({}, "2026-09-24").durchschnitt, null);
 
 fazit();

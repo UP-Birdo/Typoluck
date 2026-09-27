@@ -285,7 +285,15 @@ pruefe("Heute: Tageswort, Tagesbrett, ×1,5 und Serie",
     ["_tageswortBauen", "_tagesbrettBauen", "\"×1,5\"", "_serieBauen"].every((t) => heuteText.indexOf(t) !== -1));
 pruefe("Heute: die andere App aus KONFIG, nicht festgeschrieben",
     /KONFIG\.andereSpiele\.blunderluck/.test(heuteText) && !/github\.io/.test(heuteText));
-pruefe("Heute: Serie aus dem Modell", /FORTSCHRITT\.serieAn\(/.test(heuteText));
+pruefe("Heute: Serie aus dem Modell", /FORTSCHRITT\.serieHeute\(/.test(heuteText));
+/* Seit 0.11.0 (Runde 6 Teil A): Tageswort und Tagesbrett aus den Zweigen,
+   der Link zu Blunderluck relativ (derselbe Ursprung live und auf 8093). */
+pruefe("Heute: Tagesbrett aus dem Blunderluck-Zweig, Tageswort aus dem eigenen",
+    /FORTSCHRITT\.heuteVon\(fortschritt, "blunderluck", datum\)/.test(heuteText)
+        && /FORTSCHRITT\.heuteVon\(fortschritt, "typoluck", datum\)/.test(heuteText));
+gleich("Blunderluck relativ verlinkt", KONFIG.andereSpiele.blunderluck.adresse, "../Blunderluck/");
+pruefe("Der Fortschritt zieht beim Start einmal um, vor den Bildschirmen",
+    /FORTSCHRITT\.umziehenAlle\(\)[\s\S]*START\.anmelden\(\)/.test(lesen("js/app.js")));
 
 /* Fortschritt und Wertung (seit 0.10.0): Modelle vor den Bausteinen
    geladen; jede beendete Runde meldet sich GENAU EINMAL — im Augenblick
@@ -300,10 +308,27 @@ gleich("Der Fortschritt wird an genau einer Stelle gemeldet",
     (wordleBildschirm.match(/APP\.fortschrittMelden\(/g) || []).length, 1);
 pruefe("… und zwar beim Rundenende",
     /_beiRundenende\(\) \{[\s\S]*?APP\.fortschrittMelden\(runde\)/.test(wordleBildschirm));
-pruefe("Sammlung: Stufe = Level", /stufe\(\) \{\s*return APP\.fortschritt\(\)\.level;/.test(lesen("js/bildschirm-sammlung.js")));
-pruefe("Start: Kurzprofil mit Level-Ring", /BAUSTEINE\.levelRing\(/.test(lesen("js/bildschirm-start.js")));
-pruefe("Profil: Level-Karte nur im eigenen Profil",
-    /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._levelBauen/.test(lesen("js/bildschirm-profil.js")));
+pruefe("Sammlung: Stufe = Level (über alle Spiele)",
+    /stufe\(\) \{\s*return APP\.level\(\)\.level;/.test(lesen("js/bildschirm-sammlung.js")));
+pruefe("Start: Kurzprofil mit Level-Ring und Rahmen",
+    /BAUSTEINE\.levelRing\([\s\S]*?FORTSCHRITT\.rahmenVon\(/.test(lesen("js/bildschirm-start.js")));
+/* Seit 0.12.0: das Profil-Blatt wie im Entwurf — nur im eigenen Profil. */
+const profilText = lesen("js/bildschirm-profil.js");
+pruefe("Profil: Kopf und Level-Karte nur im eigenen Profil",
+    /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._kopfEigenBauen\(spieler\)\);\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._levelBauen/
+        .test(profilText));
+pruefe("Profil: Abzeichen nur im eigenen Profil",
+    /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._abzeichenBauen\(\)\)/.test(profilText));
+pruefe("Profil: Nächste Level, Spiele, Statistik, Abzeichen wie im Entwurf",
+    ["\"Nächste Level\"", "\"Spiele\"", "\"Statistik\"", "\"Abzeichen\""].every((t) => profilText.indexOf(t) !== -1));
+pruefe("Profil: Werte aus dem Modell (Spiele, Statistik, Abzeichen, Rahmen, Titel)",
+    ["FORTSCHRITT.spiele(", "FORTSCHRITT.statistik(", "FORTSCHRITT.abzeichen(", "FORTSCHRITT.rahmenVon(",
+        "FORTSCHRITT.titelVon("].every((t) => profilText.indexOf(t) !== -1));
+pruefe("Profil: Abzeichen entstehen in BAUSTEINE.abzeichen",
+    /BAUSTEINE\.abzeichen\(/.test(profilText) && profilText.indexOf("\"button\"") === -1);
+pruefe("Profil: Orte von Blunderluck aus KONFIG",
+    /KONFIG\.andereSpiele\.blunderluck/.test(profilText)
+        && KONFIG.andereSpiele.blunderluck.orte.length === 6);
 pruefe("XP-Zahlen stehen nur im Modell",
     liste("js").filter((d) => d.endsWith(".js") && d !== "js/fortschritt.js")
         .every((d) => !/tagesaufgabe:\s*20|beideFaktor:/.test(lesen(d))));

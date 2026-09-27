@@ -35,8 +35,10 @@
     aspect-ratio: 1;
     border: 2px solid var(--kachel-rahmen);
     border-radius: var(--rund-klein);
-    background: var(--karte);
-    color: var(--schrift);
+    /* Grund und Schrift der leeren Kachel kann ein Kachel-Set setzen
+       (seit 0.14.0, js\kachelsets.js); sonst wie die Karte. */
+    background: var(--kachel-grund, var(--karte));
+    color: var(--kachel-text, var(--schrift));
     font-size: clamp(1.4rem, 7vw, 2rem);
     font-weight: 800;
     line-height: 1;

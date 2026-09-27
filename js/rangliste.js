@@ -114,7 +114,7 @@ const RANGLISTE = {
     /*
      * Die Statistik eines Spielers aus seinem Verlauf { datum: ERGEBNIS }:
      * { gespielt, geloest, quote (0–100), verteilung [6 Zahlen],
-     *   serie, besteSerie, punkte }.
+     *   serie, besteSerie, punkte, durchschnitt (seit 0.12.0) }.
      *
      * SERIE = gelöste Tage am Stück bis heute. Ist heute noch nicht gespielt,
      * zählt die Serie bis gestern — sie reisst erst, wenn ein Tag vorbeigeht.
@@ -151,6 +151,11 @@ const RANGLISTE = {
         }
         statistik.quote = statistik.gespielt === 0 ? 0
             : Math.round(100 * statistik.geloest / statistik.gespielt);
+        /* Seit 0.12.0 (Profil wie im Entwurf, „Tageswort Ø"): Versuche je
+           gelöstem Tag im Mittel, eine Nachkommastelle — null ohne Lösung. */
+        const summe = statistik.verteilung.reduce((s, anzahl, i) => s + anzahl * (i + 1), 0);
+        statistik.durchschnitt = statistik.geloest === 0 ? null
+            : Math.round(10 * summe / statistik.geloest) / 10;
         return statistik;
     },
 

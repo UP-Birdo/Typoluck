@@ -40,6 +40,14 @@
  *     beim Schreiben alles, was es nicht kennt. Was nur Typoluck braucht
  *     (Ergebnisse, Einstellungen), liegt unter `typoluck`
  *     (js\ergebnisse.js) oder auf dem Gerät (js\ich.js).
+ *     GEMEINSAME Felder aller UPCrew-Spiele sind keine eigenen: `aussehen`
+ *     (js\upcrew-aussehen.js) und `fortschritt` (seit 0.11.0, Runde 6
+ *     Teil A). `fortschritt` hat die Zweig-Form aus js\fortschritt.js
+ *     ({ version, spiele: { typoluck, blunderluck, … } }): JEDES Spiel
+ *     schreibt darin NUR `spiele.<eigenes>`, fremde Zweige wandern
+ *     unverändert durch, beim Zusammenführen gewinnt je Zweig der neuere
+ *     `stand`. Geschrieben wird es erst, wenn die Datenbank-Regel für
+ *     `spieler/konten/<uid>/fortschritt` steht — bis dahin nur Gerät.
  *
  *  3. JEDE ÄNDERUNG ZIEHT `geaendertAm` HOCH. Andere Spiele fragen nur
  *     diese Marke ab und laden die Liste erst, wenn sie sich bewegt. Bliebe

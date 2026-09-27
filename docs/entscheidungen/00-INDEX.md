@@ -5,6 +5,7 @@
 
 ## erkenntnisse.md — Fallen und Bug-Ursachen
 
+- Der Service Worker füllt sich aus der HTTP-Ablage
 - Eine Wertung darf nicht bestrafen, was der Spieler nicht wissen kann
 - Der Bedingungs-Operator löst die Stufen-Prüfung aus
 - Leiste mit fester Höhe und iPhone-Streifen
@@ -17,6 +18,8 @@
 
 ## entschieden.md — getroffene Entscheidungen
 
+- Nachtrag Runde 6: XP nach Schwierigkeit, eine Rahmen-Regel, Kachel-Sets (0.14.0)
+- UPCrew-Runde 6: gemeinsamer Vertrag, Profil-Blatt, Taten (0.11.0–0.13.0)
 - UPCrew-Runde 5, Typoluck-Teil „Heute + Level" (0.10.0)
 - UPCrew-Runde 4: Leiste nur Symbole, Tab „Sammlung" (0.9.0)
 - Vibration raus, UPCrew-Icons, „Freunde heute" lebt (0.8.1)

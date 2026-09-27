@@ -50,9 +50,10 @@ const SAMMLUNG_BILDSCHIRM = {
     },
 
     /* Die erreichte Stufe für das Aussehen = das Level (seit 0.10.0,
-       UPCrew-Runde 5, js\fortschritt.js; 0.9.0 lieferte hier 0). */
+       UPCrew-Runde 5, js\fortschritt.js; 0.9.0 lieferte hier 0). Seit
+       0.11.0 über alle Spiele (Summe der Zweige). */
     stufe() {
-        return APP.fortschritt().level;
+        return APP.level().level;
     },
 
     _alleFrei() {
@@ -72,7 +73,7 @@ const SAMMLUNG_BILDSCHIRM = {
         }
 
         const anteil = SAMMLUNG.anteil(UPCREW_ANPASSEN.STUFEN, SAMMLUNG_BILDSCHIRM.stufe(),
-            SAMMLUNG_BILDSCHIRM._alleFrei());
+            SAMMLUNG_BILDSCHIRM._alleFrei(), SAMMLUNG_BILDSCHIRM._taten());
         const prozent = BAUSTEINE.el("span", "sammlung-anteil", anteil.prozent + " %");
         prozent.title = anteil.hat + " von " + anteil.alle + " gesammelt";
         prozent.setAttribute("aria-label", prozent.title);
@@ -93,9 +94,16 @@ const SAMMLUNG_BILDSCHIRM = {
 
     /* Je Gruppe ein Regal im Stil des Bausteins (Überschrift „Name n/m"),
        darin ein Gitter aus Stücken. Antippen zeigt die eine Zeile dazu. */
+    /* Die erfüllten Taten (seit 0.13.0) — aus dem Fortschritt. */
+    _taten() {
+        return FORTSCHRITT.erfuellteTaten(APP.fortschritt(), WORDLE.datumText(APP.jetzt()));
+    },
+
     _gruppenBauen() {
         const teil = BAUSTEINE.el("div", "sammlung-rest");
-        for (const gruppe of SAMMLUNG.GRUPPEN) {
+        const gewaehlt = KACHELSETS.gewaehlt();
+        for (const gruppe of SAMMLUNG.gruppen(SAMMLUNG_BILDSCHIRM._taten(), SAMMLUNG_BILDSCHIRM._alleFrei(),
+            SAMMLUNG_BILDSCHIRM.stufe())) {
             const zahl = SAMMLUNG.gruppeZaehlen(gruppe);
             const regal = BAUSTEINE.el("section", "upa-regal");
             const kopf = BAUSTEINE.el("h2", null, gruppe.titel + " ");
@@ -106,13 +114,37 @@ const SAMMLUNG_BILDSCHIRM = {
             for (const stueck of gruppe.stuecke) {
                 gitter.appendChild(BAUSTEINE.stueck({
                     name: stueck.name, da: stueck.da,
-                    beiKlick: () => DIALOG.hinweis(stueck.da ? stueck.name : "?", stueck.text)
+                    aktiv: stueck.anziehbar === true && stueck.id === gewaehlt,
+                    /* Gesperrt über das Level (seit 0.15.0): „ab 6" statt „···". */
+                    schloss: typeof stueck.ab === "number" ? "ab " + stueck.ab : null,
+                    beiKlick: () => SAMMLUNG_BILDSCHIRM._stueckAntippen(stueck, gewaehlt)
                 }));
             }
             regal.appendChild(gitter);
             teil.appendChild(regal);
         }
         return teil;
+    },
+
+    /* Antippen: Gesperrt mit Tat zeigt die Tat (seit 0.13.0); ein
+       anziehbares Stück, das man hat, lässt sich anziehen (seit 0.14.0,
+       Kachel-Sets) — danach neu zeichnen, damit die Markierung wandert. */
+    async _stueckAntippen(stueck, gewaehlt) {
+        if (!stueck.da) {
+            /* Der Schloss-Hinweis: die Tat oder das Level (seit 0.15.0). */
+            const hinweis = stueck.tat ? FORTSCHRITT.tatTitel(stueck.tat)
+                : (typeof stueck.ab === "number" ? "Ab Level " + stueck.ab : stueck.text);
+            DIALOG.hinweis("?", hinweis);
+            return;
+        }
+        if (stueck.anziehbar !== true || stueck.id === gewaehlt) {
+            DIALOG.hinweis(stueck.name, stueck.text);
+            return;
+        }
+        if (await DIALOG.frage(stueck.name, stueck.text, "Anziehen")) {
+            KACHELSETS.waehlen(stueck.id);
+            NAVIGATION.auffrischen();
+        }
     },
 
     entfernen() {

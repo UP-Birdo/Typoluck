@@ -3,6 +3,96 @@
 Je Version das Warum. Das Was für Nutzer steht im `CHANGELOG.md`.
 Archiv: suchen, nicht blättern.
 
+## Aus der STATUS.md (ausgelagert 27.09.2026 nachmittags)
+
+### Übergabe (27.09.2026 vormittags, Runde 4 + 5)
+
+- **0.10.0 live** (Commit `c1c1f0a`, 27.09.2026, auf Go; Live-Bild zeigt
+  „Version 0.10.0"). Tests 1045 ok, `Pruefe-Versionsstand.ps1` grün.
+  Das Deploy-Skript löscht nichts: `js/bildschirm-anpassen.js` liegt
+  unbenutzt auf GitHub.
+- **Auftrag:** `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md`; Nutzer-Ansage
+  27.09.2026: erst Runde 4, dann Runde 5 als eigene Version; Typoluck erst
+  nur „Heute + Level" — kein Turm, keine Art-Wahl Turm/Frei.
+- **Baustein-Befund für die Design-Sitzung:** `css\upcrew-leiste.css` setzt
+  `height 64px` UND `padding-bottom env(safe-area-inset-bottom)`; bei
+  `box-sizing:border-box` schrumpft die Leiste auf dem iPhone um den
+  Streifen — Typoluck gleicht es in `.leiste.up-leiste` aus, andere
+  UPCrew-Spiele prüfen.
+- **Kopierte Bausteine** (Liste in `CLAUDE.md`): Stand 27.09.2026
+  Byte-gleich mit `Design\3D-Schrift\final` (`css\upcrew-leiste.css` neu
+  dazu).
+- **Nicht angesehen:** das echte Zusammenspiel mit Blunderluck
+  (Tagesbrett, ×1,5) — läuft lokal auf verschiedenen Ursprüngen; zeigt sich
+  erst live, sobald Blunderluck denselben Schlüssel/dieselbe Form nutzt.
+- Eingangskorb (`TODO.md`, „Neu" und „Anfragen") leer; GitHub-Meldungen
+  in dieser Sitzung nicht abgeholt (`tools\Wuensche-Abholen.ps1`, PS 7).
+  Auftragsdateien Runde 4/5 seit 27.09.2026 01:48 unverändert.
+- **Nächste Sitzung:** zuerst prüfen, ob in `Design\3D-Schrift\docs\`
+  eine neue Auftragsdatei (Runde 6) oder eine geänderte Runde 5 liegt und
+  ob die Kopien noch Byte-gleich mit `final\` sind. Ohne neuen Auftrag:
+  Rückmeldung vom Handy abwarten; alles Weitere aus Runde 5 braucht eine
+  Nutzer-Entscheidung („Wartet auf den Nutzer").
+- **Kopflos-Bilder:** Wegwerf-Seiten mit 390-px-`iframe` unter
+  `%TEMP%\claude\typoluck-bild\` (21–26 = Runde 5), Edge
+  `--headless=new --virtual-time-budget=5000 --screenshot`; der Schalter
+  `--window-size=390,844` muss als EIN Argument übergeben werden. Werkstatt
+  mit `&datum=2026-09-27` → Tageswort BLICK. Live-Kontrolle: Pages brauchte
+  diesmal gut 2 Minuten.
+
+Ältere Übergabe (26.09.2026) stark gekürzt: 0.8.1 live (`836690a`);
+Deploy-Skript kennt `schrift\`/`.woff2`; Werkstatt-Schalter `&schrift=`,
+`&knoepfe=`, `&farbwelt=`, `&bildschirm=…`; Aufträge aus
+`Design\3D-Schrift` (`AUFTRAEGE-APPS.md`, `-RUNDE-2.md`, `-RUNDE-3.md`).
+
+
+**0.10.0 — UPCrew-Runde 5, Typoluck-Teil „Heute + Level" (27.09.2026, ausgeliefert,
+Commit `c1c1f0a`).** Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md`;
+Nutzer-Ansage 27.09.2026: erst Runde 4, dann Runde 5 als eigene Version;
+Typoluck erst nur „Heute + Level" (kein Turm, keine Art-Wahl Turm/Frei);
+Level nach 10 alle 5 Level ein Rahmen, dazwischen Serien-Schutz. Warum so:
+`docs\entscheidungen\entschieden.md`, oberster Eintrag.
+- `js\wertung.js`: Können je Versuch über die Kandidaten der Lösungsliste
+  (log-Formel), Glück getrennt (zählt nicht), Figuren 0–3 (Bauer/Springer
+  ≥55/König ≥75). Versuche mit nur noch einem Kandidaten werden NICHT
+  gewertet.
+- `js\fortschritt.js`: XP (Partie, Figur, Tagesaufgabe, Serie, ×1,5 bei
+  beiden Spielen am selben Tag), Level-Kosten, Belohnungen aus
+  `UPCREW_ANPASSEN.STUFEN` + eigene Titel/Rahmen/Serien-Schutz. Speicher
+  `upcrew.fortschritt` (Browser-Schlüssel, geteilt mit Blunderluck).
+- `APP.fortschrittMelden(runde)` in `js\app.js`, Level-Aufstieg als
+  Kurzmeldung. Spielende zeigt Figuren, Können %, Glück %, +XP.
+- Aufgaben-Tab wird „Heute": Tageswort, Tagesbrett Blunderluck, ×1,5-Pille,
+  Serie als 7 Flammen + Schutz-Zahl.
+- Level-Ring am Kurzprofil und im Profil (neue Level-Karte); Sammlung-Stufe
+  = Level.
+- Werkstatt: `&xp=` `&serie=` `&schutz=` `&wort=` `&brett=`.
+- Neue Tests `test-sammlung.js`, `test-wertung.js`, `test-fortschritt.js`;
+  1045 Prüfungen, 0 Fehler. Angesehen per Edge kopflos (390 px).
+  Versionsstand geprüft (grün). Backup: `Backup\Typoluck\v0.10.0`.
+- **Erkenntnis:** Erster Probelauf ließ TISCH nur BLICK übrig; BLUME hätte
+  0 % bekommen → Regel „Lösung stand fest = nicht gewertet" (Einzelheit:
+  `docs\entscheidungen\erkenntnisse.md`).
+- **Nicht gebaut / offen:** Turm mit Thema, Freischalten über Taten,
+  Rahmen/Titel als Belohnung noch nicht angezeigt, Konto-Abgleich,
+  Blunderlucks Schlüssel-Angleich, Blunderluck-Adresse bestätigen — siehe
+  „Wartet auf den Nutzer" und `ROADMAP.md`.
+
+**0.9.0 — UPCrew-Runde 4 (27.09.2026, mit 0.10.0 ausgeliefert).** Auftrag:
+`Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md`, Block Gemeinsam + Typoluck.
+- `css\upcrew-leiste.css` kopiert (Byte-gleich mit `final`), in `sw.js`;
+  Leiste nur Symbole, aktiver Tab als gehobene Kachel mit Namen; Reihenfolge
+  Aufgaben · Sammlung · Start · Rangliste · Bald (still). Eigene
+  Leisten-Regeln entfernt; `.leiste.up-leiste` fest unten (64 px +
+  iPhone-Streifen).
+- Tab „Anpassen" (`js\bildschirm-anpassen.js`, gelöscht) → Tab „Sammlung"
+  (`js\bildschirm-sammlung.js`): Baustein `UPCREW_ANPASSEN` direkt im Tab,
+  darunter reine Sammlung „Modi 3/5" aus neuem Modell `js\sammlung.js`; Kopf
+  rechts „NN %". Werkstatt: `&bildschirm=sammlung`.
+- Hinweis: Deploy-Skript löscht nichts auf GitHub —
+  `js/bildschirm-anpassen.js` bleibt dort liegen, unbenutzt.
+
+
 ## Aus der STATUS.md (ausgelagert 27.09.2026)
 
 **0.8.1 — Icons, Vibration raus, „Freunde heute" lebt (26.09.2026, ausgeliefert,

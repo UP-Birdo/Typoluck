@@ -157,9 +157,11 @@ const START = {
         });
         knopf.classList.add("start-profil");
         /* Seit 0.10.0 (UPCrew-Runde 5): der Kreis trägt den Level-Ring —
-           Ring = XP im laufenden Level, Zahl = Level (js\fortschritt.js). */
-        const stufe = FORTSCHRITT.levelVon(APP.fortschritt().xp);
-        knopf.appendChild(BAUSTEINE.levelRing(name, stufe.hat / stufe.kosten, stufe.level));
+           Ring = XP im laufenden Level, Zahl = Level (js\fortschritt.js).
+           Seit 0.12.0 mit dem erreichten Rahmen. */
+        const stufe = APP.level();
+        knopf.appendChild(BAUSTEINE.levelRing(name, stufe.hat / stufe.kosten, stufe.level, false,
+            FORTSCHRITT.rahmenVon(stufe.level)));
 
         const texte = BAUSTEINE.el("span", "start-profil-texte");
         texte.appendChild(BAUSTEINE.el("span", "start-profil-name", name));

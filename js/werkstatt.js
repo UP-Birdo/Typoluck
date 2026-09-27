@@ -41,9 +41,17 @@
  *                                      der Werkstatt alles freigeschaltet;
  *                                      &bildschirm=sammlung zeigt ihn (bis
  *                                      0.8.1 hiess er „anpassen").
- *     &xp=640&serie=4&schutz=1         der Fortschritt (seit 0.10.0): XP,
- *     &wort=3&brett=2                  Serie, Schutz, heute geschaffte
- *                                      Figuren je Tagesaufgabe (sonst leer)
+ *     &kachelset=neon                  das Kachel-Set (seit 0.14.0);
+ *     &kachelwahl                      &kachelwahl = Leiste oben zum
+ *                                      Durchschalten aller Sets + hell/dunkel
+ *     &xp=640&serie=4                  der Fortschritt (seit 0.10.0): XP,
+ *     &wort=3&brett=2                  Serie, heute geschaffte Figuren je
+ *     &bxp=300&turm=1-0:3,2-1:2        Tagesaufgabe; seit 0.11.0 als
+ *     &umzug                           Zweige (Blunderluck-XP und -Turm
+ *                                      dazu), &umzug = flacher 0.10.0-
+ *                                      Stand zum Umziehen; `&schutz` gibt
+ *                                      es nicht mehr (Schutz = aus dem
+ *                                      Level gerechnet)
  *
  * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
  * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
@@ -109,6 +117,15 @@ const WERKSTATT = {
         }
         DARSTELLUNG.anwenden();
 
+        /* Das Kachel-Set (seit 0.14.0, js\kachelsets.js): `&kachelset=neon`
+           zieht es an, sonst Papier. `&kachelwahl` legt oben eine Leiste
+           zum schnellen Durchschalten aller Sets und von hell/dunkel über
+           jeden Bildschirm — zum Aussuchen, welche Sets reinkommen. */
+        KACHELSETS.waehlen(WERKSTATT.wert("kachelset") || KACHELSETS.STANDARD);
+        if (WERKSTATT._parameter().has("kachelwahl")) {
+            WERKSTATT._kachelwahlZeigen();
+        }
+
         const heute = WORDLE.datumText(APP.jetzt());
         const namen = ["Werkstatt", "Anna", "Ben", "Clara", "Dora", "Emil"];
         const ids = namen.map((name) => "werkstatt-" + name.toLowerCase());
@@ -159,20 +176,10 @@ const WERKSTATT = {
 
         /* Der Fortschritt (seit 0.10.0, js\fortschritt.js) liegt unter
            `upcrew.fortschritt`, nicht unter „typoluck." — deshalb eigens
-           frisch anlegen, auf Wunsch mit Werten aus der Adresse. */
-        speicher.removeItem(FORTSCHRITT.SCHLUESSEL);
-        const zahl = (name) => Math.max(0, parseInt(WERKSTATT.wert(name), 10) || 0);
-        if (["xp", "serie", "schutz", "brett", "wort"].some((name) => WERKSTATT._parameter().has(name))) {
-            const stand = FORTSCHRITT.leer();
-            stand.xp = zahl("xp");
-            stand.serie = { tage: zahl("serie"), schutz: zahl("schutz"), zuletzt: zahl("serie") ? heute : "" };
-            stand.heute = { datum: heute, brett: Math.min(3, zahl("brett")), wort: Math.min(3, zahl("wort")), xp: 0 };
-            stand.zaehler = Object.assign(stand.zaehler, {
-                partien: Math.floor(stand.xp / 12), tagesaufgaben: zahl("serie"), besteSerie: zahl("serie"),
-                figuren: zahl("serie") * 2, beideTage: zahl("brett") && zahl("wort") ? 1 : 0
-            });
-            FORTSCHRITT.aendern(ids[0], () => ({ stand: FORTSCHRITT.normalisieren(stand) }), 1);
-        }
+           frisch anlegen, auf Wunsch mit Werten aus der Adresse. Seit
+           0.11.0 wird NUR der Eintrag der Werkstatt ersetzt: Auf dem
+           gemeinsamen Server (8093) liegt daneben Blunderlucks Stand. */
+        WERKSTATT._fortschrittAnlegen(speicher, ids[0], heute);
 
         const schwer = WERKSTATT._parameter().has("schwer");
         if (schwer) {
@@ -187,6 +194,103 @@ const WERKSTATT = {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }
             ICH.spielstandSetzen("wordle-tag", runde);
+        }
+    },
+
+    /*
+     * Der Fortschritt der Werkstatt (seit 0.11.0 in der Zweig-Form):
+     *   &xp=640      XP im Typoluck-Zweig
+     *   &serie=4     so viele Tage am Stück bis heute (Typoluck)
+     *   &wort=3      heute geschafftes Tageswort (Figuren)
+     *   &brett=2     heute geschafftes Tagesbrett — als Blunderluck-Zweig,
+     *                wie Blunderluck ihn schreibt (dazu &bxp= und &turm=
+     *                „Ort-Stufe:Figuren,…", z. B. 1-0:3,2-1:2)
+     *   &taten=zweiter-versuch,schwer-geloest   erfüllte Taten (seit 0.13.0)
+     *   &umzug       statt allem: ein FLACHER 0.10.0-Stand, den die App
+     *                beim Start umziehen lässt (zum Ansehen des Umzugs)
+     */
+    _fortschrittAnlegen(speicher, id, heute) {
+        let alle = {};
+        try {
+            alle = JSON.parse(speicher.getItem(FORTSCHRITT.SCHLUESSEL) || "{}") || {};
+        } catch (fehler) {
+            alle = {};
+        }
+        delete alle[id];
+        const zahl = (name) => Math.max(0, parseInt(WERKSTATT.wert(name), 10) || 0);
+        const parameter = WERKSTATT._parameter();
+
+        if (parameter.has("umzug")) {
+            alle[id] = {
+                stand: 1, xp: zahl("xp"), level: 1,
+                serie: { tage: zahl("serie"), schutz: 0, zuletzt: zahl("serie") ? heute : "" },
+                heute: { datum: heute, brett: 0, wort: Math.min(3, zahl("wort")), xp: 0 },
+                turm: {}, taten: [],
+                zaehler: { partien: Math.floor(zahl("xp") / 12), tagesaufgaben: zahl("serie"),
+                    beideTage: 0, figuren: zahl("serie") * 2, besteSerie: zahl("serie") }
+            };
+        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten"].some((name) => parameter.has(name))) {
+            const tage = [];
+            let tag = heute;
+            for (let i = 0; i < zahl("serie"); i++) {
+                tage.unshift(tag);
+                tag = FORTSCHRITT._vortag(tag);
+            }
+            const zweig = Object.assign(FORTSCHRITT.zweigLeer(), {
+                xp: zahl("xp"), partien: Math.floor(zahl("xp") / 12), stand: 1, tage: tage,
+                heute: { datum: heute, versuche: zahl("wort") ? 1 : 0, figuren: Math.min(3, zahl("wort")) }
+            });
+            Object.assign(zweig.zaehler, { tagesaufgaben: tage.length, besteSerie: tage.length,
+                figuren: tage.length * 2, beideTage: zahl("brett") && zahl("wort") ? 1 : 0,
+                koennenSumme: zweig.partien * 64, koennenAnzahl: zweig.partien,
+                koennenBeste: zweig.partien ? 91 : 0 });
+            zweig.taten = (WERKSTATT.wert("taten") || "").split(",").filter((id) => id);
+            const eintrag = { version: FORTSCHRITT.VERSION, spiele: { typoluck: zweig } };
+            if (parameter.has("brett") || parameter.has("bxp") || parameter.has("turm")) {
+                const figuren = {};
+                for (const teil of (WERKSTATT.wert("turm") || "").split(",")) {
+                    const [stufe, anzahl] = teil.split(":");
+                    if (/^\d{1,2}-\d{1,2}$/.test(stufe)) {
+                        figuren[stufe] = Math.min(3, Math.max(1, parseInt(anzahl, 10) || 1));
+                    }
+                }
+                eintrag.spiele.blunderluck = {
+                    xp: zahl("bxp"), partien: Math.floor(zahl("bxp") / 10), gezaehlt: [], stand: 1,
+                    turm: { figuren: figuren },
+                    heute: { datum: heute, versuche: zahl("brett") ? 1 : 0, figuren: Math.min(3, zahl("brett")) },
+                    tage: zahl("brett") ? [heute] : []
+                };
+            }
+            alle[id] = eintrag;
+        }
+        speicher.setItem(FORTSCHRITT.SCHLUESSEL, JSON.stringify(alle));
+    },
+
+    /* Die Leiste zum Durchschalten (nur Werkstatt): oben die Sets, darunter
+       hell/dunkel. Gebaut aus BAUSTEINE.segment — kein eigener Knopf. */
+    _kachelwahlZeigen() {
+        let leiste = document.getElementById("werkstatt-kachelwahl");
+        if (!leiste) {
+            leiste = BAUSTEINE.el("div", "werkstatt-kachelwahl");
+            leiste.id = "werkstatt-kachelwahl";
+            document.body.appendChild(leiste);
+        }
+        leiste.textContent = "";
+        const sets = BAUSTEINE.segment(KACHELSETS.SETS.map((set) => ({ wert: set.id, text: set.name })),
+            KACHELSETS.gewaehlt(), (id) => {
+                KACHELSETS.waehlen(id);
+                WERKSTATT._kachelwahlZeigen();
+            }, "Kachel-Set");
+        leiste.appendChild(sets);
+        const modus = BAUSTEINE.segment([{ wert: "hell", text: "Hell" }, { wert: "dunkel", text: "Dunkel" }],
+            DARSTELLUNG.modus(), (wert) => {
+                DARSTELLUNG.themaSetzen(wert);
+                WERKSTATT._kachelwahlZeigen();
+            }, "Darstellung");
+        leiste.appendChild(modus);
+        const aktiv = sets.querySelector(".segment-aktiv");
+        if (aktiv && aktiv.scrollIntoView) {
+            aktiv.scrollIntoView({ block: "nearest", inline: "center" });
         }
     },
 

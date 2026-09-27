@@ -12,8 +12,9 @@
  * WAS „DA" HEISST: In dieser Runde ist alles da, was es heute gibt
  * (Tageswort, Übung, Schwer-Modus). Was noch nicht gebaut ist (Blitzwort,
  * Wort-Duell), steht als „?" mit einer Zeile, was es wird. Freischalten
- * über Taten kommt mit Runde 5 — und dann wird nichts gesperrt, was heute
- * frei ist (Auftrag: „Nichts sperren, was heute frei ist").
+ * über Taten kommt seit 0.13.0 — nur für NEUE Stücke (Gruppe
+ * „Kachel-Sets"); nichts wird gesperrt, was vorher frei war (Auftrag:
+ * „Nichts sperren, was heute frei ist").
  *
  * DER ANTEIL „NN %" oben rechts zählt über alle Regale des Aussehens
  * (Farbwelt, Schrift, Knöpfe — Darstellung nicht, die ist immer ganz frei
@@ -39,8 +40,93 @@ const SAMMLUNG = {
                 { id: "blitzwort", name: "Blitzwort", da: false, text: "Kommt: raten gegen die Uhr" },
                 { id: "duell", name: "Wort-Duell", da: false, text: "Kommt: zwei Spieler, ein Wort" }
             ]
+        },
+        /* Seit 0.13.0 (Nutzer 27.09.2026, Runde 6 Frage 3: „Taten bauen"):
+           NEUE Stücke, die über eine Tat kommen (`tat` = Kennung in
+           FORTSCHRITT.TATEN). Namen aus dem Entwurf (Kachel-Sets). Papier
+           ist das Grund-Set und immer da. Bestandsschutz: Kein Stück, das
+           es vor 0.13.0 gab, hängt an einer Tat. Seit 0.14.0 anziehbar
+           (`anziehbar`, js\kachelsets.js) und zehn statt fünf. Nutzer
+           27.09.2026 („alle", Runde 6): alle zehn kommen rein — Papier
+           frei, Leder/Blei/Holz/Neon über Taten, die fünf neuen über das
+           Level (`ab`, seit 0.15.0), verteilt zwischen die Stufen des
+           Aussehens (Farbwelt, Schrift, Knöpfe frei bei 2–9). */
+        {
+            id: "kachelsets",
+            titel: "Kachel-Sets",
+            stuecke: [
+                { id: "papier", name: "Papier", da: true, anziehbar: true, text: "Das Grund-Set" },
+                { id: "leder", name: "Leder", da: false, anziehbar: true, tat: "zweiter-versuch", text: "Kachel-Set" },
+                { id: "blei", name: "Blei", da: false, anziehbar: true, tat: "serie-7", text: "Kachel-Set" },
+                { id: "holz", name: "Holz", da: false, anziehbar: true, tat: "schwer-geloest", text: "Kachel-Set" },
+                { id: "neon", name: "Neon", da: false, anziehbar: true, tat: "koennen-90", text: "Kachel-Set" },
+                { id: "kreide", name: "Kreide", da: false, anziehbar: true, ab: 3, text: "Kachel-Set" },
+                { id: "sand", name: "Sand", da: false, anziehbar: true, ab: 6, text: "Kachel-Set" },
+                { id: "mitternacht", name: "Mitternacht", da: false, anziehbar: true, ab: 9, text: "Kachel-Set" },
+                { id: "kupfer", name: "Kupfer", da: false, anziehbar: true, ab: 12, text: "Kachel-Set" },
+                { id: "glas", name: "Glas", da: false, anziehbar: true, ab: 16, text: "Kachel-Set" }
+            ]
         }
     ],
+
+    /* Die Gruppen mit dem Stand des Spielers: Ein Stück mit Tat ist da,
+       sobald die Tat erfüllt ist; ein Stück mit `ab`, sobald das Level
+       reicht (seit 0.15.0). `taten` = Set oder Liste der erfüllten
+       Tat-Kennungen (FORTSCHRITT.erfuellteTaten). `alleFrei` (Werkstatt,
+       seit 0.14.0): alles Anziehbare ist da — zum Ausprobieren; die Modi
+       bleiben, wie sie sind. `level` = das Level über alle Spiele. */
+    gruppen(taten, alleFrei, level) {
+        const erfuellt = new Set(taten || []);
+        return SAMMLUNG.GRUPPEN.map((gruppe) => Object.assign({}, gruppe, {
+            stuecke: gruppe.stuecke.map((stueck) => Object.assign({}, stueck, {
+                da: stueck.da || (!!stueck.tat && erfuellt.has(stueck.tat))
+                    || (typeof stueck.ab === "number" && (level || 0) >= stueck.ab)
+                    || (alleFrei === true && stueck.anziehbar === true)
+            }))
+        }));
+    },
+
+    /* Ab welchem Level welches Kachel-Set frei ist — als Tabelle wie
+       UPCREW_ANPASSEN.STUFEN ({ kreide: 3, … }), für die Belohnungen je
+       Level (js\fortschritt.js). */
+    kachelsetStufen() {
+        const tabelle = {};
+        for (const gruppe of SAMMLUNG.GRUPPEN) {
+            for (const stueck of gruppe.stuecke) {
+                if (stueck.anziehbar === true && typeof stueck.ab === "number") {
+                    tabelle[stueck.id] = stueck.ab;
+                }
+            }
+        }
+        return tabelle;
+    },
+
+    /* Anzeigenamen der Kachel-Sets ({ kreide: "Kreide", … }). */
+    kachelsetNamen() {
+        const namen = {};
+        for (const gruppe of SAMMLUNG.GRUPPEN) {
+            for (const stueck of gruppe.stuecke) {
+                if (stueck.anziehbar === true) {
+                    namen[stueck.id] = stueck.name;
+                }
+            }
+        }
+        return namen;
+    },
+
+    /* Die Stücke, die an diesen Taten hängen (für „Neu: …"). */
+    stueckeZuTaten(taten) {
+        const liste = taten || [];
+        const treffer = [];
+        for (const gruppe of SAMMLUNG.GRUPPEN) {
+            for (const stueck of gruppe.stuecke) {
+                if (stueck.tat && liste.indexOf(stueck.tat) !== -1) {
+                    treffer.push(stueck);
+                }
+            }
+        }
+        return treffer;
+    },
 
     /* Die Regale des gemeinsamen Aussehens, die als Sammelstücke zählen. */
     AUSSEHEN_TEILE: ["farbwelt", "schrift", "knoepfe"],
@@ -58,10 +144,11 @@ const SAMMLUNG = {
      *   stufen    UPCREW_ANPASSEN.STUFEN (aus dem Baustein, von aussen
      *             hereingereicht — so bleibt das Modell ohne Browser testbar)
      *   stufe     erreichte Stufe (heute 0)
-     *   alleFrei  Werkstatt: alles zählt als frei
+     *   alleFrei  Werkstatt: alles Aussehen zählt als frei
+     *   taten     erfüllte Taten (seit 0.13.0, wahlfrei)
      * Liefert { hat, alle, prozent } — prozent ganzzahlig gerundet.
      */
-    anteil(stufen, stufe, alleFrei) {
+    anteil(stufen, stufe, alleFrei, taten) {
         let hat = 0;
         let alle = 0;
         for (const teil of SAMMLUNG.AUSSEHEN_TEILE) {
@@ -73,7 +160,7 @@ const SAMMLUNG = {
                 }
             }
         }
-        for (const gruppe of SAMMLUNG.GRUPPEN) {
+        for (const gruppe of SAMMLUNG.gruppen(taten, false, stufe)) {
             const zahl = SAMMLUNG.gruppeZaehlen(gruppe);
             hat += zahl.hat;
             alle += zahl.alle;

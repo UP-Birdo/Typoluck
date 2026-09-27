@@ -2,6 +2,66 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Nachtrag Runde 6: XP nach Schwierigkeit, eine Rahmen-Regel, Kachel-Sets (27.09.2026, 0.14.0)
+
+Nutzer-Antworten `AUFTRAEGE-RUNDE-6.md`, D0 „Nachtrag".
+- **Grund-XP 15/20/30** nach Schwierigkeit, in beiden Spielen dieselbe
+  Formel (+10 je Figur, ×1,5 und Serie wie bisher). Typolucks Stufe kommt
+  aus der **Seltenheit der Buchstaben** (Summe über verschiedene
+  Buchstaben, wie viele Lösungswörter sie enthalten; Drittel der Liste).
+  Warum nicht „Kandidaten nach bestem ersten Versuch": Die Restmenge hängt
+  am Farbmuster und streut stark; die Seltenheit ist schnell, fest je Wort
+  und leicht zu erklären. Ob sie zum Gefühl passt, entscheidet der Nutzer.
+- **Rahmen ab Level 10, dann alle 5** (Silber, Gold, Platin, „Glanz n") und
+  Titel wie Blunderluck. Kupfer ab 5 fällt weg — Blunderluck muss das
+  nachziehen (dessen `RAHMEN` hat noch Kupfer 5, nur gelesen).
+- **Kachel-Sets**: zehn, nur Material (Grund, Rahmen, Abstufung der drei
+  Kachelfarben, Tasten, feines Muster). Orange/Blau und die Sperre gelten;
+  Lesbarkeit per Test. Das Set geht der Farbwelt bei Kacheln und Tasten
+  vor (`!important`), Papier setzt nichts. Wahl nur auf dem Gerät. Die
+  fünf eigenen Vorschläge gibt es nur in der Werkstatt, bis der Nutzer
+  wählt.
+- **`umzug` nur auf dem Gerät** (`typoluck.fortschritt-umzug`): Die Regel
+  §11b nimmt nur Vertragsfelder an, und Blunderluck schickt alle Zweige
+  mit. `fuerKonto` liefert genau die erlaubten Felder.
+
+## UPCrew-Runde 6: gemeinsamer Vertrag, Profil-Blatt, Taten (27.09.2026, 0.11.0–0.13.0)
+
+Auftrag `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-6.md` Teil A + C; Nutzer-
+Antworten zu Teil D (27.09.2026, über den Hauptchat): Typoluck-Turm und
+Schwur-Halle WARTEN („dafür muss erstmal ein Tool / Bewertungssystem her"),
+Taten dagegen jetzt als 0.13.0; ausgeliefert wird erst nach Ansehen.
+
+- **Zweig-Form statt flachem Stand** (0.11.0): `spiele.typoluck` unter
+  `upcrew.fortschritt`, Vorlage Blunderluck. Warum: Mit einem gemeinsamen
+  Stand überschreibt das eine Spiel die XP des anderen. Level = Summe der
+  Zweige, Serie = Tage aller Zweige, beides nur gerechnet.
+- **Gäste unter „gast"** wie Blunderluck (`_person`). Sonst sähen die Spiele
+  bei Gästen verschiedene Einträge (Typoluck führte sie unter der Konto-Id
+  des Gasts). Ein 0.10.0-Gaststand zieht einmal dorthin um
+  (`gastUebernehmen`), der alte Eintrag bleibt stehen.
+- **Umzug 0.10.0**: Serie → ebenso viele Tage bis `zuletzt`; Schutz wird
+  seitdem aus dem Level gerechnet (wie Blunderluck) — nie weniger als der
+  gespeicherte, weil der aus denselben Aufstiegen kam. Der alte Stand steht
+  wörtlich in `umzug.alt`. Mischform (Blunderluck war zuerst da) wird
+  erkannt; im Browser mit Blunderlucks echter `fortschritt.js` (v0.150.0)
+  nachgespielt: Summen gleich (335/335), Blunderluck sieht das Tageswort.
+- **×1,5 nur auf die eigene Tagesaufgabe**, wenn das andere Spiel heute
+  schon geschafft hat (Blunderluck-Regel, Teil A). 0.10.0 gab ×1,5 auf
+  alles des Tages, rückwirkend — das konnte Blunderluck nie spiegeln.
+- **Figuren-XP beim Tageswort bleibt** (+10 je Figur, live seit 0.10.0);
+  Blunderlucks Tagesbrett gibt keine. Abweichung bewusst stehen gelassen,
+  bis der Nutzer sie angleichen will.
+- **Profil-Blatt** (0.12.0) wie Entwurf `profilBlatt`; Rahmen nach Level 10
+  wie Entwurf `belohnungen` („Glanz" bei 15, 25 …, „Rahmen 20/30 …").
+  Blunderluck hat Silber erst ab 10 und „Glanz n" ab 25 — anders als der
+  Entwurf; hier gilt der Entwurf. Orte von Blunderluck stehen als Namen in
+  `KONFIG.andereSpiele.blunderluck.orte` (abgelesen), der Ort ist der
+  höchste mit einer Figur.
+- **Taten** (0.13.0): vier neue Kachel-Sets (Leder, Blei, Holz, Neon;
+  Papier = Grund-Set) über sicher messbare Taten. Bestandsschutz: kein
+  Stück von vorher hängt an einer Tat. Anziehen lassen sie sich noch nicht.
+
 ## UPCrew-Runde 5, Typoluck-Teil „Heute + Level" (27.09.2026, 0.10.0)
 
 Auftrag: `Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md` (Regeln und Zahlen:

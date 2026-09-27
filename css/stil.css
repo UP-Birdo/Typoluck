@@ -698,6 +698,34 @@ body.anmeldung-offen {
     font-size: 0.9rem;
 }
 
+/* Der Rahmen (seit 0.12.0, FORTSCHRITT.rahmenVon): eine harte äussere
+   Kante um den Ring in der Farbe des erreichten Rahmens — seit 0.14.0
+   wie Blunderluck: Silber ab Level 10, Gold ab 15, Platin ab 20, danach
+   alle 5 Level Glanz. Dieselben Farben trägt das Schild im Profil. */
+.level-rahmen {
+    box-shadow: 0 0 0 2px var(--karte), 0 0 0 4px var(--rahmen-farbe, var(--figur));
+}
+
+.level-rahmen-silber,
+.profil-rahmen-silber {
+    --rahmen-farbe: #b9c3cf;
+}
+
+.level-rahmen-gold,
+.profil-rahmen-gold {
+    --rahmen-farbe: var(--figur);
+}
+
+.level-rahmen-platin,
+.profil-rahmen-platin {
+    --rahmen-farbe: #d9e6f2;
+}
+
+.level-rahmen-glanz,
+.profil-rahmen-glanz {
+    --rahmen-farbe: #9fe3ff;
+}
+
 /* Die Wertung als Schachfiguren (seit 0.10.0, BAUSTEINE.figuren):
    Bauer, Springer, König; die geschafften leuchten in Gold. */
 .figuren {

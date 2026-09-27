@@ -3,6 +3,18 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Der Service Worker füllt sich aus der HTTP-Ablage (27.09.2026)
+
+Auf 8093 lief nach einer Änderung an `js\sammlung.js` weiter die alte
+Fassung, obwohl die Datei richtig war — auch nach Neuladen mit Umschalt.
+Ursache: `cache.addAll` und `fetch` gehen durch die HTTP-Ablage des
+Browsers; der Python-Server schickt nur `Last-Modified`, und der Browser
+hält Dateien daraufhin eine Weile für frisch. Live droht dasselbe (GitHub
+Pages: 10 Minuten): Ein neuer Worker kann alte Dateien einlagern — neue und
+alte gemischt. Seit 0.13.0: `addAll` mit `cache: "reload"`, beim Bauen
+`fetch(…, { cache: "no-cache" })`. Wer lokal trotzdem Altes sieht: im
+Browser die Service Worker abmelden und die Zwischenspeicher leeren.
+
 ## Eine Wertung darf nicht bestrafen, was der Spieler nicht wissen kann (27.09.2026)
 
 Erster Probelauf der Wertung (0.10.0): TISCH liess von 567 möglichen

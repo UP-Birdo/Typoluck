@@ -10,10 +10,11 @@
  *
  *   1. Tageswort (Typoluck) — offen: „Raten"; gespielt: Figuren.
  *   2. Tagesbrett (Blunderluck) — was Blunderluck im selben Browser
- *      eingetragen hat (`heute.brett` im gemeinsamen Fortschritt), sonst
- *      „Zu Blunderluck".
+ *      eingetragen hat (seit 0.11.0 sein Zweig: `spiele.blunderluck.heute`
+ *      mit `figuren > 0` und `datum` = heute), sonst „Zu Blunderluck".
  *   3. ×1,5 — leuchtet, wenn beide geschafft sind.
- *   4. Serie — sieben Flammen, rechts die Zahl der Schutz-Schilde.
+ *   4. Serie — sieben Flammen, rechts die Zahl der Schutz-Schilde (über
+ *      alle Spiele gerechnet, der Schutz aus dem Level).
  *
  * Gerechnet wird nichts hier: Figuren und Serie kommen aus
  * js\fortschritt.js, der Stand des Tagesworts aus START.SPIELE.
@@ -44,7 +45,10 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
 
         const datum = WORDLE.datumText(APP.jetzt());
         const fortschritt = APP.fortschritt();
-        const heute = fortschritt.heute.datum === datum ? fortschritt.heute : { wort: 0, brett: 0 };
+        const heute = {
+            wort: FORTSCHRITT.heuteVon(fortschritt, "typoluck", datum),
+            brett: FORTSCHRITT.heuteVon(fortschritt, "blunderluck", datum)
+        };
 
         behaelter.appendChild(BAUSTEINE.el("h2", "heute-titel", "Heute"));
         behaelter.appendChild(HERAUSFORDERUNGEN_BILDSCHIRM._tageswortBauen(heute.wort));
@@ -67,7 +71,20 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
         karte.appendChild(angaben.bild);
         const texte = BAUSTEINE.el("div", "heute-texte");
         texte.appendChild(BAUSTEINE.el("span", "heute-spiel", angaben.spiel));
-        texte.appendChild(BAUSTEINE.el("strong", "heute-name", angaben.name));
+        const name = BAUSTEINE.el("strong", "heute-name", angaben.name);
+        /* Die Schwierigkeit als 1–3 Punkte (seit 0.14.0) — sie bestimmt die
+           Grund-XP (leicht 15, mittel 20, schwer 30, js\fortschritt.js). */
+        if (angaben.stufe) {
+            const punkte = BAUSTEINE.el("span", "heute-stufe");
+            punkte.setAttribute("role", "img");
+            punkte.setAttribute("aria-label", "Schwierigkeit " + WERTUNG.STUFEN_NAMEN[angaben.stufe]);
+            punkte.title = WERTUNG.STUFEN_NAMEN[angaben.stufe] + " · +" + FORTSCHRITT.grundXp(angaben.stufe) + " XP";
+            for (let i = 1; i <= 3; i++) {
+                punkte.appendChild(BAUSTEINE.el("i", i <= angaben.stufe ? "an" : null));
+            }
+            name.appendChild(punkte);
+        }
+        texte.appendChild(name);
         texte.appendChild(BAUSTEINE.el("span", "heute-zusatz", angaben.zusatz));
         texte.appendChild(angaben.unten);
         karte.appendChild(texte);
@@ -94,6 +111,7 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
             });
         return HERAUSFORDERUNGEN_BILDSCHIRM._karteBauen({
             bild: bild, spiel: "Typoluck", name: "Tageswort",
+            stufe: WERTUNG.schwierigkeit(WORDLE.tageswort(WORDLE.datumText(APP.jetzt())).wort),
             zusatz: spiel.tagesName().replace("Tageswort ", ""),
             unten: unten, erledigt: stand === "erledigt"
         });
@@ -124,9 +142,10 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
     /* Sieben Flammen: so viele leuchten, wie die Serie Tage hat (ab sieben
        alle). Daneben die Zahl — und rechts die Schutz-Schilde. */
     _serieBauen(fortschritt, datum) {
-        const tage = FORTSCHRITT.serieAn(fortschritt, datum);
+        const serie = FORTSCHRITT.serieHeute(fortschritt, datum);
+        const tage = serie.tage;
         const reihe = BAUSTEINE.el("section", "heute-serie");
-        reihe.setAttribute("aria-label", "Serie " + tage + " Tage, Serien-Schutz " + fortschritt.serie.schutz);
+        reihe.setAttribute("aria-label", "Serie " + tage + " Tage, Serien-Schutz " + serie.schutz);
         const flammen = BAUSTEINE.el("span", "heute-flammen");
         for (let i = 0; i < 7; i++) {
             const flamme = BAUSTEINE.el("span", "heute-flamme" + (i < tage ? " heute-flamme-an" : ""));
@@ -137,7 +156,7 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
         reihe.appendChild(BAUSTEINE.el("strong", "heute-serie-zahl", String(tage)));
         const schutz = BAUSTEINE.el("span", "heute-schutz");
         schutz.appendChild(BAUSTEINE.zeichen("schutz"));
-        schutz.appendChild(BAUSTEINE.el("span", null, String(fortschritt.serie.schutz)));
+        schutz.appendChild(BAUSTEINE.el("span", null, String(serie.schutz)));
         reihe.appendChild(schutz);
         return reihe;
     }

@@ -437,6 +437,42 @@
     color: var(--schrift);
 }
 
+/* Nur Werkstatt (`&kachelwahl`, seit 0.14.0): eine Leiste oben über jedem
+   Bildschirm zum Durchschalten der Kachel-Sets und von hell/dunkel. */
+.werkstatt-kachelwahl {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 50;
+    display: grid;
+    gap: 4px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--rahmen);
+    background: var(--karte);
+}
+
+/* Der Inhalt rückt unter die Leiste, damit nichts verdeckt ist. */
+body:has(#werkstatt-kachelwahl) #inhalt {
+    padding-top: 96px;
+}
+
+.werkstatt-kachelwahl .segment {
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.werkstatt-kachelwahl .segment-wahl {
+    flex: none;
+    padding: 6px 10px;
+    white-space: nowrap;
+}
+
+/* Das Stück, das man trägt (seit 0.14.0, Kachel-Sets): doppelte Kante. */
+.stueck-aktiv {
+    box-shadow: 0 0 0 2px var(--karte), 0 0 0 4px var(--haupt);
+}
+
 .stueck-bild {
     display: grid;
     place-items: center;
@@ -500,6 +536,26 @@
 
 .heute-name {
     font-size: 1.15rem;
+}
+
+/* Die Schwierigkeit des Tageworts (seit 0.14.0): drei Punkte hinter dem
+   Namen, so viele leuchten, wie schwer es ist. */
+.heute-stufe {
+    display: inline-flex;
+    gap: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+.heute-stufe i {
+    width: 7px;
+    height: 7px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+}
+
+.heute-stufe i.an {
+    background: var(--haupt);
 }
 
 .heute-zusatz {
@@ -757,6 +813,178 @@
 /* Ein Abzeichen ohne erreichte Stufe bleibt blass. */
 .abzeichen:not(.abzeichen-an) {
     opacity: 0.5;
+}
+
+/* ------------------------------------------------------------------ *
+ * Profil-Blatt wie im Entwurf (seit 0.12.0)
+ * ------------------------------------------------------------------ */
+
+/* Der eigene Kopf: Ring links, rechts Name, Titel/Rahmen und XP. */
+.profil-kopf-eigen {
+    flex-direction: row;
+    gap: 16px;
+    text-align: left;
+}
+
+.profil-kopf-eigen .level-ring {
+    margin: 4px;
+}
+
+.profil-kopf-eigen .profil-name {
+    overflow: hidden;
+    font-size: 1.25rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profil-titelzeile {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.profil-titel,
+.profil-rahmen {
+    padding: 2px 8px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.profil-rahmen {
+    border-color: var(--rahmen-farbe, var(--figur));
+}
+
+/* Die Rahmen-Farben (--rahmen-farbe) stehen seit 0.14.0 an EINER Stelle,
+   in css\stil.css bei `.level-rahmen-…`. */
+
+.level-xp-zeile {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 8px;
+    align-items: center;
+}
+
+.level-xp-zeile .level-titel {
+    font-size: 0.95rem;
+}
+
+.level-xp-zeile .level-xp {
+    grid-column: 2;
+}
+
+/* Spiele: Name, Ort als Pille, Figuren. */
+.profil-spiel {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rahmen);
+    font-size: 0.9rem;
+}
+
+.profil-ort {
+    padding: 3px 10px;
+    border-radius: var(--rund-voll);
+    background: var(--haupt);
+    color: var(--haupt-schrift);
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.profil-ort-leer {
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+}
+
+.profil-figuren {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 38px;
+    justify-content: flex-end;
+    font-weight: 800;
+}
+
+.profil-figuren .zeichen {
+    width: 18px;
+    height: 18px;
+    fill: var(--figur);
+    stroke: var(--figur-kante);
+    stroke-width: 0.8;
+}
+
+/* Statistik mit sechs Kacheln in drei Spalten. */
+.statistik-raster.statistik-raster-sechs {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Abzeichen als Knopf (BAUSTEINE.abzeichen): Punkte je Stufe. */
+button.abzeichen {
+    border: 0;
+    color: var(--schrift);
+    font: inherit;
+    cursor: pointer;
+}
+
+.abzeichen-punkte {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 3px;
+    max-width: 46px;
+    min-height: 6px;
+}
+
+.abzeichen-punkte i {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--rund-voll);
+    background: var(--rahmen);
+}
+
+.abzeichen-punkte i.an {
+    background: var(--figur);
+}
+
+.abzeichen-punkte b {
+    font-size: 0.62rem;
+}
+
+.abzeichen-wert {
+    margin: 0 0 10px;
+}
+
+.abzeichen-wert strong {
+    font-size: 1.6rem;
+}
+
+.abzeichen-stufen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.abzeichen-stufen span {
+    padding: 4px 10px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.abzeichen-stufen span.an {
+    background: var(--figur);
+    color: #1a1406;
+}
+
+.abzeichen-stufen span.leise {
+    background: none;
+    color: var(--schrift-leise);
 }
 
 @media (max-width: 380px) {

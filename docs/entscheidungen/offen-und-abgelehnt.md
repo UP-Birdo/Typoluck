@@ -28,8 +28,8 @@ Typoluck zeigt das Tagesbrett und das ×1,5 nur, wenn Blunderluck
 denselben Schlüssel `upcrew.fortschritt` (je Spieler-Id) und dieselbe Form
 nutzt (`heute: { datum, brett, wort, xp }`, Figuren 0..3). Das ist Arbeit
 der Blunderluck-Sitzung; die Abstimmung läuft über die Design-Sitzung.
-Ebenfalls zu bestätigen: die Adresse
-`https://up-birdo.github.io/Blunderluck/` in `KONFIG.andereSpiele`.
+Die Adresse `https://up-birdo.github.io/Blunderluck/` in
+`KONFIG.andereSpiele` ist nachgemessen (Live-Bild 27.09.2026).
 
 ### Rahmen, Titel und Taten (Runde 5)
 

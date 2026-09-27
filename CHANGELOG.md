@@ -3,6 +3,82 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.15.0 — 27.09.2026
+
+**Alle zehn Kachel-Sets sind drin.**
+
+- Papier hast du. Leder, Blei, Holz und Neon kommen weiter über ihre Taten.
+- **Neu:** Kreide, Sand, Mitternacht, Kupfer und Glas kommen mit dem
+  Level — ab Level 3, 6, 9, 12 und 16. Im Profil unter „Nächste Level"
+  steht, welches Set als Nächstes kommt; in der Sammlung steht unter dem
+  „?" „ab 6", und Antippen zeigt „Ab Level 6".
+- Steigst du auf und bekommst ein Set, meldet die App „Neu: …".
+## 0.14.0 — 27.09.2026
+
+**Kachel-Sets zum Anziehen, XP nach Schwierigkeit, eine Rahmen-Regel.**
+
+- **Neu: Kachel-Sets anziehen.** In der Sammlung ein Set antippen →
+  „Anziehen": Spielkacheln und Tastatur bekommen ein anderes Material,
+  hell und dunkel. Zehn Sets zum Ausprobieren: Papier (wie bisher), Leder,
+  Blei, Holz, Neon, Kreide, Sand, Mitternacht, Kupfer, Glas. „Richtig"
+  bleibt Orange, „vorhanden" bleibt Blau. Welche davon wirklich
+  reinkommen, entscheidest du — die fünf neuen gibt es bis dahin nur in
+  der Werkstatt.
+- **Neu: Das Tageswort hat eine Schwierigkeit** — 1 bis 3 Punkte auf der
+  Karte „Heute". Es bringt leicht 15, mittel 20, schwer 30 XP (dazu wie
+  bisher +10 je Figur, ×1,5 und Serie). Blunderluck rechnet genauso.
+- **Geändert: Rahmen** gibt es ab Level 10, dann alle 5 Level (Silber,
+  Gold, Platin, danach Glanz) — gleich wie in Blunderluck. Kupfer ab 5 und
+  Silber ab 8 fallen weg; Titel Neuling, Stammgast, Kenner, Legende.
+- Der gesicherte alte Stand vom Umzug bleibt nur auf dem Gerät und geht nie
+  ans Konto.
+
+## 0.13.0 — 27.09.2026
+
+**Taten: neue Sammelstücke, die man sich verdient.**
+
+- **Neu in der Sammlung: Kachel-Sets.** Papier hast du, Leder, Blei, Holz
+  und Neon stehen als „?" da. Tippst du eins an, steht dort die Tat, die es
+  bringt: Tageswort im 2. Versuch, 7 Tage Serie, gelöst im Schwer-Modus,
+  90 % Können in einer Runde.
+- Schaffst du eine Tat, meldet die App „Neu: …" und das Stück ist in
+  deiner Sammlung. Eine Serie von 7 Tagen zählt auch, wenn du sie schon
+  vorher geschafft hast.
+- Nichts, was du schon hattest, wird gesperrt. Anziehen lassen sich die
+  Kachel-Sets noch nicht — das kommt später.
+
+## 0.12.0 — 27.09.2026
+
+**Dein Profil wie im Entwurf.**
+
+- **Oben:** dein Level-Ring mit Rahmen (Kupfer ab Level 5, Silber ab 8,
+  danach alle 5 Level ein neuer), dein Titel und der XP-Balken.
+- **Darunter:** woher XP kommen, was die nächsten drei Level bringen, und
+  „Spiele": für Blunderluck dein Ort im Turm und deine Figuren, für
+  Typoluck deine Figuren.
+- **Statistik mit sechs Kacheln:** Partien, gelöst, Ø Können, bestes
+  Können, längste Serie, Tageswort Ø.
+- **Abzeichen** mit Punkten je Stufe; antippen zeigt den Wert und alle
+  Stufen. Sie zählen über beide Spiele und gehen nach oben offen weiter.
+- Der Ring oben links auf dem Start trägt jetzt auch deinen Rahmen.
+
+## 0.11.0 — 27.09.2026
+
+**Ein Fortschritt für Typoluck und Blunderluck.**
+
+- Level, XP und Serie liegen jetzt in derselben Form wie bei Blunderluck:
+  Jedes Spiel führt seinen eigenen Teil, das Level zählt beide zusammen.
+  So überschreibt kein Spiel mehr die XP des anderen.
+- Dein bisheriger Stand zieht beim ersten Start einmal um — XP, Serie,
+  Serien-Schutz und das heutige Tageswort bleiben erhalten.
+- Die Karte „Tagesbrett" und das ×1,5 im Tab Aufgaben sehen jetzt, was du
+  heute in Blunderluck geschafft hast. Die Serie zählt Tage aus beiden
+  Spielen.
+- **Geändert:** ×1,5 gibt es auf die Tagesaufgabe, wenn das andere Spiel
+  seine heute schon geschafft hat — wie in Blunderluck. Bisher galt es für
+  alles an diesem Tag.
+- Der Knopf „Zu Blunderluck" führt zur Seite nebenan.
+
 ## 0.10.0 — 27.09.2026
 
 **Level, Tagesaufgaben und eine Wertung für jede Runde.**
