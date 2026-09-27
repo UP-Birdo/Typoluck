@@ -402,6 +402,108 @@ spaeter("UPCrew-Konto", (async () => {
     await nachladen(w);
     w.ANMELDUNG.pruefen(true);
     gleich("Anmelde-Bild mit gemerktem Namen", w.umgebung.vollbild, "Lena");
+
+    /* ---------------------------------------------------------------- *
+     * Seit 0.15.6 (wie Blunderluck v0.151.8): Anmelden nur mit Namen,
+     * reihum bei gleichen Namen; Nummer würfelt die App, ändern nur in den
+     * Einstellungen.
+     * ---------------------------------------------------------------- */
+    w.KONTO.abmelden();
+    w.ANMELDUNG.ichId = null;
+    await nachladen(w);
+    const max1 = await w.KONTO.kontoAnlegen(w.speicher, w.abgleich.daten, "Max", "Eins#Pass1");
+    const max1Uid = w.KONTO.uid();
+    w.KONTO.abmelden();
+    await nachladen(w);
+    const max2 = await w.KONTO.kontoAnlegen(w.speicher, w.abgleich.daten, "Max", "Zwei#Pass2");
+    const max2Uid = w.KONTO.uid();
+    pruefe("Zwei Konten „Max“ mit gewürfelten, verschiedenen Nummern",
+        max1.ok && max2.ok && /^[0-9]{4}$/.test(max2.eintrag.tag) && max1.eintrag.tag !== max2.eintrag.tag,
+        JSON.stringify([max1, max2]));
+    w.KONTO.abmelden();
+    await nachladen(w);
+    const nurName = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Max", "Zwei#Pass2");
+    pruefe("Nur Name + Passwort: reihum das richtige Konto", nurName.ok && w.KONTO.uid() === max2Uid,
+        JSON.stringify(nurName));
+    w.KONTO.abmelden();
+    const nurNameEins = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "max", "Eins#Pass1");
+    pruefe("… auch das erste (klein geschrieben)", nurNameEins.ok && w.KONTO.uid() === max1Uid);
+    w.KONTO.abmelden();
+    const reihumFalsch = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Max", "Gar#Nix99");
+    gleich("Falsches Passwort bei allen: eine offene Meldung",
+        [reihumFalsch.ok, reihumFalsch.fehler, reihumFalsch.reihum, reihumFalsch.text],
+        [false, "falsch", true, "Name oder Passwort falsch."]);
+
+    /* Höchstens 20 Versuche je Name */
+    const echtesAnmelden = w.KONTO.anmelden;
+    let versuche = 0;
+    w.KONTO.anmelden = async () => {
+        versuche++;
+        return { ok: false, fehler: "falsch" };
+    };
+    const viele = [];
+    for (let i = 1; i <= 25; i++) {
+        viele.push({ id: "id-" + i, uid: "u-" + i, name: "Max", tag: String(1000 + i), kennung: "k-" + i });
+    }
+    await w.KONTO._anmeldenReihum(viele, "Gar#Nix99");
+    gleich("Reihum: höchstens 20 Versuche", [versuche, w.KONTO.ANMELDEN_REIHUM_MAX], [20, 20]);
+    versuche = 0;
+    w.KONTO.anmelden = async () => {
+        versuche++;
+        return { ok: false, fehler: "zuViele" };
+    };
+    await w.KONTO._anmeldenReihum(viele, "x");
+    gleich("Reihum: Abbruch bei „zu viele Versuche“", versuche, 1);
+    w.KONTO.anmelden = echtesAnmelden;
+
+    /* Nummer ändern: wählen, würfeln, besetzt, Gast */
+    w.KONTO.abmelden();
+    const wieder2 = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Max#" + max2.eintrag.tag, "Zwei#Pass2");
+    pruefe("Mit Name#Nummer weiter direkt", wieder2.ok);
+    w.ANMELDUNG._uebernehmen(wieder2.spieler);
+    pruefe("tagPruefen: 4 Ziffern, nicht 0000",
+        w.KONTO.tagPruefen("12a4") !== "" && w.KONTO.tagPruefen("0000") !== "" && w.KONTO.tagPruefen("4821") === "");
+    w.dialog.antworten = ["4821"];
+    await w.ANMELDUNG.nummerAendern();
+    gleich("Nummer gewählt: Konto und Namens-Platz", [konten(fb)[max2Uid].tag, namen(fb).max["4821"]], ["4821", max2Uid]);
+    pruefe("… alter Platz frei", !namen(fb).max[max2.eintrag.tag]);
+    w.dialog.antworten = [""];
+    await w.ANMELDUNG.nummerAendern();
+    pruefe("Nummer gewürfelt", konten(fb)[max2Uid].tag !== "4821" && /^[0-9]{4}$/.test(konten(fb)[max2Uid].tag)
+        && !namen(fb).max["4821"]);
+    await nachladen(w);
+    const besetzt = await w.KONTO.tagAendern(w.speicher, w.abgleich.daten,
+        w.SPIELER.spielerFinden(w.abgleich.daten, wieder2.spieler.id), max1.eintrag.tag);
+    gleich("Besetzte Nummer abgelehnt", besetzt.ok, false);
+    const gastNummer = await w.KONTO.tagAendern(w.speicher, w.abgleich.daten, { gast: true, tag: "1111" }, "");
+    gleich("Gast hat keine eigene Nummer", gastNummer.ok, false);
+
+    /* Angezeigt wird nur der Name — die Nummer nur bei gleichen Namen */
+    gleich("Anzeige ohne Nummer", w.ANMELDUNG.anzeigeName({ name: "Max", tag: "1234" }), "Max");
+    const zweiMax = w.SPIELER.normalisieren({ spieler: [{ id: "a", name: "Max", tag: "1111" },
+        { id: "b", name: "max", tag: "2222" }, { id: "c", name: "Lena", tag: "3333" }] });
+    gleich("Nummer leise nur bei gleichen Namen",
+        ["a", "c"].map((id) => w.SPIELER.nummerZusatz(zweiMax, w.SPIELER.spielerFinden(zweiMax, id))), ["#1111", ""]);
+    pruefe("Suche findet Name und Name#Nummer",
+        w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "ma")
+            && w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "max#11")
+            && !w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "#22"));
 })());
+
+/* Kein fremder Name als Beispiel in sichtbaren Texten (seit 0.15.6, Nutzer:
+   „nimm meinen Namen aus dem Vorschlag") und keine Nummer im Anmelden. */
+{
+    const ohneKommentare = (text) => text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+    for (const name of ["konto.js", "anmeldung.js", "bildschirm-einstellungen.js", "bildschirm-freunde.js"]) {
+        const quelle = ohneKommentare(fs.readFileSync(pfad.join(__dirname, "..", "js", name), "utf8"));
+        pruefe(name + " nennt keinen Namen als Beispiel", !/Jonas/.test(quelle));
+    }
+    const seite = fs.readFileSync(pfad.join(__dirname, "..", "index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    pruefe("index.html nennt keinen Namen als Beispiel", !/Jonas/.test(seite));
+    const anmeldung = ohneKommentare(fs.readFileSync(pfad.join(__dirname, "..", "js", "anmeldung.js"), "utf8"));
+    pruefe("Anmelden: Feld „Name“, kein „Name#Nummer“, keine „(#1234)“",
+        !/Name#Nummer/.test(anmeldung) && !/\(#1234\)/.test(anmeldung) && /"Name und Passwort/.test(anmeldung));
+    gleich("konto.js ist Blunderlucks Fassung (nur SCHLUESSEL eigen): Reihum-Grenze", require("../js/konto.js").ANMELDEN_REIHUM_MAX, 20);
+}
 
 fazit();

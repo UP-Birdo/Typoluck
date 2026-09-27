@@ -161,6 +161,36 @@ for (const datei of liste("css").filter((d) => KOPIEN.indexOf(d) === -1)) {
 }
 pruefe("Die drei Rundungen sind festgelegt",
     ["--rund-klein:", "--rund-mittel:", "--rund-voll:"].every((v) => lesen("css/stil.css").indexOf(v) !== -1));
+/* Kein festes Violett ausserhalb der Farbwelten (seit 0.15.4, Nutzer
+   27.09.2026: „die Farben stimmen nicht" — die Anmeldung war fest
+   UPCrew-violett). Violett gibt es nur als Farbwelt „Studio" im kopierten
+   Baustein; die Kachel-Sets (js\kachelsets.js) sind eigene Wahl des
+   Spielers und ausgenommen. Violett = Farbton 250–300°, deutlich gesättigt. */
+function farbton(hex) {
+    const zahl = parseInt(hex.slice(1), 16);
+    const r = ((zahl >> 16) & 255) / 255;
+    const g = ((zahl >> 8) & 255) / 255;
+    const b = (zahl & 255) / 255;
+    const hoch = Math.max(r, g, b);
+    const spanne = hoch - Math.min(r, g, b);
+    let grad = 0;
+    if (spanne > 0) {
+        grad = hoch === r ? 60 * (((g - b) / spanne) % 6) : hoch === g ? 60 * ((b - r) / spanne + 2) : 60 * ((r - g) / spanne + 4);
+    }
+    return { grad: (grad + 360) % 360, saettigung: hoch === 0 ? 0 : spanne / hoch };
+}
+for (const datei of liste("css").concat(liste("js").filter((d) => d.endsWith(".js")))
+    .filter((d) => KOPIEN.indexOf(d) === -1 && d !== "js/kachelsets.js")) {
+    const text = lesen(datei).replace(/\/\*[\s\S]*?\*\//g, "");
+    const violett = (text.match(/#[0-9a-fA-F]{6}\b/g) || []).filter((hex) => {
+        const ton = farbton(hex);
+        return ton.saettigung >= 0.25 && ton.grad >= 250 && ton.grad <= 300;
+    });
+    pruefe("Kein festes Violett: " + datei, violett.length === 0, violett.join(" "));
+}
+pruefe("Die Anmeldung setzt keine eigenen Farben mehr (erbt die Farbwelt)",
+    !/\.anmeldung\s*\{[^}]*--haupt:/.test(lesen("css/stil.css")));
+
 pruefe("Die Schrift steht nur als Variable im Stil",
     (lesen("css/stil.css").match(/font-family:\s*"/g) || []).length === 0
         && /--schrift-familie:/.test(lesen("css/stil.css")));
@@ -214,6 +244,16 @@ pruefe("Gerätespeicher-Schlüssel gehören Typoluck",
     [ICH.SCHLUESSEL_PERSON, ICH.SCHLUESSEL_SPIELSTAND, ICH.SCHLUESSEL_AUSSTEHEND, ICH.SCHLUESSEL_EINSTELLUNGEN]
         .every((schluessel) => schluessel.startsWith("typoluck.")));
 pruefe("index.html nennt den Namen der App", /<h1 class="nur-vorlesen">Typoluck<\/h1>/.test(index));
+/* Seit 0.15.5: Vorschau für geteilte Links (og:), Adressen absolut */
+for (const eigenschaft of ["og:title", "og:description", "og:url", "og:image", "og:type"]) {
+    pruefe("Link-Vorschau: " + eigenschaft, new RegExp('<meta property="' + eigenschaft + '" content="[^"]+">').test(index));
+}
+pruefe("Link-Vorschau: twitter:card gross", /<meta name="twitter:card" content="summary_large_image">/.test(index));
+const ogBild = (/<meta property="og:image" content="([^"]+)">/.exec(index) || [])[1] || "";
+pruefe("Link-Vorschau: Bild absolut und vorhanden",
+    /^https:\/\/up-birdo\.github\.io\/Typoluck\//.test(ogBild)
+        && fs.existsSync(path.join(wurzel, ogBild.replace("https://up-birdo.github.io/Typoluck/", ""))));
+pruefe("Link-Vorschau: Adresse absolut", /<meta property="og:url" content="https:\/\/up-birdo\.github\.io\/Typoluck\/">/.test(index));
 gleich("Manifest: Name", JSON.parse(lesen("manifest.webmanifest")).name, "Typoluck");
 
 /* ------------------------------------------------------------------ *
@@ -353,6 +393,17 @@ pruefe("Start: keine Uhr in der Werkstatt",
 pruefe("Start: die Uhr lädt still", /setInterval\([\s\S]*?START\._freundeLaden\(true\)/.test(startText));
 gleich("Start: alle 30 Sekunden", (startText.match(/AUFFRISCHEN_MS: (\d+)/) || [])[1], "30000");
 pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[2] || ""));
+/* Seit 0.15.3 (Nutzer 27.09.2026): während einer Runde keine Leiste unten */
+const wordleQuelle = lesen("js/bildschirm-wordle.js");
+pruefe("Runde läuft: body.im-spiel wird im Zeichnen gesetzt (auch beim Aufdecken der letzten Zeile)",
+    /_zeichnen\(tastaturBehalten\) \{[\s\S]*?classList\.toggle\("im-spiel", runde\.zustand === "laeuft" \|\| !!tastaturBehalten\)/
+        .test(wordleQuelle));
+pruefe("Beim Verlassen kommt die Leiste zurück",
+    /verlassen\(\) \{[\s\S]*?classList\.remove\("im-spiel"\)/.test(wordleQuelle));
+pruefe("Stil: im Spiel keine Leiste, unten nur der iPhone-Streifen",
+    /body\.im-spiel \.leiste\.up-leiste \{\s*display: none;/.test(lesen("css/stil.css"))
+        && /body\.im-spiel \.inhalt \{\s*padding-bottom: calc\(16px \+ env\(safe-area-inset-bottom\)\);/.test(lesen("css/stil.css")));
+pruefe("Der Zurück-Pfeil bleibt der Weg hinaus", /zurueck: \(\) => NAVIGATION\.zurueck\(\)/.test(wordleQuelle));
 pruefe("Platz 4 in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[3] || ""));
 pruefe("Einstellungen stehen im Menü",
     /id: "einstellungen"[\s\S]*?imMenue: true/.test(lesen("js/bildschirm-einstellungen.js")));

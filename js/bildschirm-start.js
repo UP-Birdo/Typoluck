@@ -253,7 +253,7 @@ const START = {
 
         const daten = ANMELDUNG.abgleich.daten;
         const zeilen = RANGLISTE.tagesTabelle(START._freundeHeute, daten,
-            RANGLISTE.auswahl(daten, ich.id, true)).slice(0, 5);
+            RANGLISTE.auswahl(daten, ich.id, true), ich.id).slice(0, 5);
         const hatFreunde = SPIELER.freundeVon(daten, ich.id).freunde.length > 0;
 
         if (!hatFreunde) {

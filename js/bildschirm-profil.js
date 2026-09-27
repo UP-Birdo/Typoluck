@@ -69,7 +69,13 @@ const PROFIL_BILDSCHIRM = {
         } else {
             const kopf = BAUSTEINE.karte(null, "profil-kopf");
             kopf.appendChild(BAUSTEINE.kreis(spieler.name, "namens-kreis-gross"));
-            kopf.appendChild(BAUSTEINE.el("h2", "profil-name", ANMELDUNG.anzeigeName(spieler)));
+            const name = BAUSTEINE.el("h2", "profil-name", ANMELDUNG.anzeigeName(spieler));
+            /* Die Nummer nur leise und nur bei gleichen Namen (seit 0.15.6). */
+            const nummer = SPIELER.nummerZusatz(ANMELDUNG.abgleich.daten, spieler);
+            if (nummer) {
+                name.appendChild(BAUSTEINE.el("span", "name-nummer", " " + nummer));
+            }
+            kopf.appendChild(name);
             if (ich) {
                 kopf.appendChild(PROFIL_BILDSCHIRM._freundschaftBauen(ich, spieler));
             }

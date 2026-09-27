@@ -12,8 +12,9 @@
  * Pink und Lila Blau"). Die Werte von --flaeche bis --warnung-flaeche sind
  * 1:1 aus Apps\Blunderluck\css\stil.css übernommen; was Blunderluck nicht
  * kennt (Kanten, Kacheln, Tasten), ist daraus abgeleitet — neutrales Grau,
- * dunkleres Blau. NUR die Anmeldung behält das UPCrew-Violett (Abschnitt
- * „Anmeldung" unten) — sie gehört dem Studio, nicht dem Spiel.
+ * dunkleres Blau. Seit 0.8.0 überschreibt die gewählte Farbwelt diese
+ * Werte (js\upcrew-aussehen.js); sie sind nur Rückfall. Seit 0.15.4 folgt
+ * auch die Anmeldung der Farbwelt (vorher festes UPCrew-Violett).
  *
  * Kaskade (Reihenfolge in index.html): stil.css → stil-bildschirme.css →
  * stil-wordle.css.
@@ -279,11 +280,15 @@ body.anmeldung-offen {
 /* ------------------------------------------------------------------ *
  * DIE LEISTE UNTEN (seit 0.5.0, seit 0.9.0 der gemeinsame Baustein)
  *
- * Nutzer 25.09.2026: „unten das Tab-Menü sollte nie weg". Seit 0.9.0
- * (UPCrew-Runde 4) kommt ihr ganzes Aussehen — Zeichen, gehobene Kachel des
- * aktiven Tabs, Name nur dort, Kante oben — aus dem kopierten Baustein
- * css\upcrew-leiste.css (Klassen „up-"). Die eigenen Regeln für Schrift,
- * Farbbalken und Höhe der Einträge sind weg.
+ * Nutzer 25.09.2026: „unten das Tab-Menü sollte nie weg" (Ausnahme seit
+ * 0.15.3: während einer Runde, `body.im-spiel`). Seit 0.9.0 (UPCrew-Runde 4)
+ * kommt ihr ganzes Aussehen — Zeichen, aktiver Tab hervorgehoben, Name nur
+ * dort, Kante oben — aus dem kopierten Baustein css\upcrew-leiste.css
+ * (Klassen „up-"). Seit 0.15.3 ist der aktive Tab dort eine breite Kapsel
+ * mit Symbol und Name nebeneinander (Nutzer-Wahl „C · Kapsel"); sie ragt nur
+ * noch ~5 px hoch statt ~20 px — die Regeln hier hingen nie an dieser Höhe
+ * und bleiben. Die eigenen Regeln für Schrift, Farbbalken und Höhe der
+ * Einträge sind weg.
  *
  * Hier steht nur, was allein Typoluck braucht: Die Leiste liegt FEST am
  * unteren Rand über der ganzen Breite (der Baustein ist für einen Rahmen
@@ -307,6 +312,17 @@ body.anmeldung-offen {
 
 .leiste[hidden] {
     display: none;
+}
+
+/* Während einer Runde (seit 0.15.3, `body.im-spiel`, gesetzt vom
+   Wordguesser-Bildschirm): keine Leiste; unten bleibt nur der
+   iPhone-Streifen frei. */
+body.im-spiel .leiste.up-leiste {
+    display: none;
+}
+
+body.im-spiel .inhalt {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .hinweis {
@@ -879,54 +895,15 @@ body.anmeldung-offen {
 /* ------------------------------------------------------------------ *
  * Anmeldung — das Vollbild
  *
- * DIE ANMELDUNG BLEIBT VIOLETT (seit 0.3.0). Der Nutzer wollte „hinter der
- * Crew-Anmeldung" Blunderlucks Blau — die Anmeldung selbst gehört dem
- * Studio UPCrew und behält dessen Farbwelt. Deshalb setzt `.anmeldung` die
- * Grundfarben für sich und alles darin neu, mit den Werten, die bis 0.2.1
- * für die ganze App galten. Ein Dialog über der Anmeldung liegt ausserhalb
- * und zeigt die Farben der App.
+ * SEIT 0.15.4 IN DEN FARBEN DER FARBWELT (Nutzer 27.09.2026: „die Farben
+ * stimmen nicht, das ist überall untergegangen"). Bis 0.15.3 setzte
+ * `.anmeldung` hier ein festes UPCrew-Violett (seit 0.3.0) — überholt seit
+ * der Entscheidung vom 26.09.2026 (Apps\UPCrew\docs\OBERFLAECHE.md):
+ * Werkstatt-Orange ist Standard, Violett gibt es nur als freischaltbare
+ * Farbwelt „Studio" (js\upcrew-intro.js). Die Anmeldung erbt deshalb
+ * --haupt, --karte, --flaeche … wie jeder Bildschirm;
+ * tests\test-syntax.js verbietet festes Violett ausserhalb der Farbwelten.
  * ------------------------------------------------------------------ */
-
-.anmeldung {
-    --flaeche: #f4f2fa;
-    --karte: #fdfcff;
-    --karte-leise: #efecf7;
-    --rahmen: #dcd7ea;
-    --schrift: #1d1a26;
-    --schrift-leise: #5f5a6e;
-    --haupt: #5b3cc4;
-    --haupt-schrift: #ffffff;
-    --haupt-kante: #3f2892;
-    --still-kante: #c5bfd6;
-}
-
-@media (prefers-color-scheme: dark) {
-    .anmeldung {
-        --flaeche: #15131b;
-        --karte: #201d29;
-        --karte-leise: #2a2635;
-        --rahmen: #3a3547;
-        --schrift: #ece9f4;
-        --schrift-leise: #aaa4ba;
-        --haupt: #9a82f2;
-        --haupt-schrift: #120e1c;
-        --haupt-kante: #6a52c4;
-        --still-kante: #4a4459;
-    }
-}
-
-:root[data-darstellung="dunkel"] .anmeldung {
-    --flaeche: #15131b;
-    --karte: #201d29;
-    --karte-leise: #2a2635;
-    --rahmen: #3a3547;
-    --schrift: #ece9f4;
-    --schrift-leise: #aaa4ba;
-    --haupt: #9a82f2;
-    --haupt-schrift: #120e1c;
-    --haupt-kante: #6a52c4;
-    --still-kante: #4a4459;
-}
 
 .anmeldung {
     position: fixed;

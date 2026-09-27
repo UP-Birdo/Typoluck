@@ -115,6 +115,18 @@ const EINSTELLUNGEN_BILDSCHIRM = {
 
     _kontoBauen() {
         const karte = BAUSTEINE.karte("UPCrew-Konto · alle Spiele");
+        /* Nur HIER steht die Nummer (seit 0.15.6, wie Blunderluck v0.151.8):
+           Name und #Nummer, darunter „Nummer ändern". Überall sonst nur der
+           Name. */
+        const ich = ANMELDUNG.ich();
+        const mitNummer = KONTO.aktiv() && ich && ich.gast !== true && !!ich.tag;
+        if (ich) {
+            const wer = BAUSTEINE.el("p", "konto-wer", ich.name);
+            if (mitNummer) {
+                wer.appendChild(BAUSTEINE.el("span", "name-nummer", " #" + ich.tag));
+            }
+            karte.appendChild(wer);
+        }
         const reihe = BAUSTEINE.el("div", "knopf-spalte");
         /* Ein Gast (seit v0.2.0) sichert hier seinen Spielstand. */
         if (ANMELDUNG.istGast()) {
@@ -123,6 +135,10 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         }
         reihe.appendChild(BAUSTEINE.knopf({ text: "Name ändern", art: "still", breit: true,
             beiKlick: () => ANMELDUNG.nameAendern() }));
+        if (mitNummer) {
+            reihe.appendChild(BAUSTEINE.knopf({ text: "Nummer ändern", art: "still", breit: true,
+                beiKlick: () => ANMELDUNG.nummerAendern() }));
+        }
         reihe.appendChild(BAUSTEINE.knopf({ text: "Passwort ändern", art: "still", breit: true,
             beiKlick: () => ANMELDUNG.passwortAendern() }));
         reihe.appendChild(BAUSTEINE.knopf({ text: "Abmelden", art: "gefahr", breit: true,

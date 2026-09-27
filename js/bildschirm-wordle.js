@@ -89,6 +89,8 @@ const WORDLE_BILDSCHIRM = {
     },
 
     verlassen() {
+        /* Die Leiste kommt auf jedem anderen Bildschirm zurück (seit 0.15.3). */
+        document.body.classList.remove("im-spiel");
         if (WORDLE_BILDSCHIRM._tastenHoerer) {
             document.removeEventListener("keydown", WORDLE_BILDSCHIRM._tastenHoerer);
             WORDLE_BILDSCHIRM._tastenHoerer = null;
@@ -164,6 +166,13 @@ const WORDLE_BILDSCHIRM = {
         const behaelter = WORDLE_BILDSCHIRM._behaelter;
         const runde = WORDLE_BILDSCHIRM.runde;
         behaelter.innerHTML = "";
+
+        /* Während einer Runde ist die Leiste unten weg (seit 0.15.3, Nutzer
+           27.09.2026: „während spielen bei beiden games soll das band unten
+           verschwinden"; gleich in Blunderluck während einer Partie). Feld
+           und Tastatur bekommen den Platz; hinaus geht es über den
+           Zurück-Pfeil oben. Beim Ergebnis ist sie wieder da. */
+        document.body.classList.toggle("im-spiel", runde.zustand === "laeuft" || !!tastaturBehalten);
 
         const titel = runde.modus === "tag" ? "Tageswort Nr. " + runde.nummer : "Übung";
         const kopf = BAUSTEINE.kopfzeile(titel, {

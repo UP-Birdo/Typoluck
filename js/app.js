@@ -43,6 +43,9 @@ const APP = {
     },
 
     async starten() {
+        /* Für den Notfall-Weg in index.html (seit 0.15.4): „die App hat
+           gestartet". Fehlt das nach 10 s, räumt er Worker und Speicher. */
+        window.TYPOLUCK_GESTARTET = true;
         DIALOG.aufbauen(document.getElementById("dialog"), document.getElementById("kurzmeldung"));
         APP._fehlerFangen();
 

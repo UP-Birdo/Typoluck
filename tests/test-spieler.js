@@ -141,6 +141,15 @@ const mitUp = { spieler: [
 gleich("UP#Plus erkannt", SPIELER.istVerteiler(SPIELER.spielerFinden(mitUp, "up")), true);
 gleich("up#0002 ist ein Mensch", SPIELER.istVerteiler(SPIELER.spielerFinden(mitUp, "u")), false);
 gleich("mitspieler ohne UP", SPIELER.mitspieler(mitUp).map((s) => s.id).join(","), "a,u");
+/* Seit 0.15.3: Gäste stehen in keiner Liste, die andere sehen (Suche) */
+const mitGastKonto = SPIELER.normalisieren({ spieler: mitUp.spieler.concat([{ id: "g", name: "Gast", gast: true }]) });
+gleich("mitspieler ohne Gäste (Suche findet keinen Gast)", SPIELER.mitspieler(mitGastKonto).map((s) => s.id).join(","), "a,u");
+gleich("Gast erkannt, Feld wandert durch", [SPIELER.istGast(SPIELER.spielerFinden(mitGastKonto, "g")),
+    SPIELER.spielerFinden(mitGastKonto, "g").gast], [true, true]);
+gleich("inListen: Gast nur für sich selbst", [SPIELER.inListen(SPIELER.spielerFinden(mitGastKonto, "g"), "a"),
+    SPIELER.inListen(SPIELER.spielerFinden(mitGastKonto, "g"), "g"),
+    SPIELER.inListen(SPIELER.spielerFinden(mitGastKonto, "a"), "g")], [false, true, true]);
+gleich("inListen: UP nie, auch nicht für sich selbst", SPIELER.inListen(SPIELER.spielerFinden(mitGastKonto, "up"), "up"), false);
 gleich("keine Freundschaft mit UP", SPIELER.freundschaft(mitUp, "a", "up"), "keine");
 gleich("UP sieht keine Freunde", SPIELER.freundeVon(mitUp, "up").freunde.length, 0);
 gleich("an UP geht keine Anfrage",

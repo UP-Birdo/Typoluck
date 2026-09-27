@@ -55,19 +55,22 @@ const RANGLISTE = {
      * Die Tabelle eines Tages. `tag` = { spielerId: ERGEBNIS }.
      * Zeilen: { id, name, punkte, versuche, geloest, muster, platz }.
      * Reihenfolge: Punkte absteigend, bei Gleichstand wer früher fertig war.
-     * Gleiche Punkte = gleicher Platz.
+     * Gleiche Punkte = gleicher Platz. `ichId` (seit 0.15.3): Gäste stehen
+     * nicht in der Tabelle — ausser der eigene Eintrag (SPIELER.inListen).
      */
-    tagesTabelle(tag, spielerDaten, auswahl) {
+    tagesTabelle(tag, spielerDaten, auswahl, ichId) {
         const zeilen = [];
         for (const id of Object.keys(tag || {})) {
             const spieler = SPIELER.spielerFinden(spielerDaten, id);
-            if (!spieler || SPIELER.istVerteiler(spieler) || (auswahl && !auswahl.has(id))) {
+            if (!SPIELER.inListen(spieler, ichId) || (auswahl && !auswahl.has(id))) {
                 continue;
             }
             const ergebnis = tag[id];
             zeilen.push({
                 id: id,
                 name: spieler.name,
+                /* Seit 0.15.6: „#1234" nur bei gleichen Namen, sonst "". */
+                nummer: SPIELER.nummerZusatz(spielerDaten, spieler),
                 punkte: RANGLISTE.punkte(ergebnis),
                 versuche: ergebnis.versuche,
                 geloest: ergebnis.geloest,
@@ -84,7 +87,7 @@ const RANGLISTE = {
      * Zeilen: { id, name, punkte, gespielt, geloest, platz }.
      * Bei Punktgleichstand zählt, wer mehr gelöst hat, dann der Name.
      */
-    zeitraumTabelle(tage, spielerDaten, auswahl) {
+    zeitraumTabelle(tage, spielerDaten, auswahl, ichId) {
         const summen = {};
         for (const datum of Object.keys(tage || {})) {
             for (const id of Object.keys(tage[datum] || {})) {
@@ -101,10 +104,11 @@ const RANGLISTE = {
         const zeilen = [];
         for (const id of Object.keys(summen)) {
             const spieler = SPIELER.spielerFinden(spielerDaten, id);
-            if (!spieler || SPIELER.istVerteiler(spieler) || (auswahl && !auswahl.has(id))) {
+            if (!SPIELER.inListen(spieler, ichId) || (auswahl && !auswahl.has(id))) {
                 continue;
             }
-            zeilen.push(Object.assign({ id: id, name: spieler.name }, summen[id]));
+            zeilen.push(Object.assign({ id: id, name: spieler.name,
+                nummer: SPIELER.nummerZusatz(spielerDaten, spieler) }, summen[id]));
         }
         zeilen.sort((a, b) => (b.punkte - a.punkte) || (b.geloest - a.geloest)
             || a.name.localeCompare(b.name, "de"));

@@ -193,6 +193,20 @@
     min-width: 0;
 }
 
+/* Die Nummer hinter dem Namen (seit 0.15.6): klein und blass, nur bei
+   gleichen Namen und in den Einstellungen. */
+.name-nummer {
+    color: var(--schrift-leise);
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.konto-wer {
+    margin: 0 0 10px;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
 .rangliste-name {
     overflow: hidden;
     font-weight: 600;

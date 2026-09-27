@@ -3,6 +3,51 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.15.6 — 27.09.2026
+
+**Anmelden nur mit Namen — um die Nummer musst du dich nicht kümmern.**
+
+- Anmelden: „Name" und Passwort. Gibt es deinen Namen mehrmals, findet die
+  App dein Konto selbst über dein Passwort.
+- Neues Konto und Gast sichern: nur Name und Passwort. Die Nummer würfelt
+  die App und zeigt sie nirgends an.
+- Deine Nummer siehst und änderst du nur in den Einstellungen (Konto):
+  „Nummer ändern" — eine eintippen oder leer lassen zum Würfeln.
+- Freunde, Rangliste und Suche zeigen nur Namen; die Nummer steht klein
+  daneben, wenn es denselben Namen mehrmals gibt.
+- Kein Beispiel-Name mehr im Anmelden.
+## 0.15.5 — 27.09.2026
+
+**Geteilte Links zeigen eine Vorschau.**
+
+- Schickst du jemandem den Link zu Typoluck, zeigen iMessage, WhatsApp und
+  Co. jetzt ein Bild mit dem App-Zeichen, „Typoluck — Wortspiele mit
+  Freunden" und fünf Kacheln — statt eines leeren grauen Symbols.
+## 0.15.4 — 27.09.2026
+
+**Behoben: weisse Seite am iPhone; die Anmeldung trägt deine Farben.**
+
+- Startet die App einmal nicht richtig (nur ein weisses Blatt mit
+  „Typoluck"), räumt sie nach 10 Sekunden ihren Zwischenspeicher selbst auf
+  und lädt einmal neu. Klappt auch das nicht, steht dort „Neu laden".
+- Die App nimmt beim Start nur noch Dateien ihrer eigenen Fassung aus dem
+  Zwischenspeicher — keine Mischung aus alter und neuer Version mehr.
+- Die Anmeldung (Anmelden, neues Konto, als Gast) ist nicht mehr fest
+  violett, sondern in der Farbwelt, die du gewählt hast — ab Werk Orange.
+## 0.15.3 — 27.09.2026
+
+**Gäste stehen in keiner Rangliste mehr; beim Spielen ist die Leiste unten weg.**
+
+- Wer als Gast spielt, erscheint nicht mehr in der Rangliste, nicht bei
+  „Freunde heute" und nicht in der Suche nach Mitspielern.
+- Als Gast siehst du deine eigene Zeile in der Rangliste weiterhin.
+- Während einer Runde verschwindet die Leiste unten — Feld und Tastatur
+  haben mehr Platz. Hinaus geht es mit dem Pfeil oben links; beim Ergebnis
+  ist die Leiste wieder da.
+- Die Leiste unten sieht neu aus: Der Tab, auf dem du bist, ist eine breite
+  Kapsel mit Zeichen und Name nebeneinander — gleich wie in Blunderluck.
+  Auch auf schmalen Handys passt „Sammlung" ganz hinein.
+
 ## 0.15.2 — 27.09.2026
 
 **Behoben: Die neue Version kam nicht an.**

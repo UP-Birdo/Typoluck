@@ -11,7 +11,7 @@
  * Studio.
  *
  * SEIT v0.2.0 DAS UPCREW-KONTO (js\konto.js, in allen UPCrew-Spielen gleich):
- * Anmeldung über Firebase, Name mit Nummer (Jonas#0001), Gast-Zugang,
+ * Anmeldung über Firebase, Name mit Nummer (Name#1234, die Nummer würfelt die App), Gast-Zugang,
  * Passwort-Regel, Rollen. Die Regeln und Abläufe stehen dort; hier wird nur
  * gefragt und gezeigt. Ohne Firebase (Werkstatt, lokaler Modus) gilt der
  * alte Weg mit Prüfsumme (js\spieler.js, js\versiegelung.js).
@@ -52,9 +52,12 @@ const ANMELDUNG = {
         return !!(ich && ich.gast === true);
     },
 
-    /* Wie ein Spieler angezeigt wird: mit UPCrew-Konto samt Nummer. */
+    /* Wie ein Spieler angezeigt wird: seit 0.15.6 NUR der Name (Nutzer
+       27.09.2026: „brauchst nicht mal den #… zu zeigen"). Die Nummer steht
+       leise daneben nur bei gleichen Namen (SPIELER.nummerZusatz) und zum
+       Ändern in den Einstellungen (`nummerAendern`). */
     anzeigeName(spieler) {
-        return KONTO.aktiv() ? KONTO.anzeigeName(spieler) : (spieler ? spieler.name : "");
+        return spieler ? spieler.name : "";
     },
 
     /*
@@ -195,10 +198,9 @@ const ANMELDUNG = {
         const kasten = ANMELDUNG._kastenBauen("Anmelden", vorname
             ? "Gib einmal dein Passwort ein — danach bleibst du auf diesem Gerät angemeldet."
             : (mitKonto
-                ? "Mit Name#Nummer (z. B. Jonas#0001) und dem Passwort deines UPCrew-Kontos."
+                ? "Name und Passwort deines UPCrew-Kontos."
                 : "Mit dem Namen und Passwort deines UPCrew-Kontos — von jedem Gerät aus."));
-        const name = ANMELDUNG._feldBauen(kasten, mitKonto ? "Name#Nummer" : "Name",
-            false, "username");
+        const name = ANMELDUNG._feldBauen(kasten, "Name", false, "username");
         const passwort = ANMELDUNG._feldBauen(kasten, "Passwort", true, "current-password");
         if (mitKonto) {
             name.feld.addEventListener("input", () => {
@@ -297,10 +299,10 @@ const ANMELDUNG = {
     _neuesKontoZeigen() {
         const mitKonto = KONTO.aktiv();
         const kasten = ANMELDUNG._kastenBauen("Neues UPCrew-Konto", mitKonto
-            ? "Damit spielst du in allen UPCrew-Spielen. Deine Nummer (#1234) bekommst du automatisch."
+            ? "Damit spielst du in allen UPCrew-Spielen."
             : "Damit spielst du in allen UPCrew-Spielen. Deinen Namen sehen die anderen in der Rangliste.");
         const name = ANMELDUNG._feldBauen(kasten,
-            mitKonto ? "Name (nur Buchstaben und Ziffern)" : "Name", false, "username");
+            "Name", false, "username");
         const passwort = ANMELDUNG._feldBauen(kasten, "Passwort (" + (mitKonto
             ? KONTO.passwortRegelText()
             : SPIELER.PASSWORT_MIN + " bis " + SPIELER.PASSWORT_MAX + " Zeichen") + ")",
@@ -397,7 +399,7 @@ const ANMELDUNG = {
         await ANMELDUNG._nachladen();
         ANMELDUNG._uebernehmen(ergebnis.eintrag);
         ANMELDUNG._fertig();
-        DIALOG.kurzmeldung("Gast · " + KONTO.anzeigeName(ergebnis.eintrag));
+        DIALOG.kurzmeldung("Gast");
     },
 
     /* Jedes dritte Öffnen fragt ein Gast, ob er seinen Spielstand sichern
@@ -434,9 +436,8 @@ const ANMELDUNG = {
         document.body.classList.add("anmeldung-offen");
 
         const kasten = ANMELDUNG._kastenBauen("Spielstand sichern",
-            "Such dir einen Namen und ein Passwort aus. Alles, was du als "
-                + KONTO.anzeigeName(eintrag) + " gespielt hast, bleibt.");
-        const name = ANMELDUNG._feldBauen(kasten, "Name (nur Buchstaben und Ziffern)", false, "username");
+            "Name und Passwort · alles, was du als Gast gespielt hast, bleibt.");
+        const name = ANMELDUNG._feldBauen(kasten, "Name", false, "username");
         ANMELDUNG._nameFeldSaeubern(name.feld);
         const passwort = ANMELDUNG._feldBauen(kasten,
             "Passwort (" + KONTO.passwortRegelText() + ")", true, "new-password");
@@ -480,8 +481,7 @@ const ANMELDUNG = {
         }
         if (KONTO.aktiv()) {
             const eingabe = await DIALOG.eingabe("Name ändern",
-                "Nur Buchstaben und Ziffern. Gilt in allen UPCrew-Spielen; deine "
-                    + "Nummer bleibt, wenn sie frei ist.", ich.name, "Speichern");
+                "Buchstaben und Ziffern · alle UPCrew-Spiele", ich.name, "Speichern");
             if (eingabe === null) {
                 return;
             }
@@ -497,7 +497,7 @@ const ANMELDUNG = {
             }
             await ANMELDUNG._nachladen();
             ICH.personSetzen(ich.id, name);
-            DIALOG.kurzmeldung("Name · " + KONTO.anzeigeName(ergebnis.eintrag));
+            DIALOG.kurzmeldung("Name · " + ergebnis.eintrag.name);
             return;
         }
         const neu = await DIALOG.eingabe("Name ändern",
@@ -513,6 +513,30 @@ const ANMELDUNG = {
         ANMELDUNG.abgleich.aendern(SPIELER.nameSetzen(ANMELDUNG.abgleich.daten, ich.id, neu));
         ICH.personSetzen(ich.id, neu.trim());
         DIALOG.kurzmeldung("Name geändert");
+    },
+
+    /* Die eigene Nummer ändern (seit 0.15.6, wie Blunderluck v0.151.8;
+       Nutzer 27.09.2026: „man soll ihn in den Einstellungen ändern
+       können"). Leer lassen = eine zufällige freie würfeln. Nur mit echtem
+       UPCrew-Konto; Gäste haben keine eigene Nummer. */
+    async nummerAendern() {
+        const ich = ANMELDUNG.ich();
+        if (!ich || !KONTO.aktiv() || ich.gast === true) {
+            return;
+        }
+        const eingabe = await DIALOG.eingabe("Nummer ändern",
+            "Zurzeit #" + ich.tag + " · 4 Ziffern · leer = würfeln", "", "Speichern");
+        if (eingabe === null) {
+            return;
+        }
+        const ergebnis = await KONTO.tagAendern(ANMELDUNG.abgleich.speicher,
+            ANMELDUNG.abgleich.daten, ich, eingabe.trim());
+        if (!ergebnis.ok) {
+            await DIALOG.hinweis("Das geht nicht", ergebnis.text);
+            return;
+        }
+        await ANMELDUNG._nachladen();
+        DIALOG.kurzmeldung("Neue Nummer · #" + ergebnis.eintrag.tag);
     },
 
     async passwortAendern() {
@@ -726,7 +750,9 @@ const ANMELDUNG = {
         ANMELDUNG._fertig();
         /* Die Meldung ist ein Stichwort mit Namen, keine Begrüßung. (Die
            Vibration dazu ist seit 0.8.1 raus.) */
-        DIALOG.kurzmeldung(gruss + KONTO.anzeigeName(ergebnis.eintrag));
+        /* Nur der Name (seit 0.15.6): Die Nummer ist zufällig und muss niemand
+           kennen — zu sehen und zu ändern in den Einstellungen. */
+        DIALOG.kurzmeldung(gruss + ergebnis.eintrag.name);
     },
 
     /* Die Spielerliste frisch vom Server — nach jedem Konto-Ablauf. */

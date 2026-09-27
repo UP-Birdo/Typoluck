@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.15.2";
+const SPEICHER_NAME = "typoluck-v0.15.6";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -36,6 +36,7 @@ const DATEIEN = [
     "./icons/icon-180.png",
     "./icons/icon-192.png",
     "./icons/icon-512.png",
+    "./icons/vorschau.png",
 
     "./css/stil.css",
     "./css/stil-bildschirme.css",
@@ -140,22 +141,77 @@ self.addEventListener("fetch", (ereignis) => {
     ereignis.respondWith(BEIM_BAUEN ? netzZuerst(anfrage) : speicherZuerst(anfrage));
 });
 
+/*
+ * Zwischenspeicher zuerst — seit 0.15.4 gehärtet (weisse Seite am iPhone,
+ * 27.09.2026, `docs\entscheidungen\erkenntnisse.md`):
+ *   1. NUR im eigenen Speicher dieser Fassung suchen. Vorher suchte
+ *      `caches.match` in ALLEN Speichern des Ursprungs (auch alten
+ *      Typoluck-Fassungen und Blunderluck) — beim Wechsel konnten Dateien
+ *      zweier Fassungen gemischt werden.
+ *   2. Sonst das Netz. Eine Antwort, die kein „ok" ist (404-Seite als HTML
+ *      für eine CSS-/JS-Anfrage), wird nicht als Treffer behandelt.
+ *   3. Ohne Netz: irgendein Typoluck-Speicher, bei einer Navigation die
+ *      Startseite.
+ * Wirft nur, wenn es wirklich nichts gibt.
+ */
 async function speicherZuerst(anfrage) {
-    const treffer = await caches.match(anfrage, { ignoreSearch: true });
-    if (treffer) {
-        return treffer;
+    let eigener = null;
+    try {
+        eigener = await (await caches.open(SPEICHER_NAME)).match(anfrage, { ignoreSearch: true });
+    } catch (fehler) {
+        eigener = null;
+    }
+    if (eigener) {
+        return ohneUmleitung(eigener, anfrage);
     }
     try {
-        return await fetch(anfrage);
+        const antwort = await fetch(anfrage);
+        if (antwort.ok || anfrage.mode === "navigate") {
+            return antwort;
+        }
+        const ersatz = await irgendeinTreffer(anfrage);
+        return ersatz || antwort;
     } catch (fehler) {
-        if (anfrage.mode === "navigate") {
-            const start = await caches.match("./", { ignoreSearch: true });
-            if (start) {
-                return start;
-            }
+        const ersatz = await irgendeinTreffer(anfrage);
+        if (ersatz) {
+            return ohneUmleitung(ersatz, anfrage);
         }
         throw fehler;
     }
+}
+
+/* Safari lehnt es ab, eine Seite (Navigation) mit einer Antwort zu öffnen,
+   die unterwegs umgeleitet wurde („Response served by service worker has
+   redirections"). Falls eine gespeicherte Startseite so eine ist, wird sie
+   als frische Antwort mit demselben Inhalt nachgebaut. */
+async function ohneUmleitung(antwort, anfrage) {
+    if (!antwort.redirected || anfrage.mode !== "navigate") {
+        return antwort;
+    }
+    return new Response(await antwort.blob(), {
+        status: antwort.status, statusText: antwort.statusText, headers: antwort.headers
+    });
+}
+
+/* Ein Treffer in irgendeinem Typoluck-Speicher (auch einer älteren
+   Fassung) — nur als Notnagel ohne Netz. */
+async function irgendeinTreffer(anfrage) {
+    try {
+        for (const name of await caches.keys()) {
+            if (!name.startsWith("typoluck-")) {
+                continue;
+            }
+            const speicher = await caches.open(name);
+            const treffer = await speicher.match(anfrage, { ignoreSearch: true })
+                || (anfrage.mode === "navigate" ? await speicher.match("./", { ignoreSearch: true }) : null);
+            if (treffer) {
+                return treffer;
+            }
+        }
+    } catch (fehler) {
+        return null;
+    }
+    return null;
 }
 
 async function netzZuerst(anfrage) {

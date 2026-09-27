@@ -95,8 +95,8 @@ const RANGLISTE_BILDSCHIRM = {
         const stand = RANGLISTE_BILDSCHIRM._stand;
 
         const zeilen = stand.zeitraum === "tag"
-            ? RANGLISTE.tagesTabelle(stand.tage[stand.heute], daten, auswahl)
-            : RANGLISTE.zeitraumTabelle(stand.tage, daten, auswahl);
+            ? RANGLISTE.tagesTabelle(stand.tage[stand.heute], daten, auswahl, ich ? ich.id : null)
+            : RANGLISTE.zeitraumTabelle(stand.tage, daten, auswahl, ich ? ich.id : null);
 
         if (zeilen.length === 0) {
             karte.appendChild(ZUSTAND.leer({
@@ -125,7 +125,12 @@ const RANGLISTE_BILDSCHIRM = {
             knopf.appendChild(BAUSTEINE.el("span", "rangliste-platz", zeile.platz + "."));
             knopf.appendChild(BAUSTEINE.kreis(zeile.name));
             const mitte = BAUSTEINE.el("span", "rangliste-mitte");
-            mitte.appendChild(BAUSTEINE.el("span", "rangliste-name", zeile.name));
+            const name = BAUSTEINE.el("span", "rangliste-name", zeile.name);
+            /* Die Nummer nur leise und nur bei gleichen Namen (seit 0.15.6). */
+            if (zeile.nummer) {
+                name.appendChild(BAUSTEINE.el("span", "name-nummer", " " + zeile.nummer));
+            }
+            mitte.appendChild(name);
             /* Zahlen statt Sätzen (UPCrew-Standard): „3/6" = gelöst im
                dritten Versuch, „X/6" = nicht gelöst; über 7 Tage „4/5
                gelöst" = vier von fünf gespielten Tagen. */

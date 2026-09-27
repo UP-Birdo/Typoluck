@@ -3,6 +3,45 @@
 Teuer erkaufte Einsichten: Bug-Ursachen und Fallen, die nicht offensichtlich
 sind. Jede neue gehört hierher UND in `00-INDEX.md`, bevor die Runde endet.
 
+## Weisse Seite am iPhone: kein Stil, kein Skript (27.09.2026)
+
+Handy-Bild des Nutzers (iPhone, 17:54, live 0.15.2): weisse Seite, nur
+„Typoluck" gross in Times. Das ist `<h1 class="nur-vorlesen">` aus
+`index.html` OHNE Stil — und weil `js\app.js` sonst sofort Inhalt baut,
+lief auch kein Skript. Die Seite selbst kam an, JEDE Unterdatei nicht. In
+Chromium lud dieselbe Fassung sauber (Messung des Hauptchats).
+
+**Ursache: nicht sicher.** Belegt ist nur das Muster: Alle Unterdateien
+fallen auf einmal aus — das passt nicht zu EINER kaputten Datei, sondern zu
+der Stelle, durch die alle gehen: dem Service Worker. Kandidaten aus dem
+Code bis 0.15.3 (`sw.js`):
+1. **Wechsel der Fassung am iPhone.** Neuer Worker mit `skipWaiting` +
+   `clients.claim`, `activate` löscht die alten `typoluck-`Speicher — alles
+   während die Seite lädt. WebKit ist bekannt empfindlich, wenn der
+   steuernde Worker mitten im Laden abgelöst wird. Der Zeitpunkt passt
+   (0.15.1 → 0.15.2 am selben Abend). Wahrscheinlichster Kandidat.
+2. **Kein Auffangen:** Fand der Worker nichts im Speicher und schlug
+   `fetch` fehl, warf er — die Datei fehlte ganz; ein Ersatz aus einem
+   älteren Speicher war nur für Navigationen vorgesehen.
+3. **`caches.match` ohne Speichernamen** sucht in ALLEN Speichern des
+   Ursprungs — beim Wechsel sind Dateien zweier Fassungen mischbar. Erklärt
+   eher Fehler IN der App als eine leere Seite.
+4. **Umgeleitete Antworten** (Safari öffnet keine Seite daraus): GitHub
+   Pages leitet `./` und `index.html` nicht um — unwahrscheinlich.
+Die Selbst-Aktualisierung aus 0.15.2 (`js\aktualisierung.js`) scheidet
+praktisch aus: Sie läuft erst in einer Seite, die schon gestartet hat.
+
+**Gebaut in 0.15.4:** (a) Worker: zuerst NUR der eigene Speicher, Netzfehler
+mit Treffer aus irgendeinem `typoluck-`Speicher auffangen, umgeleitete
+Startseite nachbauen. (b) **Notfall-Weg** direkt in `index.html`
+(`<script id="notfall">`, als Erstes im Kopf): nach 10 s ohne
+`window.TYPOLUCK_GESTARTET` oder ohne Stil (`--rund-klein`) den Worker
+DIESES Ordners abmelden, `typoluck-`Speicher leeren, einmal neu laden;
+Merker in sessionStorage (höchstens alle 5 min), sonst Link „Neu laden".
+**Lehre:** Wer einen Worker hat, braucht einen Weg heraus, der ohne ihn
+läuft — sonst hilft beim Nutzer nur „Websitedaten löschen". Blunderluck
+hat denselben Worker-Aufbau und kann genauso hängen.
+
 ## Ein neuer Service Worker macht die offene Seite nicht neu (27.09.2026)
 
 Nutzer: „ich bekomme die neuste Version nicht mehr aufgerufen" (live

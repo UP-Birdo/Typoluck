@@ -106,6 +106,27 @@ gleich("Zeitraum: Summen", woche.map((z) => [z.id, z.punkte, z.gespielt, z.geloe
     [["a", 6, 2, 2], ["c", 6, 2, 1]]);
 gleich("Zeitraum: Gleichstand, mehr gelöst zuerst, gleicher Platz", woche.map((z) => z.platz), [1, 1]);
 
+/* Seit 0.15.3 (Nutzer 27.09.2026: „Gäste sollen nicht in Rangliste
+   angezeigt werden"): Gäste fehlen in jeder Tabelle — nur der Gast selbst
+   sieht seine eigene Zeile. */
+const mitGast = SPIELER.normalisieren({ spieler: [
+    { id: "a", name: "Anna", freunde: ["g"] },
+    { id: "g", name: "Gast", gast: true, freunde: ["a"] },
+    { id: "b", name: "Ben", freunde: [] }
+] });
+const gastTag = { a: e(3, true, 5), g: e(1, true, 1), b: e(5, true, 9) };
+gleich("Gast fehlt in der Tagestabelle", RANGLISTE.tagesTabelle(gastTag, mitGast, null, "a").map((z) => z.id), ["a", "b"]);
+gleich("Gast fehlt auch ohne ichId", RANGLISTE.tagesTabelle(gastTag, mitGast, null).map((z) => z.id), ["a", "b"]);
+gleich("Gast fehlt bei „Freunde heute“ (nur Freunde)",
+    RANGLISTE.tagesTabelle(gastTag, mitGast, RANGLISTE.auswahl(mitGast, "a", true), "a").map((z) => z.id), ["a"]);
+gleich("Gast fehlt im Zeitraum", RANGLISTE.zeitraumTabelle({ "2026-09-27": gastTag }, mitGast, null, "b")
+    .map((z) => z.id), ["a", "b"]);
+gleich("Der Gast selbst sieht seine eigene Zeile", RANGLISTE.tagesTabelle(gastTag, mitGast, null, "g")
+    .map((z) => z.id), ["g", "a", "b"]);
+gleich("… und keine anderen Gäste", RANGLISTE.tagesTabelle(Object.assign({ h: e(2, true, 2) }, gastTag),
+    SPIELER.normalisieren({ spieler: mitGast.spieler.concat([{ id: "h", name: "Gast2", gast: true }]) }), null, "g")
+    .map((z) => z.id), ["g", "a", "b"]);
+
 gleich("Letzte Tage über den Monatswechsel", RANGLISTE.letzteTage("2026-10-02", 3),
     ["2026-10-02", "2026-10-01", "2026-09-30"]);
 

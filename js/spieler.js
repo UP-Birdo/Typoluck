@@ -204,10 +204,62 @@ const SPIELER = {
             && String(spieler.name || "").trim().toLowerCase() === "up";
     },
 
-    /* Die Spielerliste ohne das Verteiler-Konto. */
+    /* Ein Gast-Konto (anonym, `gast: true` am Eintrag — js\konto.js). */
+    istGast(spieler) {
+        return !!spieler && spieler.gast === true;
+    },
+
+    /*
+     * Steht dieser Spieler in Listen, die ANDERE sehen (Rangliste, „Freunde
+     * heute", Suche)? Nicht das Verteiler-Konto (seit 0.2.1) und seit 0.15.3
+     * keine Gäste (Nutzer 27.09.2026: „Gäste sollen nicht in Rangliste
+     * angezeigt werden"; gleich in Blunderluck). Ausnahme: `ichId` — wer
+     * selbst Gast ist, sieht seine eigene Zeile weiter.
+     */
+    inListen(spieler, ichId) {
+        if (!spieler || SPIELER.istVerteiler(spieler)) {
+            return false;
+        }
+        return !SPIELER.istGast(spieler) || (!!ichId && spieler.id === ichId);
+    },
+
+    /* Die Spielerliste ohne das Verteiler-Konto und (seit 0.15.3) ohne
+       Gäste — für die Suche nach Mitspielern. */
     mitspieler(daten) {
         return SPIELER.normalisieren(daten).spieler
-            .filter((spieler) => !SPIELER.istVerteiler(spieler));
+            .filter((spieler) => SPIELER.inListen(spieler, null));
+    },
+
+    /*
+     * Die Nummer leise hinter dem Namen (seit 0.15.6, gleich Blunderluck
+     * v0.151.8; Nutzer 27.09.2026: „brauchst nicht mal den #… zu zeigen,
+     * darum soll sich der Nutzer keine Sorgen machen müssen"). Gezeigt wird
+     * überall nur der Name — die Nummer nur, wenn es den Namen unter den
+     * Mitspielern mehrmals gibt, damit man sie auseinanderhält. Liefert
+     * „#1234" oder "".
+     */
+    nummerZusatz(daten, spieler) {
+        if (!spieler || !spieler.tag || SPIELER.istVerteiler(spieler)) {
+            return "";
+        }
+        const schluessel = String(spieler.name || "").trim().toLowerCase();
+        const gleich = SPIELER.mitspieler(daten).filter((anderer) =>
+            String(anderer.name || "").trim().toLowerCase() === schluessel).length;
+        return gleich > 1 ? "#" + spieler.tag : "";
+    },
+
+    /* Passt der Spieler zum Suchtext? Der Name, oder „Name#Nummer", wenn
+       jemand die Nummer mitgetippt hat (seit 0.15.6). */
+    passtZurSuche(spieler, gesucht) {
+        const text = String(gesucht || "").trim().toLowerCase();
+        if (!spieler || text === "") {
+            return false;
+        }
+        if (String(spieler.name || "").toLowerCase().indexOf(text) !== -1) {
+            return true;
+        }
+        return text.indexOf("#") !== -1 && !!spieler.tag
+            && (spieler.name + "#" + spieler.tag).toLowerCase().indexOf(text) !== -1;
     },
 
     hatPasswort(spieler) {

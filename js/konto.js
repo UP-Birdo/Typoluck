@@ -73,6 +73,10 @@ const KONTO = {
        wenn sie für seinen Namen noch frei ist (Jonas → Jonas#0001). */
     UMZUG_TAG: "0001",
 
+    /* Anmelden nur mit Name (ohne Nummer), wenn es den Namen mehrmals gibt:
+       so viele Konten dieses Namens werden höchstens reihum versucht. */
+    ANMELDEN_REIHUM_MAX: 20,
+
     /* Nur für den Umzug: Der Zwischenstand vom 25.09.2026 nachts (lokal
        benutzt, nie ausgeliefert) setzte diese Zutat vor das alte Passwort.
        Wer damit schon ein Firebase-Konto bekam, zieht so trotzdem sauber um
@@ -265,7 +269,7 @@ const KONTO = {
     /*
      * Ein Konto zur Eingabe finden. Mit Nummer genau dieses; ohne Nummer nur,
      * wenn es den Namen genau einmal gibt. Liefert { spieler } oder
-     * { mehrdeutig: true } oder {}.
+     * { mehrdeutig: true, kandidaten } oder {}.
      */
     suchen(daten, eingabe) {
         const teile = KONTO.eingabeZerlegen(eingabe);
@@ -281,7 +285,7 @@ const KONTO = {
         if (gleicherName.length === 1) {
             return { spieler: gleicherName[0] };
         }
-        return gleicherName.length > 1 ? { mehrdeutig: true } : {};
+        return gleicherName.length > 1 ? { mehrdeutig: true, kandidaten: gleicherName } : {};
     },
 
     /* ---------------------------------------------------------------- *
@@ -552,6 +556,53 @@ const KONTO = {
         return KONTO._eintragSchreiben(speicher, neu, eintrag);
     },
 
+    /* Ist das eine gültige Nummer? 4 Ziffern, nicht 0000 (seit v0.151.8).
+       Liefert "" oder den Grund. */
+    tagPruefen(tag) {
+        return (/^\d{4}$/.test(String(tag || "")) && tag !== "0000")
+            ? "" : "Nummer: 4 Ziffern, nicht 0000.";
+    },
+
+    /*
+     * DIE EIGENE NUMMER ÄNDERN (seit v0.151.8, Nutzer 27.09.2026: „man soll
+     * ihn in den Einstellungen ändern können"). `wunsch` = die gewünschte
+     * Nummer, oder leer = eine zufällige freie würfeln. Der Name bleibt.
+     *
+     * Neuer Namens-Platz, Konto-Eintrag (`tag`) und die Freigabe des alten
+     * Platzes gehen in EINER Mehrpfad-Änderung hinaus (`_eintragSchreiben`):
+     * Die Datenbank nimmt alles oder nichts — es fehlt also nie beides, und
+     * `konten/$uid/.validate` sieht den neuen Platz schon im selben Schritt
+     * (Regeln §11: eigener Platz anlegen, eigener Platz löschen). Ist die
+     * Nummer inzwischen doch vergeben, lehnt die Datenbank ab — dann bleibt
+     * alles, wie es war. Freunde hängen an der Spieler-Kennung, nicht an der
+     * Nummer, und bleiben.
+     */
+    async tagAendern(speicher, daten, eintrag, wunsch) {
+        if (!eintrag || eintrag.gast === true) {
+            return { ok: false, text: "Gast-Konten haben keine eigene Nummer." };
+        }
+        let tag = wunsch ? String(wunsch).trim() : "";
+        if (tag) {
+            const regel = KONTO.tagPruefen(tag);
+            if (regel) {
+                return { ok: false, text: regel };
+            }
+            if (tag === eintrag.tag) {
+                return { ok: true, eintrag: eintrag };
+            }
+            if (KONTO.tagBelegt(daten, eintrag.name, tag)) {
+                return { ok: false, text: "Diese Nummer ist vergeben." };
+            }
+        } else {
+            tag = KONTO.tagWaehlen(daten, eintrag.name, null);
+            if (!tag) {
+                return { ok: false, text: "Für diesen Namen ist keine Nummer mehr frei." };
+            }
+        }
+        const neu = Object.assign(KONTO._sauber(eintrag), { tag: tag });
+        return KONTO._eintragSchreiben(speicher, neu, eintrag);
+    },
+
     /* Admin: freigeben zum Neu-Verbinden. */
     async freigeben(speicher, eintrag) {
         const neu = Object.assign(KONTO._sauber(eintrag), { neuVerbinden: true });
@@ -591,14 +642,14 @@ const KONTO = {
         return { ok: true };
     },
 
-    /* Anmelden mit „Name#Nummer" (oder eindeutigem Namen) und Passwort.
+    /* Anmelden mit Name (oder „Name#Nummer") und Passwort. Gibt es den Namen
+       mehrmals und fehlt die Nummer, werden die Konten reihum versucht.
        Liefert zusätzlich `feld` ("name"/"passwort") für die Meldung und
        `freigegeben`, wenn der Admin das Konto zum Neu-Verbinden freigab. */
     async anmeldenMitEingabe(daten, eingabe, passwort) {
         const fund = KONTO.suchen(daten, eingabe);
         if (fund.mehrdeutig) {
-            return { ok: false, feld: "name", fehler: "mehrdeutig",
-                text: "Diesen Namen gibt es mehrmals. Gib ihn mit Nummer ein, z. B. Name#1234." };
+            return KONTO._anmeldenReihum(fund.kandidaten, passwort);
         }
         const spieler = fund.spieler;
         if (!spieler) {
@@ -619,6 +670,34 @@ const KONTO = {
                 text: KONTO.fehlerText(ergebnis.fehler) };
         }
         return { ok: true, spieler: spieler };
+    },
+
+    /* Den Namen gibt es mehrmals und die Nummer fehlt: die Konten dieses
+       Namens reihum mit dem Passwort versuchen (höchstens
+       ANMELDEN_REIHUM_MAX). Jeder Versuch trifft ein anderes Firebase-Konto;
+       bricht bei „zu viele Versuche" oder Netzfehler sofort ab. */
+    async _anmeldenReihum(kandidaten, passwort) {
+        const echte = (kandidaten || []).filter((spieler) =>
+            spieler.gast !== true && spieler.neuVerbinden !== true);
+        const liste = echte.slice(0, KONTO.ANMELDEN_REIHUM_MAX);
+        for (const spieler of liste) {
+            const ergebnis = await KONTO.anmelden(KONTO.kennungVon(spieler), passwort);
+            if (ergebnis.ok) {
+                return { ok: true, spieler: spieler };
+            }
+            if (ergebnis.fehler !== "falsch") {
+                return { ok: false, feld: "passwort", fehler: ergebnis.fehler,
+                    text: KONTO.fehlerText(ergebnis.fehler) };
+            }
+        }
+        const freigegeben = (kandidaten || []).filter((spieler) =>
+            spieler.gast !== true && spieler.neuVerbinden === true);
+        if (freigegeben.length === 1) {
+            return { ok: false, feld: "name", fehler: "freigegeben", spieler: freigegeben[0],
+                text: "Dein Konto ist zum Neu-Verbinden freigegeben. Leg ein neues Passwort fest." };
+        }
+        return { ok: false, feld: "passwort", fehler: "falsch", reihum: true,
+            text: "Name oder Passwort falsch." };
     },
 
     fehlerText(art) {

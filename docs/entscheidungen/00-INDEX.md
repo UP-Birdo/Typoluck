@@ -5,6 +5,7 @@
 
 ## erkenntnisse.md — Fallen und Bug-Ursachen
 
+- Weisse Seite am iPhone: kein Stil, kein Skript
 - Ein neuer Service Worker macht die offene Seite nicht neu
 - Der Service Worker füllt sich aus der HTTP-Ablage
 - Eine Wertung darf nicht bestrafen, was der Spieler nicht wissen kann

@@ -16,7 +16,8 @@ Typoluck UND Blunderluck; ab Werk gilt, was der Baustein als Standard
 nennt (heute Werkstatt, Orange). Welche Welt wie aussieht, zeigt
 `Design\3D-Schrift\final\farbwelten-ansicht.html`. Nicht aus der Welt kommen
 die Bedeutungsfarben (`--gefahr` samt `--gefahr-kante`/`--gefahr-schrift`,
-`--gut`, `--warnung-flaeche`) und die violette Anmeldung.
+`--gut`, `--warnung-flaeche`). Seit 0.15.4 folgt auch die Anmeldung der
+Farbwelt (vorher fest violett).
 
 Die Werte in `css\stil.css` sind nur noch **Rückfall** (falls der Baustein
 fehlt). Dort ist jede Farbe dreimal da: hell (`:root`), dunkel (`@media
@@ -47,10 +48,13 @@ dunkleres Blau). Bis 0.2.1 war Typoluck violett, mit der Begründung „Blau
 trägt Blunderluck, Violett macht die Schwester-App eigen" — das ist
 überholt (`entscheidungen\entschieden.md`).
 
-**Die Anmeldung bleibt violett.** Sie gehört dem Studio UPCrew, nicht dem
-Spiel: `.anmeldung` setzt die Grundfarben für sich neu (Abschnitt
-„Anmeldung" in `css\stil.css`, dreifach wie alle Farben). Ein Dialog über
-der Anmeldung zeigt die Farben der App.
+**Die Anmeldung war bis 0.15.3 fest violett** (sie gehöre dem Studio). Seit
+der Entscheidung vom 26.09.2026 (`Apps\UPCrew\docs\OBERFLAECHE.md`:
+Werkstatt-Orange Standard, Violett nur als Farbwelt „Studio") war das
+überholt; der Nutzer hat es am 27.09.2026 gemeldet („die Farben stimmen
+nicht"). Seit 0.15.4 setzt `.anmeldung` keine eigenen Farben mehr und
+erbt die Farbwelt. Festes Violett ausserhalb der Farbwelten verbietet
+`tests\test-syntax.js`.
 
 ## Tiefe — die Naht für 3D
 

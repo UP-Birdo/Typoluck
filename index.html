@@ -9,6 +9,24 @@
     <title>Typoluck</title>
     <meta name="description" content="Wortspiele mit Freunden — jeden Tag ein neues Wort.">
 
+    <!-- Die Vorschau, wenn jemand den Link teilt (seit 0.15.5; in
+         Blunderluck zeigte das iOS-Teilen-Blatt nur ein leeres graues
+         Text-Symbol). Adressen ABSOLUT — Vorschau-Dienste lösen keine
+         relativen auf. Das Bild (1200 × 630) zeichnet
+         tools\Vorschau-Erzeugen.ps1. Typoluck selbst teilt nirgends
+         (kein navigator.share); das gilt für Links, die jemand von Hand
+         weitergibt. -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="UPCrew">
+    <meta property="og:title" content="Typoluck">
+    <meta property="og:description" content="Wortspiele mit Freunden — jeden Tag ein neues Wort.">
+    <meta property="og:url" content="https://up-birdo.github.io/Typoluck/">
+    <meta property="og:image" content="https://up-birdo.github.io/Typoluck/icons/vorschau.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Typoluck — Wortspiele mit Freunden">
+    <meta name="twitter:card" content="summary_large_image">
+
     <!-- Zeichen der App: nur PNG. Seit 0.8.1 die gerenderten UPCrew-Icons
          aus der Design-Sitzung (Design\3D-Schrift\final\icons, dort
          „vorläufig", kopiert mit Icons-Verteilen.cmd). Das alte icon.svg
@@ -18,6 +36,90 @@
     <link rel="manifest" href="manifest.webmanifest">
     <meta name="theme-color" content="#1f5fa8">
     <meta name="apple-mobile-web-app-title" content="Typoluck">
+
+    <!-- DER NOTFALL-WEG (seit 0.15.4) — steht bewusst ALS ERSTES und direkt
+         in der Seite, damit er auch läuft, wenn keine einzige andere Datei
+         ankommt (weisse Seite am iPhone, 27.09.2026: kein Stil, kein Skript;
+         docs\entscheidungen\erkenntnisse.md). Nach 10 s prüft er: Hat
+         js\app.js gestartet (window.TYPOLUCK_GESTARTET) und gilt der Stil
+         (--rund-klein aus css\stil.css)? Wenn nicht: EINMAL den Service
+         Worker dieses Ordners abmelden, die typoluck-Zwischenspeicher leeren
+         und neu laden. Merker in sessionStorage — höchstens einmal in fünf
+         Minuten, danach nur ein schlichter Link „Neu laden". Die Seite hat
+         keine CSP, ein Skript in der Seite ist erlaubt. -->
+    <script id="notfall">
+        (function () {
+            var MERKER = "typoluck.notfall";
+            var WARTEN_MS = 10000;
+            var SPERRE_MS = 5 * 60 * 1000;
+
+            function stilDa() {
+                try {
+                    return getComputedStyle(document.documentElement).getPropertyValue("--rund-klein").trim() !== "";
+                } catch (fehler) {
+                    return true;
+                }
+            }
+
+            function linkZeigen() {
+                if (!document.body || document.getElementById("notfall-link")) {
+                    return;
+                }
+                var link = document.createElement("a");
+                link.id = "notfall-link";
+                link.href = "./";
+                link.textContent = "Neu laden";
+                link.style.cssText = "display:block;margin:24px;font:600 18px sans-serif";
+                document.body.appendChild(link);
+            }
+
+            function retten() {
+                try {
+                    var zuletzt = Number(window.sessionStorage.getItem(MERKER));
+                    if (zuletzt && Date.now() - zuletzt < SPERRE_MS) {
+                        linkZeigen();
+                        return;
+                    }
+                    window.sessionStorage.setItem(MERKER, String(Date.now()));
+                } catch (fehler) {
+                    linkZeigen();
+                    return;
+                }
+                var ordner = new URL("./", window.location.href).href;
+                var arbeit = [];
+                if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+                    arbeit.push(navigator.serviceWorker.getRegistrations().then(function (liste) {
+                        return Promise.all(liste.filter(function (r) {
+                            return r.scope === ordner;
+                        }).map(function (r) {
+                            return r.unregister();
+                        }));
+                    }));
+                }
+                if (window.caches && window.caches.keys) {
+                    arbeit.push(window.caches.keys().then(function (namen) {
+                        return Promise.all(namen.filter(function (name) {
+                            return name.indexOf("typoluck-") === 0;
+                        }).map(function (name) {
+                            return window.caches.delete(name);
+                        }));
+                    }));
+                }
+                Promise.all(arbeit).catch(function () {
+                    return null;
+                }).then(function () {
+                    window.location.reload();
+                });
+            }
+
+            window.TYPOLUCK_NOTFALL = { retten: retten, stilDa: stilDa };
+            setTimeout(function () {
+                if (window.TYPOLUCK_GESTARTET !== true || !stilDa()) {
+                    retten();
+                }
+            }, WARTEN_MS);
+        })();
+    </script>
 
     <!-- Das Aussehen in drei Teilen. DIE REIHENFOLGE IST DIE KASKADE:
          erst die Grundlagen (Variablen, Knöpfe, Karten), dann die

@@ -114,7 +114,7 @@ const FREUNDE_BILDSCHIRM = {
             const daten = ANMELDUNG.abgleich.daten;
             const gefunden = SPIELER.mitspieler(daten).filter((anderer) =>
                 anderer.id !== ich.id && anderer.name
-                && ANMELDUNG.anzeigeName(anderer).toLowerCase().indexOf(gesucht) !== -1
+                && SPIELER.passtZurSuche(anderer, gesucht)
                 && SPIELER.freundschaft(daten, ich.id, anderer.id) === "keine").slice(0, 20);
 
             if (gefunden.length === 0) {
@@ -143,7 +143,13 @@ const FREUNDE_BILDSCHIRM = {
         name.type = "button";
         name.className = "freunde-name";
         name.appendChild(BAUSTEINE.kreis(spieler.name));
-        name.appendChild(BAUSTEINE.el("span", null, ANMELDUNG.anzeigeName(spieler)));
+        const text = BAUSTEINE.el("span", null, ANMELDUNG.anzeigeName(spieler));
+        /* Die Nummer nur leise und nur bei gleichen Namen (seit 0.15.6). */
+        const nummer = SPIELER.nummerZusatz(ANMELDUNG.abgleich.daten, spieler);
+        if (nummer) {
+            text.appendChild(BAUSTEINE.el("span", "name-nummer", " " + nummer));
+        }
+        name.appendChild(text);
         name.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: spieler.id }));
         zeile.appendChild(name);
 
