@@ -101,6 +101,10 @@ const APP = {
         AUSSEHEN_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid());
         APP._aussehenBeobachten();
 
+        /* Der Fortschritt am Konto (seit 0.15.1, Regel §11b eingespielt):
+           dieselben Leute wie beim Aussehen — nur echte Konten. */
+        FORTSCHRITT_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
+
         /* 3. Bildschirme — die Reihenfolge ist die im Menü hinter den drei
            Balken (seit 0.3.0; wie Blunderluck: Profil zuerst; seit 0.5.0
            Einstellungen als letzter Eintrag). Die Leiste unten führt ihre
@@ -189,6 +193,7 @@ const APP = {
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === "visible") {
                 AUSSEHEN_ABGLEICH.holen();
+                APP._fortschrittHolen();
             }
         });
     },
@@ -221,6 +226,8 @@ const APP = {
         /* Das Aussehen vom Konto (seit 0.8.0): hat ein anderes Gerät
            zuletzt umgestellt, gilt das jetzt auch hier. */
         await AUSSEHEN_ABGLEICH.holen();
+        /* Der Fortschritt vom Konto (seit 0.15.1). */
+        await APP._fortschrittHolen();
 
         const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);
         if (nachgereicht.gesendet > 0) {
@@ -285,7 +292,17 @@ const APP = {
        also auch der von Blunderluck (seit 0.11.0). */
     fortschritt() {
         APP._gastUmzug();
-        return FORTSCHRITT.laden(APP.fortschrittId());
+        /* Seit 0.15.1 mit dem Stand vom Konto (je Zweig der neuere). */
+        return FORTSCHRITT_ABGLEICH.mitKonto(FORTSCHRITT.laden(APP.fortschrittId()));
+    },
+
+    /* Den Fortschritt vom Konto holen; hat sich etwas geändert, neu
+       zeichnen (ausser mitten im Spiel oder in der Sammlung). */
+    async _fortschrittHolen() {
+        const geaendert = await FORTSCHRITT_ABGLEICH.holen();
+        if (geaendert && APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
+            NAVIGATION.auffrischen();
+        }
     },
 
     /* Ein Gast von 0.10.0 stand unter seiner Konto-Id — sein Stand zieht
@@ -328,7 +345,11 @@ const APP = {
         const datum = WORDLE.datumText(APP.jetzt());
         const tagesaufgabe = runde.modus === "tag" && runde.datum === datum;
         APP._gastUmzug();
-        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => FORTSCHRITT.partie(stand, {
+        /* Gerechnet wird mit dem Konto-Stand dazu (Level, Serie, ×1,5 aus
+           Blunderlucks Zweig vom Konto); geschrieben wird nur der eigene
+           Zweig — aufs Gerät, danach ans Konto (seit 0.15.1). */
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => FORTSCHRITT.partie(
+            FORTSCHRITT_ABGLEICH.mitKonto(stand), {
             datum: datum,
             tagesaufgabe: tagesaufgabe,
             figuren: tagesaufgabe ? wertung.figuren : 0,
@@ -339,6 +360,7 @@ const APP = {
             versuche: runde.versuche.length,
             schwer: runde.schwer === true
         }, APP._stufen()));
+        FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
 
         /* Level-Aufstieg und neue Stücke aus Taten (seit 0.13.0) als EINE
            Kurzmeldung — die Namen der Stücke kennt das Sammlungs-Modell. */

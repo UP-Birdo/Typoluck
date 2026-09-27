@@ -3,9 +3,22 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.15.1 — 27.09.2026
+
+**Dein Fortschritt reist mit deinem Konto.**
+
+- Mit UPCrew-Konto liegen Level, XP, Serie und Heute jetzt auch am Konto —
+  auf einem anderen Gerät oder in der App vom Home-Bildschirm siehst du
+  denselben Stand. Beim Start und beim Zurückkehren in die App wird
+  abgeglichen; je Spiel gilt der neuere Stand.
+- Typoluck schreibt dabei nur seinen eigenen Teil; was Blunderluck am Konto
+  hat, bleibt unberührt und zählt beim Level mit.
+- Als Gast bleibt alles wie bisher nur auf diesem Gerät.
+
 ## 0.15.0 — 27.09.2026
 
-**Alle zehn Kachel-Sets sind drin.**
+**Alle zehn Kachel-Sets sind drin.** Live seit 27.09.2026 — zusammen mit
+allem aus 0.11.0 bis 0.14.0, die nie einzeln draussen waren.
 
 - Papier hast du. Leder, Blei, Holz und Neon kommen weiter über ihre Taten.
 - **Neu:** Kreide, Sand, Mitternacht, Kupfer und Glas kommen mit dem
