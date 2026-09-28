@@ -2,6 +2,87 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Die Bibliothek als Doppelseite (28.09.2026, 0.20.0)
+
+Nutzer 28.09.2026 zum Entwurf `Design\3D-Schrift\entwuerfe\
+Bibliothek-Doppelseite\`: „das passt fürs Erste so, fertig machen, damit
+ich hochladen kann". Konzept `Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md`
+Fassung 4.
+- **Version 0.20.0 (MINOR):** neue Bibliothek, ersetzt 6 × 8.
+- **Aus dem Entwurf übernommen:** Schalter Üben · Bibliothek; Buch hochkant
+  als Doppelseite (untere Seite · Falz · obere Seite), Kapitel = eine
+  Doppelseite mit einem Eingang unten und genau einem Ausgang oben;
+  Gabelungen in 2 Spuren, keine Station im Falz (Lage aus dem Entwurf,
+  viewBox 400 × 560); Umblättern nur zwischen Kapiteln (Pfeile, Punkte,
+  Wischen, Klapp-Bewegung); Boss oben im letzten Kapitel; Tinte /
+  punktiert / blass; Initialen und die buchigen Symbole (wörtlich die
+  Pfade); Kapitelzahl römisch, Seitenzahlen, Lesezeichen; Blatt von unten
+  mit Chips; Gabel-Blatt mit zwei Knöpfen (Symbolreihe je Spur); Regal mit
+  Boss-Kopf; Papier/Tinte aus Farbwelt + Themenfarbe, hell/dunkel.
+- **Bewusst NICHT (fürs Erste):** Rast, Fund, Herzen (Platz im Kopf leer),
+  Tinte, Siegel, Lesezeichen-Beigaben, Design-Stücke, Goldene Station,
+  Checkpoint, Level-Weg, neuer Shop, Buch 0 „Erste Seiten", Münzen oben im
+  Kopf. Scheitern = dieselbe Station mit neuem Wort.
+- **Bücher:** 1 Das Bilderlexikon (nur Nomen, alles eintippbar) · 2 Das
+  Tagebuch · 3 Das Kochbuch · 4 Der Reiseführer · 5 Der Krimi · 6 Das
+  Wörterbuch. „Die Farbenlehre" (Konzept Buch 3) ist bewusst NICHT dabei,
+  weil der Titel Adjektive verspricht; ab Buch 2 kommen alle Wörter, nur mit
+  steigender Schwierigkeit (Verb-/Adjektiv-Listen fehlen). Buch n hat
+  n + 2 Kapitel (3 … 8), Kapitel ≈ 5 Level auf dem Weg; Bereiche 8–32,
+  12–38, 18–44, 24–50, 30–56, 36–64 (Konzept §2.2), Breite 8, Elite +8,
+  Boss am oberen Ende. Jeder Bereich hat ≥ 8 Wörter (Test; kleinster: Elite
+  am Ende von Buch 6 mit 18).
+- **Bosse** (nur Regeln, die es gibt; keine Uhr, weil die Anzeige fehlt):
+  Staubwedler — erste Zeile verdeckt · Tintenfresser — Tastatur ohne Grau ·
+  Küchenchefin — harter Modus, 7 Versuche · Zensor — kein Gelb, 7 Versuche,
+  ohne Tipp · Spurenleserin — hart, ohne Grau, ohne Tipp · Archivar — hart,
+  ohne Grau, ohne Tipp, ohne Extra-Leben. **Elite:** Bücherwurm (hart),
+  Eselsohr (erste Zeile verdeckt), ab Buch 3 Staublaus (ohne Grau), ab 4
+  Bleiche (kein Gelb), ab 5 Leseverbot (ohne Tipp/Leben); fest je Station;
+  eine Figur mehr (höchstens 3).
+- **Truhe** 15–30 Münzen (ab Buch 5 25–45), fest je Station, über
+  `UPCREW_MUENZEN.verdienen`. **Händler** −30 % (Tipp 11, Extra-Leben 21,
+  Schild 35): über den Baustein — erst der Nachlass gutgeschrieben, dann
+  regulär gekauft, beides nur, wenn der Kauf klappt (Folge: der Nachlass
+  zählt als „verdient").
+- **Speicher ohne neue Regel (§11b):** Kampf-Stationen
+  `turm.figuren["<buch>-<nr>"]` (1–3), `nr` = laufende Nummer ab **10**
+  (≤ 99 → höchstens 90 Stationen je Buch; heute höchstens 60). Truhe/Händler
+  `turm.schwuere["<buch·100+nr>"] = 1` (Regel: 1–3 Ziffern, 0–3; reicht bis
+  Buch 9) — sie zählen so nicht als Figuren. Weg, aktuelle Station, Buch
+  durch: gerechnet (`BIBLIOTHEK.lauf`). `turm.schwuere` war für eine
+  „Schwur-Halle" vereinbart, die es in Typoluck nicht gibt; mit §12 zieht
+  das in eigene Felder.
+- **Umzug aus 0.18.x:** Alte Schlüssel („b-0" … „b-7") bleiben stehen,
+  zählen weiter als Figuren und stören nichts (neue Nummern ab 10). Wer den
+  alten Boss von Buch 2 oder höher hatte („b-7", b ≥ 2), hat Buch 2 offen.
+  Nicht umgerechnet: Die alten Level passen zu keiner neuen Station.
+
+## Regeln je Runde und Wort-Merkmale (28.09.2026, 0.19.0)
+
+Nutzer 28.09.2026 zum Entwurf „Bibliothek als Doppelseite": „das passt
+fürs Erste so, fertig machen, damit ich hochladen kann". Schritt 1 nach
+`Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md` §9.1.
+- **Version 0.19.0 (MINOR):** neue Fähigkeit des Spiels (Regeln je
+  Runde), auch wenn der Spieler sie erst mit 0.20.0 sieht.
+- Regeln stehen IN der Runde (`runde.regeln`, geprüft über
+  `WORDLE.regelnNormalisieren`, Unsinn = Standard). Ohne `regeln` exakt
+  0.18.5 (Test: Standard-Regeln ergeben dieselbe Bewertung und Tastatur).
+- Die sichtbaren Farben (`bewertungen`, `tastenZustand`) folgen den Regeln,
+  die WERTUNG und das Rangliste-Muster (`muster`) rechnen immer echt.
+- `zeit`: Uhr ab dem ersten Buchstaben; nach Ablauf verliert der nächste
+  Versuch die Runde („Zeit um"), kein Extra-Leben. Eine Uhr-Anzeige gibt
+  es noch nicht — darum nutzt 0.20.0 die Regel `zeit` noch nicht.
+- §9.1 Punkt 4 (Boss ab Buch 4 mit 5 Versuchen) ist seit 0.18.3 überholt:
+  alle Bosse 6; die 6×8-Runde bekommt `regeln: { versuche }` statt `grund`
+  (`grund` bleibt als Rückfall für gespeicherte Runden). Damit folgt die
+  Bibliothek nicht mehr der Einstellung „Schwer-Modus" (Konzept §10 Frage
+  2, Empfehlung: in der Bibliothek gilt nur die Regel der Station).
+- Merkmale (`WORTBEWERTUNG.merkmale`, rein, live): doppelt,
+  nebeneinander, umlaut, sz (ß oder „ss" im Inneren), ie, zwielaut,
+  selten, einVokal, falle (≥ 4 Nachbarn); `passtMerkmale` mit
+  verboten/pflicht.
+
 ## Konto-Formular sagt, was nicht stimmt; Gast-Umzug (28.09.2026, 0.18.5)
 
 Nutzer 28.09.2026 (live in Blunderluck gemeldet): „Wenn man von einem

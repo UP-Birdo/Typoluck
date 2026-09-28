@@ -14,8 +14,13 @@
  *     {
  *         modus:    "tag" | "uebung" | "bibliothek" (seit 0.18.0),
  *         buch, level:  nur "bibliothek" — Buch ab 1, Level ab 0
- *         grund:    Versuche ohne Extra-Leben (seit 0.18.1; fehlt = 6;
- *                   gesetzt nur, wenn ein Level weniger hat, js/bibliothek.js)
+ *         grund:    Versuche ohne Extra-Leben (0.18.1–0.18.5; nur noch als
+ *                   Rückfall gespeicherter Runden gelesen)
+ *         regeln:   seit 0.19.0 wahlfrei — die Regeln DIESER Runde (siehe
+ *                   „DIE REGELN JE RUNDE" unten); fehlt es, gilt alles wie
+ *                   bis 0.18.5 (Tageswort, Üben)
+ *         uhrAb:    seit 0.19.0, nur mit regeln.zeit — Zeitpunkt des ersten
+ *                   Tastendrucks
  *         datum:    "2026-09-24"   (nur beim Tageswort),
  *         nummer:   1              (Rätsel-Nummer, nur beim Tageswort),
  *         loesung:  "abend",
@@ -167,6 +172,96 @@ const WORDLE = {
     },
 
     /* ---------------------------------------------------------------- *
+     * DIE REGELN JE RUNDE (seit 0.19.0; Konzept
+     * Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md §3.8 und §9.1)
+     *
+     * Jede Station der Bibliothek kann ihre Runde anders machen. Die Regeln
+     * stehen IN der Runde (`runde.regeln`), geprüft und begrenzt über
+     * `regelnNormalisieren`. Eine Runde OHNE `regeln` (Tageswort, Üben)
+     * verhält sich exakt wie bis 0.18.5.
+     *
+     *   versuche   4–8 (Standard 6)
+     *   nurEchte   true: nur Wörter der Liste (Standard); false: jede Folge
+     *              aus fünf erlaubten Buchstaben
+     *   hart       Schwer-Modus für DIESE Runde (in der Bibliothek gilt nur
+     *              die Regel der Runde, nicht die Einstellung)
+     *   zeit       0 = aus, sonst 30–300 Sekunden ab dem ersten Tastendruck
+     *              (`uhrStarten`); danach ist die Runde verloren (`raten`
+     *              meldet "zeit")
+     *   ohneTipp   kein Tipp aus dem Vorrat (`tippMoeglich`)
+     *   ohneLeben  kein Extra-Leben (`lebenMoeglich`)
+     *   farben     "normal" | "ohneGelb" (vorhanden zeigt wie falsch) |
+     *              "ersteZeileBlind" (Zeile 1 verdeckt, solange die Runde
+     *              läuft)
+     *   tastatur   "normal" | "ohneGrau" (keine grauen Tasten)
+     * Unsinn wird zum Standard. Die WERTUNG (js/wertung.js) rechnet immer mit
+     * der echten Bewertung.
+     * ---------------------------------------------------------------- */
+
+    REGELN_STANDARD: {
+        versuche: 6, nurEchte: true, hart: false, zeit: 0,
+        ohneTipp: false, ohneLeben: false, farben: "normal", tastatur: "normal"
+    },
+
+    regelnNormalisieren(roh) {
+        const r = (roh && typeof roh === "object" && !Array.isArray(roh)) ? roh : {};
+        const s = WORDLE.REGELN_STANDARD;
+        const zahl = (w) => (typeof w === "number" && isFinite(w)) ? Math.round(w) : NaN;
+        const versuche = zahl(r.versuche);
+        const zeit = zahl(r.zeit);
+        return {
+            versuche: versuche >= 4 && versuche <= 8 ? versuche : s.versuche,
+            nurEchte: r.nurEchte === false ? false : true,
+            hart: r.hart === true,
+            zeit: zeit >= 30 && zeit <= 300 ? zeit : 0,
+            ohneTipp: r.ohneTipp === true,
+            ohneLeben: r.ohneLeben === true,
+            farben: ["ohneGelb", "ersteZeileBlind"].indexOf(r.farben) !== -1 ? r.farben : "normal",
+            tastatur: r.tastatur === "ohneGrau" ? "ohneGrau" : "normal"
+        };
+    },
+
+    /* Die Regeln einer Runde — ohne `regeln` der Standard. */
+    regelnVon(runde) {
+        return (runde && runde.regeln) ? WORDLE.regelnNormalisieren(runde.regeln) : WORDLE.regelnNormalisieren(null);
+    },
+
+    /* Die Uhr (Regel `zeit`): beim ersten Tastendruck starten. Liefert die
+       Runde (neu, wenn gestartet; sonst dieselbe). */
+    uhrStarten(runde, zeitpunkt) {
+        if (!runde || !runde.regeln || !WORDLE.regelnVon(runde).zeit || runde.uhrAb || runde.zustand !== "laeuft") {
+            return runde;
+        }
+        const neu = JSON.parse(JSON.stringify(runde));
+        neu.uhrAb = zeitpunkt || 0;
+        return neu;
+    },
+
+    /* Ist die Zeit abgelaufen? (ohne Regel `zeit` nie) */
+    zeitAbgelaufen(runde, zeitpunkt) {
+        const zeit = WORDLE.regelnVon(runde).zeit;
+        return !!(runde && runde.regeln && zeit && runde.uhrAb && zeitpunkt - runde.uhrAb >= zeit * 1000);
+    },
+
+    /* Restzeit in Sekunden (für eine spätere Anzeige); null ohne Uhr. */
+    restZeit(runde, zeitpunkt) {
+        const zeit = WORDLE.regelnVon(runde).zeit;
+        if (!runde || !runde.regeln || !zeit) {
+            return null;
+        }
+        if (!runde.uhrAb) {
+            return zeit;
+        }
+        return Math.max(0, Math.ceil(zeit - (zeitpunkt - runde.uhrAb) / 1000));
+    },
+
+    /* Darf ein Tipp aus dem Vorrat eingesetzt werden? */
+    tippMoeglich(runde) {
+        return !!runde && runde.zustand === "laeuft" && !WORDLE.regelnVon(runde).ohneTipp
+            && WORDLE.tippStelle(runde) >= 0;
+    },
+
+    /* ---------------------------------------------------------------- *
      * Eine Runde
      * ---------------------------------------------------------------- */
 
@@ -191,17 +286,31 @@ const WORDLE = {
         if (runde.modus === "bibliothek") {
             runde.buch = Number.isInteger(angaben.buch) && angaben.buch > 0 ? angaben.buch : 1;
             runde.level = Number.isInteger(angaben.level) && angaben.level >= 0 ? angaben.level : 0;
-            /* Weniger Versuche (seit 0.18.1, Boss ab Buch 4): 3 bis 6. */
+            /* Weniger Versuche (0.18.1–0.18.5): nur noch Rückfall für
+               gespeicherte Runden; neu kommt es über `regeln.versuche`. */
             if (Number.isInteger(angaben.grund) && angaben.grund >= 3 && angaben.grund < WORDLE.VERSUCHE) {
                 runde.grund = angaben.grund;
+            }
+            if (Number.isInteger(angaben.station) && angaben.station >= 0) {
+                runde.station = angaben.station;
+            }
+        }
+        /* Die Regeln je Runde (seit 0.19.0) — nur, wenn angegeben. */
+        if (angaben.regeln && typeof angaben.regeln === "object") {
+            runde.regeln = WORDLE.regelnNormalisieren(angaben.regeln);
+            if (runde.regeln.hart) {
+                runde.schwer = true;
             }
         }
         return runde;
     },
 
-    /* Die Versuche ohne Extra-Leben: 6, eine Boss-Runde ab Buch 4 hat 5
-       (seit 0.18.1, `grund`). */
+    /* Die Versuche ohne Extra-Leben: `regeln.versuche` (seit 0.19.0), sonst
+       das alte Feld `grund` (gespeicherte Runden 0.18.1–0.18.5), sonst 6. */
     versucheGrund(runde) {
+        if (runde && runde.regeln) {
+            return WORDLE.regelnVon(runde).versuche;
+        }
         return (runde && Number.isInteger(runde.grund)) ? runde.grund : WORDLE.VERSUCHE;
     },
 
@@ -222,6 +331,7 @@ const WORDLE = {
        eingesetzt ist. */
     lebenMoeglich(runde) {
         return !!runde && runde.zustand === "verloren" && runde.extra !== 1
+            && !WORDLE.regelnVon(runde).ohneLeben && !runde.zeitUm
             && runde.versuche.length === WORDLE.versucheGrund(runde);
     },
 
@@ -278,8 +388,16 @@ const WORDLE = {
         const runde = WORDLE.neueRunde({
             modus: roh.modus, datum: roh.datum, nummer: roh.nummer,
             loesung: roh.loesung, zeitpunkt: roh.begonnenAm, schwer: roh.schwer,
-            buch: roh.buch, level: roh.level, grund: roh.grund
+            buch: roh.buch, level: roh.level, grund: roh.grund, station: roh.station,
+            regeln: roh.regeln
         });
+        /* Die Uhr (seit 0.19.0) bleibt, samt „Zeit um". */
+        if (runde.regeln && typeof roh.uhrAb === "number" && roh.uhrAb > 0) {
+            runde.uhrAb = roh.uhrAb;
+        }
+        if (roh.zeitUm === true) {
+            runde.zeitUm = true;
+        }
         runde.extra = roh.extra === 1 ? 1 : 0;
         runde.tipps = (Array.isArray(roh.tipps) ? roh.tipps : [])
             .filter((i, stelle, liste) => Number.isInteger(i) && i >= 0 && i < WORDLE.LAENGE
@@ -293,6 +411,12 @@ const WORDLE = {
         return runde;
     },
 
+    /* Besteht eine Eingabe nur aus Buchstaben des Spiels? (Regel nurEchte:
+       false — dann genügt das.) */
+    _nurBuchstaben(eingabe) {
+        return Array.from(eingabe).every((z) => WORDLE.BUCHSTABEN.indexOf(z) !== -1);
+    },
+
     /*
      * Einen Versuch abgeben. Liefert { runde, fehler }:
      *   fehler ""            angenommen, `runde` ist die neue Runde
@@ -301,7 +425,9 @@ const WORDLE = {
      *   fehler "unbekannt"   kein Wort aus der Liste
      *   fehler "schwer"      Schwer-Modus: ein gefundener Buchstabe fehlt;
      *                        `hinweis` sagt welcher (seit 0.6.0)
-     * Bei einem Fehler ist `runde` unverändert.
+     *   fehler "zeit"        Regel `zeit` (seit 0.19.0): die Zeit ist um —
+     *                        `runde` ist dann die VERLORENE Runde
+     * Bei einem anderen Fehler ist `runde` unverändert.
      */
     raten(runde, wort, zeitpunkt) {
         const eingabe = String(wort || "").toLowerCase();
@@ -309,10 +435,18 @@ const WORDLE = {
         if (runde.zustand !== "laeuft") {
             return { runde: runde, fehler: "vorbei" };
         }
+        if (WORDLE.zeitAbgelaufen(runde, zeitpunkt || 0)) {
+            const um = JSON.parse(JSON.stringify(runde));
+            um.zustand = "verloren";
+            um.zeitUm = true;
+            um.beendetAm = zeitpunkt || 0;
+            return { runde: um, fehler: "zeit" };
+        }
         if (Array.from(eingabe).length !== WORDLE.LAENGE) {
             return { runde: runde, fehler: "zu-kurz" };
         }
-        if (!WORDLE.istErlaubt(eingabe)) {
+        const nurEchte = WORDLE.regelnVon(runde).nurEchte;
+        if (nurEchte ? !WORDLE.istErlaubt(eingabe) : !WORDLE._nurBuchstaben(eingabe)) {
             return { runde: runde, fehler: "unbekannt" };
         }
         if (runde.schwer) {
@@ -508,47 +642,79 @@ const WORDLE = {
             "vorbei": "Runde vorbei",
             "zu-kurz": "Zu kurz",
             "unbekannt": "Unbekanntes Wort",
-            "schwer": "Schwer-Modus"
+            "schwer": "Schwer-Modus",
+            "zeit": "Zeit um"
         }[fehler] || "";
     },
 
-    /* Jede Zeile bewertet — für das Brett. */
+    /* Kachel-Zustand „verdeckt" (Regel farben: ersteZeileBlind, seit 0.19.0). */
+    VERDECKT: "verdeckt",
+
+    /* Jede Zeile bewertet — für das Brett. Seit 0.19.0 wie die Runde sie
+       ZEIGT (Regel `farben`); ohne Regeln die echte Bewertung. */
     bewertungen(runde) {
-        return runde.versuche.map((wort) => WORDLE.bewerten(wort, runde.loesung));
+        const farben = runde.regeln ? WORDLE.regelnVon(runde).farben : "normal";
+        return runde.versuche.map((wort, zeile) => {
+            const echt = WORDLE.bewerten(wort, runde.loesung);
+            if (farben === "ersteZeileBlind" && zeile === 0 && runde.zustand === "laeuft") {
+                return echt.map(() => WORDLE.VERDECKT);
+            }
+            if (farben === "ohneGelb") {
+                return echt.map((w) => (w === WORDLE.VORHANDEN ? WORDLE.FALSCH : w));
+            }
+            return echt;
+        });
     },
 
     /*
      * Der beste bekannte Zustand je Buchstabe — für die Tastatur.
      * Grün schlägt Gelb schlägt Grau: Einmal als richtig erkannt, bleibt ein
      * Buchstabe grün, auch wenn er später an falscher Stelle geraten wird.
+     * Seit 0.19.0 aus dem, was die Runde zeigt (`bewertungen`); verdeckte
+     * Zeilen zählen nicht, Regel `tastatur: "ohneGrau"` zeigt kein Grau.
      */
     tastenZustand(runde) {
         const rang = { falsch: 1, vorhanden: 2, richtig: 3 };
         const zustand = {};
-        runde.versuche.forEach((wort) => {
-            const bewertung = WORDLE.bewerten(wort, runde.loesung);
+        const gezeigt = WORDLE.bewertungen(runde);
+        runde.versuche.forEach((wort, zeile) => {
+            const bewertung = gezeigt[zeile];
             Array.from(wort).forEach((buchstabe, i) => {
+                if (!rang[bewertung[i]]) {
+                    return;
+                }
                 const bisher = zustand[buchstabe];
                 if (!bisher || rang[bewertung[i]] > rang[bisher]) {
                     zustand[buchstabe] = bewertung[i];
                 }
             });
         });
+        if (runde.regeln && WORDLE.regelnVon(runde).tastatur === "ohneGrau") {
+            for (const buchstabe of Object.keys(zustand)) {
+                if (zustand[buchstabe] === WORDLE.FALSCH) {
+                    delete zustand[buchstabe];
+                }
+            }
+        }
         return zustand;
     },
 
     /* Das Muster einer Runde ohne die Buchstaben: je Zeile fünf Zeichen,
        R = richtig, V = vorhanden, F = falsch. So kann die Rangliste zeigen,
-       WIE jemand gelöst hat, ohne das Wort zu verraten. */
+       WIE jemand gelöst hat, ohne das Wort zu verraten. Immer die ECHTE
+       Bewertung (seit 0.19.0 ausdrücklich, unabhängig von Regeln). */
     muster(runde) {
         const zeichen = { richtig: "R", vorhanden: "V", falsch: "F" };
-        return WORDLE.bewertungen(runde).map((zeile) =>
-            zeile.map((wert) => zeichen[wert]).join(""));
+        return runde.versuche.map((wort) => WORDLE.bewerten(wort, runde.loesung)
+            .map((wert) => zeichen[wert]).join(""));
     },
 
     _zustandVon(runde) {
         if (runde.versuche.indexOf(runde.loesung) !== -1) {
             return "gewonnen";
+        }
+        if (runde.zeitUm === true) {
+            return "verloren";
         }
         if (runde.versuche.length >= WORDLE.versucheMax(runde)) {
             return "verloren";

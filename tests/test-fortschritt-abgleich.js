@@ -175,6 +175,16 @@ gleich("Übervoller Stand: besteht trotzdem die Regel", regel11b(kontoVoll), [])
 const tv = kontoVoll.spiele.typoluck;
 pruefe("… ohne umzug und Zusatzfelder", !("umzug" in tv) && !("neuesFeld" in tv));
 gleich("… Bibliothek: nur gültige Figuren (seit 0.18.0)", tv.turm, { figuren: { "1-0": 3, "1-1": 3 } });
+
+/* Seit 0.20.0: die Doppelseiten-Bibliothek (Figuren „Buch-Nr", Merker
+   „Buch·100+Nr" in turm.schwuere) besteht die Regel §11b. */
+const BIB = require("../js/bibliothek.js");
+const gegangen = BIB.gehen(6, 200, "0110").turm;
+const mitBibliothek = { version: 1, spiele: { typoluck: Object.assign(FORTSCHRITT.zweigLeer(), { stand: 3, turm: gegangen }) } };
+const kontoBib = anwenden(null, FORTSCHRITT_ABGLEICH.aenderungen("uid-c", mitBibliothek, 1), "uid-c");
+gleich("Bibliothek (ganzes Buch 6): besteht die Regel §11b", regel11b(kontoBib), []);
+pruefe("… mit Figuren und Merkern", Object.keys(kontoBib.spiele.typoluck.turm.figuren).length > 20
+    && Object.keys(kontoBib.spiele.typoluck.turm.schwuere).length > 3);
 pruefe("… Blunderlucks Zweig wird nicht mitgeschickt", !("blunderluck" in kontoVoll.spiele));
 pruefe("… Listen gekappt (tage/taten ≤ 1000, gezaehlt ≤ 100)",
     tv.tage.length <= 1000 && tv.taten.length <= 1000 && tv.gezaehlt.length <= 100);

@@ -365,7 +365,9 @@ const NAVIGATION = {
      * der Tastatur und Umschaltern (`WISCHEN_SPERREN`, dazu die Sperren des
      * Bausteins: Felder, Regal-Reihen, alles, was selbst waagrecht rollt).
      */
-    WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl",
+    /* Seit 0.20.0 auch das Buch der Bibliothek (dort blättert Wischen
+       die Kapitel) und das Blatt von unten. */
+    WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl, .buch, .bib-blatt-grund",
 
     wischenTabs() {
         return NAVIGATION.LEISTE.map((eintrag) => (eintrag.platzhalter

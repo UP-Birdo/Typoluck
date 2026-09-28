@@ -184,7 +184,7 @@ const PROFIL_BILDSCHIRM = {
             let ortName = spiel.app === "blunderluck" && spiel.ort > 0
                 ? (andere.orte[spiel.ort - 1] || "Ort " + spiel.ort) : "";
             if (spiel.app === "typoluck" && typeof BIBLIOTHEK !== "undefined") {
-                const buch = Math.min(BIBLIOTHEK.erreicht(FORTSCHRITT.turmFiguren(fortschritt)),
+                const buch = Math.min(BIBLIOTHEK.erreicht(FORTSCHRITT.turmStand(fortschritt)),
                     BIBLIOTHEK.anzahlBuecher());
                 ortName = BIBLIOTHEK.NAME + " · Buch " + buch;
             }

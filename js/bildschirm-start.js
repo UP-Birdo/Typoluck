@@ -9,8 +9,9 @@
  *
  * Auf dem Start: Begrüssung, je Spiel eine Kachel mit dem Stand des Tages
  * (offen / angefangen / erledigt) und darunter „Heute bei deinen Freunden".
- * Seit 0.18.0 zwei Arten (js/start-bibliothek.js): Bibliothek (Weg durch
- * das Buch) oder Frei (die Kachel wie bisher).
+ * Seit 0.18.0 zwei Arten (js/start-bibliothek.js), seit 0.20.0 als
+ * Schalter Üben · Bibliothek oben: Bibliothek (das Buch als Doppelseite)
+ * oder Üben (die Kachel wie bisher).
  */
 
 const START = {
@@ -83,7 +84,7 @@ const START = {
             titel: "Start",
             zeichen: "start",
             imMenue: false,
-            zeigen: (behaelter) => START.zeigen(behaelter),
+            zeigen: (behaelter, parameter) => START.zeigen(behaelter, parameter),
             verlassen: () => START._auffrischenAus()
         });
         /* Zurück in den Vordergrund: gleich nachsehen, statt bis zu 30 s
@@ -96,7 +97,19 @@ const START = {
         });
     },
 
-    zeigen(behaelter) {
+    zeigen(behaelter, parameter) {
+        /* Aus einer Bibliothek-Runde zurück (seit 0.20.0): in die Bibliothek,
+           dorthin, wo man steht. */
+        if (parameter && parameter.bibliothek && typeof START.artSetzen === "function") {
+            try {
+                window.localStorage.setItem(START.ART_SCHLUESSEL, "bibliothek");
+            } catch (fehler) {
+                /* egal */
+            }
+            START.buchBlick = null;
+            START.kapBlick = null;
+            START.regalOffen = false;
+        }
         const ich = ANMELDUNG.ich();
         const name = ich ? ich.name : (ICH.person() ? ICH.person().name : "");
 
@@ -119,35 +132,26 @@ const START = {
         behaelter.appendChild(kopf);
 
         /*
-         * DIE ART BESTIMMT DEN OBEREN TEIL (seit 0.18.0, wie Blunderluck
-         * v0.147.0; js/start-bibliothek.js): In der BIBLIOTHEK steht dort
-         * der Weg durch das aktuelle Buch und „Spielen" für das nächste
-         * Level, in FREI wie bisher die Spiel-Kachel (Tageswort, Übung).
-         * Gewählt wird am Quadrat neben „Spielen".
+         * DIE ART BESTIMMT DEN INHALT (seit 0.20.0 über den Schalter
+         * Üben · Bibliothek oben, wie im Entwurf Bibliothek-Doppelseite; von
+         * 0.18.0 bis 0.19.0 am Quadrat neben „Spielen"): BIBLIOTHEK = das
+         * aufgeschlagene Buch (js/start-bibliothek.js), ÜBEN = die
+         * Spiel-Kachel wie bisher (Tageswort, Übung).
          */
         const mitArt = typeof START.art === "function";
+        if (mitArt) {
+            behaelter.appendChild(START._artSchalterBauen());
+        }
         if (mitArt && START.art() === "bibliothek") {
-            behaelter.appendChild(START._bibliothekKarteBauen());
-            behaelter.appendChild(START._bibliothekSpielenBauen());
+            START._bibliothekBauen(behaelter);
         } else {
-            START.SPIELE.forEach((spiel, i) => {
-                const kachel = START._spielKachelBauen(spiel);
-                const reihe = kachel.querySelector(".knopf-reihe");
-                if (mitArt && i === 0 && reihe) {
-                    reihe.appendChild(START._artKnopfBauen());
-                }
-                behaelter.appendChild(kachel);
-            });
+            START.SPIELE.forEach((spiel) => behaelter.appendChild(START._spielKachelBauen(spiel)));
         }
 
         behaelter.appendChild(START._freundeKarteBauen());
         START._freundeLaden(false);
         START._auffrischenAn();
 
-        /* Ein neu erreichtes Buch wird einmal gefeiert (seit 0.18.0). */
-        if (mitArt && START.art() === "bibliothek" && typeof START._neuesBuchPruefen === "function") {
-            START._neuesBuchPruefen();
-        }
     },
 
     /*

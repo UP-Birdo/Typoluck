@@ -52,17 +52,25 @@
  *                                      Stand zum Umziehen; `&schutz` gibt
  *                                      es nicht mehr (Schutz = aus dem
  *                                      Level gerechnet)
- *     &bibliothek=1-0:3,1-1:2          die Bibliothek (seit 0.18.0): Figuren
- *                                      je „Buch-Level" (Level ab 0) im
- *                                      Typoluck-Zweig; &bibliothek=alle-2 =
- *                                      Buch 1 und 2 ganz durch (je 2 Fig.)
- *     &art=frei                        Art des Starts (Vorgabe Bibliothek)
- *     &buch=3                          auf dem Start: dieses Buch ansehen;
- *                                      mit &bildschirm=wordle&modus=
- *                                      bibliothek: Buch der Runde, dazu
- *                                      &level=7 (ab 0; 7 = Boss) und wie
- *                                      beim Tageswort &versuche=
- *     &vs=2-7                          die Vorstellung dieses Levels offen
+ *     &lauf=1:12:01,2:3                die Bibliothek (seit 0.20.0): je Buch
+ *                                      so viele Stationen gegangen, an den
+ *                                      Gabelungen die Spur aus „01…"
+ *                                      (js/bibliothek.js `gehen`); 1:99 =
+ *                                      Buch 1 durch
+ *     &bibliothek=2-7:1                rohe Figuren in turm.figuren (z. B.
+ *                                      alte 0.18.x-Schlüssel für den Umzug)
+ *     &art=ueben                       Art des Starts (Vorgabe Bibliothek)
+ *     &buch=3&kap=2                    auf dem Start: dieses Buch / Kapitel
+ *                                      (ab 1) ansehen; &regal = das Regal;
+ *                                      &blatt=station|gabel|boss = das
+ *                                      Blatt von unten offen. Mit
+ *                                      &bildschirm=wordle&modus=bibliothek:
+ *                                      Buch und &station=12 der Runde, dazu
+ *                                      &versuche=
+ *     &regeln=ohneGelb,hart,versuche7, eine Übungsrunde mit Regeln (seit
+ *       zeit90,nurEchte0,ohneTipp,      0.19.0, js/wordle.js „DIE REGELN JE
+ *       ohneLeben,ersteZeileBlind,      RUNDE"); mit &bildschirm=wordle
+ *       ohneGrau                        &modus=uebung, dazu &versuche=…
  *     &anmeldung&konto=neu             das Formular „Neues UPCrew-Konto"
  *                                      (seit 0.18.5); dazu &eingabe=Name,
  *                                      Passwort,Wiederholung (vorbelegt),
@@ -215,17 +223,31 @@ const WERKSTATT = {
             speicher.setItem(START.ART_SCHLUESSEL, WERKSTATT.wert("art"));
         }
         if (WERKSTATT.wert("buch") && WERKSTATT.wert("bildschirm") !== "wordle") {
-            START.buchBlick = parseInt(WERKSTATT.wert("buch"), 10) || 0;
+            START.buchBlick = parseInt(WERKSTATT.wert("buch"), 10) || null;
+        }
+        if (WERKSTATT.wert("kap")) {
+            START.kapBlick = Math.max(0, (parseInt(WERKSTATT.wert("kap"), 10) || 1) - 1);
+        }
+        if (WERKSTATT._parameter().has("regal")) {
+            START.regalOffen = true;
         }
         const versuche = WERKSTATT.wert("versuche");
-        if (versuche && WERKSTATT.wert("modus") === "bibliothek") {
+        if (WERKSTATT.wert("regeln") !== null && WERKSTATT.wert("modus") === "uebung") {
+            /* Eine Übungsrunde mit Regeln (seit 0.19.0). */
+            let runde = WORDLE.neueRunde({ modus: "uebung", loesung: WORDLE.uebungswort(0.37), zeitpunkt: 1,
+                regeln: WERKSTATT.regelnLesen(WERKSTATT.wert("regeln")) });
+            for (const wort of (versuche || "").split(",").filter((w) => w)) {
+                runde = WORDLE.raten(runde, wort, 2).runde;
+            }
+            ICH.spielstandSetzen("wordle-uebung", runde);
+        } else if (versuche && WERKSTATT.wert("modus") === "bibliothek") {
             /* Eine angefangene Bibliothek-Runde: Wort aus dem Bereich (fest
                gezogen, Mitte der Liste), dann die Versuche. */
             const buch = parseInt(WERKSTATT.wert("buch"), 10) || 1;
-            const level = parseInt(WERKSTATT.wert("level"), 10) || 0;
-            let runde = WORDLE.neueRunde({ modus: "bibliothek", buch: buch, level: level,
-                loesung: BIBLIOTHEK.wortZiehen(buch, level, 0.5, []), zeitpunkt: 1, schwer: schwer,
-                grund: BIBLIOTHEK.versuche(buch, level) });
+            const station = parseInt(WERKSTATT.wert("station"), 10) || BIBLIOTHEK.NR_AB;
+            let runde = WORDLE.neueRunde({ modus: "bibliothek", buch: buch, station: station,
+                loesung: BIBLIOTHEK.wortZiehen(buch, station, 0.5, []), zeitpunkt: 1,
+                regeln: BIBLIOTHEK.regeln(buch, station) || {} });
             for (const wort of versuche.split(",")) {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }
@@ -273,7 +295,7 @@ const WERKSTATT = {
                 zaehler: { partien: Math.floor(zahl("xp") / 12), tagesaufgaben: zahl("serie"),
                     beideTage: 0, figuren: zahl("serie") * 2, besteSerie: zahl("serie") }
             };
-        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten", "bibliothek"].some((name) => parameter.has(name))) {
+        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten", "bibliothek", "lauf"].some((name) => parameter.has(name))) {
             const tage = [];
             let tag = heute;
             for (let i = 0; i < zahl("serie"); i++) {
@@ -289,9 +311,13 @@ const WERKSTATT = {
                 koennenSumme: zweig.partien * 64, koennenAnzahl: zweig.partien,
                 koennenBeste: zweig.partien ? 91 : 0 });
             zweig.taten = (WERKSTATT.wert("taten") || "").split(",").filter((id) => id);
-            const bibliothek = WERKSTATT._bibliothekFiguren(WERKSTATT.wert("bibliothek") || "");
-            if (Object.keys(bibliothek).length) {
-                zweig.turm = { figuren: bibliothek };
+            const turm = { figuren: WERKSTATT._bibliothekFiguren(WERKSTATT.wert("bibliothek") || ""), schwuere: {} };
+            for (const teil of (WERKSTATT.wert("lauf") || "").split(",").filter((t) => t)) {
+                const [b, schritte, wahl] = teil.split(":");
+                BIBLIOTHEK.gehen(parseInt(b, 10) || 1, parseInt(schritte, 10) || 0, wahl || "0", turm);
+            }
+            if (Object.keys(turm.figuren).length || Object.keys(turm.schwuere).length) {
+                zweig.turm = turm;
             }
             const eintrag = { version: FORTSCHRITT.VERSION, spiele: { typoluck: zweig } };
             if (parameter.has("brett") || parameter.has("bxp") || parameter.has("turm")) {
@@ -314,19 +340,31 @@ const WERKSTATT = {
         speicher.setItem(FORTSCHRITT.SCHLUESSEL, JSON.stringify(alle));
     },
 
-    /* `&bibliothek=` lesen: „1-0:3,1-1:2" oder „alle-2" (alle Level der
-       Bücher 1 bis 2 mit je 2 Figuren). */
+    /* `&regeln=` lesen (seit 0.19.0): Liste von Stichworten → Regel-Objekt. */
+    regelnLesen(text) {
+        const regeln = {};
+        for (const teil of String(text || "").split(",").map((t) => t.trim()).filter((t) => t)) {
+            let treffer;
+            if ((treffer = /^versuche(\d+)$/.exec(teil))) {
+                regeln.versuche = Number(treffer[1]);
+            } else if ((treffer = /^zeit(\d+)$/.exec(teil))) {
+                regeln.zeit = Number(treffer[1]);
+            } else if (teil === "nurEchte0") {
+                regeln.nurEchte = false;
+            } else if (["hart", "ohneTipp", "ohneLeben"].indexOf(teil) !== -1) {
+                regeln[teil] = true;
+            } else if (["ohneGelb", "ersteZeileBlind"].indexOf(teil) !== -1) {
+                regeln.farben = teil;
+            } else if (teil === "ohneGrau") {
+                regeln.tastatur = "ohneGrau";
+            }
+        }
+        return regeln;
+    },
+
+    /* `&bibliothek=` lesen: rohe Figuren „1-12:3,2-7:1". */
     _bibliothekFiguren(text) {
         const figuren = {};
-        const alle = /^alle-(\d{1,2})$/.exec(text);
-        if (alle && typeof BIBLIOTHEK !== "undefined") {
-            for (let b = 1; b <= Math.min(Number(alle[1]), BIBLIOTHEK.anzahlBuecher()); b++) {
-                for (let i = 0; i < BIBLIOTHEK.anzahlLevel(b); i++) {
-                    figuren[BIBLIOTHEK.schluessel(b, i)] = 2;
-                }
-            }
-            return figuren;
-        }
         for (const teil of text.split(",")) {
             const [stelle, anzahl] = teil.split(":");
             if (/^\d{1,2}-\d{1,2}$/.test(stelle)) {
@@ -371,7 +409,8 @@ const WERKSTATT = {
             return null;
         }
         return { id: id, parameter: { modus: WERKSTATT.wert("modus") || "tag",
-            buch: parseInt(WERKSTATT.wert("buch"), 10) || 1, level: parseInt(WERKSTATT.wert("level"), 10) || 0 } };
+            buch: parseInt(WERKSTATT.wert("buch"), 10) || 1,
+            station: parseInt(WERKSTATT.wert("station"), 10) || BIBLIOTHEK.NR_AB } };
     },
 
     /* Nach dem ersten Zeigen: Zustände, die man sonst nur mit einem Tipp
@@ -381,9 +420,22 @@ const WERKSTATT = {
         if (WERKSTATT._parameter().has("menue")) {
             NAVIGATION._menueOeffnen();
         }
-        const vs = /^(\d{1,2})-(\d{1,2})$/.exec(WERKSTATT.wert("vs") || "");
-        if (vs && typeof START.vorstellungZeigen === "function") {
-            START.vorstellungZeigen(Number(vs[1]), Number(vs[2]));
+        /* Das Blatt von unten (seit 0.20.0): wartende Station, Gabelung
+           oder der Boss des angesehenen Buchs. */
+        const blatt = WERKSTATT.wert("blatt");
+        if (blatt && NAVIGATION.aktuell === "start" && typeof START.stationBlatt === "function") {
+            const turm = APP.bibliothekStand();
+            const b = START._buchNr();
+            const lauf = BIBLIOTHEK.lauf(turm, b);
+            if (blatt === "boss") {
+                START.stationBlatt(b, BIBLIOTHEK.stationen(b).find((st) => st.art === "b").nr);
+            } else if (blatt === "gabel" && lauf.gabel) {
+                START.gabelBlatt(b, lauf.gabel);
+            } else if (lauf.jetzt !== null) {
+                START.stationBlatt(b, lauf.jetzt);
+            } else if (lauf.gabel) {
+                START.gabelBlatt(b, lauf.gabel);
+            }
         }
         if (WERKSTATT._parameter().has("regel") && NAVIGATION.aktuell === "wordle") {
             WORDLE_BILDSCHIRM._anleitungZeigen();

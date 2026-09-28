@@ -226,6 +226,54 @@ const WORTBEWERTUNG = {
         return anzahl;
     },
 
+    /*
+     * WORT-MERKMALE (seit 0.19.0; Konzept BIBLIOTHEK-UND-BELOHNUNGEN.md
+     * §4.2 und §9.1): rein, live gerechnet, nichts gespeichert. Jede
+     * Station kann Merkmale verbieten oder verlangen (`passtMerkmale`).
+     *   doppelt        ein Buchstabe kommt mehrfach vor (ebene)
+     *   nebeneinander  zwei gleiche Buchstaben direkt hintereinander (kasse)
+     *   umlaut         ä, ö oder ü
+     *   sz             ß oder „ss" im Wortinneren (größe, masse)
+     *   ie             „ie"
+     *   zwielaut       ei, eu, au oder äu
+     *   selten         c, j, q, v, x oder y (quark, jacke)
+     *   einVokal       genau ein verschiedener Vokal aus a/e/i/o/u (klang)
+     *   falle          mindestens FALLEN_VOLL Nachbarn in `loesungen`
+     *                  (nur wenn die Liste angegeben ist, sonst false)
+     */
+    MERKMALE: ["doppelt", "nebeneinander", "umlaut", "sz", "ie", "zwielaut", "selten", "einVokal", "falle"],
+
+    merkmale(wort, loesungen) {
+        const w = String(wort || "").toLowerCase();
+        const z = Array.from(w);
+        const zahl = {};
+        z.forEach((b) => { zahl[b] = (zahl[b] || 0) + 1; });
+        return {
+            doppelt: Object.keys(zahl).some((b) => zahl[b] > 1),
+            nebeneinander: z.some((b, i) => i > 0 && z[i - 1] === b),
+            umlaut: /[äöü]/.test(w),
+            sz: /ß/.test(w) || /.ss./.test(w),
+            ie: /ie/.test(w),
+            zwielaut: /(ei|eu|au|äu)/.test(w),
+            selten: /[cjqvxy]/.test(w),
+            einVokal: WORTBEWERTUNG.vokale(w) === 1,
+            falle: Array.isArray(loesungen) ? WORTBEWERTUNG.nachbarn(w, loesungen) >= WORTBEWERTUNG.FALLEN_VOLL : false
+        };
+    },
+
+    /* Passt ein Wort zu einem Filter { <merkmal>: "verboten" | "pflicht" }?
+       Unbekannte Merkmale und Werte zählen nicht. */
+    passtMerkmale(wort, filter, loesungen) {
+        const f = (filter && typeof filter === "object") ? filter : {};
+        const namen = Object.keys(f).filter((n) => WORTBEWERTUNG.MERKMALE.indexOf(n) !== -1
+            && (f[n] === "verboten" || f[n] === "pflicht"));
+        if (!namen.length) {
+            return true;
+        }
+        const m = WORTBEWERTUNG.merkmale(wort, namen.indexOf("falle") !== -1 ? loesungen : null);
+        return namen.every((n) => (f[n] === "pflicht" ? m[n] === true : m[n] !== true));
+    },
+
     /* Wie oft jeder Buchstabe in den Lösungswörtern vorkommt (Anteil der
        Wörter, die ihn haben). */
     buchstabenAnteile(loesungen) {

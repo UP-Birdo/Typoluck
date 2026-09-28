@@ -370,7 +370,23 @@ const BAUSTEINE = {
         schloss: "M7 11 V8 A5 5 0 0 1 17 8 V11 M5 11 H19 V20 H5 Z",
         auf: "M6 15 L12 9 L18 15",
         ab: "M6 9 L12 15 L18 9",
-        haken: "M5 12.5 L10 17 L19 7"
+        haken: "M5 12.5 L10 17 L19 7",
+        /* Die buchigen Zeichen der Bibliothek-Doppelseite (seit 0.20.0,
+           wörtlich aus dem Entwurf DesignD-Schrift\entwuerfe           Bibliothek-Doppelseite\doppelseite.js): Elite = Bücherwurm im
+           Eselsohr, Truhe = Schatulle, Händler = Antiquar, Boss =
+           versiegelter Band, Gabelung, Regal, Pfeil links, Münze, Tipp. */
+        wurm: "M5 3 H15 L19 7 V21 H5 Z M15 3 V7 H19 M7.5 15 C8.5 12.5 10 12.5 11 15 S13.5 17.5 14.5 15 M15 14.2 H15.2",
+        schatulle: "M3 11 H21 V20 H3 Z M3 11 V8.5 A3.5 3.5 0 0 1 6.5 5 H17.5 A3.5 3.5 0 0 1 21 8.5 V11 M11 13 H13 V16 H11 Z",
+        antiquar: "M3 20 H15 M4 16.5 H14 V20 M5 13 H13 V16.5 M16 4 L21 9 L17 13 L13 9 V4 Z M16.5 7 H16.6",
+        siegelband: "M5 3 H17 A2 2 0 0 1 19 5 V21 H7 A2 2 0 0 1 5 19 Z M5 19 A2 2 0 0 1 7 17 H19 "
+            + "M12 6.5 A3 3 0 1 1 12 12.5 A3 3 0 1 1 12 6.5 M10.8 12.3 L10 15 M13.2 12.3 L14 15",
+        gabel: "M12 21 V13 M12 13 C12 9 7 9 7 4 M12 13 C12 9 17 9 17 4 M5 6 L7 4 L9 6 M15 6 L17 4 L19 6",
+        regal: "M3 4 V20 M21 4 V20 M3 12 H21 M3 20 H21 M6 12 V6 H8.5 V12 M9.5 12 V7 H12 V12 M14 12 L15.5 6.5 L18 7 L16.5 12",
+        links: "M15 5 L8 12 L15 19",
+        muenze: "M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M9 8.5 H14 A2 2 0 0 1 14 12.5 H10 A2 2 0 0 1 10 16.5 H15 "
+            + "M12 6.5 V8.5 M12 16.5 V18",
+        gluehbirne: "M9 18 H15 M10 21 H14 M12 3 A6 6 0 0 1 16 13.5 C15 14.5 15 15.5 15 16 H9 C9 15.5 9 14.5 8 13.5 "
+            + "A6 6 0 0 1 12 3"
     },
 
     zeichen(name) {

@@ -1,609 +1,890 @@
 /*
- * stil-bibliothek.css — die Bibliothek auf dem Start (seit 0.18.0,
- * js/start-bibliothek.js). Nachgebaut nach Blunderlucks Turm
- * (Apps\Blunderluck\css\stil-start.css, „DER TURM AUF DEM START") — mit
- * Typolucks Variablen, Rundungen nur --rund-klein/-mittel/-voll, Schatten
- * nur als harte Kante.
+ * stil-bibliothek.css — die Bibliothek als Doppelseite (seit 0.20.0,
+ * js/start-bibliothek.js). Übertragen aus dem Entwurf
+ * Design\3D-Schrift\entwuerfe\Bibliothek-Doppelseite\doppelseite.css —
+ * mit Typolucks Variablen: Farben aus der Farbwelt (hell/dunkel), wenige
+ * Bedeutungsfarben (Boss rot, Elite bernstein), Rundungen nur
+ * --rund-klein/-mittel/-voll, Schatten nur als harte Kante.
  *
- * Jedes Buch hat eine eigene Farbe (`--buch-farbe`, wie ein Buchrücken).
+ * Das Papier ist aus Karten- und Schriftfarbe gemischt plus 5–6 % der
+ * Themenfarbe des Buchs (--th, setzt das Skript); die Tinte ist die
+ * Themenfarbe mit der Schriftfarbe gemischt.
  */
 
-.bib-buch-1 { --buch-farbe: #c0662f; }
-.bib-buch-2 { --buch-farbe: #2f8a63; }
-.bib-buch-3 { --buch-farbe: #2f6aa8; }
-.bib-buch-4 { --buch-farbe: #9a4a2a; }
-.bib-buch-5 { --buch-farbe: #b8903a; }
-.bib-buch-6 { --buch-farbe: #4a5260; }
+:root {
+    --bib-boss: #d8364a;
+    --bib-boss-kante: #8e1d2c;
+    --bib-elite: #c97c0e;
+    --bib-holz: #8a5a2e;
+    --bib-holz-kante: #4e3016;
+}
 
-/* ------------------------------------------------------------------ *
- * Die Karte mit dem Weg
- * ------------------------------------------------------------------ */
+/* Schalter Üben · Bibliothek */
+.start-art-schalter {
+    display: flex;
+    margin: 0 0 12px;
+}
+
+.start-art-schalter .segment-wahl {
+    flex: 1;
+}
+
+/* ---------------------------------------------------------------- *
+ * Die Buch-Karte
+ * ---------------------------------------------------------------- */
+
+.bib-karte,
+.bib-blatt-grund {
+    --th: var(--haupt);
+    --papier: color-mix(in srgb, var(--th) 6%, color-mix(in srgb, var(--karte) 90%, var(--schrift)));
+    --papier-rand: color-mix(in srgb, var(--th) 14%, var(--rahmen));
+    --tinte: color-mix(in srgb, var(--th) 72%, var(--schrift));
+    --blass: color-mix(in srgb, var(--schrift-leise) 45%, transparent);
+}
+
+:root[data-darstellung="hell"] .bib-karte,
+:root[data-darstellung="hell"] .bib-blatt-grund {
+    --papier: color-mix(in srgb, var(--th) 5%, color-mix(in srgb, var(--karte) 94%, var(--flaeche)));
+    --tinte: color-mix(in srgb, var(--th) 78%, #000);
+}
 
 .bib-karte {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    min-height: 420px;
     margin-bottom: 12px;
-    padding: 12px;
-    border: 2px solid var(--rahmen);
-    border-radius: var(--rund-mittel);
-    background: linear-gradient(180deg,
-        color-mix(in srgb, var(--buch-farbe) 22%, var(--karte)) 0%, var(--karte) 70%);
-    overflow: hidden;
-}
-
-.bib-kopf {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.bib-name {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 14px 4px 4px;
-    background: var(--karte);
-    border: 1px solid var(--rahmen);
-    border-radius: var(--rund-voll);
-}
-
-.bib-nr {
-    min-width: 30px;
-    height: 30px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--rund-klein);
-    background: var(--buch-farbe);
-    color: #fff;
-    font-weight: 800;
-}
-
-.bib-titel {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.1;
-}
-
-.bib-titel-klein {
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--schrift-leise);
-}
-
-.bib-summe {
-    margin-left: auto;
-    margin-right: 40px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: var(--schrift-leise);
-}
-
-.bib-summe .zeichen {
-    width: 18px;
-    height: 18px;
-    color: var(--buch-farbe);
-}
-
-.bib-weg {
-    position: relative;
-    flex: 1 1 auto;
-    min-height: 360px;
-    margin-right: 36px;
-}
-
-.bib-linien {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-}
-
-.bib-linie {
-    fill: none;
-    stroke: var(--rahmen);
-    stroke-width: 3;
-    stroke-linejoin: round;
-    stroke-linecap: round;
-    stroke-dasharray: 2 6;
-    vector-effect: non-scaling-stroke;
-}
-
-.bib-linie-fertig {
-    stroke: var(--buch-farbe);
-    stroke-dasharray: none;
-}
-
-/* Ein Punkt des Wegs — ein flacher Knopf aus BAUSTEINE.knopf, hier ohne
-   die Mindestgrösse des flachen Knopfs (der Kreis darin ist gross genug). */
-.knopf.bib-punkt {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    min-height: 0;
-    padding: 0;
-    border: none;
-    background: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-.bib-kreis {
-    width: 42px;
-    height: 42px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: var(--rund-voll);
-    border: 3px solid var(--rahmen);
-    background: var(--karte);
-    color: var(--schrift);
-    font-weight: 800;
-    font-size: 1rem;
-    box-shadow: 0 4px 0 var(--still-kante);
-}
-
-.bib-kreis .zeichen {
-    width: 22px;
-    height: 22px;
-}
-
-.bib-punkt-fertig .bib-kreis {
-    border-color: var(--buch-farbe);
-    background: var(--buch-farbe);
-    color: #fff;
-}
-
-.bib-punkt-offen .bib-kreis {
-    border-color: var(--buch-farbe);
-}
-
-.bib-punkt-zu .bib-kreis {
-    color: var(--schrift-leise);
-    opacity: 0.7;
-}
-
-.bib-punkt-jetzt .bib-kreis {
-    width: 52px;
-    height: 52px;
-    border-color: var(--haupt);
-    background: var(--haupt);
-    color: var(--haupt-schrift);
-    box-shadow: 0 5px 0 var(--haupt-kante);
-}
-
-.bib-punkt-jetzt .bib-kreis .zeichen {
-    width: 28px;
-    height: 28px;
-}
-
-/* Der Boss: grösser, dunkelrot, mit Maske. */
-.bib-boss .bib-kreis {
-    width: 56px;
-    height: 56px;
-    border-color: #8e1f30;
-    background: #b3263b;
-    color: #fff;
-    box-shadow: 0 5px 0 #6a1523;
-}
-
-.bib-boss .bib-kreis .zeichen {
-    width: 30px;
-    height: 30px;
-}
-
-.bib-boss.bib-punkt-zu .bib-kreis {
-    background: #5a2029;
-    opacity: 1;
-}
-
-.bib-boss.bib-punkt-jetzt .bib-kreis {
-    border-color: var(--haupt);
-}
-
-/* Oben der Buchdeckel — offen, wenn der Boss gelöst ist. */
-.bib-deckel .bib-kreis {
-    width: 48px;
-    height: 40px;
-    border-radius: var(--rund-klein);
-    color: var(--schrift-leise);
-}
-
-.bib-deckel.offen .bib-kreis {
-    border-color: var(--buch-farbe);
-    background: color-mix(in srgb, var(--buch-farbe) 35%, var(--karte));
-    color: var(--schrift);
-}
-
-.bib-punkt .figuren-klein .figur {
-    width: 13px;
-    height: 13px;
-}
-
-.bib-schloss {
-    position: absolute;
-    inset: 32% 8% auto 8%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    padding: 14px;
-    border-radius: var(--rund-mittel);
-    background: var(--karte);
-    border: 1px solid var(--rahmen);
-    color: var(--schrift-leise);
-    font-weight: 700;
-}
-
-.bib-schloss .zeichen {
-    width: 24px;
-    height: 24px;
-}
-
-.bib-blaettern {
-    position: absolute;
-    right: 6px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-}
-
-.knopf.bib-bl {
-    width: 34px;
-    height: 34px;
-    min-width: 0;
-    min-height: 0;
-    padding: 0;
-    background: var(--karte);
-    border: 1px solid var(--rahmen);
-    border-radius: var(--rund-voll);
-}
-
-.knopf.bib-bl:disabled {
-    opacity: 0.35;
-}
-
-.bib-bl-punkte {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.bib-bl-punkte i {
-    width: 7px;
-    height: 7px;
-    border-radius: var(--rund-voll);
-    background: var(--rahmen);
-}
-
-.bib-bl-punkte i.du {
-    background: var(--haupt);
-}
-
-.bib-bl-punkte i.da {
-    outline: 2px solid var(--schrift);
-    outline-offset: 1px;
-}
-
-.bib-zu-dir {
-    position: absolute;
-    left: 12px;
-    bottom: 12px;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .bib-rein-oben .bib-weg {
-        animation: bib-rein-oben 0.3s ease-out;
-    }
-
-    .bib-rein-unten .bib-weg {
-        animation: bib-rein-unten 0.3s ease-out;
-    }
-
-    .bib-punkt-jetzt .bib-kreis {
-        animation: bib-atmen 1.8s ease-in-out infinite;
-    }
-}
-
-@keyframes bib-rein-oben {
-    from {
-        opacity: 0;
-        transform: translateY(-30px);
-    }
-}
-
-@keyframes bib-rein-unten {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-}
-
-@keyframes bib-atmen {
-    50% {
-        transform: scale(1.06);
-    }
-}
-
-/* ------------------------------------------------------------------ *
- * „Spielen" und das Quadrat der Art (wie Blunderluck: Spielen breit,
- * rechts das Quadrat, die Wahl klappt nach OBEN auf)
- * ------------------------------------------------------------------ */
-
-.start-spielen-zeile {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 16px;
-}
-
-.start-spielen {
-    flex: 1 1 auto;
-    min-height: 64px;
-    flex-direction: column;
-    gap: 0;
-    font-size: 1.15rem;
-}
-
-.start-spielen-unter {
-    font-size: 0.78rem;
-    font-weight: 600;
-    opacity: 0.85;
-}
-
-.start-art-halter {
-    position: relative;
-    flex: 0 0 64px;
-    display: flex;
-}
-
-.knopf-reihe .start-art-halter {
-    flex-basis: 56px;
-}
-
-.start-art-knopf {
-    width: 100%;
-    height: 100%;
-    min-height: 56px;
-    flex-direction: column;
-    gap: 0;
-}
-
-.start-art-knopf .zeichen-auf {
-    width: 14px;
-    height: 14px;
-    opacity: 0.6;
-}
-
-.start-art-menue {
-    position: absolute;
-    right: 0;
-    bottom: calc(100% + 8px);
-    z-index: var(--ebene-menue);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 180px;
-    padding: 6px;
+    padding: 10px 10px 12px;
     background: var(--karte);
     border: 1px solid var(--rahmen);
     border-radius: var(--rund-mittel);
     box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
 }
 
-.start-art-menue .knopf-menue[aria-checked="true"] {
+.bib-kopf {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px 8px;
+}
+
+.bib-nr {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--rund-klein);
+    background: var(--th);
+    color: #fff;
+    font-weight: 900;
+    box-shadow: 0 3px 0 color-mix(in srgb, var(--th) 60%, #000);
+}
+
+.bib-titel {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: 800;
+    font-size: 1.02rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.knopf.bib-regal-knopf {
+    width: 40px;
+    height: 40px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
     background: var(--karte-leise);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-klein);
+}
+
+.bib-leiste {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 2px 8px;
+}
+
+/* Platz der Herzen: kommen später — bis dahin leer, hält nur die Mitte. */
+.bib-herzen-platz {
+    width: 56px;
+}
+
+.bib-kap-punkte {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.knopf.bib-kap-punkt {
+    width: 10px;
+    height: 10px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: none;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+}
+
+.knopf.bib-kap-punkt.geschafft {
+    background: color-mix(in srgb, var(--th) 60%, var(--karte-leise));
+}
+
+.knopf.bib-kap-punkt.boss {
+    border-radius: var(--rund-klein);
+    background: color-mix(in srgb, var(--bib-boss) 55%, var(--karte-leise));
+}
+
+.knopf.bib-kap-punkt.an {
+    width: 22px;
+    border-radius: var(--rund-voll);
+    background: var(--haupt);
+}
+
+.bib-boss-in {
+    width: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 3px;
+    color: var(--bib-boss);
+    font-weight: 900;
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.bib-boss-in .zeichen {
+    width: 18px;
+    height: 18px;
+}
+
+/* ---------------------------------------------------------------- *
+ * Das aufgeschlagene Buch (hochkant: untere Seite · Falz · obere Seite)
+ * ---------------------------------------------------------------- */
+
+.buch {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 400 / 560;
+    perspective: 1400px;
+    touch-action: pan-y;
+}
+
+.buch-seite {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: calc(50% - 4px);
+    background: var(--papier);
+    border: 1px solid var(--papier-rand);
+}
+
+.buch-seite.oben {
+    top: 0;
+    border-radius: var(--rund-mittel) var(--rund-mittel) 4px 4px;
+    box-shadow: 0 -2px 0 var(--papier-rand), 0 -4px 0 color-mix(in srgb, var(--papier-rand) 60%, transparent);
+}
+
+.buch-seite.unten {
+    bottom: 0;
+    border-radius: 4px 4px var(--rund-mittel) var(--rund-mittel);
+    box-shadow: 0 2px 0 var(--papier-rand), 0 4px 0 color-mix(in srgb, var(--papier-rand) 60%, transparent);
+}
+
+.falz {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: calc(50% - 4px);
+    height: 8px;
+    border-radius: var(--rund-klein);
+    background: color-mix(in srgb, var(--papier-rand) 70%, #000 12%);
+}
+
+/* Themen: dezent */
+.bib-stil-lexikon .buch-seite::before {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border: 1px solid color-mix(in srgb, var(--th) 22%, transparent);
+    border-radius: var(--rund-klein);
+    pointer-events: none;
+}
+
+.bib-stil-tagebuch .buch-seite,
+.bib-stil-krimi .buch-seite {
+    background: repeating-linear-gradient(0deg, transparent 0 21px,
+        color-mix(in srgb, var(--th) 12%, transparent) 21px 22px), var(--papier);
+}
+
+.bib-stil-tagebuch .buch-seite::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 30px;
+    width: 1px;
+    background: color-mix(in srgb, var(--bib-boss) 28%, transparent);
+}
+
+.bib-stil-kochbuch .buch-seite,
+.bib-stil-reise .buch-seite {
+    background: radial-gradient(circle at 12% 18%, color-mix(in srgb, var(--th) 10%, transparent) 0 30px, transparent 31px),
+        radial-gradient(circle at 88% 76%, color-mix(in srgb, var(--th) 9%, transparent) 0 36px, transparent 37px),
+        var(--papier);
+}
+
+.bib-stil-woerterbuch .buch-seite::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 2px double color-mix(in srgb, var(--th) 26%, transparent);
+    border-radius: var(--rund-klein);
+    pointer-events: none;
+}
+
+.kapitel-zahl {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    z-index: 3;
+    color: color-mix(in srgb, var(--tinte) 70%, transparent);
+    font-weight: 900;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+}
+
+.seitenzahl {
+    position: absolute;
+    right: 14px;
+    z-index: 3;
+    color: color-mix(in srgb, var(--tinte) 55%, transparent);
+    font-size: 0.68rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
 }
 
-.start-art-haken {
-    margin-left: auto;
-    color: var(--haupt);
+.seitenzahl-oben {
+    top: 10px;
 }
 
-/* ------------------------------------------------------------------ *
- * Die Vorstellung vor dem Level (wie Blunderlucks „VS"): oben Buch und
- * Level, beim Boss dunkelrot mit „BOSS" und kurzem Beben.
- * ------------------------------------------------------------------ */
+.seitenzahl-unten {
+    bottom: 10px;
+}
 
-.bib-vs {
+.lesezeichen {
+    position: absolute;
+    top: -5px;
+    right: 34px;
+    z-index: 6;
+    width: 14px;
+    height: 50px;
+    background: var(--haupt);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 82%, 0 100%);
+}
+
+svg.pfad {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.pf {
+    fill: none;
+    stroke-linecap: round;
+}
+
+.pf-weg {
+    stroke: var(--tinte);
+    stroke-width: 4.5;
+}
+
+.pf-offen {
+    stroke: var(--tinte);
+    stroke-width: 2.4;
+    stroke-dasharray: 2 7;
+}
+
+.pf-blass {
+    stroke: var(--blass);
+    stroke-width: 1.6;
+    stroke-dasharray: 1 8;
+}
+
+/* Stationen (flache Knöpfe aus BAUSTEINE.knopf, hier in Buch-Form) */
+.st {
+    position: absolute;
+    z-index: 4;
+    transform: translate(-50%, -50%);
+    display: grid;
+    place-items: center;
+    width: 12%;
+    min-width: 40px;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 2px solid var(--blass);
+    border-radius: var(--rund-voll);
+    background: var(--papier);
+    color: var(--schrift-leise);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--papier-rand) 80%, #000 10%);
+}
+
+.knopf.st {
+    min-height: 0;
+    padding: 0;
+    border: 2px solid var(--blass);
+    border-radius: var(--rund-voll);
+    background: var(--papier);
+    color: var(--schrift-leise);
+}
+
+/* Das Symbol füllt gut die Hälfte der Station (Grösse des Behälters;
+   Prozent greift im Raster nicht). */
+.st {
+    container-type: inline-size;
+}
+
+.st .zeichen,
+.knopf.st .zeichen {
+    width: 58cqi;
+    height: 58cqi;
+    stroke-width: 1.8;
+}
+
+.st .ini {
+    font-size: max(1.1rem, 42cqi);
+}
+
+.st .ini {
+    font-family: Georgia, "Times New Roman", serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.st.st-w,
+.knopf.st.st-w {
+    border-radius: var(--rund-klein);
+}
+
+.st.moeglich,
+.st.wahl,
+.knopf.st.moeglich,
+.knopf.st.wahl {
+    border-color: var(--tinte);
+    color: var(--tinte);
+}
+
+.st.fertig,
+.knopf.st.fertig {
+    border-color: var(--tinte);
+    background: var(--tinte);
+    color: var(--papier);
+}
+
+.st.blass,
+.knopf.st.blass {
+    opacity: 0.35;
+    box-shadow: none;
+}
+
+.st.jetzt,
+.knopf.st.jetzt {
+    z-index: 5;
+    width: 14%;
+    border: 3px solid var(--haupt);
+    background: var(--papier);
+    color: var(--tinte);
+}
+
+.st.wahl,
+.knopf.st.wahl {
+    border-width: 3px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .st.jetzt,
+    .st.wahl {
+        animation: bib-puls 1.8s ease-in-out infinite;
+    }
+}
+
+@keyframes bib-puls {
+    50% {
+        box-shadow: 0 0 0 7px color-mix(in srgb, var(--haupt) 28%, transparent);
+    }
+}
+
+.st.st-e,
+.knopf.st.st-e {
+    border-color: var(--bib-elite);
+    border-radius: var(--rund-klein);
+    color: var(--bib-elite);
+}
+
+.st.st-e.fertig,
+.knopf.st.st-e.fertig {
+    background: var(--bib-elite);
+    color: #221300;
+}
+
+.st.st-b,
+.knopf.st.st-b {
+    width: 17%;
+    border: 3px solid var(--bib-boss);
+    border-radius: var(--rund-mittel);
+    color: var(--bib-boss);
+}
+
+.st.st-b.fertig,
+.knopf.st.st-b.fertig {
+    background: var(--bib-boss);
+    color: #fff;
+}
+
+.st.st-ein,
+.st.st-aus {
+    width: 5%;
+    min-width: 16px;
+    border: 0;
+    background: var(--tinte);
+    box-shadow: none;
+}
+
+.st.st-ein.moeglich,
+.st.st-aus.moeglich {
+    opacity: 0.55;
+}
+
+.st.st-aus.blass {
+    opacity: 0.3;
+}
+
+.st-schloss {
+    position: absolute;
+    right: -7px;
+    bottom: -7px;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--rund-voll);
+    background: var(--bib-boss);
+    color: #fff;
+}
+
+.st-schloss .zeichen {
+    width: 12px;
+    height: 12px;
+}
+
+/* Umblättern: die obere Seite klappt über den Falz */
+.umblatt {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 7;
+    height: calc(50% - 4px);
+    background: var(--papier);
+    border: 1px solid var(--papier-rand);
+    pointer-events: none;
+    backface-visibility: hidden;
+}
+
+.umblatt.vor {
+    top: 0;
+    border-radius: var(--rund-mittel) var(--rund-mittel) 4px 4px;
+    transform-origin: center calc(100% + 4px);
+    animation: bib-klapp-vor 0.28s ease-in forwards;
+}
+
+.umblatt.zurueck {
+    bottom: 0;
+    border-radius: 4px 4px var(--rund-mittel) var(--rund-mittel);
+    transform-origin: center -4px;
+    animation: bib-klapp-zur 0.28s ease-in forwards;
+}
+
+@keyframes bib-klapp-vor {
+    to {
+        transform: rotateX(-180deg);
+    }
+}
+
+@keyframes bib-klapp-zur {
+    to {
+        transform: rotateX(180deg);
+    }
+}
+
+/* Unter dem Buch: ‹ Spielen › */
+.bib-spiel-reihe {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 16px;
+}
+
+.bib-spiel-reihe > .knopf:not(.bib-spielen) {
+    flex: none;
+}
+
+.knopf.bib-spielen {
+    flex: 1;
+    min-height: 56px;
+    font-size: 1.05rem;
+}
+
+/* ---------------------------------------------------------------- *
+ * Das Blatt von unten
+ * ---------------------------------------------------------------- */
+
+.bib-blatt-grund {
     position: fixed;
     inset: 0;
     z-index: var(--ebene-vollbild);
     display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: max(32px, var(--oben-frei, 0px)) 20px max(28px, env(safe-area-inset-bottom, 0px));
-    background: linear-gradient(180deg,
-        color-mix(in srgb, var(--buch-farbe) 60%, #111) 0%, #15171c 55%, var(--flaeche) 100%);
-    color: #fff;
-    opacity: 0;
-    transition: opacity 0.22s ease;
-}
-
-.bib-vs.da {
-    opacity: 1;
-}
-
-.bib-vs-boss {
-    background: linear-gradient(180deg, #5a0f1b 0%, #1a0508 60%, var(--flaeche) 100%);
-}
-
-.bib-vs-oben,
-.bib-vs-unten {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    text-align: center;
-    transition: transform 0.35s ease-out;
-}
-
-.bib-vs-oben {
-    transform: translateY(-40px);
-}
-
-.bib-vs-unten {
-    transform: translateY(40px);
-    color: var(--schrift);
-}
-
-.bib-vs.da .bib-vs-oben,
-.bib-vs.da .bib-vs-unten {
-    transform: none;
-}
-
-.bib-vs-lage {
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    opacity: 0.85;
-}
-
-.bib-vs-bosswort {
-    font-size: 2.2rem;
-    font-weight: 900;
-    letter-spacing: 0.12em;
-    color: #ff5a6a;
-}
-
-.bib-vs-bild {
-    width: 96px;
-    height: 96px;
-    display: inline-flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: center;
-    border-radius: var(--rund-mittel);
-    background: color-mix(in srgb, var(--buch-farbe) 70%, #000);
-    border: 3px solid rgb(255 255 255 / 0.5);
+    background: rgb(0 0 0 / 0.45);
 }
 
-.bib-vs-boss .bib-vs-bild {
-    border-radius: var(--rund-voll);
-    background: #8e1f30;
-    border-color: #ff5a6a;
-}
-
-.bib-vs-bild .zeichen {
-    width: 56px;
-    height: 56px;
-}
-
-.bib-vs-name {
-    font-size: 1.5rem;
-}
-
-.bib-vs-eigen {
-    padding: 4px 12px;
-    border-radius: var(--rund-voll);
-    background: rgb(255 255 255 / 0.15);
-    font-weight: 700;
-}
-
-/* Die Versuche des Levels (seit 0.18.1); weniger als sonst: rot. */
-.bib-vs-versuche {
-    font-weight: 800;
-    font-size: 1.05rem;
-    opacity: 0.9;
-}
-
-.bib-vs-versuche.weniger {
-    padding: 4px 14px;
-    border-radius: var(--rund-voll);
-    background: #b3263b;
-    color: #fff;
-    opacity: 1;
-}
-
-.bib-vs-knoepfe {
-    display: flex;
-    gap: 10px;
+.bib-blatt {
     width: 100%;
-    max-width: 420px;
-}
-
-.bib-vs-knoepfe .knopf {
-    flex: 1 1 0;
-}
-
-.bib-vs-los {
-    flex-grow: 2;
+    max-width: var(--inhalt-breite);
+    max-height: 80%;
+    overflow-y: auto;
+    padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    background: var(--karte);
+    border-top: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel) var(--rund-mittel) 0 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    .bib-vs-boss.da .bib-vs-oben {
-        animation: bib-beben 0.45s ease-in-out 0.3s;
+    .bib-blatt {
+        animation: bib-hoch 220ms ease-out;
     }
 }
 
-@keyframes bib-beben {
-    20% { transform: translateX(-6px); }
-    40% { transform: translateX(6px); }
-    60% { transform: translateX(-4px); }
-    80% { transform: translateX(4px); }
+@keyframes bib-hoch {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
 }
 
-/* Das Banner „Neues Buch" oben. */
-.bib-banner {
-    position: fixed;
-    left: 50%;
-    top: calc(var(--oben-frei, 0px) + 16px);
-    z-index: var(--ebene-kurzmeldung);
-    transform: translateX(-50%);
+.bib-griff {
+    width: 42px;
+    height: 5px;
+    margin: 0 auto 12px;
+    border-radius: var(--rund-voll);
+    background: var(--rahmen);
+}
+
+.bib-blatt-kopf {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.bib-blatt-kopf h2 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.st.bib-blatt-bild {
+    position: relative;
+    transform: none;
+    width: 52px;
+    min-width: 52px;
+    animation: none;
+    box-shadow: none;
+}
+
+.bib-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.bib-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.bib-chip.warn {
+    background: color-mix(in srgb, var(--bib-boss) 22%, transparent);
+}
+
+.bib-blatt-figuren {
+    margin-top: 10px;
+}
+
+.bib-blatt-hinweis {
+    margin: 10px 0 0;
+    color: var(--schrift-leise);
+}
+
+.bib-blatt-knoepfe {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.bib-blatt-knoepfe > .knopf {
+    flex: 1;
+}
+
+.bib-wahl {
+    display: grid;
+    gap: 8px;
+}
+
+.bib-wahl-drei {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.bib-fach {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte-leise);
+    font-size: 1.3rem;
+}
+
+.bib-fach .zeichen {
+    width: 28px;
+    height: 28px;
+    color: var(--haupt);
+}
+
+.knopf.bib-ware {
+    display: grid;
+    justify-items: center;
+    gap: 4px;
+    min-height: 0;
+    padding: 12px 6px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte-leise);
+}
+
+.knopf.bib-ware .zeichen {
+    width: 26px;
+    height: 26px;
+    color: var(--haupt);
+}
+
+.bib-ware-name {
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.bib-preis {
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.bib-preis s {
+    color: var(--schrift-leise);
+}
+
+.bib-gabel-wahl {
+    display: grid;
+    gap: 8px;
+}
+
+.knopf.bib-gabel-knopf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 60px;
+    padding: 10px 8px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte-leise);
+}
+
+.bib-spur {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    margin-right: 4px;
+    border-radius: var(--rund-voll);
+    background: var(--karte);
+    color: var(--schrift-leise);
+}
+
+.bib-spur .zeichen {
+    width: 16px;
+    height: 16px;
+}
+
+.st.bib-klein {
+    position: relative;
+    transform: none;
+    width: 40px;
+    min-width: 40px;
+    box-shadow: none;
+    animation: none;
+}
+
+.bib-pfeil {
+    color: var(--schrift-leise);
+    font-weight: 900;
+}
+
+/* ---------------------------------------------------------------- *
+ * Das Regal
+ * ---------------------------------------------------------------- */
+
+.bib-regal-kopf {
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 0 8px;
+}
+
+.bib-regal {
+    margin-bottom: 16px;
+    padding: 20px 10px 4px;
+    background: color-mix(in srgb, var(--bib-holz) 22%, var(--karte));
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+}
+
+.bib-brett {
+    margin-bottom: 12px;
+}
+
+.bib-brett-buecher {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    min-height: 176px;
+    padding: 0 6px;
+}
+
+.bib-brett-holz {
+    height: 12px;
+    border-radius: var(--rund-klein);
+    background: var(--bib-holz);
+    box-shadow: 0 4px 0 var(--bib-holz-kante);
+}
+
+.knopf.bib-ruecken {
+    position: relative;
+    flex: none;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 10px 22px;
-    border-radius: var(--rund-mittel);
-    background: var(--buch-farbe);
+    justify-content: flex-start;
+    gap: 6px;
+    width: 40px;
+    min-width: 0;
+    padding: 8px 0 28px;
+    border: none;
+    border-radius: var(--rund-klein) var(--rund-klein) 2px 2px;
+    background: linear-gradient(90deg, rgb(0 0 0 / 0.25), transparent 30%, rgb(255 255 255 / 0.12) 55%, rgb(0 0 0 / 0.2)),
+        var(--b-farbe);
     color: #fff;
-    box-shadow: 0 4px 0 color-mix(in srgb, var(--buch-farbe) 60%, #000);
-    transition: opacity 0.4s ease;
+    box-shadow: inset 0 6px 0 rgb(255 255 255 / 0.15), inset 0 -8px 0 rgb(0 0 0 / 0.18);
 }
 
-.bib-banner.weg {
-    opacity: 0;
+.bib-r-nr {
+    font-weight: 900;
+    font-size: 0.8rem;
 }
 
-.bib-banner-klein {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+.bib-r-titel {
+    max-height: 110px;
+    overflow: hidden;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-weight: 800;
+    font-size: 0.62rem;
+    white-space: nowrap;
+}
+
+.bib-r-zeichen {
+    position: absolute;
+    bottom: 7px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.bib-r-zeichen .zeichen {
+    width: 14px;
+    height: 14px;
+}
+
+.knopf.bib-ruecken.zu {
+    filter: saturate(0.25) brightness(0.6);
+}
+
+.knopf.bib-ruecken.jetzt {
+    transform: translateY(-14px);
+    box-shadow: 0 0 0 3px var(--haupt), 0 6px 0 var(--haupt-kante);
+}
+
+.knopf.bib-gegner-kopf {
+    flex: none;
+    align-self: flex-end;
+    width: 54px;
+    height: 54px;
+    min-width: 0;
+    min-height: 0;
+    margin: 0 2px 0 4px;
+    padding: 0;
+    border: 3px solid #ff6b7d;
+    border-radius: var(--rund-mittel);
+    background: var(--bib-boss);
+    color: #fff;
+    box-shadow: 0 4px 0 var(--bib-boss-kante);
+}
+
+.knopf.bib-gegner-kopf .zeichen {
+    width: 30px;
+    height: 30px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .knopf.bib-gegner-kopf {
+        animation: bib-wippen 2.2s ease-in-out infinite;
+    }
+}
+
+@keyframes bib-wippen {
+    50% {
+        transform: translateY(-4px) rotate(-4deg);
+    }
+}
+
+/* Wer weniger Bewegung will: nichts klappt, nichts gleitet. */
+@media (prefers-reduced-motion: reduce) {
+    .umblatt {
+        display: none;
+    }
 }
 
 /* Die Kopfzeile einer Boss-Runde (js/bildschirm-wordle.js). */
 .kopfzeile-boss .kopfzeile-titel {
     color: var(--gefahr);
-}
-
-/* Wer weniger Bewegung will: die Vorstellung ohne Gleiten und Blenden. */
-@media (prefers-reduced-motion: reduce) {
-    .bib-vs,
-    .bib-vs-oben,
-    .bib-vs-unten {
-        transition: none;
-    }
-}
-
-/* In Frei steht das Quadrat in der Knopf-Reihe der Spiel-Kachel — in
-   derselben Zeile wie „Spielen" und „Übung", nie darunter. */
-.knopf-reihe:has(.start-art-halter) {
-    flex-wrap: nowrap;
-}
-
-.knopf-reihe .start-art-knopf {
-    min-height: 48px;
 }

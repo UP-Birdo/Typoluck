@@ -431,14 +431,75 @@ const APP = {
        null (seit 0.18.0). */
     _bibliothekAngaben(runde, wertung) {
         if (!runde || runde.modus !== "bibliothek" || typeof BIBLIOTHEK === "undefined"
-                || !BIBLIOTHEK.buch(runde.buch)) {
+                || !Number.isInteger(runde.station)) {
             return null;
         }
+        const st = BIBLIOTHEK.station(runde.buch, runde.station);
+        if (!st) {
+            return null;
+        }
+        /* Seit 0.20.0 je Station (Schlüssel „Buch-Nr", Nr ab 10); Elite
+           eine Figur mehr (js/bibliothek.js figurenFuer). */
         return {
-            schluessel: BIBLIOTHEK.schluessel(runde.buch, runde.level),
+            schluessel: st.schluessel,
             figuren: BIBLIOTHEK.figurenFuer(runde.zustand === "gewonnen", wertung.figuren,
-                WORDLE.hilfeGenutzt(runde))
+                WORDLE.hilfeGenutzt(runde), st.art)
         };
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Die Bibliothek (seit 0.20.0, js/bibliothek.js): Stand, Truhe,
+     * Händler — geschrieben nur über den Fortschritt (Gerät + Konto)
+     * ---------------------------------------------------------------- */
+
+    bibliothekStand() {
+        return FORTSCHRITT.turmStand(APP.fortschritt());
+    },
+
+    /* Eine Station ohne Figuren betreten (Truhe öffnen: `muenzen` > 0;
+       Händler verlassen: 0). Liefert true, wenn neu gemerkt. */
+    stationMerken(buch, nr, muenzen) {
+        const schluessel = BIBLIOTHEK.merkerSchluessel(buch, nr);
+        if (BIBLIOTHEK.erledigt(APP.bibliothekStand(), buch, nr)) {
+            return false;
+        }
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+            let neu = FORTSCHRITT.stationMerken(FORTSCHRITT_ABGLEICH.mitKonto(stand), schluessel, Date.now());
+            if (muenzen > 0 && typeof UPCREW_MUENZEN !== "undefined") {
+                neu = UPCREW_MUENZEN.verdienen(neu, FORTSCHRITT.APP, muenzen, Date.now());
+            }
+            return { stand: neu };
+        });
+        FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        APP._flammeAktualisieren();
+        return true;
+    },
+
+    /* Beim Händler kaufen: Shop-Ware mit RABATT. Über den Baustein: erst der
+       Nachlass gutgeschrieben, dann regulär gekauft — nur wenn der Kauf
+       klappt, gilt beides (so bleibt die Rechnung im Baustein). */
+    haendlerKaufen(ware) {
+        if (typeof UPCREW_MUENZEN === "undefined" || !UPCREW_MUENZEN.WAREN[ware]) {
+            return { ok: false, grund: "unbekannt" };
+        }
+        const preis = UPCREW_MUENZEN.WAREN[ware].preis;
+        const nachlass = preis - BIBLIOTHEK.haendlerPreis(preis);
+        let r = { ok: false, grund: "" };
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+            const basis = FORTSCHRITT_ABGLEICH.mitKonto(stand);
+            if (UPCREW_MUENZEN.anzeige(basis) < preis - nachlass) {
+                r = { ok: false, grund: "zuWenig" };
+                return { stand: basis };
+            }
+            r = UPCREW_MUENZEN.kaufen(UPCREW_MUENZEN.verdienen(basis, FORTSCHRITT.APP, nachlass, Date.now()),
+                FORTSCHRITT.APP, ware, Date.now());
+            return { stand: r.ok ? r.stand : basis };
+        });
+        if (r.ok) {
+            FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+            APP._flammeAktualisieren();
+        }
+        return { ok: r.ok, grund: r.grund };
     },
 
     muenzenFuerRunde(vorher, ergebnis, runde, tagesaufgabe, datum) {
@@ -457,13 +518,13 @@ const APP = {
         }
         /* Die Bibliothek (seit 0.18.0, wie Blunderlucks Turm): je neue Figur
            eines Levels, beim ersten gelösten Boss eines Buchs dazu der Boss. */
-        if (runde.modus === "bibliothek" && typeof BIBLIOTHEK !== "undefined") {
-            const schluessel = BIBLIOTHEK.schluessel(runde.buch, runde.level);
+        if (runde.modus === "bibliothek" && typeof BIBLIOTHEK !== "undefined" && Number.isInteger(runde.station)) {
+            const schluessel = runde.buch + "-" + runde.station;
             const alt = FORTSCHRITT.turmFiguren(vorher)[schluessel] || 0;
             const neu = FORTSCHRITT.turmFiguren(ergebnis.stand)[schluessel] || 0;
             if (neu > alt) {
                 summe += (neu - alt) * v.figur;
-                if (alt === 0 && BIBLIOTHEK.istBoss(runde.buch, runde.level)) {
+                if (alt === 0 && BIBLIOTHEK.istBoss(runde.buch, runde.station)) {
                     summe += v.boss;
                 }
             }

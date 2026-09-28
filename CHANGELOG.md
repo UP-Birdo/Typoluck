@@ -3,6 +3,33 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.20.0 — 28.09.2026
+
+**Die neue Bibliothek: das Buch als Doppelseite.**
+
+- Auf dem Start wählst du oben Üben oder Bibliothek.
+- Die Bibliothek ist ein aufgeschlagenes Buch: unten der Eingang, oben der
+  Ausgang, dazwischen Wege mit Gabelungen. Jede Doppelseite ist ein
+  Kapitel, der Boss wartet oben im letzten Kapitel. Blättern mit den
+  Pfeilen oder mit Wischen im Buch.
+- Stationen: Wörter, Elite (schwerer, dafür eine Figur mehr), Truhen mit
+  Münzen, der Antiquar (Tipp, Extra-Leben, Schild 30 % günstiger) und je
+  Buch ein Boss mit eigener Regel.
+- Sechs Bücher: Das Bilderlexikon (nur Nomen), Das Tagebuch, Das
+  Kochbuch, Der Reiseführer, Der Krimi, Das Wörterbuch — im Regal zu
+  sehen. Nicht geschafft? Dann dieselbe Station mit einem neuen Wort.
+- Wer in der alten Bibliothek schon Buch 2 oder weiter durch hatte,
+  beginnt in Buch 2.
+
+## 0.19.0 — 28.09.2026
+
+**Vorbereitung für die neue Bibliothek: Regeln je Runde.**
+
+- Eine Runde kann jetzt eigene Regeln haben: mehr oder weniger Versuche,
+  harter Modus, Zeitlimit, ohne Tipp, ohne Extra-Leben, ohne Gelb, erste
+  Zeile verdeckt, Tastatur ohne Grau. Tageswort und Üben bleiben genau wie
+  bisher.
+
 ## 0.18.5 — 28.09.2026
 
 - Als Gast den Spielstand sichern klappt jetzt auch, wenn du schon eine

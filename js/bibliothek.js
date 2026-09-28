@@ -1,57 +1,49 @@
 /*
- * bibliothek.js — die Bibliothek (seit 0.18.0): Typolucks Fassung des
- * Blunderluck-Turms (Apps\Blunderluck\js\turm.js; Regeln:
- * Apps\UPCrew\docs\FORTSCHRITT.md, „GÜLTIGER STAND").
+ * bibliothek.js — die Bibliothek als DOPPELSEITE (seit 0.20.0; ersetzt die
+ * Bibliothek 6 × 8 aus 0.18.0).
  *
- * Nutzer 27.09.2026 wörtlich: „benenne es bei typoluck um in Bibliothek und
- * die Stockwerke … sollen Bücher werden -> Erste Buch nur Nomen, zweite
- * etwas schwerer, immer so weiter. Wichtig: die einzelnen Level sollen nicht
- * bei jedem dasselbe Wort haben, sondern die Wörter haben ja einen Wert
- * zwischen 0–100 von der Schwierigkeit her; ein Level soll ein Wort aus
- * einem Bereich nehmen, der soll fix sein, aber das Wort nicht fix pro
- * Level. Bosse soll es auch geben."
+ * Nutzer 28.09.2026 zum Entwurf Design\3D-Schrift\entwuerfe\
+ * Bibliothek-Doppelseite\: „das passt fürs Erste so, fertig machen, damit ich
+ * hochladen kann". Konzept: Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md,
+ * Fassung 4 (Abschnitt 0). Die reine Tabelle und Rechnung — kein Bildschirm
+ * (js/start-bibliothek.js), kein Speicher (js/fortschritt.js). Ohne Browser
+ * testbar; der Zufall kommt von aussen.
  *
- * Die reine Tabelle und Rechnung — kein Bildschirm (js/start-bibliothek.js),
- * kein Speicher (der Stand liegt im Fortschritt, js/fortschritt.js, Zweig
- * `turm.figuren`, Schlüssel „Buch-Level" wie Blunderlucks „Ort-Stufe").
- * Ohne Browser testbar; der Zufall kommt als Zahl von aussen.
+ * AUFBAU
+ *   Buch      sechs Bücher mit Themen. Die Titel versprechen keine Wortart:
+ *             nur Buch 1 „Das Bilderlexikon" zieht nur Nomen, die anderen
+ *             alle Wörter mit steigender Schwierigkeit (Verb- und
+ *             Adjektiv-Listen fehlen noch).
+ *   Kapitel   eine Doppelseite; Spalten von unten nach oben, je Spalte eine
+ *             oder zwei Stationen (Spuren). Unten ein Eingang („ein"), oben
+ *             genau ein Ausgang („aus"), im letzten Kapitel oben der Boss.
+ *             Zwei Spuren hintereinander bleiben je in ihrer Spur; eine Spur
+ *             gabelt sich in zwei, zwei treffen sich in einer.
+ *   Station   w Wort · e Elite (Verschärfung über `runde.regeln`, eine Figur
+ *             mehr) · t Truhe (Münzen) · h Händler (Tipp, Extra-Leben,
+ *             Schild günstiger) · b Boss (eigene Regel je Buch).
+ *   NICHT jetzt (bewusst, „fürs Erste"): Rast, Fund, Herzen, Tinte,
+ *   Design-Stücke, Checkpoint. Scheitern = das Level nochmal mit neuem Wort
+ *   aus demselben Bereich.
  *
- * WAS GILT:
- *   - Sechs BÜCHER, von Buch 1 aufwärts. Jedes hat acht LEVEL; das letzte
- *     ist der BOSS des Buchs.
- *   - Jedes Level hat einen FESTEN Schwierigkeitsbereich [von, bis] auf der
- *     Skala 0–100 der Wort-Bewertung (`WORTBEWERTUNG.schwierigkeit`, die EINE Lesestelle). Das
- *     WORT wird bei jedem Start zufällig aus diesem Bereich gezogen — nicht
- *     fest je Level, nicht bei allen gleich; die zuletzt gespielten Wörter
- *     werden möglichst ausgelassen (`wortZiehen`, `vermeiden`).
- *   - Die Bereiche steigen im Buch um je 2 Punkte, der Boss liegt am oberen
- *     Ende des Buchs (darüber). Von Buch zu Buch steigt alles um rund 10.
- *   - Buch 1 zieht NUR Nomen (js/wortarten-daten.js); ab Buch 2 alles.
- *     Wörter, die von Hand als „ungeeignet" markiert sind, nie.
- *   - Ein Level ist offen, wenn das davor gelöst ist; der Boss erst, wenn
- *     ALLE Level davor gelöst sind. Ist der Boss gelöst, ist das Buch
- *     durch und das nächste offen. Nachholen (mehr Figuren) geht immer.
- *   - Wertung je Level: 0 bis 3 Figuren wie im Blunderluck-Turm — Bauer =
- *     gelöst, Springer/König nach der Genauigkeit (js/wertung.js, Schwellen
- *     55/75). Mit Tipp oder Extra-Leben aus dem Shop höchstens ein Bauer.
+ * SPEICHER (ohne neue Datenbank-Regel, §11b gilt):
+ *   Kampf-Stationen (Wort, Elite, Boss): `turm.figuren["<buch>-<nr>"]`
+ *     = 1–3 Figuren, die beste bleibt. `nr` = laufende Nummer der Station im
+ *     Buch AB 10 (10–99): So stößt nichts mit den alten Schlüsseln der
+ *     6 × 8-Bibliothek zusammen (Level 0–7), und die Regel
+ *     /^[0-9]{1,2}-[0-9]{1,2}$/ hält — höchstens 90 Stationen je Buch
+ *     (tests/test-bibliothek.js prüft es).
+ *   Truhe und Händler (keine Figuren): `turm.schwuere["<buch*100+nr>"]` = 1
+ *     („betreten"). Die Regel erlaubt dort /^[0-9]{1,3}$/ mit 0–3 — bei
+ *     höchstens 9 Büchern und nr ≤ 99 passt das. So zählen sie nicht als
+ *     Figuren (Profil, Abzeichen).
+ *   Gewählter Weg, aktuelle Station, Buch durch: GERECHNET aus diesen
+ *   Einträgen (`lauf`) — nichts sonst wird gespeichert.
  *
- * WARUM SECHS BÜCHER À ACHT LEVEL: Die Bewertung reicht von 5 bis 86, dicht
- * zwischen 15 und 55, oben dünn (20 Wörter über 65). Sechs Bücher decken
- * das mit Schritten von rund 10 ab, ohne dass oben ein Bereich leer läuft;
- * acht Level (7 + Boss) passen als ein Weg auf einen Handy-Bildschirm und
- * sind etwas mehr als Blunderluck (5–6 Stufen), weil ein Wort schneller
- * gespielt ist als eine Partie. Jeder Bereich hat mindestens 10 Wörter
- * (tests/test-bibliothek.js prüft ≥ 8; die Tabelle steht in
- * docs/entscheidungen/entschieden.md).
- *
- * DER BOSS: schwerster Bereich des Buchs (oberes Ende, weiter als die
- * Level), sichtbar anders (grösserer roter Punkt, Vorstellung „BOSS").
- * 0.18.1 hatte die Bosse ab Buch 4 auf FÜNF Versuche gesetzt; seit 0.18.3
- * wieder sechs (Nutzer 28.09.2026: „Nein → Boss heißt nicht automatisch
- * weniger Versuche"). Der MECHANISMUS bleibt: `bossVersuche` je Buch bzw.
- * künftig je Level/Gegner als Verschärfung, gelesen über
- * `BIBLIOTHEK.versuche`, sichtbar in der Vorstellung („N Versuche") und am
- * Ende („X/N"). Heute setzt ihn kein Buch.
+ * UMZUG AUS 0.18.x: Die alten Figuren („Buch-Level", Level 0–7) bleiben im
+ * Zweig stehen (sie zählen weiter als Figuren) und stören nichts, weil die
+ * neuen Nummern bei 10 beginnen. Wer dort Buch 2 oder höher durch hatte
+ * (Boss-Schlüssel „b-7" mit b ≥ 2), startet in Buch 2 (`sprung`).
  */
 
 const BIBLIOTHEK_WB = (typeof WORTBEWERTUNG !== "undefined")
@@ -68,26 +60,72 @@ const BIBLIOTHEK = {
 
     NAME: "Bibliothek",
 
+    /* Die Arten der Stationen (Zeichen: js/bausteine.js ZEICHEN). */
+    ARTEN: {
+        w: { name: "Wort", zeichen: null },
+        e: { name: "Elite", zeichen: "wurm" },
+        t: { name: "Truhe", zeichen: "schatulle" },
+        h: { name: "Händler", zeichen: "antiquar" },
+        b: { name: "Boss", zeichen: "siegelband" }
+    },
+
+    /* Kapitel-Vorlagen (Spalten von unten nach oben; aus dem Entwurf, ohne
+       Rast und Fund). X = das letzte Kapitel mit dem Boss oben. */
+    VORLAGEN: {
+        A: [["ein"], ["w"], ["w", "e"], ["t", "w"], ["w"], ["h", "w"], ["aus"]],
+        B: [["ein"], ["w"], ["e", "w"], ["w", "t"], ["w"], ["w"], ["aus"]],
+        C: [["ein"], ["w", "e"], ["w", "w"], ["t"], ["w", "h"], ["w"], ["aus"]],
+        D: [["ein"], ["w"], ["w", "h"], ["e", "w"], ["w"], ["t"], ["aus"]],
+        X: [["ein"], ["w"], ["e", "w"], ["t", "h"], ["w"], ["b"]]
+    },
+
     /*
-     * DIE BÜCHER. `level` = die festen Bereiche [von, bis] (beide
-     * eingeschlossen), das letzte ist der Boss. `nurNomen` nur in Buch 1.
+     * DIE BÜCHER. `kap` = Kapitel-Vorlagen (Buch n hat n + 2 Kapitel, wie im
+     * Konzept 3/4/5 …), `von`/`bis` = Schwierigkeit vom ersten Level bis
+     * zum Boss (Konzept §2.2), `farbe` = Themenfarbe (Einband, Tinte),
+     * `stil` = Papier-Muster. `boss` = Name, Eigenheit (Chip) und Regeln.
      */
     BUECHER: [
-        { nurNomen: true,
-            level: [[5, 14], [8, 16], [10, 18], [12, 20], [14, 22], [16, 24], [18, 26], [24, 32]] },
-        { level: [[15, 22], [17, 24], [19, 26], [21, 28], [23, 30], [25, 32], [27, 34], [32, 40]] },
-        { level: [[25, 32], [27, 34], [29, 36], [31, 38], [33, 40], [35, 42], [37, 44], [42, 50]] },
-        { level: [[35, 42], [37, 44], [39, 46], [41, 48], [43, 50], [45, 52], [47, 54], [52, 60]] },
-        { level: [[45, 52], [47, 54], [49, 56], [51, 58], [53, 60], [55, 62], [57, 64], [62, 72]] },
-        { level: [[52, 58], [54, 60], [56, 62], [58, 64], [60, 66], [62, 68], [64, 72], [68, 100]] }
+        { titel: "Das Bilderlexikon", farbe: "#1d8a6e", stil: "lexikon", nurNomen: true, nurEchte: false,
+            von: 8, bis: 32, kap: ["A", "C", "X"],
+            boss: { name: "Der Staubwedler", eigen: "Erste Zeile verstaubt", regeln: { farben: "ersteZeileBlind" } } },
+        { titel: "Das Tagebuch", farbe: "#3a64c8", stil: "tagebuch", von: 12, bis: 38, kap: ["A", "B", "C", "X"],
+            boss: { name: "Der Tintenfresser", eigen: "Tastatur ohne Grau", regeln: { tastatur: "ohneGrau" } } },
+        { titel: "Das Kochbuch", farbe: "#c26a2a", stil: "kochbuch", von: 18, bis: 44, kap: ["B", "D", "A", "C", "X"],
+            boss: { name: "Die Küchenchefin", eigen: "Harter Modus · 7 Versuche", regeln: { hart: true, versuche: 7 } } },
+        { titel: "Der Reiseführer", farbe: "#2a93a6", stil: "reise", von: 24, bis: 50, kap: ["A", "C", "B", "D", "A", "X"],
+            boss: { name: "Der Zensor", eigen: "Kein Gelb · 7 Versuche · ohne Tipp",
+                regeln: { farben: "ohneGelb", versuche: 7, ohneTipp: true } } },
+        { titel: "Der Krimi", farbe: "#8a3b52", stil: "krimi", von: 30, bis: 56, kap: ["C", "A", "D", "B", "C", "A", "X"],
+            boss: { name: "Die Spurenleserin", eigen: "Harter Modus · ohne Grau · ohne Tipp",
+                regeln: { hart: true, tastatur: "ohneGrau", ohneTipp: true } } },
+        { titel: "Das Wörterbuch", farbe: "#9a7a1c", stil: "woerterbuch", von: 36, bis: 64,
+            kap: ["A", "B", "C", "D", "A", "C", "B", "X"],
+            boss: { name: "Der Archivar", eigen: "Harter Modus · ohne Grau · ohne Tipp · ohne Extra-Leben",
+                regeln: { hart: true, tastatur: "ohneGrau", ohneTipp: true, ohneLeben: true } } }
     ],
 
-    /* Versuche eines Levels, wenn nichts anderes dasteht (= WORDLE.VERSUCHE). */
-    VERSUCHE: 6,
+    /* Die Elite-Verschärfungen (Buchschädlinge, Konzept §3.6), ab Buch `ab`. */
+    ELITEN: [
+        { name: "Bücherwurm", eigen: "Harter Modus", ab: 1, regeln: { hart: true } },
+        { name: "Eselsohr", eigen: "Erste Zeile verdeckt", ab: 1, regeln: { farben: "ersteZeileBlind" } },
+        { name: "Staublaus", eigen: "Tastatur ohne Grau", ab: 3, regeln: { tastatur: "ohneGrau" } },
+        { name: "Bleiche", eigen: "Kein Gelb", ab: 4, regeln: { farben: "ohneGelb" } },
+        { name: "Leseverbot", eigen: "Ohne Tipp und Extra-Leben", ab: 5, regeln: { ohneTipp: true, ohneLeben: true } }
+    ],
 
-    /* So viele zuletzt gespielte Wörter merkt sich das Gerät, damit sie
-       beim nächsten Start nicht gleich wieder drankommen. */
+    NR_AB: 10,
+    NR_BIS: 99,
+    BREITE: 8,
+    VERSUCHE: 6,
+    /* Truhe: Münzen 15–30 (ab Buch 5: 25–45), fest je Station. */
+    TRUHE: [[15, 30], [15, 30], [15, 30], [15, 30], [25, 45], [25, 45]],
+    /* Händler: so viel billiger als im Shop. */
+    RABATT: 0.3,
+    WAREN: ["tipp", "leben", "schild"],
     ZULETZT_MAX: 30,
+    RUECKFALL_ANZAHL: 8,
+    ROEM: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
 
     /* ---------------------------------------------------------------- *
      * Nachschlagen
@@ -97,96 +135,216 @@ const BIBLIOTHEK = {
         return BIBLIOTHEK.BUECHER.length;
     },
 
-    /* Buch Nummer `nr` (ab 1), oder null. */
     buch(nr) {
         return BIBLIOTHEK.BUECHER[nr - 1] || null;
     },
 
-    anzahlLevel(nr) {
-        const buch = BIBLIOTHEK.buch(nr);
-        return buch ? buch.level.length : 0;
+    kapitel(b, k) {
+        const buch = BIBLIOTHEK.buch(b);
+        return (buch && buch.kap[k]) ? BIBLIOTHEK.VORLAGEN[buch.kap[k]] : null;
     },
 
-    /* Der Schlüssel eines Levels im Fortschritt: "buch-level", Level ab 0
-       (wie Blunderlucks „ort-stufe"; Regel §11b: /^[0-9]{1,2}-[0-9]{1,2}$/). */
-    schluessel(nr, level) {
-        return nr + "-" + level;
+    anzahlKapitel(b) {
+        const buch = BIBLIOTHEK.buch(b);
+        return buch ? buch.kap.length : 0;
     },
 
-    istBoss(nr, level) {
-        const buch = BIBLIOTHEK.buch(nr);
-        return !!buch && level === buch.level.length - 1;
-    },
+    _cache: {},
 
-    /* Der feste Bereich eines Levels: { von, bis } oder null. */
-    bereich(nr, level) {
-        const buch = BIBLIOTHEK.buch(nr);
-        const b = buch && buch.level[level];
-        return b ? { von: b[0], bis: b[1] } : null;
-    },
-
-    /* Wie viele Versuche das Level hat: 6; der Boss eines Buchs mit
-       `bossVersuche` so viele (Mechanismus seit 0.18.1; seit 0.18.3 setzt
-       ihn kein Buch — die Verschärfung kommt mit der neuen Bibliothek je
-       Level/Gegner). */
-    versuche(nr, level) {
-        const buch = BIBLIOTHEK.buch(nr);
-        if (buch && BIBLIOTHEK.istBoss(nr, level) && Number.isInteger(buch.bossVersuche)) {
-            return buch.bossVersuche;
+    /*
+     * Die Stationen eines Buchs in fester Reihenfolge (Kapitel, Spalte von
+     * unten, Spur von links): { nr, k, s, i, art, g (Spalten-Index im Buch
+     * über alle Station-Spalten), schluessel }. `nr` ab NR_AB.
+     */
+    stationen(b) {
+        if (BIBLIOTHEK._cache[b]) {
+            return BIBLIOTHEK._cache[b];
         }
-        return BIBLIOTHEK.VERSUCHE;
+        const buch = BIBLIOTHEK.buch(b);
+        const liste = [];
+        if (!buch) {
+            return liste;
+        }
+        let nr = BIBLIOTHEK.NR_AB;
+        let g = 0;
+        buch.kap.forEach((_, k) => {
+            BIBLIOTHEK.kapitel(b, k).forEach((spalte, s) => {
+                if (spalte[0] === "ein" || spalte[0] === "aus") {
+                    return;
+                }
+                spalte.forEach((art, i) => {
+                    liste.push({ nr: nr, k: k, s: s, i: i, art: art, g: g, schluessel: b + "-" + nr });
+                    nr++;
+                });
+                g++;
+            });
+        });
+        liste.spalten = g;
+        BIBLIOTHEK._cache[b] = liste;
+        return liste;
     },
 
-    /* „Buch 2 · Level 3" bzw. „Buch 2 · Boss". */
-    titel(nr, level) {
-        if (!BIBLIOTHEK.buch(nr)) {
-            return BIBLIOTHEK.NAME;
+    station(b, nr) {
+        return BIBLIOTHEK.stationen(b).find((st) => st.nr === nr) || null;
+    },
+
+    stationAn(b, k, s, i) {
+        return BIBLIOTHEK.stationen(b).find((st) => st.k === k && st.s === s && st.i === i) || null;
+    },
+
+    istKampf(art) {
+        return art === "w" || art === "e" || art === "b";
+    },
+
+    istBoss(b, nr) {
+        const st = BIBLIOTHEK.station(b, nr);
+        return !!st && st.art === "b";
+    },
+
+    /* Der Schlüssel für Truhe/Händler in turm.schwuere. */
+    merkerSchluessel(b, nr) {
+        return String(b * 100 + nr);
+    },
+
+    /* Die Nachfolger einer Stelle (Spur-Indizes der nächsten Spalte). */
+    nachfolger(b, k, s, i) {
+        const kap = BIBLIOTHEK.kapitel(b, k);
+        const naechste = kap && kap[s + 1];
+        if (!naechste) {
+            return [];
         }
-        return "Buch " + nr + " · " + (BIBLIOTHEK.istBoss(nr, level) ? "Boss" : "Level " + (level + 1));
+        return (kap[s].length === 2 && naechste.length === 2) ? [i] : naechste.map((_, j) => j);
     },
 
     /* ---------------------------------------------------------------- *
-     * Die Wörter eines Levels
+     * Was eine Station ist: Bereich, Regeln, Titel
      * ---------------------------------------------------------------- */
 
-    /* Ist das Wort ein Nomen? (Alles, was nicht in js/wortarten-daten.js
-       steht — dort stehen die Ausnahmen.) */
+    /* Der feste Bereich [von, bis] einer Kampf-Station. Steigt über die
+       Spalten des Buchs gleichmässig, Breite 8; Elite +8; Boss = oberes Ende. */
+    bereich(b, nr) {
+        const buch = BIBLIOTHEK.buch(b);
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!buch || !st || !BIBLIOTHEK.istKampf(st.art)) {
+            return null;
+        }
+        const w = BIBLIOTHEK.BREITE;
+        if (st.art === "b") {
+            return { von: buch.bis - w, bis: buch.bis };
+        }
+        const gesamt = Math.max(1, BIBLIOTHEK.stationen(b).spalten - 1);
+        const von = Math.round(buch.von + (st.g / gesamt) * (buch.bis - w - buch.von));
+        const plus = st.art === "e" ? w : 0;
+        return { von: Math.min(100 - w, von + plus), bis: Math.min(100, von + w + plus) };
+    },
+
+    /* Die Verschärfung einer Elite (fest je Station, aus den erlaubten). */
+    elite(b, nr) {
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!st || st.art !== "e") {
+            return null;
+        }
+        const erlaubt = BIBLIOTHEK.ELITEN.filter((e) => e.ab <= b);
+        return erlaubt[(st.nr * 7 + b) % erlaubt.length];
+    },
+
+    /* Die Regeln der Runde (js/wordle.js regelnNormalisieren). */
+    regeln(b, nr) {
+        const buch = BIBLIOTHEK.buch(b);
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!buch || !st || !BIBLIOTHEK.istKampf(st.art)) {
+            return null;
+        }
+        const grund = { versuche: BIBLIOTHEK.VERSUCHE, nurEchte: buch.nurEchte !== false };
+        if (st.art === "e") {
+            return Object.assign(grund, BIBLIOTHEK.elite(b, nr).regeln);
+        }
+        if (st.art === "b") {
+            return Object.assign(grund, buch.boss.regeln);
+        }
+        return grund;
+    },
+
+    /* Die Versuche einer Station (für Anzeige). */
+    versuche(b, nr) {
+        const r = BIBLIOTHEK.regeln(b, nr);
+        return (r && r.versuche) || BIBLIOTHEK.VERSUCHE;
+    },
+
+    /* „Das Bilderlexikon · II" bzw. „… · Boss". */
+    titel(b, nr) {
+        const buch = BIBLIOTHEK.buch(b);
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!buch || !st) {
+            return BIBLIOTHEK.NAME;
+        }
+        if (st.art === "b") {
+            return buch.titel + " · Boss";
+        }
+        return buch.titel + " · " + BIBLIOTHEK.ROEM[st.k] + (st.art === "e" ? " · Elite" : "");
+    },
+
+    /* Münzen einer Truhe (fest je Station). */
+    truheMuenzen(b, nr) {
+        const [von, bis] = BIBLIOTHEK.TRUHE[b - 1] || BIBLIOTHEK.TRUHE[0];
+        return von + ((nr * 7 + b * 3) % (bis - von + 1));
+    },
+
+    /* Preis beim Händler: Shop-Preis − RABATT, gerundet. */
+    haendlerPreis(preis) {
+        return Math.max(1, Math.round(preis * (1 - BIBLIOTHEK.RABATT)));
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Die Wörter einer Station
+     * ---------------------------------------------------------------- */
+
     istNomen(wort) {
         const w = String(wort || "").toLowerCase();
         const d = BIBLIOTHEK_WORTARTEN || {};
         return (d.keinNomen || []).indexOf(w) === -1 && (d.beides || []).indexOf(w) === -1;
     },
 
-    /* Alle Wörter, die in diesem Level drankommen können (Listen-Reihenfolge). */
-    woerter(nr, level) {
-        const buch = BIBLIOTHEK.buch(nr);
-        const bereich = BIBLIOTHEK.bereich(nr, level);
-        if (!buch || !bereich) {
+    _passt(b, wort) {
+        const buch = BIBLIOTHEK.buch(b);
+        return !BIBLIOTHEK_WB.ungeeignet(wort) && (!buch.nurNomen || BIBLIOTHEK.istNomen(wort));
+    },
+
+    /* Alle Wörter, die JETZT im Bereich der Station liegen (die EINE
+       Lesestelle WORTBEWERTUNG.schwierigkeit). */
+    woerter(b, nr) {
+        const bereich = BIBLIOTHEK.bereich(b, nr);
+        if (!bereich) {
             return [];
         }
         return BIBLIOTHEK_WOERTER.loesungen.filter((wort) => {
             const zahl = BIBLIOTHEK_WB.schwierigkeit(wort);
-            return Number.isInteger(zahl) && zahl >= bereich.von && zahl <= bereich.bis
-                && !BIBLIOTHEK_WB.ungeeignet(wort)
-                && (!buch.nurNomen || BIBLIOTHEK.istNomen(wort));
+            return Number.isInteger(zahl) && zahl >= bereich.von && zahl <= bereich.bis && BIBLIOTHEK._passt(b, wort);
         });
     },
 
-    /*
-     * Ein Wort für einen Start des Levels. `zufall` in [0, 1) kommt von
-     * aussen (Math.random() nie im Modell). `vermeiden` = zuletzt gespielte
-     * Wörter; sie bleiben weg, solange danach noch etwas übrig ist. Liefert
-     * das Wort oder "" (Level unbekannt).
-     * Gezogen wird aus den Wörtern, die JETZT im Bereich liegen — kommt die
-     * Schwierigkeit später aus Spieldaten, wandern Wörter zwischen den
-     * Bereichen, und die Bereiche bleiben fest. Wäre ein Bereich dann leer,
-     * nimmt das Level die RUECKFALL_ANZAHL Wörter, die ihm am nächsten
-     * liegen (`naechsteWoerter`) — spielbar bleibt es immer.
-     */
-    wortZiehen(nr, level, zufall, vermeiden) {
-        let alle = BIBLIOTHEK.woerter(nr, level);
+    /* Rückfall für einen leer gewordenen Bereich: die nächstgelegenen. */
+    naechsteWoerter(b, nr) {
+        const bereich = BIBLIOTHEK.bereich(b, nr);
+        if (!bereich) {
+            return [];
+        }
+        const mitte = (bereich.von + bereich.bis) / 2;
+        return BIBLIOTHEK_WOERTER.loesungen
+            .filter((wort) => Number.isInteger(BIBLIOTHEK_WB.schwierigkeit(wort)) && BIBLIOTHEK._passt(b, wort))
+            .map((wort, i) => ({ wort: wort, i: i, abstand: Math.abs(BIBLIOTHEK_WB.schwierigkeit(wort) - mitte) }))
+            .sort((x, y) => x.abstand - y.abstand || x.i - y.i)
+            .slice(0, BIBLIOTHEK.RUECKFALL_ANZAHL)
+            .sort((x, y) => x.i - y.i)
+            .map((e) => e.wort);
+    },
+
+    /* Ein Wort für einen Start (Zufall von aussen, zuletzt gespielte
+       möglichst nicht). "" = keine Kampf-Station. */
+    wortZiehen(b, nr, zufall, vermeiden) {
+        let alle = BIBLIOTHEK.woerter(b, nr);
         if (!alle.length) {
-            alle = BIBLIOTHEK.naechsteWoerter(nr, level);
+            alle = BIBLIOTHEK.naechsteWoerter(b, nr);
         }
         if (!alle.length) {
             return "";
@@ -195,151 +353,187 @@ const BIBLIOTHEK = {
         const frisch = alle.filter((wort) => weg.indexOf(wort) === -1);
         const liste = frisch.length ? frisch : alle;
         const z = (typeof zufall === "number" && isFinite(zufall)) ? zufall : 0;
-        const stelle = Math.min(liste.length - 1, Math.max(0, Math.floor(z * liste.length)));
-        return liste[stelle];
+        return liste[Math.min(liste.length - 1, Math.max(0, Math.floor(z * liste.length)))];
     },
 
-    /* Rückfall für einen leeren Bereich: die Wörter (mit Wortart-Regel des
-       Buchs), deren Schwierigkeit der Mitte des Bereichs am nächsten liegt. */
-    RUECKFALL_ANZAHL: 8,
-
-    naechsteWoerter(nr, level) {
-        const buch = BIBLIOTHEK.buch(nr);
-        const bereich = BIBLIOTHEK.bereich(nr, level);
-        if (!buch || !bereich) {
-            return [];
-        }
-        const mitte = (bereich.von + bereich.bis) / 2;
-        return BIBLIOTHEK_WOERTER.loesungen
-            .filter((wort) => Number.isInteger(BIBLIOTHEK_WB.schwierigkeit(wort))
-                && !BIBLIOTHEK_WB.ungeeignet(wort) && (!buch.nurNomen || BIBLIOTHEK.istNomen(wort)))
-            .map((wort, i) => ({ wort: wort, i: i, abstand: Math.abs(BIBLIOTHEK_WB.schwierigkeit(wort) - mitte) }))
-            .sort((a, b) => a.abstand - b.abstand || a.i - b.i)
-            .slice(0, BIBLIOTHEK.RUECKFALL_ANZAHL)
-            .sort((a, b) => a.i - b.i)
-            .map((e) => e.wort);
-    },
-
-    /* Die Merkliste nach einem Start: das Wort vorn, höchstens ZULETZT_MAX. */
     zuletztMerken(liste, wort) {
         const alt = Array.isArray(liste) ? liste.filter((w) => typeof w === "string" && w !== wort) : [];
         return (wort ? [wort] : []).concat(alt).slice(0, BIBLIOTHEK.ZULETZT_MAX);
     },
 
     /* ---------------------------------------------------------------- *
-     * Der Stand — gerechnet aus den Figuren, nie gespeichert
+     * Der Stand — gerechnet aus turm.figuren / turm.schwuere
      * ---------------------------------------------------------------- */
 
-    /* Figuren eines Levels (0 bis 3) aus der Tabelle des Fortschritts. */
-    figurenVon(figuren, nr, level) {
-        const wert = (figuren && typeof figuren === "object")
-            ? figuren[BIBLIOTHEK.schluessel(nr, level)] : 0;
+    /* Figuren einer Station (0–3). */
+    figurenVon(figuren, b, nr) {
+        const wert = (figuren && typeof figuren === "object") ? figuren[b + "-" + nr] : 0;
         return (Number.isInteger(wert) && wert > 0) ? Math.min(wert, 3) : 0;
     },
 
-    /* Ist der Boss dieses Buchs gelöst (= Buch durch)? */
-    durch(figuren, nr) {
-        const n = BIBLIOTHEK.anzahlLevel(nr);
-        return n > 0 && BIBLIOTHEK.figurenVon(figuren, nr, n - 1) > 0;
-    },
-
-    /* Das ERREICHTE Buch: das unterste, das noch nicht durch ist; sind alle
-       durch, Anzahl + 1. */
-    erreicht(figuren) {
-        let nr = 1;
-        while (nr <= BIBLIOTHEK.anzahlBuecher() && BIBLIOTHEK.durch(figuren, nr)) {
-            nr++;
-        }
-        return nr;
-    },
-
-    /* Darf dieses Level gespielt werden? Nur im erreichten Buch oder darunter;
-       dort das erste, jedes nach einem gelösten, der Boss nach allen. */
-    offen(figuren, nr, level) {
-        const n = BIBLIOTHEK.anzahlLevel(nr);
-        if (!n || level < 0 || level >= n || nr > BIBLIOTHEK.erreicht(figuren)) {
+    /* Ist die Station erledigt? Kampf: Figuren > 0; Truhe/Händler: Merker. */
+    erledigt(turm, b, nr) {
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!st || !turm) {
             return false;
         }
-        if (BIBLIOTHEK.istBoss(nr, level)) {
-            for (let i = 0; i < level; i++) {
-                if (BIBLIOTHEK.figurenVon(figuren, nr, i) === 0) {
-                    return false;
+        if (BIBLIOTHEK.istKampf(st.art)) {
+            return BIBLIOTHEK.figurenVon(turm.figuren, b, nr) > 0;
+        }
+        const m = turm.schwuere && turm.schwuere[BIBLIOTHEK.merkerSchluessel(b, nr)];
+        return Number.isInteger(m) && m > 0;
+    },
+
+    /*
+     * DER LAUF durch ein Buch (gerechnet): Von unten nach oben wird in jeder
+     * Spalte die erledigte Station der erlaubten Spuren genommen. Die erste
+     * Spalte ohne erledigte Station ist die Front:
+     *   { weg: [nr…] (gegangene Stationen), jetzt: nr (eine Station wartet)
+     *     oder null, gabel: [nr, nr] (zwei Stationen zur Wahl) oder null,
+     *     kapitel: k der Front, durch: Boss erledigt }
+     */
+    lauf(turm, b) {
+        const buch = BIBLIOTHEK.buch(b);
+        const ergebnis = { weg: [], jetzt: null, gabel: null, kapitel: 0, durch: false };
+        if (!buch) {
+            return ergebnis;
+        }
+        for (let k = 0; k < buch.kap.length; k++) {
+            const kap = BIBLIOTHEK.kapitel(b, k);
+            let spur = 0;
+            for (let s = 1; s < kap.length; s++) {
+                const erlaubt = BIBLIOTHEK.nachfolger(b, k, s - 1, spur);
+                if (kap[s][0] === "aus") {
+                    break;
                 }
+                const kandidaten = erlaubt.map((i) => BIBLIOTHEK.stationAn(b, k, s, i));
+                const gegangen = kandidaten.find((st) => BIBLIOTHEK.erledigt(turm, b, st.nr));
+                if (gegangen) {
+                    ergebnis.weg.push(gegangen.nr);
+                    spur = gegangen.i;
+                    if (gegangen.art === "b") {
+                        ergebnis.durch = true;
+                        ergebnis.kapitel = k;
+                        return ergebnis;
+                    }
+                    continue;
+                }
+                ergebnis.kapitel = k;
+                if (kandidaten.length === 1) {
+                    ergebnis.jetzt = kandidaten[0].nr;
+                } else {
+                    ergebnis.gabel = kandidaten.map((st) => st.nr);
+                }
+                return ergebnis;
             }
+        }
+        return ergebnis;
+    },
+
+    /* Darf diese Station jetzt gespielt/betreten werden? Die wartende
+       Station oder eine der beiden an der Gabelung. */
+    spielbar(turm, b, nr) {
+        const l = BIBLIOTHEK.lauf(turm, b);
+        return l.jetzt === nr || (Array.isArray(l.gabel) && l.gabel.indexOf(nr) !== -1);
+    },
+
+    /* Buch durch? (Boss erledigt) */
+    durch(turm, b) {
+        return BIBLIOTHEK.lauf(turm, b).durch;
+    },
+
+    /* Umzug aus 0.18.x: alte Boss-Figur „b-7" mit b ≥ 2 → Buch 2 offen. */
+    sprung(turm) {
+        const f = (turm && turm.figuren) || {};
+        return Object.keys(f).some((k) => /^[2-9]-7$/.test(k) && Number.isInteger(f[k]) && f[k] > 0);
+    },
+
+    /* Ist das Buch offen? Buch 1 immer; sonst nach dem Boss davor (Buch 2
+       auch über den Umzug). */
+    offen(turm, b) {
+        if (!BIBLIOTHEK.buch(b)) {
+            return false;
+        }
+        if (b === 1) {
             return true;
         }
-        return level === 0 || BIBLIOTHEK.figurenVon(figuren, nr, level - 1) > 0;
+        return BIBLIOTHEK.durch(turm, b - 1) || (b === 2 && BIBLIOTHEK.sprung(turm));
     },
 
-    /* Das nächste offene Level ohne Figur im Buch, oder -1. */
-    naechstes(figuren, nr) {
-        const n = BIBLIOTHEK.anzahlLevel(nr);
-        for (let i = 0; i < n; i++) {
-            if (BIBLIOTHEK.figurenVon(figuren, nr, i) === 0 && BIBLIOTHEK.offen(figuren, nr, i)) {
-                return i;
+    /* Das Buch, in dem man steht: das höchste offene. */
+    aktuellesBuch(turm) {
+        let aktuell = 1;
+        for (let b = 1; b <= BIBLIOTHEK.anzahlBuecher(); b++) {
+            if (BIBLIOTHEK.offen(turm, b)) {
+                aktuell = b;
             }
         }
-        return -1;
+        return aktuell;
     },
 
-    /* Figuren eines Buchs zusammen, und wie viele es höchstens gibt. */
-    summe(figuren, nr) {
-        const n = BIBLIOTHEK.anzahlLevel(nr);
-        let hat = 0;
-        for (let i = 0; i < n; i++) {
-            hat += BIBLIOTHEK.figurenVon(figuren, nr, i);
-        }
-        return { hat: hat, alle: n * 3 };
+    /* Für das Profil (Name wie bis 0.19.0). */
+    erreicht(turm) {
+        return BIBLIOTHEK.aktuellesBuch(turm);
     },
 
-    /*
-     * Was „Spielen" startet: das nächste Level im erreichten Buch. Ist alles
-     * durch, das unterste Level mit weniger als drei Figuren (nachholen) —
-     * und gibt es das nicht, noch einmal der letzte Boss.
-     */
-    ziel(figuren) {
-        const anzahl = BIBLIOTHEK.anzahlBuecher();
-        const nr = BIBLIOTHEK.erreicht(figuren);
-        if (nr <= anzahl) {
-            const i = BIBLIOTHEK.naechstes(figuren, nr);
-            if (i >= 0) {
-                return { buch: nr, level: i };
-            }
+    /* Wie viele Stationen (Spalten) noch bis einschliesslich Boss. */
+    bossIn(turm, b) {
+        const l = BIBLIOTHEK.lauf(turm, b);
+        if (l.durch) {
+            return 0;
         }
-        for (let b = 1; b <= anzahl; b++) {
-            for (let i = 0; i < BIBLIOTHEK.anzahlLevel(b); i++) {
-                if (BIBLIOTHEK.figurenVon(figuren, b, i) < 3 && BIBLIOTHEK.offen(figuren, b, i)) {
-                    return { buch: b, level: i };
-                }
-            }
-        }
-        return { buch: anzahl, level: BIBLIOTHEK.anzahlLevel(anzahl) - 1 };
+        const front = BIBLIOTHEK.station(b, l.jetzt !== null ? l.jetzt : l.gabel[0]);
+        return BIBLIOTHEK.stationen(b).spalten - front.g;
     },
 
-    /* Das Level nach diesem (für „Weiter" nach einem Sieg), oder null, wenn
-       es noch nicht offen ist. Nach dem Boss das erste Level des nächsten
-       Buchs. */
-    danach(figuren, nr, level) {
-        let b = nr;
-        let i = level + 1;
-        if (i >= BIBLIOTHEK.anzahlLevel(b)) {
-            b += 1;
-            i = 0;
-        }
-        return BIBLIOTHEK.offen(figuren, b, i) ? { buch: b, level: i } : null;
+    /* Figuren eines Buchs zusammen (neue Stationen). */
+    summe(turm, b) {
+        const f = (turm && turm.figuren) || {};
+        return BIBLIOTHEK.stationen(b).reduce((s, st) => s + BIBLIOTHEK.figurenVon(f, b, st.nr), 0);
     },
 
-    /*
-     * WIE VIELE FIGUREN EIN LEVEL BRINGT: nicht gelöst 0; gelöst nach der
-     * Figuren-Regel der Wertung (`wertungFiguren`, js/wertung.js); mit
-     * Hilfe aus dem Shop höchstens 1.
-     */
-    figurenFuer(geloest, wertungFiguren, hilfe) {
+    /* Figuren für ein gelöstes Level: aus der Wertung; Elite eine mehr
+       (höchstens 3); mit Hilfe aus dem Shop höchstens 1. */
+    figurenFuer(geloest, wertungFiguren, hilfe, art) {
         if (!geloest) {
             return 0;
         }
+        if (hilfe) {
+            return 1;
+        }
         const f = Math.max(1, Math.min(3, Math.floor(wertungFiguren || 1)));
-        return hilfe ? 1 : f;
+        return art === "e" ? Math.min(3, f + 1) : f;
+    },
+
+    /* Ein Weg durch das Buch zum Ansehen und Testen: `schritte` Stationen
+       ab dem Anfang, an Gabelungen die Spur aus `wahl` ("0101…"). Liefert
+       { turm, weg }. */
+    gehen(b, schritte, wahl, turm) {
+        const t = turm || { figuren: {}, schwuere: {} };
+        t.figuren = t.figuren || {};
+        t.schwuere = t.schwuere || {};
+        const weg = [];
+        const w = String(wahl || "0");
+        let gabeln = 0;
+        for (let n = 0; n < schritte; n++) {
+            const l = BIBLIOTHEK.lauf(t, b);
+            if (l.durch) {
+                break;
+            }
+            let nr = l.jetzt;
+            if (nr === null) {
+                nr = l.gabel[w[gabeln % w.length] === "1" ? 1 : 0];
+                gabeln++;
+            }
+            const st = BIBLIOTHEK.station(b, nr);
+            if (BIBLIOTHEK.istKampf(st.art)) {
+                t.figuren[b + "-" + nr] = 1 + ((nr + b) % 3);
+            } else {
+                t.schwuere[BIBLIOTHEK.merkerSchluessel(b, nr)] = 1;
+            }
+            weg.push(st);
+        }
+        return { turm: t, weg: weg };
     }
 };
 

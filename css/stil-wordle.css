@@ -446,3 +446,13 @@
 .wordle-tipp-knopf {
     min-height: 34px;
 }
+
+/* Regel farben: ersteZeileBlind (seit 0.19.0, js/wordle.js): Die Kachel
+   zeigt den Buchstaben, aber keine Farbe — neutral wie eine leere Kachel
+   mit Rahmen, dazu schräge Striche als Zeichen „verdeckt". */
+.kachel.kachel-verdeckt {
+    background: repeating-linear-gradient(135deg, transparent 0 6px,
+        color-mix(in srgb, var(--kachel-rahmen) 45%, transparent) 6px 8px), var(--kachel-grund, var(--karte));
+    border-color: var(--kachel-rahmen-voll);
+    color: var(--kachel-text, var(--schrift));
+}

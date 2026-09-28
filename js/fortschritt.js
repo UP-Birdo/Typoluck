@@ -300,6 +300,10 @@ const FORTSCHRITT = {
         if ("turm" in quelle) {
             zweig.turm = Object.assign({}, FORTSCHRITT._istObjekt(quelle.turm) ? FORTSCHRITT._kopie(quelle.turm) : {},
                 { figuren: FORTSCHRITT._turmTabelle(quelle.turm) });
+            /* Seit 0.20.0: Merker der Bibliothek (Truhe/Händler betreten). */
+            if (FORTSCHRITT._istObjekt(quelle.turm) && "schwuere" in quelle.turm) {
+                zweig.turm.schwuere = FORTSCHRITT._merkerTabelle(quelle.turm);
+            }
         }
         /* `umzug` gehört seit 0.14.0 nur aufs Gerät (UMZUG_SCHLUESSEL). */
         delete zweig.umzug;
@@ -317,6 +321,44 @@ const FORTSCHRITT = {
             }
         }
         return figuren;
+    },
+
+    /* Die Merker eines `turm`-Felds (seit 0.20.0: betretene Truhen und
+       Händler der Bibliothek, js/bibliothek.js), bereinigt nach Regel §11b:
+       { "<1–3 Ziffern>": 0–3 }. */
+    _merkerTabelle(turm) {
+        const roh = (FORTSCHRITT._istObjekt(turm) && FORTSCHRITT._istObjekt(turm.schwuere)) ? turm.schwuere : {};
+        const merker = {};
+        for (const schluessel of Object.keys(roh)) {
+            const wert = roh[schluessel];
+            if (/^\d{1,3}$/.test(schluessel) && Number.isInteger(wert) && wert >= 0) {
+                merker[schluessel] = Math.min(wert, 3);
+            }
+        }
+        return merker;
+    },
+
+    /* Der ganze Bibliothek-Stand für js/bibliothek.js: { figuren, schwuere }. */
+    turmStand(stand) {
+        const turm = FORTSCHRITT.zweig(stand).turm;
+        return { figuren: FORTSCHRITT._turmTabelle(turm), schwuere: FORTSCHRITT._merkerTabelle(turm) };
+    },
+
+    /* Eine Station ohne Figuren als betreten merken (seit 0.20.0, Truhe und
+       Händler der Bibliothek). Rein: liefert den neuen Stand. */
+    stationMerken(alt, schluessel, zeitpunkt) {
+        const stand = FORTSCHRITT.normalisieren(alt);
+        const zweig = stand.spiele[FORTSCHRITT.APP] || FORTSCHRITT.zweigLeer();
+        if (!/^\d{1,3}$/.test(String(schluessel))) {
+            return stand;
+        }
+        const turm = FORTSCHRITT._istObjekt(zweig.turm) ? zweig.turm : {};
+        const merker = FORTSCHRITT._merkerTabelle(turm);
+        merker[String(schluessel)] = 1;
+        zweig.turm = Object.assign({}, turm, { figuren: FORTSCHRITT._turmTabelle(turm), schwuere: merker });
+        zweig.stand = Math.max(zweig.stand + 1, zeitpunkt || 0);
+        stand.spiele[FORTSCHRITT.APP] = zweig;
+        return stand;
     },
 
     /* Die Figuren der Bibliothek ({ "1-0": 2, … }) — leer ohne. */
@@ -977,10 +1019,18 @@ const FORTSCHRITT = {
             zaehler: zaehler,
             taten: zweig.taten.filter((id) => id.length <= 64).slice(-1000)
         };
-        /* Die Bibliothek (seit 0.18.0): nur `turm.figuren`, nur mit Inhalt. */
+        /* Die Bibliothek (seit 0.18.0): `turm.figuren`, seit 0.20.0 auch
+           `turm.schwuere` (Merker) — je nur mit Inhalt. */
         const figuren = FORTSCHRITT._turmTabelle(zweig.turm);
-        if (Object.keys(figuren).length) {
-            typoluck.turm = { figuren: figuren };
+        const merker = FORTSCHRITT._merkerTabelle(zweig.turm);
+        if (Object.keys(figuren).length || Object.keys(merker).length) {
+            typoluck.turm = {};
+            if (Object.keys(figuren).length) {
+                typoluck.turm.figuren = figuren;
+            }
+            if (Object.keys(merker).length) {
+                typoluck.turm.schwuere = merker;
+            }
         }
         return { version: FORTSCHRITT.VERSION, spiele: { typoluck: typoluck } };
     },
