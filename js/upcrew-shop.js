@@ -11,10 +11,12 @@
  *         lesen: () => stand,                      // der gemeinsame Fortschritt (Saldo und Vorrat rechnet der Baustein
  *                                                  //  über UPCREW_MUENZEN)
  *         kaufen: async (ware) => true/false,      // die App fragt nach („Kaufen?“), bucht und speichert
- *         texte: { leben: { name: "Extra-Leben", text: "…" } }   // wahlfrei: eigene Waren-Texte je Spiel
+ *         texte: { leben: { name: "Extra-Leben", text: "…" } },  // wahlfrei: eigene Waren-Texte je Spiel
+ *         bilder: { leben: "M4.5 12 A7.5 …" }                   // wahlfrei: eigenes Bild je Ware (24er-Pfad)
  *     });
  *   `texte` ersetzt je Ware Name und Kurztext nur für die Anzeige — `UPCREW_MUENZEN.WAREN` wird nie verändert
- *   (Preise und Höchstvorrat bleiben dort, gleich in beiden Spielen).
+ *   (Preise und Höchstvorrat bleiben dort, gleich in beiden Spielen). `bilder` ebenso für das Bild (VORSCHLAG aus
+ *   Blunderluck v0.152.2: dort heißt „leben“ „Zeit zurück“ und zeigt eine Uhr statt des Herzens).
  *   UPCREW_SHOP.text(ware, texte) → { name, text } (auch für die Rückfrage der App).
  *     shop.zeichnen();                             // nach jedem neuen Stand
  *
@@ -55,13 +57,16 @@
         return e;
     }
 
-    function bild(ware) {
+    /* Das Bild einer Ware: aus `bilder` des Spiels (ein Pfad), sonst das gemeinsame. */
+    function bild(ware, bilder) {
+        const eigen = (bilder && typeof bilder === "object" && typeof bilder[ware] === "string" && bilder[ware])
+            ? bilder[ware] : "";
         const svg = document.createElementNS(RAUM, "svg");
         svg.setAttribute("viewBox", "0 0 24 24");
         svg.setAttribute("aria-hidden", "true");
         svg.setAttribute("focusable", "false");
         const p = document.createElementNS(RAUM, "path");
-        p.setAttribute("d", BILDER[ware] || "");
+        p.setAttribute("d", eigen || BILDER[ware] || "");
         svg.appendChild(p);
         return svg;
     }
@@ -111,7 +116,7 @@
                 const kann = M.kannKaufen(stand, id);
                 const karte = el("article", "up-shop-karte" + (kann.ok ? "" : " up-shop-zu"));
                 const b = el("span", "up-shop-bild up-shop-bild-" + id);
-                b.appendChild(bild(id));
+                b.appendChild(bild(id, opt.bilder));
                 karte.appendChild(b);
 
                 const textEl = el("div", "up-shop-text");

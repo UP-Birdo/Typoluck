@@ -27,6 +27,7 @@ Kopien. Sie gehen nie ins Netz — die Datenbank spielt eine Attrappe.
 | `test-sammlung.js` | Sammlung (seit 0.9.0): Modi 3/5 wie im Auftrag, nichts gesperrt, was es heute gibt; Anteil „NN %" aus den echten Stufen des Anpassen-Bausteins |
 | `test-wertung.js` | Wertung einer Runde (seit 0.10.0): Erwartung und Gruppen, Können 0–100, bester Versuch 100, „Lösung stand fest" wird nicht gewertet (Probelauf TISCH/BLUME/BLICK), Figuren nach den Schwellen, eine echte Runde unter 3 s |
 | `test-fortschritt.js` | Fortschritt (seit 0.10.0): Level-Kosten, XP je Quelle nur einmal am Tag, ×1,5 für beide Spiele, Serie mit Schutz, Belohnungen nach Level 10, additiver Datenvertrag, Speicher je Spieler unter `upcrew.fortschritt` |
+| `test-regel-12.js` | Regel §12 Phase A (seit 0.22.0): die echten Dateien gegen eine Firebase mit der ECHTEN Regel (`regel-nachbau.js`, Kopie aus Blunderluck) — Umstieg alt → §12 → nachziehen → zurück; Lesen, Anmelden, Auswahl, Freund suchen nur Name#Nummer, Nummer ändern, Anlegen, Gast, Marke, Fortschritt + Auszug, Auszug = voller Fortschritt. Regeltexte aus `Apps/Blunderluck/SICHERHEIT.md` und `Apps/UPCrew/docs/DATENBANK-KONZEPT-12.md` (nur gelesen; fehlen sie, prüft der Test nichts) |
 
 `pruefer.js` ist das kleine Prüfwerkzeug (`pruefe`, `gleich`, `spaeter`,
 `fazit`). **Neue Prüfungen gehören VOR `fazit()`** — dahinter laufen sie nie.

@@ -243,6 +243,7 @@ const ANMELDUNG = {
                 const ergebnis = await KONTO.anmeldenMitEingabe(ANMELDUNG.abgleich.daten,
                     name.feld.value, passwort.feld.value);
                 if (ergebnis.ok) {
+                    await ANMELDUNG._nachAnmeldungLaden();
                     ANMELDUNG._uebernehmen(ergebnis.spieler);
                     ANMELDUNG._fertig();
                     return;
@@ -564,6 +565,7 @@ const ANMELDUNG = {
         if (!ergebnis.ok) {
             return ergebnis;
         }
+        await ANMELDUNG._nachAnmeldungLaden();
         ANMELDUNG._uebernehmen(ergebnis.spieler);
         return { ok: true };
     },
@@ -873,6 +875,15 @@ const ANMELDUNG = {
         /* Nur der Name (seit 0.15.6): Die Nummer ist zufällig und muss niemand
            kennen — zu sehen und zu ändern in den Einstellungen. */
         DIALOG.kurzmeldung(gruss + ergebnis.eintrag.name);
+    },
+
+    /* Regel §12 (seit 0.22.0, wie Blunderluck v0.154.0): Vor der Anmeldung
+       war nur die Marke lesbar — der eigene Eintrag und die Liste kommen
+       erst jetzt. Unter der alten Regel lag beides schon da. */
+    async _nachAnmeldungLaden() {
+        if (typeof KONTO.istP12 === "function" && KONTO.istP12()) {
+            await ANMELDUNG._nachladen();
+        }
     },
 
     /* Die Spielerliste frisch vom Server — nach jedem Konto-Ablauf. */

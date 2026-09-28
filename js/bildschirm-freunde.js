@@ -96,10 +96,10 @@ const FREUNDE_BILDSCHIRM = {
         feld.className = "feld";
         feld.id = "freunde-suche";
         feld.type = "search";
-        feld.placeholder = "Name";
+        feld.placeholder = KONTO.aktiv() ? "Name#1234" : "Name";
         feld.value = FREUNDE_BILDSCHIRM.suchtext;
         feld.autocomplete = "off";
-        feld.setAttribute("aria-label", "Spieler suchen");
+        feld.setAttribute("aria-label", KONTO.aktiv() ? "Freunde suchen · Name#Nummer" : "Spieler suchen");
         karte.appendChild(feld);
 
         const treffer = BAUSTEINE.el("div", "freunde-treffer");
@@ -109,6 +109,17 @@ const FREUNDE_BILDSCHIRM = {
             treffer.innerHTML = "";
             const gesucht = FREUNDE_BILDSCHIRM.suchtext.trim().toLowerCase();
             if (gesucht === "") {
+                return;
+            }
+            /*
+             * NUR MIT „NAME#NUMMER" (seit 0.22.0, wie Blunderluck v0.154.0;
+             * Regel §12, Nutzer: „bei der Freundes-Suche muss man den #
+             * eingeben"). Die Nummer ist der Freundescode; unter §12 fragt
+             * `KONTO.freundFinden` gezielt den einen Namens-Platz. Ohne
+             * UPCrew-Konto (lokal, Werkstatt) bleibt der Namens-Filter.
+             */
+            if (KONTO.aktiv()) {
+                FREUNDE_BILDSCHIRM._codeSucheZeigen(treffer, ich, FREUNDE_BILDSCHIRM.suchtext.trim(), zeigen);
                 return;
             }
             const daten = ANMELDUNG.abgleich.daten;
@@ -135,6 +146,58 @@ const FREUNDE_BILDSCHIRM = {
         });
         zeigen();
         return karte;
+    },
+
+    /* Das Ergebnis der letzten Suche nach „Name#Nummer" und die laufende. */
+    _suchErgebnis: null,
+    _sucheLaeuft: null,
+
+    _codeSucheZeigen(treffer, ich, gesucht, nochmal) {
+        const teile = KONTO.eingabeZerlegen(gesucht);
+        if (!teile.tag || teile.tag.length !== 4) {
+            treffer.appendChild(ZUSTAND.leer({ zeichen: "freunde", text: "Name#Nummer nötig" }));
+            return;
+        }
+        const ergebnis = FREUNDE_BILDSCHIRM._suchErgebnis;
+        if (!ergebnis || ergebnis.eingabe !== gesucht) {
+            treffer.appendChild(ZUSTAND.laden({ zeilen: 1 }));
+            FREUNDE_BILDSCHIRM._suchen(gesucht, nochmal);
+            return;
+        }
+        if (ergebnis.fehler) {
+            treffer.appendChild(ZUSTAND.leer({ zeichen: "freunde", text: "Keine Verbindung" }));
+            return;
+        }
+        const daten = ANMELDUNG.abgleich.daten;
+        const anderer = ergebnis.spieler;
+        if (!anderer || anderer.id === ich.id || SPIELER.istVerteiler(anderer) || SPIELER.istGast(anderer)
+                || SPIELER.freundschaft(daten, ich.id, anderer.id) !== "keine") {
+            treffer.appendChild(ZUSTAND.leer({ zeichen: "freunde", text: "Niemand gefunden" }));
+            return;
+        }
+        treffer.appendChild(FREUNDE_BILDSCHIRM._zeileBauen(anderer, [
+            BAUSTEINE.knopf({ text: "Anfragen", art: "still", klein: true,
+                beiKlick: () => FREUNDE_BILDSCHIRM._aendern("anfragen", anderer) })
+        ]));
+    },
+
+    async _suchen(eingabe, danach) {
+        if (FREUNDE_BILDSCHIRM._sucheLaeuft === eingabe) {
+            return;
+        }
+        FREUNDE_BILDSCHIRM._sucheLaeuft = eingabe;
+        let ergebnis;
+        try {
+            ergebnis = await KONTO.freundFinden(ANMELDUNG.abgleich.daten, eingabe);
+        } catch (fehler) {
+            ergebnis = { fehler: "netz" };
+        }
+        FREUNDE_BILDSCHIRM._sucheLaeuft = null;
+        FREUNDE_BILDSCHIRM._suchErgebnis = { eingabe: eingabe, spieler: ergebnis.spieler || null,
+            fehler: ergebnis.fehler === "netz" };
+        if (FREUNDE_BILDSCHIRM.suchtext.trim() === eingabe && typeof danach === "function") {
+            danach();
+        }
     },
 
     _zeileBauen(spieler, knoepfe) {

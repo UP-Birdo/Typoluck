@@ -108,10 +108,28 @@ const FORTSCHRITT_ABGLEICH = {
         if (!uid || typeof FORTSCHRITT_ABGLEICH._speicher.teilSchreiben !== "function") {
             return false;
         }
+        const aenderungen = FORTSCHRITT_ABGLEICH.aenderungen(uid, stand);
+        /* Regel §12 (seit 0.22.0, Konzept Abschnitt 4 „Eigener
+           Fortschritt"): der öffentliche Auszug zieht im selben Schritt mit
+           (über alle Zweige, mit dem Konto-Stand). Lehnt die Datenbank das
+           ab (etwa weil `oeffentlich/<ich>` noch fehlt), geht der Fortschritt
+           allein hinauf — der Auszug folgt beim nächsten Selbst-Eintrag. */
+        const mitAuszug = typeof KONTO !== "undefined" && typeof KONTO.istP12 === "function" && KONTO.istP12();
+        const schritt = Object.assign({}, aenderungen);
+        if (mitAuszug) {
+            schritt["oeffentlich/" + uid + "/auszug"] = FORTSCHRITT.auszug(FORTSCHRITT_ABGLEICH.mitKonto(stand));
+        }
         try {
-            await FORTSCHRITT_ABGLEICH._speicher.teilSchreiben(FORTSCHRITT_ABGLEICH.aenderungen(uid, stand));
+            await FORTSCHRITT_ABGLEICH._speicher.teilSchreiben(schritt);
         } catch (fehler) {
-            return false;
+            if (!mitAuszug) {
+                return false;
+            }
+            try {
+                await FORTSCHRITT_ABGLEICH._speicher.teilSchreiben(aenderungen);
+            } catch (nochmal) {
+                return false;
+            }
         }
         /* Was hinaufging, gilt jetzt auch als Konto-Stand. */
         if (FORTSCHRITT_ABGLEICH._kontoUid === uid && FORTSCHRITT_ABGLEICH._konto) {

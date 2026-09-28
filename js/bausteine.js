@@ -386,7 +386,15 @@ const BAUSTEINE = {
         muenze: "M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M9 8.5 H14 A2 2 0 0 1 14 12.5 H10 A2 2 0 0 1 10 16.5 H15 "
             + "M12 6.5 V8.5 M12 16.5 V18",
         gluehbirne: "M9 18 H15 M10 21 H14 M12 3 A6 6 0 0 1 16 13.5 C15 14.5 15 15.5 15 16 H9 C9 15.5 9 14.5 8 13.5 "
-            + "A6 6 0 0 1 12 3"
+            + "A6 6 0 0 1 12 3",
+        /* Seit 0.21.0, ebenfalls wörtlich aus dem Entwurf: Rast = Kerze,
+           Fund = loses Blatt, Checkpoint = Lesezeichen, Herz. Dazu die Uhr
+           (eigen, für die Regel `zeit`). */
+        kerze: "M10 10 H14 V20 H10 Z M12 10 V8.5 M12 3 C13.6 5 13.6 6.8 12 8 C10.4 6.8 10.4 5 12 3 Z M7 20 H17",
+        blatt: "M6 5.5 L16 3 L19.5 18 L9.5 20.5 Z M9 8.5 L15 7 M9.7 11.5 L15.7 10 M10.4 14.5 L14.5 13.5",
+        lesezeichen: "M8 3 H16 V21 L12 17 L8 21 Z",
+        herz: "M12 20 C6 15 3 12 3 8.5 A4.5 4.5 0 0 1 12 6 A4.5 4.5 0 0 1 21 8.5 C21 12 18 15 12 20 Z",
+        uhr: "M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M12 7 V12 L15.5 14.5"
     },
 
     zeichen(name) {

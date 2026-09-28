@@ -69,14 +69,26 @@ const loesungen = WOERTER.loesungen;
             if (kap.slice(1).some((spalte) => spalte.indexOf("b") !== -1 && !(letztes && spalte === kap[kap.length - 1]))) {
                 form = false;
             }
-            if (kap.some((spalte) => spalte.some((a) => ["r", "f"].indexOf(a) !== -1))) {
+            if (kap.some((spalte) => spalte.some((a) => ["ein", "aus"].indexOf(a) === -1 && !B.ARTEN[a]))) {
                 form = false;
             }
         }
     }
     pruefe("Jedes Kapitel: ein Eingang unten, genau ein Ausgang oben; Boss nur oben im letzten", form);
     pruefe("Gabelungen in höchstens 2 Spuren", spuren);
-    pruefe("Keine Rast, kein Fund („fürs Erste“)", B.stationen(1).concat(B.stationen(6)).every((st) => "weth".indexOf(st.art) !== -1 || st.art === "b"));
+    pruefe("Seit 0.21.0: jedes Buch hat Rast und Fund",
+        [1, 2, 3, 4, 5, 6].every((b) => ["r", "f"].every((a) => B.stationen(b).some((st) => st.art === a))));
+    pruefe("Rast direkt vor dem Boss", [1, 2, 3, 4, 5, 6].every((b) => {
+        const liste = B.stationen(b);
+        const boss = liste.find((st) => st.art === "b");
+        return liste.filter((st) => st.g === boss.g - 1).every((st) => st.art === "r");
+    }));
+    /* Die Form von 0.20.0 (Spalten und Spuren) bleibt — damit jede Nummer. */
+    gleich("Vorlagen: Spalten und Spuren wie 0.20.0",
+        ["A", "B", "C", "D", "X"].map((k) => B.VORLAGEN[k].slice(1).filter((s) => s[0] !== "aus").map((s) => s.length).join("")),
+        ["12212", "12211", "22121", "12211", "12211"]);
+    gleich("Boss-Nummern wie 0.20.0", [1, 2, 3, 4, 5, 6].map((b) => B.stationen(b).find((st) => st.art === "b").nr),
+        [32, 39, 46, 54, 62, 69]);
     const maxNr = Math.max(...[1, 2, 3, 4, 5, 6].map((b) => Math.max(...B.stationen(b).map((st) => st.nr))));
     pruefe("Höchstens 90 Stationen je Buch (Nr 10–99)", maxNr <= 99 && B.stationen(1)[0].nr === 10, "max " + maxNr);
     pruefe("Schlüssel passen zu Regel §11b (figuren Zahl-Zahl, schwuere 1–3 Ziffern)",
@@ -228,7 +240,7 @@ const loesungen = WOERTER.loesungen;
             { modus: "bibliothek", buch: 1, station: 10, zustand: "gewonnen" }, false, heute), v.sieg);
     const app = lesen("js/app.js");
     pruefe("APP: Station → Schlüssel und Figuren (Elite +1)", /bibliothek: APP\._bibliothekAngaben\(runde, wertung\)/.test(app)
-        && /WORDLE\.hilfeGenutzt\(runde\), st\.art\)/.test(app));
+        && /BIBLIOTHEK\.figurenDerRunde\(runde, wertung\.figuren, WORDLE\.hilfeGenutzt\(runde\)\)/.test(app));
     pruefe("APP: Händler über den Baustein (Nachlass gutschreiben, dann regulär kaufen)",
         /UPCREW_MUENZEN\.kaufen\(UPCREW_MUENZEN\.verdienen\(basis, FORTSCHRITT\.APP, nachlass/.test(app));
 }
@@ -243,14 +255,157 @@ const loesungen = WOERTER.loesungen;
         && index.indexOf("js/start-bibliothek.js") > index.indexOf("js/bildschirm-start.js"));
     const start = lesen("js/start-bibliothek.js").replace(/\/\*[\s\S]*?\*\//g, "");
     pruefe("Start-Bibliothek baut keine eigenen Knöpfe", start.indexOf('createElement("button")') === -1);
-    pruefe("Keine Herzen, keine Rast, kein Fund auf dem Buch", !/herz|Rast|Fund|Tinte/.test(start.replace(/bib-herzen-platz/g, "")));
+    pruefe("Keine Tinte, kein Siegel auf dem Buch (noch nicht gebaut)", !/Tinte|Siegel/.test(start));
+    pruefe("Herzen, Rast, Fund und Checkpoint auf dem Buch (seit 0.21.0)", /herzenBauen/.test(start)
+        && /_rastBauen/.test(start) && /_fundBauen/.test(start) && /st-cp/.test(start));
     pruefe("Schalter Üben · Bibliothek", /text: "Üben"/.test(start) && /BIBLIOTHEK\.NAME/.test(start));
     const wordle = lesen("js/bildschirm-wordle.js");
     pruefe("Runde der Bibliothek: Station, Wort gezogen, Regeln der Station",
-        /BIBLIOTHEK\.wortZiehen\(buch, station, Math\.random\(\), zuletzt\)/.test(wordle)
-            && /regeln: BIBLIOTHEK\.regeln\(buch, station\)/.test(wordle));
+        /BIBLIOTHEK\.wortZiehen\(buch, station, Math\.random\(\), zuletzt, BIBLIOTHEK\.wortFilter\(mitnahme\)\)/.test(wordle)
+            && /regeln: BIBLIOTHEK\.rundeRegeln\(buch, station, mitnahme\)/.test(wordle)
+            && /APP\.bibliothekMitnahme\(buch, station\)/.test(wordle));
     const r = W.neueRunde({ modus: "bibliothek", buch: 1, station: 12, loesung: "abend", regeln: B.regeln(1, 12) });
     gleich("Runde trägt Buch und Station", [r.buch, r.station, W.normalisieren(JSON.parse(JSON.stringify(r))).station], [1, 12, 12]);
+    const bw = lesen("js/bildschirm-wordle.js");
+    pruefe("Uhr: Anzeige über dem Brett, beendet die Runde selbst über WORDLE.raten",
+        /_uhrBauen\(\)/.test(bw) && /WORDLE\.restZeit\(runde, /.test(bw)
+        && /_zeitUm\(WORDLE\.raten\(runde, "", jetzt\)\)/.test(bw) && /_uhrAnhalten\(\)/.test(bw));
+}
+
+/* 8. Herzen, Checkpoint, Rast, Fund, Mitnahme (seit 0.21.0) */
+{
+    /* Wege aus 0.20.0 bleiben gegangen: jede Art zählt über Figur ODER Merker. */
+    gleich("Art-Tausch: Rast mit altem Merker und Fund mit alter Figur sind erledigt",
+        [B.station(1, 13).art, B.erledigt({ figuren: {}, schwuere: { 113: 1 } }, 1, 13),
+            B.station(1, 17).art, B.erledigt({ figuren: { "1-17": 2 }, schwuere: {} }, 1, 17)], ["r", true, "f", true]);
+    /* Ein in 0.20.0 durchgespieltes Buch 1 (Kampf = Figur, Truhe/Händler = Merker, alte Arten). */
+    const alt020 = { figuren: { "1-10": 2, "1-12": 2, "1-14": 1, "1-15": 3, "1-17": 1, "1-19": 2, "1-21": 1, "1-25": 2, "1-26": 1,
+        "1-27": 3, "1-31": 1, "1-32": 2 }, schwuere: { 122: 1, 124: 1, 129: 1 } };
+    gleich("Buch 1 aus 0.20.0 bleibt durch, Buch 2 offen", [B.durch(alt020, 1), B.offen(alt020, 2)], [true, true]);
+
+    gleich("Herzen erst ab Buch 2", [B.mitHerzen(1), B.mitHerzen(2), B.durchgangLeer(1).herzen, B.durchgangLeer(2).herzen],
+        [false, true, 0, 5]);
+    gleich("Durchgang: Unsinn wird leer, fremde Nummern fallen weg",
+        B.durchgangNormalisieren({ herzen: 9, wieder: [12, 12, 999, "x"], geheilt: [13], ueben: 3, effekt: "gift" }, 2),
+        { herzen: 5, wieder: [12], geheilt: [13], ueben: 0, effekt: "" });
+
+    const leer = { figuren: {}, schwuere: {} };
+    const buch1 = B.scheitern(leer, 1, 10, B.durchgangLeer(1));
+    gleich("Buch 1: Scheitern kostet nichts", [buch1.verlust, buch1.rueck], [0, false]);
+    const wort = B.scheitern(leer, 2, 10, B.durchgangLeer(2));
+    gleich("Wort gescheitert: −1 Herz", [wort.verlust, wort.dg.herzen, wort.rueck], [1, 4, false]);
+    const gabel = B.gehen(2, 1, "0").turm;
+    gleich("Elite gescheitert: −2", B.scheitern(gabel, 2, 12, B.durchgangLeer(2)).dg.herzen, 3);
+    gleich("Nicht an der Front (schon gegangen): kein Verlust",
+        B.scheitern(B.gehen(2, 2, "0").turm, 2, 10, B.durchgangLeer(2)).verlust, 0);
+    const bossDa = B.gehen(2, 200, "0").turm;
+    const bossNr = B.stationen(2).find((st) => st.art === "b").nr;
+    delete bossDa.figuren["2-" + bossNr];
+    gleich("Boss gescheitert: −3", B.scheitern(bossDa, 2, bossNr, B.durchgangLeer(2)).verlust, 3);
+
+    /* Checkpoint = letzte gegangene Rast oder besiegte Elite (seit 0.21.1). */
+    const mitElite = B.gehen(2, 3, "1").turm;
+    gleich("Weg über die Elite: Checkpoint ist sie", [B.lauf(mitElite, 2).weg, B.checkpoint(mitElite, 2)], [[10, 12, 14], 12]);
+    const ueberRast = B.gehen(2, 3, "0").turm;
+    gleich("Weg über die Rast: Checkpoint ist sie", [B.lauf(ueberRast, 2).weg, B.checkpoint(ueberRast, 2)], [[10, 11, 13], 13]);
+    const fallRast = B.scheitern(ueberRast, 2, 15, { herzen: 1 });
+    gleich("0 Herzen nach der Rast: direkt dahinter, Herzen voll", [fallRast.rueck, fallRast.cp, fallRast.dg.wieder,
+        fallRast.dg.herzen, B.lauf(B.sicht(ueberRast, { 2: fallRast.dg }), 2).jetzt], [true, 13, [], 5, 15]);
+    const spaeter = B.gehen(2, 8, "11").turm;
+    gleich("Die letzte auf dem Weg zählt (nicht die erste Elite)",
+        [B.lauf(spaeter, 2).weg, B.checkpoint(spaeter, 2)], [[10, 12, 14, 15, 17, 18, 20, 22], 22]);
+    const ohneElite = B.gehen(2, 1, "0").turm;
+    gleich("Weg ohne Rast und Elite: kein Checkpoint", B.checkpoint(ohneElite, 2), null);
+    gleich("Elite besiegt: Herzen voll; Wort nicht", [B.nachRunde({ herzen: 2 }, 2, 12, null, true, 0).herzen,
+        B.nachRunde({ herzen: 2 }, 2, 11, null, true, 0).herzen, B.nachRunde({ herzen: 2 }, 2, 12, null, false, 0).herzen,
+        B.nachRunde({}, 1, 12, null, true, 0).herzen], [5, 2, 2, 0]);
+    const fall = B.scheitern(mitElite, 2, 15, { herzen: 1, wieder: [], geheilt: [13], ueben: 1, effekt: "fuenf" });
+    gleich("0 Herzen: zurück hinter die Elite, Herzen voll, Üben/Fund weg, geheilt bleibt",
+        [fall.rueck, fall.cp, fall.dg.wieder, fall.dg.herzen, fall.dg.ueben, fall.dg.effekt, fall.dg.geheilt],
+        [true, 12, [14], 5, 0, "", [13]]);
+    const sicht = B.sicht(mitElite, { 2: fall.dg });
+    gleich("Sicht: die Station nach der Elite wartet wieder", B.lauf(sicht, 2).jetzt, 14);
+    pruefe("Sicht ändert den Stand nicht", mitElite.figuren["2-12"] > 0 && mitElite.schwuere["214"] === 1);
+    const fall0 = B.scheitern(ohneElite, 2, 11, { herzen: 1 });
+    gleich("0 Herzen ohne Rast und Elite: zurück an den Buchanfang", [fall0.cp, fall0.dg.wieder, B.lauf(B.sicht(ohneElite,
+        { 2: fall0.dg }), 2).jetzt], [null, [10], 10]);
+    gleich("Wieder gegangen: raus aus der Liste", B.wiederErledigt(fall.dg, 2, 14).wieder, []);
+    /* Nur vorwärts (seit 0.21.1): gegangene Stationen sind nicht spielbar,
+       durchgespielte Bücher bleiben durch. */
+    gleich("Gegangene Station nicht spielbar", [B.spielbar(mitElite, 2, 10), B.spielbar(mitElite, 2, 12),
+        B.spielbar(mitElite, 2, 15)], [false, false, true]);
+    const ganz021 = B.gehen(2, 200, "0110").turm;
+    gleich("Buch 2 aus 0.21.0 durchgespielt: bleibt durch, Buch 3 offen", [B.durch(ganz021, 2), B.offen(ganz021, 3)],
+        [true, true]);
+    const startQuelle = lesen("js/start-bibliothek.js");
+    pruefe("Blatt: Los nur an der Front (kein Nachspielen)", /los\.disabled = !spielbar;/.test(startQuelle)
+        && !/Nochmal/.test(startQuelle.replace(/\/\*[\s\S]*?\*\//g, "")));
+
+    /* Rast */
+    const r1 = B.rastWaehlen({ herzen: 2 }, 2, 13, "heilen");
+    gleich("Rast heilt +2 und merkt sich die Rast", [r1.ok, r1.dg.herzen, r1.dg.geheilt], [true, 4, [13]]);
+    gleich("Dieselbe Rast heilt im Durchgang nur einmal", B.rastMoeglich(r1.dg, 2, 13, "heilen"), false);
+    gleich("Volle Herzen: nicht heilen", B.rastMoeglich({ herzen: 5 }, 2, 13, "heilen"), false);
+    gleich("Buch 1: nur Üben", [B.rastMoeglich({}, 1, 13, "heilen"), B.rastMoeglich({}, 1, 13, "ueben")], [false, true]);
+    const u = B.rastWaehlen({}, 2, 13, "ueben");
+    gleich("Üben: +1 Versuch nur für Elite/Boss an der Front",
+        [u.dg.ueben, B.mitnahme(gabel, 2, 12, u.dg).ueben, B.mitnahme(gabel, 2, 11, u.dg).ueben,
+            B.rundeRegeln(2, 12, { ueben: 1 }).versuche], [1, 1, 0, 7]);
+
+    /* Fund */
+    gleich("Buch 1: nur die Wette (ohne Herzen, ohne Tinte)", B.fundAngebote(1, 17).map((f) => f.id), ["wette"]);
+    const angebote = [17, 19, 32, 37].map((nr) => B.fundAngebote(2, nr).map((f) => f.id));
+    pruefe("Buch 2: zwei verschiedene Angebote je Fund, fest je Station",
+        angebote.every((a) => a.length === 2 && a[0] !== a[1])
+            && JSON.stringify(B.fundAngebote(2, 17)) === JSON.stringify(B.fundAngebote(2, 17)), JSON.stringify(angebote));
+    pruefe("Zeit-Angebot erst ab Buch 3", [2].every((b) => B.stationen(b).filter((st) => st.art === "f")
+        .every((st) => B.fundAngebote(b, st.nr).every((f) => f.id !== "zeit"))));
+    gleich("Fund geht nur, wenn man es tragen kann",
+        [B.fundMoeglich({ herzen: 1 }, 2, "herzmuenzen", 0), B.fundMoeglich({}, 2, "wette", 10),
+            B.fundMoeglich({ effekt: "fuenf" }, 2, "doppelt", 99), B.fundMoeglich({ herzen: 5 }, 2, "muenzenherz", 99)],
+        [false, false, false, false]);
+    const hm = B.fundNehmen({ herzen: 3 }, 2, 17, "herzmuenzen", 0);
+    const we = B.fundNehmen({}, 2, 17, "wette", 25);
+    gleich("Fund: −1 Herz für +40; Wette kostet 20 und wirkt auf die nächste Station",
+        [hm.dg.herzen, hm.muenzen, we.muenzen, we.dg.effekt], [2, 40, -20, "wette"]);
+
+    /* Mitnahme und Belohnung */
+    const fuenf = { effekt: "fuenf", ueben: 0 };
+    gleich("Mitnahme nur an der Front und für Kampf", [B.mitnahme(leer, 2, 10, fuenf).effekt,
+        B.mitnahme(leer, 2, 11, fuenf).effekt], ["fuenf", ""]);
+    gleich("Regeln: „5 Versuche“, „60 Sekunden“", [B.rundeRegeln(2, 10, fuenf).versuche,
+        B.rundeRegeln(2, 10, { effekt: "zeit" }).zeit, B.rundeRegeln(2, 10, {}).zeit || 0], [5, 60, 0]);
+    pruefe("Doppelbuchstabe: jedes gezogene Wort hat einen",
+        [0, 0.3, 0.6, 0.99].map((z) => B.wortZiehen(2, 15, z, [], B.wortFilter({ effekt: "doppelt" })))
+            .every((w) => WB.merkmale(w).doppelt));
+    gleich("Belohnung nur gelöst: ×2, +1 Figur (ohne Hilfe), +1 Herz, Wette ≤ 4",
+        [B.belohnung({ effekt: "doppelt" }, { geloest: true }).muenzenMal,
+            B.belohnung(fuenf, { geloest: true }).figurPlus, B.belohnung(fuenf, { geloest: true, hilfe: true }).figurPlus,
+            B.belohnung({ effekt: "zeit" }, { geloest: true }).herzPlus,
+            B.belohnung({ effekt: "wette" }, { geloest: true, versuche: 4 }).muenzenPlus,
+            B.belohnung({ effekt: "wette" }, { geloest: true, versuche: 5 }).muenzenPlus,
+            B.belohnung({ effekt: "doppelt" }, { geloest: false }).muenzenMal], [2, 1, 0, 1, 50, 0, 1]);
+    const nach = B.nachRunde({ herzen: 3, effekt: "zeit", ueben: 1, wieder: [15] }, 2, 15, { effekt: "zeit", ueben: 1 }, true, 1);
+    gleich("Nach der Runde: Mitnahme verbraucht, erledigt, Herz dazu", [nach.effekt, nach.ueben, nach.wieder, nach.herzen],
+        ["", 0, [], 4]);
+    const runde = W.neueRunde({ modus: "bibliothek", buch: 2, station: 15, loesung: "abend", mitnahme: fuenf });
+    gleich("Runde trägt die Mitnahme (auch gespeichert), Tageswort nie",
+        [runde.mitnahme, W.normalisieren(JSON.parse(JSON.stringify(runde))).mitnahme,
+            W.neueRunde({ modus: "tag", loesung: "abend", mitnahme: fuenf }).mitnahme], [fuenf, fuenf, undefined]);
+    runde.zustand = "gewonnen";
+    runde.versuche = ["tisch", "abend"];
+    gleich("Figuren der Runde: +1 aus „5 Versuche“", B.figurenDerRunde(runde, 2, false), 3);
+
+    /* Münzen ausgeben ohne Ware (APP._muenzenAusgeben, rein) */
+    const quelle = lesen("js/app.js");
+    const anfang = quelle.indexOf("    _muenzenAusgeben(alt");
+    const text = quelle.slice(anfang, quelle.indexOf("\n    },", anfang) + 7);
+    const APP = vm.runInNewContext("({" + text + "})", { FORTSCHRITT: F });
+    const reich = M.verdienen(F.leer(), "typoluck", 50, 1);
+    const arm = APP._muenzenAusgeben(reich, 20, 2);
+    gleich("Münzen ausgeben: Kontostand −20, nur im eigenen Zweig", [M.saldo(arm), Object.keys(arm.spiele)], [30, ["typoluck"]]);
+    pruefe("Konto: der Durchgang geht nicht ans Konto (§11b kennt ihn nicht)",
+        JSON.stringify(F.fuerKonto(arm)).indexOf("herzen") === -1 && /bibliothek-durchgang/.test(quelle));
 }
 
 fazit();

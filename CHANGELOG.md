@@ -3,6 +3,60 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.22.0 — 28.09.2026
+
+**Vorbereitet auf den besseren Schutz der Spielerdaten (Regel §12).**
+
+- Typoluck erkennt selbst, welche Datenbank-Regel gilt, und kann unter
+  der heutigen wie unter der neuen arbeiten. Unter der neuen sieht niemand
+  mehr die vollen Daten anderer Spieler — nur Name, Freunde, Abzeichen und
+  Level.
+- Die Nummer eines anderen Spielers steht nirgends mehr. Gibt es einen
+  Namen zweimal, steht „Level N" dahinter.
+- Freunde suchen geht jetzt nur mit Name und Nummer („Name#1234") — die
+  Nummer ist dein Freundescode, zu sehen in deinen Einstellungen.
+- Für UP#Plus: Knopf „§12 nachziehen" in der Verwaltung (erst nach dem
+  Einspielen der neuen Regel sichtbar).
+- Gleich wie Blunderluck v0.154.0; die Regel selbst ist noch nicht
+  eingespielt.
+
+## 0.21.1 — 28.09.2026
+
+**Checkpoint auch an der Rast, Elite heilt, nur noch vorwärts.**
+
+- Bei 0 Herzen geht es zurück zur letzten Rast oder besiegten Elite —
+  je nachdem, was zuletzt auf dem Weg kam. Ohne beides an den
+  Buchanfang. Beide tragen das Lesezeichen.
+- Eine besiegte Elite füllt die Herzen wieder voll.
+- Gegangene Stationen lassen sich nicht mehr nachspielen; der Weg führt
+  nur vorwärts. Nur nach einem Rückfall spielt man die Stationen hinter
+  dem Checkpoint neu.
+
+## 0.21.0 — 28.09.2026
+
+**Die Bibliothek bekommt Rast, Fund, Herzen und den Checkpoint.**
+
+- **Rast** (Kerze): eine Wahl — Heilen (+2 Herzen) oder Üben (die nächste
+  Elite oder der Boss hat einen Versuch mehr). Jede Rast heilt in einem
+  Durchgang nur einmal.
+- **Fund** (loses Blatt): zwei Tauschangebote mit Risiko oder Nein —
+  etwa ein Herz gegen 40 Münzen, „nächste Station nur 5 Versuche" gegen
+  eine Figur mehr, „nächste Station mit Doppelbuchstabe" gegen doppelte
+  Münzen oder eine Wette (20 Münzen, in höchstens 4 Versuchen gelöst gibt
+  50 zurück). Ab Buch 3 auch „60 Sekunden" gegen ein Herz.
+- **Herzen** ab Buch 2: fünf je Durchgang, verloren nur beim Scheitern
+  (Wort −1, Elite −2, Boss −3). Bei 0 Herzen geht es zurück zur zuletzt
+  besiegten Elite — sie trägt das Lesezeichen des Checkpoints —, ohne
+  Elite an den Buchanfang. Figuren und Münzen bleiben immer.
+- **Uhr** bei Runden mit Zeit: über dem Brett, sie startet mit dem
+  ersten Buchstaben und beendet die Runde bei 0.
+- Wer in 0.20.0 schon gespielt hat, behält seinen Weg: Rast und Fund
+  stehen an Stellen, an denen vorher Wörter oder Truhen waren, und zählen
+  als gegangen.
+- Herzen und Rückfall liegen vorerst nur auf dem Gerät.
+- Shop-Baustein mit der neuen Option für eigene Waren-Bilder (Typoluck
+  behält das Herz).
+
 ## 0.20.0 — 28.09.2026
 
 **Die neue Bibliothek: das Buch als Doppelseite.**

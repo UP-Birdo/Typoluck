@@ -1313,6 +1313,131 @@ const FORTSCHRITT = {
         alle[id] = eintrag;
         FORTSCHRITT._schreiben(alle);
         return ergebnis;
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Zwei Helfer unter Blunderlucks Namen (seit 0.22.0), damit die
+     * Auszug-Funktionen unten Zeile für Zeile Blunderlucks sind
+     * (tests\test-muenzen.js vergleicht sie): `datumVon` wörtlich wie dort,
+     * `levelAus` = `levelVon` in Blunderlucks Form.
+     * ---------------------------------------------------------------- */
+
+    datumVon(zeitpunkt) {
+        const d = new Date(zeitpunkt);
+        const zwei = (zahl) => (zahl < 10 ? "0" : "") + zahl;
+        return d.getFullYear() + "-" + zwei(d.getMonth() + 1) + "-" + zwei(d.getDate());
+    },
+
+    levelAus(xp) {
+        const l = FORTSCHRITT.levelVon(xp);
+        return { level: l.level, imLevel: l.hat, kosten: l.kosten, anteil: l.hat / l.kosten };
+    },
+
+    /* ---------------------------------------------------------------- *
+     * DER ÖFFENTLICHE AUSZUG (seit v0.154.0, Regel §12 —
+     * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md, Abschnitt 3 und K3)
+     *
+     * Unter §12 lesen andere nur noch `spieler/oeffentlich/<uid>`, nicht mehr
+     * den ganzen Fortschritt. Was fremde Bildschirme davon brauchen (Level-
+     * Karte, die fünf Abzeichen), steht im Auszug:
+     *
+     *     { xp, serie, serieBis, werte: { partien, besteSerie, beideTage,
+     *       figuren, tagesaufgaben } }
+     *
+     * `xp` = Summe aller Zweige; `serie` = laufende Serie am Tag `heute`,
+     * `serieBis` = ihr letzter gezählter Tag als JJJJMMTT (0 ohne Serie);
+     * `werte` = die fünf Zahlen des Abzeichen-Bausteins
+     * (`UPCREW_ABZEICHEN.werte`, mit der laufenden Serie). Schon unter der
+     * alten Regel rechnet Blunderluck fremdes Level und fremde Abzeichen über
+     * diesen Auszug (`auszugVon`) — dieselbe Rechnung wie später.
+     * Grenzen wie in der Regel (xp ≤ 1e8, serie ≤ 1e5, werte ≤ 1e9).
+     * ---------------------------------------------------------------- */
+
+    AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],
+
+    auszug(stand, heute) {
+        const sauber = FORTSCHRITT.normalisieren(stand);
+        const datum = FORTSCHRITT._istDatum(heute) ? heute : FORTSCHRITT.datumVon(Date.now());
+        const schutz = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(sauber).level);
+        const serie = FORTSCHRITT.serie(sauber, datum, schutz);
+        const bis = serie.tage > 0
+            ? FORTSCHRITT._datumZahl(FORTSCHRITT.serieStand(sauber, schutz, datum).bis) : 0;
+        const roh = (typeof UPCREW_ABZEICHEN !== "undefined" && typeof UPCREW_ABZEICHEN.werte === "function")
+            ? UPCREW_ABZEICHEN.werte(sauber, serie.tage) : {};
+        const werte = {};
+        for (const name of FORTSCHRITT.AUSZUG_WERTE) {
+            werte[name] = FORTSCHRITT._zahl(roh[name], 1000000000);
+        }
+        return {
+            xp: FORTSCHRITT._zahl(FORTSCHRITT.gesamtXp(sauber), 100000000),
+            serie: FORTSCHRITT._zahl(serie.tage, 100000),
+            serieBis: bis,
+            werte: werte
+        };
+    },
+
+    /* Ein Auszug vom Server in Form — oder null, wenn keiner da ist. */
+    auszugPruefen(roh) {
+        if (!FORTSCHRITT._istObjekt(roh)) {
+            return null;
+        }
+        const werte = {};
+        const rohWerte = FORTSCHRITT._istObjekt(roh.werte) ? roh.werte : {};
+        for (const name of FORTSCHRITT.AUSZUG_WERTE) {
+            werte[name] = FORTSCHRITT._zahl(rohWerte[name], 1000000000);
+        }
+        const bis = FORTSCHRITT._zahl(roh.serieBis, 99991231);
+        return {
+            xp: FORTSCHRITT._zahl(roh.xp, 100000000),
+            serie: FORTSCHRITT._zahl(roh.serie, 100000),
+            serieBis: /^\d{8}$/.test(String(bis)) ? bis : 0,
+            werte: werte
+        };
+    },
+
+    /* Der Auszug eines Spieler-Eintrags: Liegt der volle `fortschritt` da
+       (alte Regel, eigener Eintrag, Admin), wird aus ihm gerechnet; sonst
+       gilt `auszug` vom Eintrag (§12, aus `spieler/oeffentlich`). */
+    auszugVon(spieler, heute) {
+        if (spieler && FORTSCHRITT._istObjekt(spieler.fortschritt)) {
+            return FORTSCHRITT.auszug(spieler.fortschritt, heute);
+        }
+        return (spieler && FORTSCHRITT.auszugPruefen(spieler.auszug))
+            || FORTSCHRITT.auszug(null, heute);
+    },
+
+    /* Level aus dem Auszug — dasselbe wie `level(stand)` am vollen Stand. */
+    auszugLevel(auszug) {
+        return FORTSCHRITT.levelAus(auszug ? auszug.xp : 0);
+    },
+
+    /* Die laufende Serie am Tag `heute`: sie lebt, solange ihr letzter Tag
+       höchstens gestern war (einen Serien-Schutz kennt der Auszug nicht). */
+    auszugSerie(auszug, heute) {
+        if (!auszug || !auszug.serie || !auszug.serieBis) {
+            return 0;
+        }
+        const datum = FORTSCHRITT._istDatum(heute) ? heute : FORTSCHRITT.datumVon(Date.now());
+        const luecke = FORTSCHRITT._tageZwischen(FORTSCHRITT._zahlDatum(auszug.serieBis), datum);
+        return (luecke >= 0 && luecke <= 1) ? auszug.serie : 0;
+    },
+
+    /* Ein Stand, aus dem `UPCREW_ABZEICHEN.werte` genau die fünf Werte des
+       Auszugs liest (der Baustein bleibt unverändert, er kommt aus final). */
+    auszugAlsStand(auszug) {
+        const w = (auszug && auszug.werte) || {};
+        return {
+            version: 1,
+            spiele: {
+                auszug: {
+                    xp: 0, partien: w.partien || 0, tage: [],
+                    zaehler: {
+                        besteSerie: w.besteSerie || 0, beideTage: w.beideTage || 0,
+                        figuren: w.figuren || 0, tagesaufgaben: w.tagesaufgaben || 0
+                    }
+                }
+            }
+        };
     }
 };
 

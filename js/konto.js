@@ -86,6 +86,27 @@ const KONTO = {
     VORLAUF_MS: 5 * 60 * 1000,
     ZEITLIMIT_MS: 12000,
 
+    /* Die feste Konto-Nummer von UP#Plus (steht ohnehin in den Regeln,
+       SICHERHEIT.md §11). Seit Regel §12 erkennt die App das oberste Konto
+       daran und nicht mehr über `spieler/namen/up/Plus` (nicht mehr
+       öffentlich lesbar). */
+    OBER_UID: "yJaWLaK5Kah6fxmnXfDycJhO5cF3",
+
+    /* Regel §12: Wie oft eine gewürfelte Nummer versucht wird, bevor
+       aufgegeben wird (die Datenbank lehnt einen besetzten Platz ab). */
+    NUMMER_VERSUCHE: 5,
+
+    /* Welche Datenbank-Regel gilt: "alt" (bis §11c, `spieler` öffentlich)
+       oder "p12" (Regel §12, Spielerdaten geschützt). Nur im Speicher, nie
+       auf dem Gerät (`regelErkennen`). */
+    regel: "alt",
+    regelBekannt: false,
+    _erkennung: null,
+
+    /* Datenbank-Adresse und Pfad der Konten (aus KONFIG.speicher). */
+    basis: "",
+    pfad: "spieler",
+
     /* KONFIG.konto, wenn die Anmeldung über Firebase läuft — sonst null. */
     einstellung: null,
 
@@ -111,6 +132,10 @@ const KONTO = {
                 && speicher.modus === "gemeinsam" && speicher.firebaseBasis)
             ? konto : null;
         KONTO.sitzung = KONTO.einstellung ? KONTO._lesen() : null;
+        KONTO.basis = KONTO.einstellung ? String(speicher.firebaseBasis).replace(/\/+$/, "") : "";
+        KONTO.pfad = (speicher && speicher.pfad) ? String(speicher.pfad).replace(/^\/+|\/+$/g, "") : "spieler";
+        KONTO.regel = "alt";
+        KONTO.regelBekannt = false;
     },
 
     aktiv() {
@@ -294,9 +319,13 @@ const KONTO = {
      * Rollen (gelesen aus der Spielerliste; gesichert von den Regeln)
      * ---------------------------------------------------------------- */
 
-    /* Das oberste Konto ist, wem „UP#Plus" in `spieler/namen` gehört — diesen
-       Platz kann nur dieses Konto belegen (Regeln). */
+    /* Das oberste Konto: die feste Konto-Nummer `OBER_UID` (seit Regel §12)
+       oder, wem „UP#Plus" in `spieler/namen` gehört — diesen Platz kann nur
+       dieses Konto belegen (Regeln). */
     istOberAdmin(daten, uid) {
+        if (uid && uid === KONTO.OBER_UID) {
+            return true;
+        }
         const up = daten && daten.namen && daten.namen[KONTO.nameSchluessel(KONTO.OBER_NAME)];
         return !!(uid && up && up[KONTO.OBER_TAG] === uid);
     },
@@ -451,8 +480,13 @@ const KONTO = {
             return { ok: false, feld: KONTO.fehlerFeld(ergebnis.fehler), fehler: ergebnis.fehler,
                 text: KONTO.fehlerText(ergebnis.fehler) };
         }
-        const eintrag = KONTO._neuerEintrag(id, name, tag, id);
-        return KONTO._mitFeld(await KONTO._eintragSchreibenOderAufraeumen(speicher, eintrag, null));
+        /* Seit Regel §12 mit neuem Würfeln, falls die Nummer besetzt ist. */
+        const geschrieben = await KONTO._mitNummer(speicher, daten, name, tag,
+            (nummer) => KONTO._neuerEintrag(id, name, nummer, id), null, null);
+        if (!geschrieben.ok) {
+            await KONTO.loeschen();
+        }
+        return KONTO._mitFeld(geschrieben);
     },
 
     /* Ein Gast: anonymes Konto, Name „Gast" mit zufälliger Nummer. */
@@ -463,10 +497,14 @@ const KONTO = {
             return { ok: false, text: ergebnis.fehler === "sonst"
                 ? "Gast-Zugang ist gerade nicht möglich." : KONTO.fehlerText(ergebnis.fehler) };
         }
-        const eintrag = Object.assign(
-            KONTO._neuerEintrag(KONTO._kennungErzeugen(), KONTO.GAST_NAME, tag, ""),
-            { gast: true });
-        return KONTO._eintragSchreibenOderAufraeumen(speicher, eintrag, null);
+        const id = KONTO._kennungErzeugen();
+        const geschrieben = await KONTO._mitNummer(speicher, daten, KONTO.GAST_NAME, tag,
+            (nummer) => Object.assign(KONTO._neuerEintrag(id, KONTO.GAST_NAME, nummer, ""), { gast: true }),
+            null, null);
+        if (!geschrieben.ok) {
+            await KONTO.loeschen();
+        }
+        return geschrieben;
     },
 
     /*
@@ -514,10 +552,13 @@ const KONTO = {
             return { ok: false, feld: KONTO.fehlerFeld(ergebnis.fehler), fehler: ergebnis.fehler,
                 text: KONTO.fehlerText(ergebnis.fehler) };
         }
-        const neu = Object.assign(KONTO._sauber(eintrag),
-            { name: name, tag: tag, kennung: kennung });
-        delete neu.gast;
-        return KONTO._mitFeld(await KONTO._eintragSchreiben(speicher, neu, eintrag));
+        const bauen = (nummer) => {
+            const neu = Object.assign(KONTO._sauber(eintrag),
+                { name: name, tag: nummer, kennung: kennung });
+            delete neu.gast;
+            return neu;
+        };
+        return KONTO._mitFeld(await KONTO._mitNummer(speicher, daten, name, tag, bauen, eintrag, null));
     },
 
     /* Bei diesen Absagen des Verknüpfens zieht der Gast stattdessen um. */
@@ -568,12 +609,20 @@ const KONTO = {
             return { ok: false, feld: KONTO.fehlerFeld(neuesKonto.fehler), fehler: neuesKonto.fehler,
                 text: KONTO.fehlerText(neuesKonto.fehler) };
         }
-        const neu = Object.assign({}, alt, { name: name, tag: tag, uid: KONTO.uid(), kennung: kennung });
-        delete neu.gast;
-        delete neu.neuVerbinden;
+        const bauen = (nummer) => {
+            const neu = Object.assign({}, alt, { name: name, tag: nummer, uid: KONTO.uid(), kennung: kennung });
+            delete neu.gast;
+            delete neu.neuVerbinden;
+            return neu;
+        };
         const weitere = {};
         weitere["konten/" + alt.uid] = null;
-        const ergebnis = await KONTO._eintragSchreiben(speicher, neu, null, weitere);
+        /* Regel §12: auch der öffentliche Auszug des Gasts geht weg (die
+           Regel lässt das zu, solange `neuVerbinden` am alten Eintrag steht). */
+        if (KONTO.istP12()) {
+            weitere["oeffentlich/" + alt.uid] = null;
+        }
+        const ergebnis = await KONTO._mitNummer(speicher, null, name, tag, bauen, null, weitere);
         if (!ergebnis.ok) {
             /* Das neue Firebase-Konto wieder weg; die Gast-Sitzung zurück,
                damit der Gast weiterspielt. */
@@ -606,12 +655,18 @@ const KONTO = {
      */
     async kombinationVergeben(daten, name, passwort) {
         const schluessel = KONTO.nameSchluessel(name);
-        const liste = ((daten && Array.isArray(daten.spieler)) ? daten.spieler : [])
+        let kennungen = ((daten && Array.isArray(daten.spieler)) ? daten.spieler : [])
             .filter((spieler) => spieler.gast !== true && spieler.neuVerbinden !== true
                 && spieler.tag && KONTO.nameSchluessel(spieler.name) === schluessel)
-            .slice(0, KONTO.ANMELDEN_REIHUM_MAX);
-        for (const spieler of liste) {
-            const ergebnis = await KONTO._pruefen(KONTO.kennungVon(spieler), passwort);
+            .map((spieler) => KONTO.kennungVon(spieler));
+        /* Regel §12: Die Liste kennt fremde Kennungen nicht mehr — das
+           Anmeldeverzeichnis dieses Namens schon (`verzeichnisLesen`). */
+        if (KONTO.istP12()) {
+            kennungen = ((await KONTO.verzeichnisLesen(name)) || [])
+                .filter((eintrag) => !eintrag.f).map((eintrag) => eintrag.k);
+        }
+        for (const kennung of kennungen.slice(0, KONTO.ANMELDEN_REIHUM_MAX)) {
+            const ergebnis = await KONTO._pruefen(kennung, passwort);
             if (ergebnis.ok) {
                 return true;
             }
@@ -687,12 +742,14 @@ const KONTO = {
         if (!ergebnis.ok) {
             return { ok: false, text: KONTO.fehlerText(ergebnis.fehler) };
         }
-        const tag = KONTO.tagWaehlen(daten, name, KONTO.UMZUG_TAG);
-        const eintrag = Object.assign(KONTO._sauber(altSpieler),
-            KONTO._neuerEintrag(altSpieler.id, name, tag, altSpieler.id),
+        /* Regel §12: ob 0001 frei ist, sagt nur noch der eine Platz. */
+        const umzugFrei = KONTO.istP12() ? await KONTO.nummerFrei(name, KONTO.UMZUG_TAG) : true;
+        const tag = KONTO.tagWaehlen(daten, name, umzugFrei === false ? null : KONTO.UMZUG_TAG);
+        const bauen = (nummer) => Object.assign(KONTO._sauber(altSpieler),
+            KONTO._neuerEintrag(altSpieler.id, name, nummer, altSpieler.id),
             { freunde: altSpieler.freunde || [], abgelehnt: altSpieler.abgelehnt || [],
                 abzeichen: altSpieler.abzeichen || [] });
-        return KONTO._eintragSchreiben(speicher, eintrag, null);
+        return KONTO._mitNummer(speicher, daten, name, tag, bauen, null, null);
     },
 
     /* NEU VERBINDEN („Passwort vergessen"): Ein Admin hat den Eintrag
@@ -707,6 +764,17 @@ const KONTO = {
         const ergebnis = await KONTO.registrieren(kennung, passwort);
         if (!ergebnis.ok) {
             return { ok: false, text: KONTO.fehlerText(ergebnis.fehler) };
+        }
+        /* Regel §12: Die Anmeldung kennt vom freigegebenen Konto nur den
+           Verzeichnis-Eintrag. Den ganzen Eintrag darf jetzt — angemeldet —
+           jeder lesen, solange `neuVerbinden` daran steht. */
+        if (KONTO.istP12()) {
+            const voll = await KONTO._dbRufen("konten/" + altEintrag.uid);
+            if (!voll.ok || !voll.daten || typeof voll.daten !== "object") {
+                await KONTO.loeschen();
+                return { ok: false, text: KONTO.fehlerText("netz") };
+            }
+            altEintrag = Object.assign({}, voll.daten, { uid: altEintrag.uid });
         }
         const neu = Object.assign(KONTO._sauber(altEintrag),
             { uid: KONTO.uid(), kennung: kennung });
@@ -724,9 +792,17 @@ const KONTO = {
             return { ok: false, text: regel };
         }
         const gleich = KONTO.nameSchluessel(name) === KONTO.nameSchluessel(eintrag.name);
-        const tag = gleich ? eintrag.tag : KONTO.tagWaehlen(daten, name, eintrag.tag);
-        const neu = Object.assign(KONTO._sauber(eintrag), { name: name, tag: tag });
-        return KONTO._eintragSchreiben(speicher, neu, eintrag);
+        /* Regel §12: ob die bisherige Nummer beim neuen Namen frei ist, sagt
+           nur noch der eine Platz `namen/<neu>/<nummer>`. */
+        const frei = (!gleich && KONTO.istP12()) ? await KONTO.nummerFrei(name, eintrag.tag) : true;
+        const tag = gleich ? eintrag.tag : KONTO.tagWaehlen(daten, name, frei === false ? null : eintrag.tag);
+        if (!tag) {
+            return { ok: false, text: "Für diesen Namen ist keine Nummer mehr frei." };
+        }
+        const bauen = (nummer) => Object.assign(KONTO._sauber(eintrag), { name: name, tag: nummer });
+        return gleich
+            ? KONTO._eintragSchreiben(speicher, bauen(tag), eintrag)
+            : KONTO._mitNummer(speicher, daten, name, tag, bauen, eintrag, null);
     },
 
     /* Ist das eine gültige Nummer? 4 Ziffern, nicht 0000 (seit v0.151.8).
@@ -763,17 +839,26 @@ const KONTO = {
             if (tag === eintrag.tag) {
                 return { ok: true, eintrag: eintrag };
             }
-            if (KONTO.tagBelegt(daten, eintrag.name, tag)) {
+            /* Regel §12: `namen` ist nicht mehr ganz lesbar — der eine
+               Platz schon (nur ein Hinweis; entscheidend ist, dass die
+               Datenbank einen besetzten Platz ablehnt). */
+            const belegt = KONTO.istP12()
+                ? (await KONTO.nummerFrei(eintrag.name, tag)) === false
+                : KONTO.tagBelegt(daten, eintrag.name, tag);
+            if (belegt) {
                 return { ok: false, text: "Diese Nummer ist vergeben." };
             }
-        } else {
-            tag = KONTO.tagWaehlen(daten, eintrag.name, null);
-            if (!tag) {
-                return { ok: false, text: "Für diesen Namen ist keine Nummer mehr frei." };
-            }
+            const neu = Object.assign(KONTO._sauber(eintrag), { tag: tag });
+            const ergebnis = await KONTO._eintragSchreiben(speicher, neu, eintrag);
+            return (ergebnis.ok || !KONTO.istP12())
+                ? ergebnis : { ok: false, text: "Diese Nummer ist vergeben." };
         }
-        const neu = Object.assign(KONTO._sauber(eintrag), { tag: tag });
-        return KONTO._eintragSchreiben(speicher, neu, eintrag);
+        tag = KONTO.tagWaehlen(daten, eintrag.name, null);
+        if (!tag) {
+            return { ok: false, text: "Für diesen Namen ist keine Nummer mehr frei." };
+        }
+        return KONTO._mitNummer(speicher, daten, eintrag.name, tag,
+            (nummer) => Object.assign(KONTO._sauber(eintrag), { tag: nummer }), eintrag, null);
     },
 
     /* Admin: freigeben zum Neu-Verbinden. */
@@ -788,6 +873,11 @@ const KONTO = {
         aenderungen["konten/" + eintrag.uid] = null;
         if (eintrag.tag) {
             aenderungen["namen/" + KONTO.nameSchluessel(eintrag.name) + "/" + eintrag.tag] = null;
+        }
+        /* Regel §12: Auszug und Verzeichnis-Eintrag gehen mit. */
+        if (KONTO.istP12()) {
+            aenderungen["oeffentlich/" + eintrag.uid] = null;
+            aenderungen["anmeldung/" + KONTO.nameSchluessel(eintrag.name) + "/" + eintrag.uid] = null;
         }
         return KONTO._schreiben(speicher, aenderungen, null);
     },
@@ -820,6 +910,11 @@ const KONTO = {
        Liefert zusätzlich `feld` ("name"/"passwort") für die Meldung und
        `freigegeben`, wenn der Admin das Konto zum Neu-Verbinden freigab. */
     async anmeldenMitEingabe(daten, eingabe, passwort) {
+        /* Regel §12: fremde Konten sind nicht mehr lesbar — gesucht wird im
+           Anmeldeverzeichnis (`_anmeldenMitVerzeichnis`). */
+        if (KONTO.istP12()) {
+            return KONTO._anmeldenMitVerzeichnis(eingabe, passwort);
+        }
         const fund = KONTO.suchen(daten, eingabe);
         if (fund.mehrdeutig) {
             return KONTO._anmeldenReihum(fund.kandidaten, passwort);
@@ -953,6 +1048,406 @@ const KONTO = {
     },
 
     /* ---------------------------------------------------------------- *
+     * REGEL §12 — „Apps, die beides können" (seit Blunderluck v0.154.0,
+     * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md, Phase A)
+     *
+     * Unter der Regel §12 ist `spieler` nicht mehr als Ganzes lesbar: Konten
+     * sind privat, andere sehen nur den öffentlichen Auszug
+     * `spieler/oeffentlich/<uid>`, die Anmeldung mit Namen geht über das
+     * Verzeichnis `spieler/anmeldung/<name klein>/<uid> = { k, f? }`, und
+     * eine Nummer liest nur, wer sie kennt (`namen/<name>/<nummer>`).
+     *
+     * Die App erkennt selbst, welche Regel gilt (`regelErkennen`: 200 auf
+     * `spieler.json?shallow=true` = alt, 401 = §12) — beim ersten Laden und
+     * nach jedem 401. Unter der alten Regel bleibt alles wie bisher; die
+     * neuen Knoten werden dort NICHT geschrieben (die alte Regel kennt sie
+     * nicht und lehnte den ganzen Schritt ab).
+     * ---------------------------------------------------------------- */
+
+    istP12() {
+        return KONTO.regel === "p12";
+    },
+
+    /* Welche Regel gilt? 200 → "alt", 401 → "p12"; Netzfehler oder sonst
+       etwas → bleibt, wie es war (zu Beginn "alt"). Nie auf dem Gerät
+       gemerkt. Liefert die Regel. */
+    async regelErkennen() {
+        if (!KONTO.basis) {
+            return KONTO.regel;
+        }
+        if (!KONTO._erkennung) {
+            KONTO._erkennung = (async () => {
+                const antwort = await KONTO._dbRufen("", { flach: true, ohneAnmeldung: true });
+                if (antwort.status === 200) {
+                    KONTO.regel = "alt";
+                    KONTO.regelBekannt = true;
+                } else if (antwort.status === 401) {
+                    KONTO.regel = "p12";
+                    KONTO.regelBekannt = true;
+                }
+                return KONTO.regel;
+            })().finally(() => { KONTO._erkennung = null; });
+        }
+        return KONTO._erkennung;
+    },
+
+    /*
+     * Ein Aufruf an die Datenbank unter `spieler/<unterpfad>` — für die
+     * gezielten Lesewege der Regel §12. Wirft nie; liefert
+     * { ok, status, daten } (status 0 = kein Netz). `optionen`: flach
+     * (`?shallow=true`), token (fremder Schlüssel, z. B. eines Treffers vor
+     * der Anmeldung), ohneAnmeldung.
+     */
+    async _dbRufen(unterpfad, optionen) {
+        const o = optionen || {};
+        if (!KONTO.basis) {
+            return { ok: false, status: 0, daten: null };
+        }
+        const teile = [KONTO.pfad].concat(String(unterpfad || "").split("/"))
+            .filter((teil) => teil !== "").map((teil) => encodeURIComponent(teil));
+        let ziel = KONTO.basis + "/" + teile.join("/") + ".json";
+        const frage = [];
+        if (o.flach) {
+            frage.push("shallow=true");
+        }
+        const token = o.token || (o.ohneAnmeldung ? null : await KONTO.token());
+        if (token) {
+            frage.push("auth=" + encodeURIComponent(token));
+        }
+        if (frage.length > 0) {
+            ziel += "?" + frage.join("&");
+        }
+        let antwort;
+        try {
+            antwort = await KONTO._mitZeitlimit(ziel, { cache: "no-store" });
+        } catch (fehler) {
+            return { ok: false, status: 0, daten: null };
+        }
+        let daten = null;
+        try {
+            daten = await antwort.json();
+        } catch (fehler) {
+            daten = null;
+        }
+        return { ok: !!antwort.ok, status: antwort.status, daten: antwort.ok ? daten : null };
+    },
+
+    /*
+     * DER ÖFFENTLICHE AUSZUG eines Eintrags (`spieler/oeffentlich/<uid>`,
+     * Konzept K3): nur, was fremde Bildschirme zeigen — nie Nummer, Kennung,
+     * Aussehen, Fortschritt oder Stufe. `auszug` rechnet
+     * `FORTSCHRITT.auszug` (in jedem Spiel gleich).
+     */
+    oeffentlichVon(eintrag, heute) {
+        const e = eintrag || {};
+        const aus = { id: String(e.id || ""), name: String(e.name || "") };
+        if (e.gast === true) {
+            aus.gast = true;
+        }
+        /* Firebase liefert eine Liste mit Lücken als Objekt mit Zahlen-
+           Schlüsseln — auch die zählt. */
+        const alsListe = (werte) => {
+            if (Array.isArray(werte)) {
+                return werte;
+            }
+            return (werte && typeof werte === "object")
+                ? Object.keys(werte).sort((a, b) => Number(a) - Number(b)).map((k) => werte[k]) : [];
+        };
+        const liste = (werte, hoechstens) => alsListe(werte)
+            .filter((wert) => typeof wert === "string" && wert !== "" && wert.length <= 64)
+            .slice(0, hoechstens);
+        const freunde = liste(e.freunde, 1000);
+        const abgelehnt = liste(e.abgelehnt, 1000);
+        const abzeichen = liste(e.abzeichen, 100);
+        if (freunde.length > 0) {
+            aus.freunde = freunde;
+        }
+        if (abgelehnt.length > 0) {
+            aus.abgelehnt = abgelehnt;
+        }
+        if (abzeichen.length > 0) {
+            aus.abzeichen = abzeichen;
+        }
+        if (typeof FORTSCHRITT !== "undefined" && typeof FORTSCHRITT.auszug === "function") {
+            aus.auszug = FORTSCHRITT.auszug(e.fortschritt || null, heute);
+        }
+        return aus;
+    },
+
+    /* Der Eintrag im Anmeldeverzeichnis: { k: Kennung, f: true bei
+       Freigabe zum Neu-Verbinden } — Gäste stehen nicht darin (null). */
+    anmeldungVon(eintrag) {
+        if (!eintrag || eintrag.gast === true) {
+            return null;
+        }
+        const aus = { k: KONTO.kennungVon(eintrag) };
+        if (eintrag.neuVerbinden === true) {
+            aus.f = true;
+        }
+        return aus;
+    },
+
+    /*
+     * Die zusätzlichen Pfade eines Schreibschritts unter Regel §12 (relativ
+     * zu `spieler`): Auszug und Verzeichnis-Eintrag des Kontos, und — wenn
+     * `alt` eine andere Konto-Nummer oder einen anderen Namen trug — deren
+     * alte Einträge gelöscht. Unter der alten Regel leer.
+     */
+    oeffentlichePfade(eintrag, alt) {
+        const pfade = {};
+        if (!KONTO.istP12() || !eintrag || !eintrag.uid) {
+            return pfade;
+        }
+        const name = KONTO.nameSchluessel(eintrag.name);
+        pfade["oeffentlich/" + eintrag.uid] = KONTO.oeffentlichVon(eintrag);
+        const verzeichnis = KONTO.anmeldungVon(eintrag);
+        if (verzeichnis) {
+            pfade["anmeldung/" + name + "/" + eintrag.uid] = verzeichnis;
+        }
+        if (alt && alt.uid) {
+            const altName = KONTO.nameSchluessel(alt.name);
+            if (alt.uid !== eintrag.uid) {
+                pfade["oeffentlich/" + alt.uid] = null;
+                if (alt.gast !== true) {
+                    pfade["anmeldung/" + altName + "/" + alt.uid] = null;
+                }
+            } else if (alt.gast !== true && (altName !== name || !verzeichnis)) {
+                pfade["anmeldung/" + altName + "/" + alt.uid] = null;
+            }
+        }
+        return pfade;
+    },
+
+    /* Das Anmeldeverzeichnis eines Namens (lesbar ohne Anmeldung, nur je
+       Name): [{ uid, k, f }] — oder null, wenn das Netz fehlt. */
+    async verzeichnisLesen(name) {
+        const schluessel = KONTO.nameSchluessel(KONTO.nameSaeubern(name));
+        if (!schluessel) {
+            return [];
+        }
+        const antwort = await KONTO._dbRufen("anmeldung/" + schluessel, { ohneAnmeldung: true });
+        if (!antwort.ok) {
+            return null;
+        }
+        const roh = (antwort.daten && typeof antwort.daten === "object") ? antwort.daten : {};
+        return Object.keys(roh).sort()
+            .filter((uid) => roh[uid] && typeof roh[uid].k === "string" && roh[uid].k !== "")
+            .map((uid) => ({ uid: uid, k: roh[uid].k, f: roh[uid].f === true }));
+    },
+
+    /* Ist `namen/<name>/<nummer>` frei? true / false — oder null, wenn es
+       das Netz nicht sagt. Unter §12 nur gezielt lesbar (Angemeldete). */
+    async nummerFrei(name, tag) {
+        const antwort = await KONTO._dbRufen("namen/" + KONTO.nameSchluessel(name) + "/" + tag);
+        if (!antwort.ok) {
+            return null;
+        }
+        return antwort.daten === null || antwort.daten === undefined;
+    },
+
+    /*
+     * ANMELDEN UNTER REGEL §12 (Konzept Abschnitt 5): Verzeichnis des Namens
+     * lesen; die Kandidaten reihum mit dem Passwort prüfen (höchstens
+     * ANMELDEN_REIHUM_MAX); von JEDEM Treffer mit dessen eigenem Schlüssel
+     * das Konto lesen — erst dann sind Nummer und Level bekannt, also nur für
+     * den, der das Passwort kennt. Ein Treffer → angemeldet; mehrere →
+     * „Welches Konto?" (wie `_anmeldenReihum`); mit „Name#Nummer" zählt nur
+     * der Treffer mit dieser Nummer. Liefert dieselben Antworten wie
+     * `anmeldenMitEingabe` unter der alten Regel.
+     */
+    async _anmeldenMitVerzeichnis(eingabe, passwort) {
+        KONTO.auswahlVerwerfen();
+        const teile = KONTO.eingabeZerlegen(eingabe);
+        if (KONTO.nameSchluessel(teile.name) === KONTO.nameSchluessel(KONTO.GAST_NAME)) {
+            return { ok: false, feld: "name", fehler: "gast",
+                text: "Gast-Konten gehören zu einem Gerät und haben kein Passwort." };
+        }
+        const verzeichnis = await KONTO.verzeichnisLesen(teile.name);
+        if (verzeichnis === null) {
+            return { ok: false, feld: "name", fehler: "netz", text: KONTO.fehlerText("netz") };
+        }
+        if (verzeichnis.length === 0) {
+            return { ok: false, feld: "name", fehler: "unbekannt",
+                text: "Dieses Konto gibt es nicht." };
+        }
+        const echte = verzeichnis.filter((eintrag) => !eintrag.f);
+        const freigegeben = verzeichnis.filter((eintrag) => eintrag.f);
+        const freigabeAntwort = (eintrag) => ({
+            ok: false, feld: "name", fehler: "freigegeben",
+            spieler: { uid: eintrag.uid, name: teile.name, kennung: eintrag.k, neuVerbinden: true },
+            text: "Dein Konto ist zum Neu-Verbinden freigegeben. Leg ein neues Passwort fest."
+        });
+        if (echte.length === 0 && freigegeben.length === 1) {
+            return freigabeAntwort(freigegeben[0]);
+        }
+
+        const treffer = [];
+        for (const eintrag of echte.slice(0, KONTO.ANMELDEN_REIHUM_MAX)) {
+            const ergebnis = await KONTO._pruefen(eintrag.k, passwort);
+            if (ergebnis.ok) {
+                treffer.push({ kennung: eintrag.k, uid: eintrag.uid, daten: ergebnis.daten, zeit: Date.now() });
+                continue;
+            }
+            if (ergebnis.fehler !== "falsch") {
+                return { ok: false, feld: "passwort", fehler: ergebnis.fehler,
+                    text: KONTO.fehlerText(ergebnis.fehler) };
+            }
+        }
+        for (const eintrag of treffer) {
+            const konto = await KONTO._dbRufen("konten/" + eintrag.uid, { token: eintrag.daten.idToken });
+            if (!konto.ok && konto.status !== 401) {
+                return { ok: false, feld: "name", fehler: "netz", text: KONTO.fehlerText("netz") };
+            }
+            eintrag.spieler = (konto.ok && konto.daten && typeof konto.daten === "object")
+                ? Object.assign({}, konto.daten, { uid: eintrag.uid }) : null;
+        }
+        let passend = treffer.filter((eintrag) => eintrag.spieler);
+        if (teile.tag !== null && teile.tag !== "") {
+            passend = passend.filter((eintrag) =>
+                String(eintrag.spieler.tag || "").toLowerCase() === teile.tag.toLowerCase());
+            if (treffer.length > 0 && passend.length === 0) {
+                return { ok: false, feld: "name", fehler: "unbekannt",
+                    text: "Dieses Konto gibt es nicht." };
+            }
+        }
+        if (passend.length === 1) {
+            KONTO._sitzungSetzen(passend[0].kennung, passend[0].daten, false);
+            return { ok: true, spieler: passend[0].spieler };
+        }
+        if (passend.length > 1) {
+            KONTO._auswahl = passend.map((eintrag) => ({ spieler: eintrag.spieler,
+                kennung: eintrag.kennung, daten: eintrag.daten, zeit: eintrag.zeit }));
+            return { ok: false, feld: "name", fehler: "auswahl",
+                auswahl: passend.map((eintrag) => eintrag.spieler), text: "Welches Konto?" };
+        }
+        if (freigegeben.length === 1) {
+            return freigabeAntwort(freigegeben[0]);
+        }
+        return echte.length > 1
+            ? { ok: false, feld: "passwort", fehler: "falsch", reihum: true, text: "Name oder Passwort falsch." }
+            : { ok: false, feld: "passwort", fehler: "falsch", text: KONTO.fehlerText("falsch") };
+    },
+
+    /*
+     * FREUND SUCHEN — nur mit „Name#Nummer" (Nutzer F1: „bei der
+     * Freundes-Suche muss man den # eingeben"). Unter der alten Regel in der
+     * geladenen Liste, unter §12 über den einen Namens-Platz und den
+     * öffentlichen Auszug. Liefert { spieler } oder {} (niemand) oder
+     * { fehler: "nummer" | "netz" }.
+     */
+    async freundFinden(daten, eingabe) {
+        const teile = KONTO.eingabeZerlegen(eingabe);
+        if (!teile.name || !teile.tag || teile.tag.length !== 4) {
+            return { fehler: "nummer" };
+        }
+        if (!KONTO.istP12()) {
+            const fund = KONTO.suchen(daten, teile.name + "#" + teile.tag);
+            return fund.spieler ? { spieler: fund.spieler } : {};
+        }
+        const platz = await KONTO._dbRufen("namen/" + KONTO.nameSchluessel(teile.name) + "/" + teile.tag);
+        if (!platz.ok) {
+            return { fehler: "netz" };
+        }
+        if (typeof platz.daten !== "string" || platz.daten === "") {
+            return {};
+        }
+        const uid = platz.daten;
+        const bekannt = ((daten && Array.isArray(daten.spieler)) ? daten.spieler : [])
+            .find((spieler) => spieler.uid === uid);
+        if (bekannt) {
+            return { spieler: bekannt };
+        }
+        const auszug = await KONTO._dbRufen("oeffentlich/" + uid);
+        if (!auszug.ok) {
+            return { fehler: "netz" };
+        }
+        return (auszug.daten && typeof auszug.daten === "object")
+            ? { spieler: Object.assign({}, auszug.daten, { uid: uid }) } : {};
+    },
+
+    /* Zwei Werte gleich, unabhängig von der Reihenfolge der Schlüssel. */
+    _gleich(a, b) {
+        const ordnen = (wert) => {
+            if (Array.isArray(wert)) {
+                return wert.map(ordnen);
+            }
+            if (wert && typeof wert === "object") {
+                const aus = {};
+                for (const schluessel of Object.keys(wert).sort()) {
+                    aus[schluessel] = ordnen(wert[schluessel]);
+                }
+                return aus;
+            }
+            return wert === undefined ? null : wert;
+        };
+        return JSON.stringify(ordnen(a)) === JSON.stringify(ordnen(b));
+    },
+
+    /*
+     * „§12 NACHZIEHEN" (Konzept Phase A Punkt 4, Phase B Schritt 2): Nur
+     * UP#Plus, nur unter Regel §12. Schreibt für jedes Konto den öffentlichen
+     * Auszug und (ausser Gästen) den Verzeichnis-Eintrag — nur, was fehlt
+     * oder abweicht; zweimal laufen ergibt dasselbe. In Schritten zu
+     * höchstens NACHZIEHEN_JE Pfaden. Liefert { ok, geschrieben,
+     * uebersprungen } oder { ok: false, text }.
+     */
+    NACHZIEHEN_JE: 100,
+
+    async nachziehen(speicher) {
+        if (!KONTO.istP12() || KONTO.uid() !== KONTO.OBER_UID) {
+            return { ok: false, text: "Nur UP#Plus unter Regel §12" };
+        }
+        const [konten, oeffentlich, anmeldung] = await Promise.all([
+            KONTO._dbRufen("konten"), KONTO._dbRufen("oeffentlich"), KONTO._dbRufen("anmeldung")]);
+        if (!konten.ok || !oeffentlich.ok || !anmeldung.ok) {
+            return { ok: false, text: KONTO.fehlerText("netz") };
+        }
+        const alleKonten = (konten.daten && typeof konten.daten === "object") ? konten.daten : {};
+        const istOeffentlich = oeffentlich.daten || {};
+        const istVerzeichnis = anmeldung.daten || {};
+        const pfade = {};
+        let geschrieben = 0;
+        let uebersprungen = 0;
+        for (const uid of Object.keys(alleKonten).sort()) {
+            const eintrag = Object.assign({}, alleKonten[uid], { uid: uid });
+            if (typeof eintrag.id !== "string" || typeof eintrag.name !== "string" || eintrag.name === "") {
+                uebersprungen++;
+                continue;
+            }
+            let anders = false;
+            const soll = KONTO.oeffentlichVon(eintrag);
+            if (!KONTO._gleich(istOeffentlich[uid] || null, soll)) {
+                pfade["oeffentlich/" + uid] = soll;
+                anders = true;
+            }
+            const verzeichnis = KONTO.anmeldungVon(eintrag);
+            const name = KONTO.nameSchluessel(eintrag.name);
+            const ist = (istVerzeichnis[name] && istVerzeichnis[name][uid]) || null;
+            if (verzeichnis && !KONTO._gleich(ist, verzeichnis)) {
+                pfade["anmeldung/" + name + "/" + uid] = verzeichnis;
+                anders = true;
+            }
+            if (anders) {
+                geschrieben++;
+            } else {
+                uebersprungen++;
+            }
+        }
+        const alle = Object.keys(pfade);
+        for (let start = 0; start < alle.length; start += KONTO.NACHZIEHEN_JE) {
+            const schritt = { geaendertAm: Date.now() };
+            for (const pfad of alle.slice(start, start + KONTO.NACHZIEHEN_JE)) {
+                schritt[pfad] = pfade[pfad];
+            }
+            const ergebnis = await KONTO._schreiben(speicher, schritt, null);
+            if (!ergebnis.ok) {
+                return { ok: false, text: ergebnis.text };
+            }
+        }
+        return { ok: true, geschrieben: geschrieben, uebersprungen: uebersprungen };
+    },
+
+    /* ---------------------------------------------------------------- *
      * Innereien
      * ---------------------------------------------------------------- */
 
@@ -985,7 +1480,39 @@ const KONTO = {
                 aenderungen[alterPlatz] = null;
             }
         }
+        /* Regel §12: öffentlicher Auszug und Anmeldeverzeichnis im SELBEN
+           Schritt (unter der alten Regel nichts — die kennt die Knoten nicht
+           und lehnte den ganzen Schritt ab). */
+        Object.assign(aenderungen, KONTO.oeffentlichePfade(sauber, alt));
         return KONTO._schreiben(speicher, aenderungen, sauber);
+    },
+
+    /*
+     * Eintrag mit Nummer schreiben — unter Regel §12 mit neuem Würfeln: Die
+     * Liste aller Namens-Plätze ist dort nicht mehr lesbar, eine gewürfelte
+     * Nummer kann also besetzt sein. Dann lehnt die Datenbank den GANZEN
+     * Schritt ab, und es wird neu gewürfelt (höchstens NUMMER_VERSUCHE).
+     * Unter der alten Regel genau ein Versuch mit `tag` (dort ist aus der
+     * Liste bekannt, dass die Nummer frei ist). `bauen(nummer)` liefert den
+     * Eintrag.
+     */
+    async _mitNummer(speicher, daten, name, tag, bauen, alt, weitere) {
+        const versuche = KONTO.istP12() ? KONTO.NUMMER_VERSUCHE : 1;
+        let nummer = tag;
+        let ergebnis = { ok: false, text: "Für diesen Namen ist keine Nummer mehr frei." };
+        for (let versuch = 0; versuch < versuche; versuch++) {
+            if (versuch > 0) {
+                nummer = KONTO.tagWaehlen(daten, name, null);
+            }
+            if (!nummer) {
+                return { ok: false, feld: "name", text: "Für diesen Namen ist keine Nummer mehr frei." };
+            }
+            ergebnis = await KONTO._eintragSchreiben(speicher, bauen(nummer), alt, weitere);
+            if (ergebnis.ok) {
+                return ergebnis;
+            }
+        }
+        return ergebnis;
     },
 
     /* Wie oben — scheitert das Schreiben, wird das eben angelegte

@@ -207,7 +207,16 @@ const SPIELER = {
        Nummer „Plus" hat nur dieses Konto — alle anderen haben vier Ziffern
        (Regeln, Apps\Blunderluck\SICHERHEIT.md §11). Wie in Blunderluck. */
     istVerteiler(spieler) {
-        return !!spieler && spieler.tag === "Plus"
+        if (!spieler) {
+            return false;
+        }
+        /* Unter Regel §12 (seit 0.22.0, wie Blunderluck v0.154.0) tragen
+           fremde Einträge keine Nummer mehr (`spieler/oeffentlich`) — dann
+           erkennt ihn seine feste Konto-Nummer (`KONTO.OBER_UID`). */
+        if (typeof KONTO !== "undefined" && KONTO.OBER_UID && spieler.uid === KONTO.OBER_UID) {
+            return true;
+        }
+        return spieler.tag === "Plus"
             && String(spieler.name || "").trim().toLowerCase() === "up";
     },
 
@@ -242,17 +251,24 @@ const SPIELER = {
      * v0.151.8; Nutzer 27.09.2026: „brauchst nicht mal den #… zu zeigen,
      * darum soll sich der Nutzer keine Sorgen machen müssen"). Gezeigt wird
      * überall nur der Name — die Nummer nur, wenn es den Namen unter den
-     * Mitspielern mehrmals gibt, damit man sie auseinanderhält. Liefert
-     * „#1234" oder "".
+     * Mitspielern mehrmals gibt, damit man sie auseinanderhält.
+     * SEIT 0.22.0 (Regel §12, wie Blunderluck v0.154.0, Nutzer F1): nie
+     * mehr die Nummer eines anderen — sie ist sein Freundescode, nur der
+     * Besitzer sieht sie im eigenen Profil. Bei gleichen Namen steht „Level
+     * N" (aus dem öffentlichen Auszug, `FORTSCHRITT.auszugVon`). Liefert
+     * „Level 7" oder "".
      */
     nummerZusatz(daten, spieler) {
-        if (!spieler || !spieler.tag || SPIELER.istVerteiler(spieler)) {
+        if (!spieler || SPIELER.istVerteiler(spieler)) {
             return "";
         }
         const schluessel = String(spieler.name || "").trim().toLowerCase();
         const gleich = SPIELER.mitspieler(daten).filter((anderer) =>
             String(anderer.name || "").trim().toLowerCase() === schluessel).length;
-        return gleich > 1 ? "#" + spieler.tag : "";
+        if (gleich <= 1 || typeof FORTSCHRITT === "undefined" || typeof FORTSCHRITT.auszugVon !== "function") {
+            return "";
+        }
+        return "Level " + FORTSCHRITT.auszugLevel(FORTSCHRITT.auszugVon(spieler)).level;
     },
 
     /* Passt der Spieler zum Suchtext? Der Name, oder „Name#Nummer", wenn

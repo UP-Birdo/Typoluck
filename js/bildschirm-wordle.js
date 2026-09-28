@@ -101,6 +101,7 @@ const WORDLE_BILDSCHIRM = {
     verlassen() {
         /* Die Leiste kommt auf jedem anderen Bildschirm zurück (seit 0.15.3). */
         document.body.classList.remove("im-spiel");
+        WORDLE_BILDSCHIRM._uhrAnhalten();
         if (WORDLE_BILDSCHIRM._tastenHoerer) {
             document.removeEventListener("keydown", WORDLE_BILDSCHIRM._tastenHoerer);
             WORDLE_BILDSCHIRM._tastenHoerer = null;
@@ -152,13 +153,17 @@ const WORDLE_BILDSCHIRM = {
                 && gemerkt.buch === buch && gemerkt.station === station) {
             return gemerkt;
         }
+        /* Seit 0.21.0: an der Front nimmt die Station Fund-Wirkung und
+           Rast „Üben" mit (Regeln, Wort-Filter; gewertet am Ende). */
+        const mitnahme = APP.bibliothekMitnahme(buch, station);
         const zuletzt = ICH.spielstand("bibliothek-zuletzt");
-        const wort = BIBLIOTHEK.wortZiehen(buch, station, Math.random(), zuletzt)
+        const wort = BIBLIOTHEK.wortZiehen(buch, station, Math.random(), zuletzt, BIBLIOTHEK.wortFilter(mitnahme))
             || WORDLE.uebungswort(Math.random());
         ICH.spielstandSetzen("bibliothek-zuletzt", BIBLIOTHEK.zuletztMerken(zuletzt, wort));
         const runde = WORDLE.neueRunde({
             modus: "bibliothek", buch: buch, station: station, loesung: wort,
-            zeitpunkt: APP.jetzt().getTime(), regeln: BIBLIOTHEK.regeln(buch, station) || {}
+            zeitpunkt: APP.jetzt().getTime(), regeln: BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {},
+            mitnahme: mitnahme
         });
         ICH.spielstandSetzen("wordle-bibliothek", runde);
         return runde;
@@ -240,6 +245,11 @@ const WORDLE_BILDSCHIRM = {
         behaelter.appendChild(kopf);
 
         const spiel = BAUSTEINE.el("div", "wordle");
+        /* Die Uhr einer Runde mit Regel `zeit` (seit 0.21.0). */
+        const uhr = WORDLE_BILDSCHIRM._uhrBauen();
+        if (uhr) {
+            spiel.appendChild(uhr);
+        }
         spiel.appendChild(WORDLE_BILDSCHIRM._brettBauen());
 
         const tipps = WORDLE_BILDSCHIRM._tippsBauen();
@@ -252,6 +262,87 @@ const WORDLE_BILDSCHIRM = {
             spiel.appendChild(WORDLE_BILDSCHIRM._endeBauen());
         }
         behaelter.appendChild(spiel);
+        WORDLE_BILDSCHIRM._uhrTakten();
+    },
+
+    /* ---------------------------------------------------------------- *
+     * DIE UHR (seit 0.21.0; Regel `zeit` seit 0.19.0): eine Zeile über dem
+     * Brett mit der Restzeit „1:30". Sie steht still, bis der erste
+     * Buchstabe getippt ist (`WORDLE.uhrStarten`), zählt dann jede
+     * Viertelsekunde nach und beendet die Runde bei 0 selbst — über
+     * denselben Weg wie ein Versuch nach Ablauf (`WORDLE.raten` meldet
+     * „zeit"). Rechnen tut das Modell (`restZeit`, `zeitAbgelaufen`).
+     * ---------------------------------------------------------------- */
+
+    _uhr: null,
+    UHR_TAKT_MS: 250,
+    UHR_KNAPP: 10,
+
+    _uhrText(sekunden) {
+        const s = Math.max(0, sekunden || 0);
+        return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+    },
+
+    _uhrBauen() {
+        const runde = WORDLE_BILDSCHIRM.runde;
+        const rest = WORDLE.restZeit(runde, APP.jetzt().getTime());
+        if (rest === null || runde.zustand !== "laeuft") {
+            return null;
+        }
+        const uhr = BAUSTEINE.el("div", "wordle-uhr");
+        uhr.setAttribute("role", "timer");
+        uhr.setAttribute("aria-label", "Restzeit");
+        uhr.appendChild(BAUSTEINE.zeichen("uhr"));
+        uhr.appendChild(BAUSTEINE.el("span", "wordle-uhr-zeit", WORDLE_BILDSCHIRM._uhrText(rest)));
+        uhr.classList.toggle("wartet", !runde.uhrAb);
+        uhr.classList.toggle("knapp", !!runde.uhrAb && rest <= WORDLE_BILDSCHIRM.UHR_KNAPP);
+        return uhr;
+    },
+
+    _uhrAnhalten() {
+        if (WORDLE_BILDSCHIRM._uhr) {
+            window.clearInterval(WORDLE_BILDSCHIRM._uhr);
+            WORDLE_BILDSCHIRM._uhr = null;
+        }
+    },
+
+    _uhrTakten() {
+        WORDLE_BILDSCHIRM._uhrAnhalten();
+        if (WORDLE_BILDSCHIRM._behaelter && WORDLE_BILDSCHIRM._behaelter.querySelector(".wordle-uhr")) {
+            WORDLE_BILDSCHIRM._uhr = window.setInterval(() => WORDLE_BILDSCHIRM._uhrTick(),
+                WORDLE_BILDSCHIRM.UHR_TAKT_MS);
+        }
+    },
+
+    _uhrTick() {
+        const runde = WORDLE_BILDSCHIRM.runde;
+        const uhr = WORDLE_BILDSCHIRM._behaelter && WORDLE_BILDSCHIRM._behaelter.querySelector(".wordle-uhr");
+        if (!uhr || !runde || runde.zustand !== "laeuft" || NAVIGATION.aktuell !== "wordle") {
+            WORDLE_BILDSCHIRM._uhrAnhalten();
+            return;
+        }
+        const jetzt = APP.jetzt().getTime();
+        const rest = WORDLE.restZeit(runde, jetzt);
+        uhr.querySelector(".wordle-uhr-zeit").textContent = WORDLE_BILDSCHIRM._uhrText(rest);
+        uhr.classList.toggle("wartet", !runde.uhrAb);
+        uhr.classList.toggle("knapp", !!runde.uhrAb && rest <= WORDLE_BILDSCHIRM.UHR_KNAPP);
+        if (WORDLE.zeitAbgelaufen(runde, jetzt) && !WORDLE_BILDSCHIRM._sperre
+                && !document.body.classList.contains("dialog-offen")) {
+            WORDLE_BILDSCHIRM._uhrAnhalten();
+            WORDLE_BILDSCHIRM._zeitUm(WORDLE.raten(runde, "", jetzt));
+        }
+    },
+
+    /* Zeit um: die verlorene Runde übernehmen und beenden. */
+    _zeitUm(antwort) {
+        if (!antwort || antwort.fehler !== "zeit") {
+            return;
+        }
+        WORDLE_BILDSCHIRM.runde = antwort.runde;
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
+        WORDLE_BILDSCHIRM._merken();
+        DIALOG.kurzmeldung(WORDLE.fehlerText("zeit"), 1500);
+        WORDLE_BILDSCHIRM._beiRundenende();
     },
 
     /*
@@ -487,9 +578,42 @@ const WORDLE_BILDSCHIRM = {
        zum nächsten offenen Level; nicht gelöst → „Nochmal" mit einem neuen
        Wort aus demselben Bereich. Darunter immer zurück zur Bibliothek. */
     _bibliothekEndeBauen(karte, runde, gewonnen) {
+        /* Seit 0.21.0: die Herzen dieses Durchgangs (ab Buch 2) und, wenn
+           sie leer wurden, der Rückfall zum Checkpoint. */
+        const gewinn = WORDLE_BILDSCHIRM._gewinn;
+        const bib = (gewinn && gewinn.loesung === runde.loesung && gewinn.begonnenAm === runde.begonnenAm)
+            ? gewinn.bibliothek : null;
+        /* Die Herzen direkt unter „X/6" — dort schaut man zuerst hin. */
+        if (BIBLIOTHEK.mitHerzen(runde.buch)) {
+            const herzen = WORDLE_BILDSCHIRM.herzenBauen(APP.durchgang(runde.buch).herzen,
+                bib && !bib.rueck ? bib.verlust : 0);
+            const titel = karte.querySelector(".wordle-ende-titel");
+            if (titel) {
+                titel.after(herzen);
+            } else {
+                karte.appendChild(herzen);
+            }
+        }
+        const sicht = APP.bibliothekStand();
+        /* Nur vorwärts (seit 0.21.1): „Nochmal" nur, solange die Station
+           die Front ist. */
+        const nochmalGeht = BIBLIOTHEK.spielbar(sicht, runde.buch, runde.station);
+        if (!gewonnen && ((bib && bib.rueck) || !nochmalGeht)) {
+            if (bib && bib.rueck) {
+                const zurueck = BAUSTEINE.el("p", "wordle-ende-rueck");
+                zurueck.appendChild(BAUSTEINE.zeichen(bib.cp !== null ? "lesezeichen" : "buch"));
+                zurueck.appendChild(BAUSTEINE.el("span", null, APP.rueckText(bib)));
+                karte.appendChild(zurueck);
+            }
+            karte.appendChild(BAUSTEINE.knopf({
+                text: BIBLIOTHEK.NAME, art: "haupt", breit: true, zeichen: "buch",
+                beiKlick: () => NAVIGATION.zeigen("start", { bibliothek: true }, true)
+            }));
+            return;
+        }
         /* Seit 0.20.0: gelöst → zurück ins Buch (dort wartet die nächste
            Station oder die Gabelung); nicht gelöst → dieselbe Station
-           nochmal mit neuem Wort (kein Checkpoint, keine Herzen). */
+           nochmal mit neuem Wort. */
         if (gewonnen) {
             /* Nach dem Boss steht das nächste Buch offen. */
             const naechstes = BIBLIOTHEK.istBoss(runde.buch, runde.station) ? BIBLIOTHEK.buch(runde.buch + 1) : null;
@@ -508,6 +632,24 @@ const WORDLE_BILDSCHIRM = {
             text: BIBLIOTHEK.NAME, art: "still", breit: true, zeichen: "buch",
             beiKlick: () => NAVIGATION.zeigen("start", { bibliothek: true }, true)
         }));
+    },
+
+    /* Die Herzen als Reihe (seit 0.21.0; auch auf der Buch-Karte,
+       js/start-bibliothek.js): voll, leer, und die eben verlorenen
+       hervorgehoben. */
+    herzenBauen(herzen, verloren) {
+        const reihe = BAUSTEINE.el("span", "bib-herzen");
+        reihe.setAttribute("role", "img");
+        reihe.setAttribute("aria-label", herzen + " von " + BIBLIOTHEK.HERZEN + " Herzen");
+        for (let n = 0; n < BIBLIOTHEK.HERZEN; n++) {
+            const herz = BAUSTEINE.zeichen("herz");
+            herz.classList.add(n < herzen ? "an" : "aus");
+            if (n >= herzen && n < herzen + (verloren || 0)) {
+                herz.classList.add("weg");
+            }
+            reihe.appendChild(herz);
+        }
+        return reihe;
     },
 
     /* Was die gerade beendete Runde an XP brachte (seit 0.10.0) — gesetzt
@@ -532,9 +674,8 @@ const WORDLE_BILDSCHIRM = {
             kopf.appendChild(BAUSTEINE.figuren(wertung.figuren));
         } else if (runde.modus === "bibliothek") {
             /* Wie der Fortschritt zählt: mit Hilfe aus dem Shop höchstens 1. */
-            const st = BIBLIOTHEK.station(runde.buch, runde.station);
-            kopf.appendChild(BAUSTEINE.figuren(BIBLIOTHEK.figurenFuer(runde.zustand === "gewonnen",
-                wertung.figuren, WORDLE.hilfeGenutzt(runde), st ? st.art : "w")));
+            kopf.appendChild(BAUSTEINE.figuren(BIBLIOTHEK.figurenDerRunde(runde,
+                wertung.figuren, WORDLE.hilfeGenutzt(runde))));
         }
         const zahlen = BAUSTEINE.el("div", "wertung-zahlen");
         zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl(wertung.genauigkeit + " %", "Können"));
@@ -726,11 +867,8 @@ const WORDLE_BILDSCHIRM = {
 
         /* Regel `zeit` (seit 0.19.0): Zeit um → die Runde ist verloren. */
         if (antwort.fehler === "zeit") {
-            WORDLE_BILDSCHIRM.runde = antwort.runde;
-            WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
-            WORDLE_BILDSCHIRM._merken();
-            DIALOG.kurzmeldung(WORDLE.fehlerText("zeit"), 1500);
-            WORDLE_BILDSCHIRM._beiRundenende();
+            WORDLE_BILDSCHIRM._uhrAnhalten();
+            WORDLE_BILDSCHIRM._zeitUm(antwort);
             return;
         }
         if (antwort.fehler) {
@@ -821,7 +959,7 @@ const WORDLE_BILDSCHIRM = {
         const gemeldet = APP.fortschrittMelden(runde);
         WORDLE_BILDSCHIRM._gewinn = gemeldet
             ? { loesung: runde.loesung, begonnenAm: runde.begonnenAm, xp: gemeldet.ergebnis.xp,
-                muenzen: gemeldet.ergebnis.muenzen || 0 }
+                muenzen: gemeldet.ergebnis.muenzen || 0, bibliothek: gemeldet.bibliothek || null }
             : null;
         WORDLE_BILDSCHIRM._zeichnen();
 

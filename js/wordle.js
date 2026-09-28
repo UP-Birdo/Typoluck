@@ -294,6 +294,14 @@ const WORDLE = {
             if (Number.isInteger(angaben.station) && angaben.station >= 0) {
                 runde.station = angaben.station;
             }
+            /* Seit 0.21.0: was die Station aus dem Durchgang mitnahm (Fund-
+               Wirkung, Rast „Üben"; js/bibliothek.js `mitnahme`) — nur, wenn
+               etwas mitkam. Gewertet wird es am Rundenende (js/app.js). */
+            const m = angaben.mitnahme;
+            const effekt = (m && typeof m.effekt === "string" && /^[a-z]{1,16}$/.test(m.effekt)) ? m.effekt : "";
+            if (m && typeof m === "object" && (effekt || m.ueben === 1)) {
+                runde.mitnahme = { effekt: effekt, ueben: m.ueben === 1 ? 1 : 0 };
+            }
         }
         /* Die Regeln je Runde (seit 0.19.0) — nur, wenn angegeben. */
         if (angaben.regeln && typeof angaben.regeln === "object") {
@@ -389,7 +397,7 @@ const WORDLE = {
             modus: roh.modus, datum: roh.datum, nummer: roh.nummer,
             loesung: roh.loesung, zeitpunkt: roh.begonnenAm, schwer: roh.schwer,
             buch: roh.buch, level: roh.level, grund: roh.grund, station: roh.station,
-            regeln: roh.regeln
+            regeln: roh.regeln, mitnahme: roh.mitnahme
         });
         /* Die Uhr (seit 0.19.0) bleibt, samt „Zeit um". */
         if (runde.regeln && typeof roh.uhrAb === "number" && roh.uhrAb > 0) {

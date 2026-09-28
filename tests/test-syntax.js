@@ -374,7 +374,11 @@ pruefe("Neu gezeichnet wird die Sammlung nicht von fremden Daten (der Entwurf bl
 pruefe("Keine Freischalt-Stufen oder Standard-Werte in der App festgeschrieben",
     liste("js").filter((d) => d.endsWith(".js") && KOPIEN.indexOf(d) === -1)
         .every((d) => !/\b(S[1-6]|K[1-6])\b"|"(S[1-6]|K[1-6])"|STUFEN\s*[=:]/.test(
-            lesen(d).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
+            /* Ausgenommen: die Klasse SpeicherKonten (seit 0.22.0 Zeile für
+               Zeile Blunderlucks — ihre Liste REGEL_AUSSEHEN sind die Werte
+               der Datenbank-Regel §11a, keine Freischalt-Stufen). */
+            lesen(d).replace(/\nclass SpeicherKonten [\s\S]*?\n\}\n/, "\n")
+                .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
 pruefe("Einstellungen: Standard-Schrift und die Zeile „Anpassen“ springt in die Sammlung",
     /"Standard-Schrift"/.test(lesen("js/bildschirm-einstellungen.js"))
         && /"Anpassen"[\s\S]*?NAVIGATION\.zeigen\("sammlung"/.test(lesen("js/bildschirm-einstellungen.js")));

@@ -15,7 +15,14 @@
  * WAS ZU SEHEN IST
  *   - Schalter Üben · Bibliothek oben (letzte Wahl auf dem Gerät).
  *   - Die Buch-Karte: Nummer, Titel, Regal-Knopf; Kapitel-Punkte und „Boss
- *     in n". Herzen gibt es noch nicht — ihr Platz bleibt leer.
+ *     in n". Seit 0.21.0 links die Herzen (ab Buch 2; Buch 1 hat keine,
+ *     der Platz bleibt leer).
+ *   - Seit 0.21.0 Rast (Kerze: Heilen oder Üben) und Fund (loses Blatt:
+ *     Tausch mit Risiko) als Stationen; der Checkpoint (seit 0.21.1 die
+ *     letzte gegangene Rast oder besiegte Elite) trägt ein Lesezeichen.
+ *     Seit 0.21.1 nur vorwärts: gespielt wird nur die Front.
+ *     Was hier gewählt wird, rechnet
+ *     js/bibliothek.js, gespeichert wird über APP (Durchgang: Gerät).
  *   - Das Buch hochkant: untere Seite · Falz · obere Seite, Kapitelzahl
  *     (römisch), Seitenzahlen, Lesezeichen im Kapitel, in dem man steht.
  *     Stationen: Wort = Initiale, sonst Symbol. Wege: Tinte = gegangen,
@@ -193,8 +200,13 @@ Object.assign(START, {
         karte.appendChild(kopf);
 
         const leiste = BAUSTEINE.el("div", "bib-leiste");
-        /* Platz der Herzen — kommen später (Konzept §3.7), bis dahin leer. */
-        leiste.appendChild(BAUSTEINE.el("span", "bib-herzen-platz"));
+        /* Die Herzen (seit 0.21.0, Konzept §3.7): ab Buch 2, solange das
+           Buch nicht durch ist; sonst hält ein leerer Platz die Mitte. */
+        if (BIBLIOTHEK.mitHerzen(b) && !lauf.durch) {
+            leiste.appendChild(WORDLE_BILDSCHIRM.herzenBauen(APP.durchgang(b).herzen, 0));
+        } else {
+            leiste.appendChild(BAUSTEINE.el("span", "bib-herzen-platz"));
+        }
         const punkte = BAUSTEINE.el("span", "bib-kap-punkte");
         for (let n = 0; n < BIBLIOTHEK.anzahlKapitel(b); n++) {
             const p = BAUSTEINE.knopf({ art: "flach", titel: "Kapitel " + BIBLIOTHEK.ROEM[n],
@@ -321,6 +333,14 @@ Object.assign(START, {
         });
         knopf.classList.add("st", "st-" + st.art, zustand);
         START._stationInhalt(b, st, knopf);
+        /* Der Checkpoint (seit 0.21.0; seit 0.21.1 Rast oder Elite):
+           Lesezeichen — nur in Büchern mit Herzen. */
+        if (BIBLIOTHEK.CHECKPOINT_ARTEN.indexOf(st.art) !== -1 && zustand === "fertig" && BIBLIOTHEK.mitHerzen(b)
+                && BIBLIOTHEK.checkpoint(START._turm(), b) === st.nr) {
+            const cp = BAUSTEINE.el("span", "st-cp");
+            cp.setAttribute("aria-label", "Checkpoint");
+            knopf.appendChild(cp);
+        }
         if (st.art === "b" && zustand !== "fertig") {
             const schloss = BAUSTEINE.el("span", "st-schloss");
             schloss.appendChild(BAUSTEINE.zeichen("schloss"));
@@ -347,7 +367,7 @@ Object.assign(START, {
             return { text: "Weg wählen", zeichen: "gabel", tun: () => START.gabelBlatt(b, lauf.gabel) };
         }
         const st = BIBLIOTHEK.station(b, lauf.jetzt);
-        const text = { w: "Spielen", e: "Elite", b: "Boss", t: "Truhe", h: "Händler" }[st.art];
+        const text = { w: "Spielen", e: "Elite", b: "Boss", t: "Truhe", h: "Händler", r: "Rast", f: "Fund" }[st.art];
         return { text: text, zeichen: st.art === "w" ? "weiter" : BIBLIOTHEK.ARTEN[st.art].zeichen,
             tun: () => START.stationBlatt(b, st.nr) };
     },
@@ -474,19 +494,38 @@ Object.assign(START, {
         }
         const blatt = START._blatt(bild, titel, buch.farbe);
         const knoepfe = [];
+        const herzen = BIBLIOTHEK.mitHerzen(b);
 
         if (BIBLIOTHEK.istKampf(st.art)) {
+            /* Seit 0.21.0: was die Station an der Front mitnimmt (Fund,
+               Üben) und was ein Scheitern kostet. */
+            const mitnahme = spielbar ? APP.bibliothekMitnahme(b, nr) : { effekt: "", ueben: 0 };
+            const regeln = WORDLE.regelnNormalisieren(BIBLIOTHEK.rundeRegeln(b, nr, mitnahme));
             const chips = [];
             if (buch.nurNomen) {
                 chips.push("Nomen");
             }
             if (st.art === "e") {
                 chips.push(BIBLIOTHEK.elite(b, nr).eigen, "+1 Figur");
+                if (herzen) {
+                    chips.push("Checkpoint", "Herzen voll");
+                }
             }
             if (st.art === "b") {
                 chips.push(buch.boss.eigen);
             }
-            chips.push(BIBLIOTHEK.versuche(b, nr) + " Versuche");
+            chips.push(regeln.versuche + " Versuche");
+            if (regeln.zeit) {
+                chips.push(regeln.zeit + " s");
+            }
+            const fund = BIBLIOTHEK.FUNDE.find((f) => f.id === mitnahme.effekt);
+            if (fund) {
+                chips.push(fund.gib + " → " + fund.kriegst);
+            }
+            if (herzen && spielbar) {
+                const v = BIBLIOTHEK.VERLUST[st.art];
+                chips.push("!−" + v + (v === 1 ? " Herz" : " Herzen"));
+            }
             blatt.appendChild(START._chips(chips));
             const fig = BIBLIOTHEK.figurenVon(turm.figuren, b, nr);
             if (fig > 0) {
@@ -494,23 +533,27 @@ Object.assign(START, {
                 zeile.appendChild(BAUSTEINE.figuren(fig));
                 blatt.appendChild(zeile);
             }
-            const los = BAUSTEINE.knopf({ text: fig > 0 ? "Nochmal" : "Los", art: "haupt", zeichen: "weiter",
+            const los = BAUSTEINE.knopf({ text: fig > 0 ? "Geschafft" : "Los", art: "haupt", zeichen: "weiter",
                 beiKlick: () => {
                     START._blattZu();
                     NAVIGATION.zeigen("wordle", { modus: "bibliothek", buch: b, station: nr, neu: true });
                 } });
-            /* Nachholen (mehr Figuren) geht auf dem gegangenen Weg. */
-            los.disabled = !(spielbar || (fig > 0 && BIBLIOTHEK.offen(turm, b)));
+            /* Nur vorwärts (seit 0.21.1, Nutzer: „gegangene wege sollen nicht
+               nochmal spielbar gemacht werden"): nur die Front. */
+            los.disabled = !spielbar;
             knoepfe.push(los);
         } else if (st.art === "t") {
-            const muenzen = BIBLIOTHEK.truheMuenzen(b, nr);
+            /* Nach einem Rückfall (seit 0.21.0) ist die Truhe schon leer. */
+            const leer = BIBLIOTHEK.erledigt(APP.bibliothekStand(true), b, nr);
+            const muenzen = leer ? 0 : BIBLIOTHEK.truheMuenzen(b, nr);
             const inhalt = BAUSTEINE.el("div", "bib-wahl");
             const fach = BAUSTEINE.el("span", "bib-fach");
             fach.appendChild(BAUSTEINE.zeichen("muenze"));
-            fach.appendChild(BAUSTEINE.el("b", null, "+" + muenzen));
+            fach.appendChild(BAUSTEINE.el("b", null, (leer ? "" : "+") + muenzen));
             inhalt.appendChild(fach);
             blatt.appendChild(inhalt);
-            const oeffnen = BAUSTEINE.knopf({ text: erledigt ? "Geöffnet" : "Öffnen", art: "haupt", zeichen: "schatulle",
+            const oeffnen = BAUSTEINE.knopf({ text: erledigt ? "Geöffnet" : (leer ? "Weiter" : "Öffnen"), art: "haupt",
+                zeichen: "schatulle",
                 beiKlick: () => {
                     if (APP.stationMerken(b, nr, muenzen)) {
                         DIALOG.kurzmeldung("+" + muenzen + " " + UPCREW_MUENZEN.WAEHRUNG.name);
@@ -552,6 +595,10 @@ Object.assign(START, {
                 } });
             weiter.disabled = erledigt || !spielbar;
             knoepfe.push(weiter);
+        } else if (st.art === "r") {
+            knoepfe.push(START._rastBauen(blatt, b, nr, erledigt || !spielbar));
+        } else if (st.art === "f") {
+            knoepfe.push(START._fundBauen(blatt, b, nr, erledigt || !spielbar));
         }
         if (erledigt && !BIBLIOTHEK.istKampf(st.art)) {
             const hinweis = BAUSTEINE.el("p", "bib-blatt-hinweis");
@@ -559,6 +606,92 @@ Object.assign(START, {
             blatt.appendChild(hinweis);
         }
         START._knopfReihe(blatt, knoepfe);
+    },
+
+    /*
+     * RAST (seit 0.21.0, Konzept §3.1): EINE Wahl — Heilen (+2 Herzen, nur
+     * ab Buch 2, je Rast und Durchgang einmal) oder Üben (nächste Elite
+     * oder Boss +1 Versuch). Die Wahl beendet die Rast; „Weiter" ohne Wahl
+     * auch. Die Rast ist der Checkpoint, sobald sie gegangen ist (seit
+     * 0.21.1, Chip). Liefert den Weiter-Knopf.
+     */
+    _rastBauen(blatt, b, nr, zu) {
+        const dg = APP.durchgang(b);
+        const herzen = BIBLIOTHEK.mitHerzen(b);
+        if (herzen) {
+            blatt.appendChild(START._chips(["Checkpoint"]));
+        }
+        const wahl = BAUSTEINE.el("div", "bib-wahl " + (herzen ? "bib-wahl-zwei" : "bib-wahl-eins"));
+        const waehlen = (was, meldung) => {
+            if (APP.rastWaehlen(b, nr, was)) {
+                DIALOG.kurzmeldung(meldung);
+                START._blattZu();
+                NAVIGATION.auffrischen();
+            }
+        };
+        if (herzen) {
+            const heilen = BAUSTEINE.knopf({ art: "flach", titel: "Heilen",
+                beiKlick: () => waehlen("heilen", "+" + BIBLIOTHEK.HEILEN + " Herzen") });
+            heilen.classList.add("bib-ware", "bib-rast-heilen");
+            heilen.appendChild(BAUSTEINE.zeichen("herz"));
+            heilen.appendChild(BAUSTEINE.el("span", "bib-ware-name", "+" + BIBLIOTHEK.HEILEN));
+            heilen.disabled = zu || !BIBLIOTHEK.rastMoeglich(dg, b, nr, "heilen");
+            wahl.appendChild(heilen);
+        }
+        const ueben = BAUSTEINE.knopf({ art: "flach", titel: "Üben",
+            beiKlick: () => waehlen("ueben", "Elite/Boss +" + BIBLIOTHEK.UEBEN_PLUS + " Versuch") });
+        ueben.classList.add("bib-ware");
+        ueben.appendChild(BAUSTEINE.zeichen("uebung"));
+        ueben.appendChild(BAUSTEINE.el("span", "bib-ware-name", "+" + BIBLIOTHEK.UEBEN_PLUS + " Versuch"));
+        ueben.appendChild(BAUSTEINE.el("span", "bib-preis", "Elite · Boss"));
+        ueben.disabled = zu || !BIBLIOTHEK.rastMoeglich(dg, b, nr, "ueben");
+        wahl.appendChild(ueben);
+        blatt.appendChild(wahl);
+        /* Ohne Wahl weiter (etwa bei vollen Herzen und schon geübt). */
+        const weiter = BAUSTEINE.knopf({ text: "Weiter", art: "still",
+            beiKlick: () => {
+                APP.stationMerken(b, nr, 0);
+                START._blattZu();
+                NAVIGATION.auffrischen();
+            } });
+        weiter.disabled = zu;
+        return weiter;
+    },
+
+    /*
+     * FUND (seit 0.21.0, Konzept §3.4): zwei Angebote „gib → kriegst"
+     * (fest je Station) und „Nein". Wirkungen für die nächste Kampf-Station
+     * stehen danach als Chip auf deren Blatt. Liefert den Nein-Knopf.
+     */
+    _fundBauen(blatt, b, nr, zu) {
+        const dg = APP.durchgang(b);
+        const muenzen = (typeof UPCREW_MUENZEN !== "undefined") ? UPCREW_MUENZEN.anzeige(APP.fortschritt()) : 0;
+        const wahl = BAUSTEINE.el("div", "bib-wahl bib-tausch");
+        for (const f of BIBLIOTHEK.fundAngebote(b, nr)) {
+            const k = BAUSTEINE.knopf({ art: "flach", titel: f.gib + " gegen " + f.kriegst,
+                beiKlick: () => {
+                    if (APP.fundNehmen(b, nr, f.id)) {
+                        DIALOG.kurzmeldung(f.kriegst);
+                        START._blattZu();
+                        NAVIGATION.auffrischen();
+                    }
+                } });
+            k.classList.add("bib-tausch-knopf");
+            k.appendChild(BAUSTEINE.el("span", "bib-gib", f.gib));
+            k.appendChild(BAUSTEINE.el("span", "bib-pfeil", "→"));
+            k.appendChild(BAUSTEINE.el("span", "bib-kriegst", f.kriegst));
+            k.disabled = zu || !BIBLIOTHEK.fundMoeglich(dg, b, f.id, muenzen);
+            wahl.appendChild(k);
+        }
+        blatt.appendChild(wahl);
+        const nein = BAUSTEINE.knopf({ text: "Nein", art: "still",
+            beiKlick: () => {
+                APP.fundNehmen(b, nr, "");
+                START._blattZu();
+                NAVIGATION.auffrischen();
+            } });
+        nein.disabled = zu;
+        return nein;
     },
 
     /* An der Gabelung: zwei Knöpfe mit der Symbolreihe je Spur bis zum

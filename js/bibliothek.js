@@ -20,11 +20,37 @@
  *             Zwei Spuren hintereinander bleiben je in ihrer Spur; eine Spur
  *             gabelt sich in zwei, zwei treffen sich in einer.
  *   Station   w Wort · e Elite (Verschärfung über `runde.regeln`, eine Figur
- *             mehr) · t Truhe (Münzen) · h Händler (Tipp, Extra-Leben,
- *             Schild günstiger) · b Boss (eigene Regel je Buch).
- *   NICHT jetzt (bewusst, „fürs Erste"): Rast, Fund, Herzen, Tinte,
- *   Design-Stücke, Checkpoint. Scheitern = das Level nochmal mit neuem Wort
- *   aus demselben Bereich.
+ *             mehr, Checkpoint) · t Truhe (Münzen) · h Händler (Tipp,
+ *             Extra-Leben, Schild günstiger) · r Rast (seit 0.21.0: Heilen
+ *             oder Üben) · f Fund (seit 0.21.0: Tausch mit Risiko) · b Boss
+ *             (eigene Regel je Buch).
+ *   Herzen    (seit 0.21.0, Konzept §3.7) ab Buch 2: 5 je Durchgang, NUR
+ *             beim Scheitern an der Front weg (Wort −1, Elite −2, Boss −3).
+ *             Bei 0 zurück zum Checkpoint. Seit 0.21.1 (Nutzer 28.09.2026:
+ *             „zur letzten Rast / Elite-Gegner") = die letzte Rast ODER
+ *             besiegte Elite des gegangenen Wegs, was später kam; ohne
+ *             beides an den Buchanfang. Eine Rast zählt, sobald sie
+ *             gegangen ist (gewählt oder „Weiter") — scheitern kann man an
+ *             ihr ohnehin nicht, „beim Betreten" und „nach der Wahl" sind
+ *             gleich. Elite besiegt → Herzen voll (Nutzer, 0.21.1).
+ *             Figuren, Münzen und Merker bleiben; die Stationen danach sind
+ *             neu zu spielen (`wieder`), eine Rast heilt je Durchgang nur
+ *             einmal.
+ *   Nur vorwärts (seit 0.21.1, Nutzer: „gegangene wege sollen nicht
+ *             nochmal spielbar gemacht werden"): gespielt wird nur die
+ *             Front (`spielbar`), kein Nachspielen für mehr Figuren.
+ *   NICHT jetzt: Tinte, Lesezeichen, Design-Stücke, Siegel, Goldene
+ *   Station, Tutorial. Scheitern ohne Herzen (Buch 1) oder mit Herzen
+ *   übrig = dieselbe Station nochmal mit neuem Wort.
+ *
+ * DER DURCHGANG (seit 0.21.0) — NUR AUF DEM GERÄT (js/app.js
+ *   `durchgang`): { herzen, wieder: [nr], geheilt: [nr], ueben: 0/1,
+ *   effekt: "" | Fund-Wirkung für die nächste Kampf-Station }. Die heutige
+ *   Regel §11b hat dafür kein Feld (`turm` kennt nur figuren/schwuere) —
+ *   mit Regel §12 zieht es nach `bibliothek.lauf` (Konzept §7.1). Bis
+ *   dahin gilt: Herzen und Rückfall je Gerät; ein zweites Gerät sieht den
+ *   Weg ohne Rückfall. `sicht(turm, durchgaenge)` blendet die neu zu
+ *   spielenden Stationen aus — alle Rechnungen darunter bleiben gleich.
  *
  * SPEICHER (ohne neue Datenbank-Regel, §11b gilt):
  *   Kampf-Stationen (Wort, Elite, Boss): `turm.figuren["<buch>-<nr>"]`
@@ -33,10 +59,17 @@
  *     6 × 8-Bibliothek zusammen (Level 0–7), und die Regel
  *     /^[0-9]{1,2}-[0-9]{1,2}$/ hält — höchstens 90 Stationen je Buch
  *     (tests/test-bibliothek.js prüft es).
- *   Truhe und Händler (keine Figuren): `turm.schwuere["<buch*100+nr>"]` = 1
+ *   Truhe, Händler, Rast, Fund (keine Figuren):
+ *     `turm.schwuere["<buch*100+nr>"]` = 1
  *     („betreten"). Die Regel erlaubt dort /^[0-9]{1,3}$/ mit 0–3 — bei
  *     höchstens 9 Büchern und nr ≤ 99 passt das. So zählen sie nicht als
  *     Figuren (Profil, Abzeichen).
+ *   Erledigt ist eine Station, wenn EINER der beiden Einträge da ist —
+ *     gleich welcher Art (seit 0.21.0): Die Vorlagen bekamen Rast und Fund
+ *     an Stellen, an denen in 0.20.0 ein Wort oder eine Truhe stand; die
+ *     Form (Spalten und Spuren) und damit jede Nummer blieb. So bleibt
+ *     jeder in 0.20.0 gegangene Weg gegangen, und ein durchgespieltes Buch
+ *     bleibt durch.
  *   Gewählter Weg, aktuelle Station, Buch durch: GERECHNET aus diesen
  *   Einträgen (`lauf`) — nichts sonst wird gespeichert.
  *
@@ -66,17 +99,25 @@ const BIBLIOTHEK = {
         e: { name: "Elite", zeichen: "wurm" },
         t: { name: "Truhe", zeichen: "schatulle" },
         h: { name: "Händler", zeichen: "antiquar" },
+        r: { name: "Rast", zeichen: "kerze" },
+        f: { name: "Fund", zeichen: "blatt" },
         b: { name: "Boss", zeichen: "siegelband" }
     },
 
-    /* Kapitel-Vorlagen (Spalten von unten nach oben; aus dem Entwurf, ohne
-       Rast und Fund). X = das letzte Kapitel mit dem Boss oben. */
+    /* Kapitel-Vorlagen (Spalten von unten nach oben). X = das letzte
+       Kapitel mit dem Boss oben. Seit 0.21.0 mit Rast und Fund wie im
+       Entwurf — aber in der FORM von 0.20.0 (gleiche Spalten, gleiche
+       Spuren, also gleiche Nummern; siehe „Erledigt" oben): B und D wie im
+       Entwurf, A/C/X ohne die Spalte, die der Entwurf mehr hat; X mit der
+       Rast direkt vor dem Boss (Konzept §2.1 „vorletzte Seite: Rast"),
+       davor Truhe oder Fund statt des Händlers (sonst stünden Händler und
+       Rast direkt hintereinander, §2.1). */
     VORLAGEN: {
-        A: [["ein"], ["w"], ["w", "e"], ["t", "w"], ["w"], ["h", "w"], ["aus"]],
-        B: [["ein"], ["w"], ["e", "w"], ["w", "t"], ["w"], ["w"], ["aus"]],
-        C: [["ein"], ["w", "e"], ["w", "w"], ["t"], ["w", "h"], ["w"], ["aus"]],
-        D: [["ein"], ["w"], ["w", "h"], ["e", "w"], ["w"], ["t"], ["aus"]],
-        X: [["ein"], ["w"], ["e", "w"], ["t", "h"], ["w"], ["b"]]
+        A: [["ein"], ["w"], ["w", "e"], ["r", "t"], ["w"], ["h", "f"], ["aus"]],
+        B: [["ein"], ["w"], ["f", "w"], ["w", "e"], ["h"], ["w"], ["aus"]],
+        C: [["ein"], ["w", "e"], ["t", "w"], ["w"], ["w", "r"], ["f"], ["aus"]],
+        D: [["ein"], ["w"], ["e", "w"], ["w", "h"], ["w"], ["t"], ["aus"]],
+        X: [["ein"], ["w"], ["e", "w"], ["t", "f"], ["r"], ["b"]]
     },
 
     /*
@@ -118,13 +159,44 @@ const BIBLIOTHEK = {
     NR_BIS: 99,
     BREITE: 8,
     VERSUCHE: 6,
-    /* Truhe: Münzen 15–30 (ab Buch 5: 25–45), fest je Station. */
+    /* Truhe: Münzen 15–30 (ab Buch 5: 25–45), fest je Station. Nach einem
+       Rückfall bringt dieselbe Truhe nichts mehr (js/app.js). */
     TRUHE: [[15, 30], [15, 30], [15, 30], [15, 30], [25, 45], [25, 45]],
     /* Händler: so viel billiger als im Shop. */
     RABATT: 0.3,
     WAREN: ["tipp", "leben", "schild"],
     ZULETZT_MAX: 30,
     RUECKFALL_ANZAHL: 8,
+
+    /* Herzen (seit 0.21.0, Konzept §3.7): ab Buch HERZEN_AB, Start und
+       höchstens HERZEN, Verlust nur beim Scheitern je Art; Rast heilt
+       HEILEN. */
+    HERZEN: 5,
+    HERZEN_AB: 2,
+    VERLUST: { w: 1, e: 2, b: 3 },
+    HEILEN: 2,
+    /* Rast „Üben": die nächste Elite oder der Boss +1 Versuch. */
+    UEBEN_PLUS: 1,
+    /* Längste Listen im Durchgang (Gerät). */
+    LISTE_MAX: 99,
+
+    /*
+     * FUND — Tausch mit Risiko (Konzept §3.4). Zwei Angebote je Fund (fest
+     * je Station, aus denen, die das Buch erlaubt), dazu immer „Nein".
+     * `naechste` = gilt für die nächste Kampf-Station an der Front (Wort,
+     * Elite, Boss) und ihre Belohnung nur, wenn sie gelöst wird. `herzen` =
+     * nur in Büchern mit Herzen. Ohne Tinte, Lesezeichen, Design-Stücke und
+     * Siegel — die gibt es noch nicht, ihre Angebote fehlen darum.
+     */
+    FUNDE: [
+        { id: "herzmuenzen", gib: "−1 Herz", kriegst: "+40 Münzen", ab: 1, herzen: true },
+        { id: "muenzenherz", gib: "30 Münzen", kriegst: "+1 Herz", ab: 1, herzen: true },
+        { id: "doppelt", gib: "Doppelbuchstabe", kriegst: "Münzen ×2", ab: 2, naechste: true },
+        { id: "fuenf", gib: "5 Versuche", kriegst: "+1 Figur", ab: 2, naechste: true },
+        { id: "zeit", gib: "60 Sekunden", kriegst: "+1 Herz", ab: 3, herzen: true, naechste: true },
+        { id: "wette", gib: "20 Münzen", kriegst: "≤ 4 Versuche: 50", ab: 1, naechste: true }
+    ],
+    FUND_MUENZEN: { herzmuenzen: 40, muenzenherz: 30, wette: 20, wetteZurueck: 50, wetteBis: 4, zeit: 60 },
     ROEM: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
 
     /* ---------------------------------------------------------------- *
@@ -340,11 +412,30 @@ const BIBLIOTHEK = {
     },
 
     /* Ein Wort für einen Start (Zufall von aussen, zuletzt gespielte
-       möglichst nicht). "" = keine Kampf-Station. */
-    wortZiehen(b, nr, zufall, vermeiden) {
+       möglichst nicht). "" = keine Kampf-Station. `filter` (seit 0.21.0,
+       Fund „Doppelbuchstabe") = Merkmale für WORTBEWERTUNG.passtMerkmale;
+       hat der Bereich kein passendes Wort, die nächstgelegenen passenden. */
+    wortZiehen(b, nr, zufall, vermeiden, filter) {
         let alle = BIBLIOTHEK.woerter(b, nr);
         if (!alle.length) {
             alle = BIBLIOTHEK.naechsteWoerter(b, nr);
+        }
+        if (filter && alle.length) {
+            const passt = (wort) => BIBLIOTHEK_WB.passtMerkmale(wort, filter, BIBLIOTHEK_WOERTER.loesungen);
+            let gefiltert = alle.filter(passt);
+            if (!gefiltert.length) {
+                const bereich = BIBLIOTHEK.bereich(b, nr);
+                const mitte = (bereich.von + bereich.bis) / 2;
+                gefiltert = BIBLIOTHEK_WOERTER.loesungen
+                    .filter((wort) => Number.isInteger(BIBLIOTHEK_WB.schwierigkeit(wort))
+                        && BIBLIOTHEK._passt(b, wort) && passt(wort))
+                    .sort((x, y) => Math.abs(BIBLIOTHEK_WB.schwierigkeit(x) - mitte)
+                        - Math.abs(BIBLIOTHEK_WB.schwierigkeit(y) - mitte))
+                    .slice(0, BIBLIOTHEK.RUECKFALL_ANZAHL);
+            }
+            if (gefiltert.length) {
+                alle = gefiltert;
+            }
         }
         if (!alle.length) {
             return "";
@@ -371,14 +462,16 @@ const BIBLIOTHEK = {
         return (Number.isInteger(wert) && wert > 0) ? Math.min(wert, 3) : 0;
     },
 
-    /* Ist die Station erledigt? Kampf: Figuren > 0; Truhe/Händler: Merker. */
+    /* Ist die Station erledigt? Kampf schreibt Figuren, alles andere den
+       Merker; seit 0.21.0 zählt jeder der beiden, gleich welcher Art (die
+       Vorlagen tauschten Arten an festen Nummern, Kopf „Erledigt"). */
     erledigt(turm, b, nr) {
         const st = BIBLIOTHEK.station(b, nr);
         if (!st || !turm) {
             return false;
         }
-        if (BIBLIOTHEK.istKampf(st.art)) {
-            return BIBLIOTHEK.figurenVon(turm.figuren, b, nr) > 0;
+        if (BIBLIOTHEK.figurenVon(turm.figuren, b, nr) > 0) {
+            return true;
         }
         const m = turm.schwuere && turm.schwuere[BIBLIOTHEK.merkerSchluessel(b, nr)];
         return Number.isInteger(m) && m > 0;
@@ -493,8 +586,9 @@ const BIBLIOTHEK = {
     },
 
     /* Figuren für ein gelöstes Level: aus der Wertung; Elite eine mehr
-       (höchstens 3); mit Hilfe aus dem Shop höchstens 1. */
-    figurenFuer(geloest, wertungFiguren, hilfe, art) {
+       (höchstens 3); mit Hilfe aus dem Shop höchstens 1. `plus` (seit
+       0.21.0, Fund „5 Versuche") = so viele mehr, höchstens 3. */
+    figurenFuer(geloest, wertungFiguren, hilfe, art, plus) {
         if (!geloest) {
             return 0;
         }
@@ -502,7 +596,300 @@ const BIBLIOTHEK = {
             return 1;
         }
         const f = Math.max(1, Math.min(3, Math.floor(wertungFiguren || 1)));
-        return art === "e" ? Math.min(3, f + 1) : f;
+        const mehr = (art === "e" ? 1 : 0) + (Number.isInteger(plus) && plus > 0 ? plus : 0);
+        return Math.min(3, f + mehr);
+    },
+
+    /* Die Figuren einer beendeten Runde (Bildschirm und Fortschritt gleich):
+       mit der Belohnung ihrer Mitnahme. `runde` = WORDLE-Runde. */
+    figurenDerRunde(runde, wertungFiguren, hilfe) {
+        const st = runde ? BIBLIOTHEK.station(runde.buch, runde.station) : null;
+        const geloest = !!runde && runde.zustand === "gewonnen";
+        const plus = BIBLIOTHEK.belohnung(runde && runde.mitnahme,
+            { geloest: geloest, versuche: runde ? runde.versuche.length : 0, hilfe: hilfe }).figurPlus;
+        return BIBLIOTHEK.figurenFuer(geloest, wertungFiguren, hilfe, st ? st.art : "w", plus);
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Herzen, Checkpoint, Rast, Fund (seit 0.21.0) — der Durchgang liegt
+     * nur auf dem Gerät (Kopf „DER DURCHGANG"); alles hier ist rein.
+     * ---------------------------------------------------------------- */
+
+    /* Hat dieses Buch Herzen? (Konzept §3.7: Buch 1 ohne, ab Buch 2) */
+    mitHerzen(b) {
+        return !!BIBLIOTHEK.buch(b) && b >= BIBLIOTHEK.HERZEN_AB;
+    },
+
+    durchgangLeer(b) {
+        return { herzen: BIBLIOTHEK.mitHerzen(b) ? BIBLIOTHEK.HERZEN : 0, wieder: [], geheilt: [],
+            ueben: 0, effekt: "" };
+    },
+
+    /* Unsinn wird zum leeren Durchgang; nur Nummern dieses Buchs. */
+    durchgangNormalisieren(roh, b) {
+        const leer = BIBLIOTHEK.durchgangLeer(b);
+        if (!roh || typeof roh !== "object" || Array.isArray(roh)) {
+            return leer;
+        }
+        const nummern = (liste) => (Array.isArray(liste) ? liste : [])
+            .filter((nr, i, alle) => Number.isInteger(nr) && BIBLIOTHEK.station(b, nr) && alle.indexOf(nr) === i)
+            .slice(0, BIBLIOTHEK.LISTE_MAX);
+        const herzen = Number.isInteger(roh.herzen) ? roh.herzen : leer.herzen;
+        const effekt = BIBLIOTHEK.FUNDE.some((f) => f.naechste && f.id === roh.effekt) ? roh.effekt : "";
+        return {
+            herzen: BIBLIOTHEK.mitHerzen(b) ? Math.max(1, Math.min(BIBLIOTHEK.HERZEN, herzen)) : 0,
+            wieder: nummern(roh.wieder),
+            geheilt: nummern(roh.geheilt),
+            ueben: roh.ueben === 1 ? 1 : 0,
+            effekt: effekt
+        };
+    },
+
+    /*
+     * Die Sicht auf den Stand: Stationen, die nach einem Rückfall neu zu
+     * spielen sind (`wieder` je Buch), gelten als nicht erledigt. Liefert
+     * eine Kopie { figuren, schwuere }; `durchgaenge` = { <b>: Durchgang }.
+     */
+    sicht(turm, durchgaenge) {
+        const figuren = Object.assign({}, (turm && turm.figuren) || {});
+        const schwuere = Object.assign({}, (turm && turm.schwuere) || {});
+        const alle = (durchgaenge && typeof durchgaenge === "object") ? durchgaenge : {};
+        Object.keys(alle).forEach((schluessel) => {
+            const b = parseInt(schluessel, 10);
+            const dg = alle[schluessel];
+            if (!BIBLIOTHEK.buch(b) || !dg || !Array.isArray(dg.wieder)) {
+                return;
+            }
+            dg.wieder.forEach((nr) => {
+                delete figuren[b + "-" + nr];
+                delete schwuere[BIBLIOTHEK.merkerSchluessel(b, nr)];
+            });
+        });
+        return { figuren: figuren, schwuere: schwuere };
+    },
+
+    /* Welche Arten Checkpoints sind (seit 0.21.1 auch die Rast). */
+    CHECKPOINT_ARTEN: ["e", "r"],
+
+    /* Der Checkpoint: die letzte gegangene Rast oder besiegte Elite auf dem
+       Weg (Nummer) oder null (= Buchanfang). `turm` ist die Sicht. */
+    checkpoint(turm, b) {
+        const weg = BIBLIOTHEK.lauf(turm, b).weg;
+        for (let n = weg.length - 1; n >= 0; n--) {
+            if (BIBLIOTHEK.CHECKPOINT_ARTEN.indexOf(BIBLIOTHEK.station(b, weg[n]).art) !== -1) {
+                return weg[n];
+            }
+        }
+        return null;
+    },
+
+    /*
+     * Gescheitert an einer Station: Nur an der Front (die Station, die den
+     * Weg weiterbringt) und nur in Büchern mit Herzen kostet es. Bei 0
+     * Herzen der Rückfall: alle gegangenen Stationen nach dem Checkpoint
+     * (ohne Checkpoint: alle) kommen nach `wieder`, Herzen voll, Üben und
+     * Fund-Wirkung weg; `geheilt` bleibt (eine Rast heilt je Durchgang
+     * nur einmal). Liefert { dg, verlust, rueck, cp }.
+     */
+    scheitern(turm, b, nr, dg) {
+        const alt = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!st || !BIBLIOTHEK.istKampf(st.art) || !BIBLIOTHEK.mitHerzen(b) || !BIBLIOTHEK.spielbar(turm, b, nr)) {
+            return { dg: alt, verlust: 0, rueck: false, cp: null };
+        }
+        const verlust = BIBLIOTHEK.VERLUST[st.art];
+        const neu = JSON.parse(JSON.stringify(alt));
+        if (alt.herzen - verlust > 0) {
+            neu.herzen = alt.herzen - verlust;
+            return { dg: neu, verlust: verlust, rueck: false, cp: null };
+        }
+        const cp = BIBLIOTHEK.checkpoint(turm, b);
+        const weg = BIBLIOTHEK.lauf(turm, b).weg;
+        const ab = cp === null ? 0 : weg.indexOf(cp) + 1;
+        weg.slice(ab).forEach((n) => {
+            if (neu.wieder.indexOf(n) === -1) {
+                neu.wieder.push(n);
+            }
+        });
+        neu.wieder = neu.wieder.slice(0, BIBLIOTHEK.LISTE_MAX);
+        neu.herzen = BIBLIOTHEK.HERZEN;
+        neu.ueben = 0;
+        neu.effekt = "";
+        return { dg: neu, verlust: verlust, rueck: true, cp: cp };
+    },
+
+    /* Eine Station ist (wieder) erledigt: raus aus `wieder`. */
+    wiederErledigt(dg, b, nr) {
+        const neu = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        neu.wieder = neu.wieder.filter((n) => n !== nr);
+        return neu;
+    },
+
+    /* Rast: „heilen" (+2 Herzen, nur mit Herzen, je Rast und Durchgang
+       einmal, nicht bei vollen Herzen) oder „ueben" (nächste Elite/Boss +1
+       Versuch). Liefert { dg, ok }. */
+    rastMoeglich(dg, b, nr, wahl) {
+        const d = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        if (wahl === "heilen") {
+            return BIBLIOTHEK.mitHerzen(b) && d.herzen < BIBLIOTHEK.HERZEN && d.geheilt.indexOf(nr) === -1;
+        }
+        return wahl === "ueben" && d.ueben === 0;
+    },
+
+    rastWaehlen(dg, b, nr, wahl) {
+        if (!BIBLIOTHEK.rastMoeglich(dg, b, nr, wahl)) {
+            return { dg: BIBLIOTHEK.durchgangNormalisieren(dg, b), ok: false };
+        }
+        const neu = BIBLIOTHEK.wiederErledigt(dg, b, nr);
+        if (wahl === "heilen") {
+            neu.herzen = Math.min(BIBLIOTHEK.HERZEN, neu.herzen + BIBLIOTHEK.HEILEN);
+            neu.geheilt.push(nr);
+        } else {
+            neu.ueben = 1;
+        }
+        return { dg: neu, ok: true };
+    },
+
+    /* Die Angebote eines Funds (fest je Station; ein Buch ohne Herzen hat
+       weniger zur Auswahl — Buch 1 heute nur die Wette). */
+    fundAngebote(b, nr) {
+        const erlaubt = BIBLIOTHEK.FUNDE.filter((f) => f.ab <= b && (!f.herzen || BIBLIOTHEK.mitHerzen(b)));
+        if (erlaubt.length <= 2) {
+            return erlaubt.slice();
+        }
+        const n = erlaubt.length;
+        const i = (nr * 7 + b) % n;
+        const j = (i + 1 + ((nr * 3 + b) % (n - 1))) % n;
+        return [erlaubt[Math.min(i, j)], erlaubt[Math.max(i, j)]];
+    },
+
+    /* Geht dieser Tausch jetzt? `muenzen` = Kontostand. Eine Wirkung für
+       die nächste Station gibt es nur eine auf einmal. */
+    fundMoeglich(dg, b, id, muenzen) {
+        const d = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        const f = BIBLIOTHEK.FUNDE.find((x) => x.id === id);
+        const m = BIBLIOTHEK.FUND_MUENZEN;
+        if (!f || (f.herzen && !BIBLIOTHEK.mitHerzen(b)) || (f.naechste && d.effekt)) {
+            return false;
+        }
+        if (id === "herzmuenzen") {
+            return d.herzen > 1;
+        }
+        if (id === "muenzenherz") {
+            return d.herzen < BIBLIOTHEK.HERZEN && muenzen >= m.muenzenherz;
+        }
+        if (id === "wette") {
+            return muenzen >= m.wette;
+        }
+        return true;
+    },
+
+    /* Den Tausch nehmen (Münzen bucht die App). Liefert { dg, ok,
+       muenzen } — `muenzen` > 0 gutschreiben, < 0 abbuchen. */
+    fundNehmen(dg, b, nr, id, muenzen) {
+        if (!BIBLIOTHEK.fundMoeglich(dg, b, id, muenzen)) {
+            return { dg: BIBLIOTHEK.durchgangNormalisieren(dg, b), ok: false, muenzen: 0 };
+        }
+        const neu = BIBLIOTHEK.wiederErledigt(dg, b, nr);
+        const m = BIBLIOTHEK.FUND_MUENZEN;
+        const f = BIBLIOTHEK.FUNDE.find((x) => x.id === id);
+        let betrag = 0;
+        if (id === "herzmuenzen") {
+            neu.herzen -= 1;
+            betrag = m.herzmuenzen;
+        } else if (id === "muenzenherz") {
+            neu.herzen += 1;
+            betrag = -m.muenzenherz;
+        } else if (id === "wette") {
+            betrag = -m.wette;
+        }
+        if (f.naechste) {
+            neu.effekt = id;
+        }
+        return { dg: neu, ok: true, muenzen: betrag };
+    },
+
+    /* Was eine Kampf-Station beim Start aus dem Durchgang mitnimmt (nur an
+       der Front): Fund-Wirkung und Üben (nur Elite/Boss). */
+    mitnahme(turm, b, nr, dg) {
+        const st = BIBLIOTHEK.station(b, nr);
+        const d = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        if (!st || !BIBLIOTHEK.istKampf(st.art) || !BIBLIOTHEK.spielbar(turm, b, nr)) {
+            return { effekt: "", ueben: 0 };
+        }
+        return { effekt: d.effekt, ueben: (st.art === "e" || st.art === "b") ? d.ueben : 0 };
+    },
+
+    /* Die Regeln einer Runde samt Mitnahme: „5 Versuche" höchstens 5,
+       „60 Sekunden" Uhr 60 s, Üben +1 Versuch (höchstens 8). */
+    rundeRegeln(b, nr, mitnahme) {
+        const r = BIBLIOTHEK.regeln(b, nr);
+        if (!r) {
+            return null;
+        }
+        const m = mitnahme || {};
+        if (m.effekt === "fuenf") {
+            r.versuche = Math.min(r.versuche || BIBLIOTHEK.VERSUCHE, 5);
+        }
+        if (m.effekt === "zeit") {
+            r.zeit = r.zeit ? Math.min(r.zeit, BIBLIOTHEK.FUND_MUENZEN.zeit) : BIBLIOTHEK.FUND_MUENZEN.zeit;
+        }
+        if (m.ueben === 1) {
+            r.versuche = Math.min(8, (r.versuche || BIBLIOTHEK.VERSUCHE) + BIBLIOTHEK.UEBEN_PLUS);
+        }
+        return r;
+    },
+
+    /* Der Wort-Filter einer Mitnahme („Doppelbuchstabe" = Pflicht). */
+    wortFilter(mitnahme) {
+        return (mitnahme && mitnahme.effekt === "doppelt") ? { doppelt: "pflicht" } : null;
+    },
+
+    /*
+     * Nach einer Kampf-Runde mit Mitnahme: die Belohnung (nur gelöst) und
+     * der Durchgang danach (Mitnahme verbraucht, gelöst → raus aus
+     * `wieder`). { geloest, versuche, hilfe } aus der Runde.
+     * Liefert { dg, muenzenMal, muenzenPlus, herzPlus, figurPlus }.
+     */
+    belohnung(mitnahme, runde) {
+        const m = mitnahme || {};
+        const r = runde || {};
+        const ergebnis = { muenzenMal: 1, muenzenPlus: 0, herzPlus: 0, figurPlus: 0 };
+        if (!r.geloest) {
+            return ergebnis;
+        }
+        if (m.effekt === "doppelt") {
+            ergebnis.muenzenMal = 2;
+        } else if (m.effekt === "fuenf" && !r.hilfe) {
+            ergebnis.figurPlus = 1;
+        } else if (m.effekt === "zeit") {
+            ergebnis.herzPlus = 1;
+        } else if (m.effekt === "wette" && r.versuche <= BIBLIOTHEK.FUND_MUENZEN.wetteBis) {
+            ergebnis.muenzenPlus = BIBLIOTHEK.FUND_MUENZEN.wetteZurueck;
+        }
+        return ergebnis;
+    },
+
+    /* Der Durchgang nach einer Kampf-Runde (ohne Scheitern-Rechnung):
+       Mitnahme verbraucht, gelöst → erledigt, Herz aus der Belohnung;
+       seit 0.21.1: Elite besiegt → Herzen voll (Nutzer 28.09.2026). */
+    nachRunde(dg, b, nr, mitnahme, geloest, herzPlus) {
+        const st = BIBLIOTHEK.station(b, nr);
+        if (geloest && st && st.art === "e" && BIBLIOTHEK.mitHerzen(b)) {
+            herzPlus = BIBLIOTHEK.HERZEN;
+        }
+        const neu = geloest ? BIBLIOTHEK.wiederErledigt(dg, b, nr) : BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        const m = mitnahme || {};
+        if (m.effekt && neu.effekt === m.effekt) {
+            neu.effekt = "";
+        }
+        if (m.ueben === 1) {
+            neu.ueben = 0;
+        }
+        if (herzPlus > 0 && BIBLIOTHEK.mitHerzen(b)) {
+            neu.herzen = Math.min(BIBLIOTHEK.HERZEN, neu.herzen + herzPlus);
+        }
+        return neu;
     },
 
     /* Ein Weg durch das Buch zum Ansehen und Testen: `schritte` Stationen

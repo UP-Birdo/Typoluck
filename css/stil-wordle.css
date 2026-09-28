@@ -456,3 +456,59 @@
     border-color: var(--kachel-rahmen-voll);
     color: var(--kachel-text, var(--schrift));
 }
+
+/* Die Uhr (seit 0.21.0, Regel `zeit`): eine Zeile über dem Brett. Steht
+   still (blass), bis der erste Buchstabe getippt ist; in den letzten 10
+   Sekunden rot. */
+.wordle-uhr {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    align-self: center;
+    margin: 0 0 -8px;
+    padding: 4px 12px;
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.wordle-uhr .zeichen {
+    width: 18px;
+    height: 18px;
+}
+
+.wordle-uhr.wartet {
+    color: var(--schrift-leise);
+}
+
+.wordle-uhr.knapp {
+    color: var(--gefahr);
+}
+
+/* Bibliothek am Ende (seit 0.21.0): die Herzen und der Rückfall. */
+.wordle-ende .bib-herzen {
+    justify-content: center;
+    margin: 0 0 10px;
+}
+
+.wordle-ende .bib-herzen .zeichen {
+    width: 20px;
+    height: 20px;
+}
+
+.wordle-ende-rueck {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    font-weight: 800;
+}
+
+.wordle-ende-rueck .zeichen {
+    width: 20px;
+    height: 20px;
+    color: var(--haupt);
+}

@@ -313,11 +313,46 @@ const VERWALTUNG_BILDSCHIRM = {
         });
     },
 
+    /*
+     * „§12 NACHZIEHEN" (seit 0.22.0, wie Blunderluck v0.154.0; Konzept
+     * Phase A Punkt 4): Direkt nach dem Einspielen der Regel §12 fehlen die
+     * öffentlichen Auszüge und das Anmeldeverzeichnis. Der Knopf schreibt
+     * beides für alle Konten (`KONTO.nachziehen`), wiederholbar. Nur für
+     * UP#Plus und nur, wenn die App die Regel §12 erkannt hat.
+     */
+    _nachziehenBauen() {
+        if (typeof KONTO === "undefined" || typeof KONTO.istP12 !== "function"
+                || !KONTO.istP12() || KONTO.uid() !== KONTO.OBER_UID) {
+            return null;
+        }
+        const karte = BAUSTEINE.karte("Regel §12");
+        karte.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", "Auszüge und Anmeldeverzeichnis · wiederholbar"));
+        const knopf = BAUSTEINE.knopf({ text: "§12 nachziehen", art: "still",
+            beiKlick: async () => {
+                knopf.disabled = true;
+                const ergebnis = await KONTO.nachziehen(ANMELDUNG.abgleich.speicher);
+                knopf.disabled = false;
+                if (!ergebnis.ok) {
+                    await DIALOG.hinweis("Nicht nachgezogen", ergebnis.text || "");
+                    return;
+                }
+                await ANMELDUNG._nachladen();
+                await DIALOG.hinweis("Nachgezogen", ergebnis.geschrieben + " geschrieben · "
+                    + ergebnis.uebersprungen + " übersprungen");
+            } });
+        karte.appendChild(knopf);
+        return karte;
+    },
+
     _spielerZeigen(ort) {
         const daten = ANMELDUNG.abgleich ? ANMELDUNG.abgleich.daten : null;
         const zeilen = VERWALTUNG_BILDSCHIRM.spielerZeilen(daten, WORDLE.datumText(APP.jetzt()));
         ort.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis",
             "Nur lesen · Rechte und Umbenennen in der Blunderluck-Verwaltung"));
+        const nachziehen = VERWALTUNG_BILDSCHIRM._nachziehenBauen();
+        if (nachziehen) {
+            ort.appendChild(nachziehen);
+        }
         UPCREW_SPIELERLISTE.bauen(ort, {
             zeilen: zeilen,
             beiAuswahl: (zeile) => DIALOG.hinweis(zeile.name + (zeile.tag ? " #" + zeile.tag : ""), "", UPCREW_SPIELERLISTE.details(zeile))

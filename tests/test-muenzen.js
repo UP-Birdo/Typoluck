@@ -42,13 +42,17 @@ function funktion(text, name) {
     const bl = pfad.join(wurzel, "..", "Blunderluck", "js", "fortschritt.js");
     const tl = lesen("js/fortschritt.js");
     const namen = ["zusammenfuehren", "_zaehlerZusammen", "serie", "_datumZahl", "_zahlDatum", "_tageZwischen",
-        "_zaehlerSumme", "schildVorrat", "serieStand", "rundeGestartet", "_zaehlerAnlegen"];
+        "_zaehlerSumme", "schildVorrat", "serieStand", "rundeGestartet", "_zaehlerAnlegen",
+        /* Seit 0.22.0 (Regel §12): der öffentliche Auszug. */
+        "datumVon", "auszug", "auszugPruefen", "auszugVon", "auszugLevel", "auszugSerie", "auszugAlsStand"];
     if (fs.existsSync(bl)) {
         const text = fs.readFileSync(bl, "utf8");
         for (const name of namen) {
             const eigen = funktion(tl, name);
             pruefe("Zeile für Zeile wie Blunderluck: " + name, eigen !== null && eigen === funktion(text, name));
         }
+        pruefe("Zeile für Zeile wie Blunderluck: AUSZUG_WERTE", tl.indexOf('AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],') !== -1
+            && text.indexOf('AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],') !== -1);
         pruefe("Zeile für Zeile wie Blunderluck: SERIE_ZAEHLER",
             tl.indexOf('SERIE_ZAEHLER: ["serie", "serieBis", "serieSchutz"],') !== -1
                 && text.indexOf('SERIE_ZAEHLER: ["serie", "serieBis", "serieSchutz"],') !== -1);

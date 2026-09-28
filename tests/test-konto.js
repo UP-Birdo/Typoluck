@@ -637,8 +637,22 @@ spaeter("UPCrew-Konto", (async () => {
     gleich("Anzeige ohne Nummer", w.ANMELDUNG.anzeigeName({ name: "Max", tag: "1234" }), "Max");
     const zweiMax = w.SPIELER.normalisieren({ spieler: [{ id: "a", name: "Max", tag: "1111" },
         { id: "b", name: "max", tag: "2222" }, { id: "c", name: "Lena", tag: "3333" }] });
-    gleich("Nummer leise nur bei gleichen Namen",
-        ["a", "c"].map((id) => w.SPIELER.nummerZusatz(zweiMax, w.SPIELER.spielerFinden(zweiMax, id))), ["#1111", ""]);
+    /* Seit 0.22.0 (Regel §12): nie die Nummer eines anderen; bei gleichen
+       Namen „Level N". */
+    gleich("Keine fremde Nummer, auch nicht bei gleichen Namen",
+        ["a", "c"].map((id) => w.SPIELER.nummerZusatz(zweiMax, w.SPIELER.spielerFinden(zweiMax, id))), ["Level 1", ""]);
+    {
+        const S = require("../js/spieler.js");
+        global.UPCREW_ABZEICHEN = global.UPCREW_ABZEICHEN || require("../js/upcrew-abzeichen.js");
+        global.FORTSCHRITT = require("../js/fortschritt.js");
+        const mitLevel = S.normalisieren({ spieler: [{ id: "a", name: "Max", tag: "1111",
+            fortschritt: { version: 1, spiele: { typoluck: { xp: 250 } } } },
+        { id: "b", name: "max", tag: "2222", auszug: { xp: 0 } }, { id: "c", name: "Lena", tag: "3333" }] });
+        gleich("Gleiche Namen: „Level N“ aus dem Auszug (voller Fortschritt oder Auszug vom Server)",
+            ["a", "b", "c"].map((id) => S.nummerZusatz(mitLevel, S.spielerFinden(mitLevel, id))),
+            ["Level 3", "Level 1", ""]);
+        delete global.FORTSCHRITT;
+    }
     pruefe("Suche findet Name und Name#Nummer",
         w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "ma")
             && w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "max#11")
@@ -669,6 +683,15 @@ spaeter("UPCrew-Konto", (async () => {
             const anders = tl.map((z, i) => (z === bl[i] ? null : z.trim())).filter(Boolean);
             gleich("konto.js = Blunderluck bis auf SCHLUESSEL", [tl.length === bl.length, anders],
                 [true, ['SCHLUESSEL: "typoluck.konto",']]);
+        }
+        /* Seit 0.22.0 (Regel §12 Phase A): die Klasse SpeicherKonten
+           Zeile für Zeile Blunderlucks (Entscheidung der Koordination). */
+        const blSpeicher = require("path").join(__dirname, "..", "..", "Blunderluck", "js", "speicher.js");
+        if (fsx.existsSync(blSpeicher)) {
+            const klasse = (text) => (text.match(/\nclass SpeicherKonten [\s\S]*?\n\}\n/) || [""])[0];
+            const tlKlasse = klasse(fsx.readFileSync(require("path").join(__dirname, "..", "js", "speicher.js"), "utf8"));
+            pruefe("SpeicherKonten = Blunderlucks Klasse, Zeile für Zeile",
+                tlKlasse.length > 1000 && tlKlasse === klasse(fsx.readFileSync(blSpeicher, "utf8")));
         }
     }
 }

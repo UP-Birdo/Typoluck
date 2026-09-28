@@ -888,3 +888,99 @@ svg.pfad {
 .kopfzeile-boss .kopfzeile-titel {
     color: var(--gefahr);
 }
+
+/* ---------------------------------------------------------------- *
+ * Herzen, Checkpoint, Rast, Fund (seit 0.21.0) — Formen wörtlich aus
+ * dem Entwurf (Herz gefüllt/leer, Lesezeichen am Checkpoint, Tausch
+ * „gib → kriegst"). Herz-Rot bleibt in jeder Farbwelt gleich (Konzept
+ * §6.1: Herzen färbt kein Paket).
+ * ---------------------------------------------------------------- */
+
+:root {
+    --bib-herz: #e8364a;
+}
+
+.bib-herzen {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.bib-herzen .zeichen {
+    width: 16px;
+    height: 16px;
+}
+
+.bib-herzen .zeichen.an {
+    fill: var(--bib-herz);
+    stroke: none;
+}
+
+.bib-herzen .zeichen.aus {
+    stroke: var(--schrift-leise);
+    opacity: 0.55;
+}
+
+.bib-herzen .zeichen.weg {
+    stroke: var(--bib-herz);
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .bib-herzen .zeichen.weg {
+        animation: bib-herz-weg 0.9s ease-out 2;
+    }
+}
+
+@keyframes bib-herz-weg {
+    40% {
+        transform: scale(1.35);
+    }
+}
+
+/* Das Lesezeichen des Checkpoints an der zuletzt besiegten Elite. */
+.st-cp {
+    position: absolute;
+    top: -9px;
+    right: -5px;
+    width: 12px;
+    height: 18px;
+    background: var(--haupt);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);
+}
+
+.bib-wahl-eins {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.bib-wahl-zwei {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.knopf.bib-rast-heilen .zeichen {
+    fill: var(--bib-herz);
+    stroke: none;
+}
+
+.knopf.bib-tausch-knopf {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-height: 0;
+    padding: 12px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte-leise);
+    font-size: 0.84rem;
+    font-weight: 900;
+    text-align: center;
+}
+
+.bib-gib {
+    color: var(--bib-boss);
+}
+
+.bib-kriegst {
+    color: var(--gut);
+}

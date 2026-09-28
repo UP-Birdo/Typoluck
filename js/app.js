@@ -363,6 +363,12 @@ const APP = {
         const datum = WORDLE.datumText(APP.jetzt());
         const tagesaufgabe = runde.modus === "tag" && runde.datum === datum;
         APP._gastUmzug();
+        /* Bibliothek (seit 0.21.0): die Sicht vor dem Schreiben (Front?)
+           und die Belohnung der Mitnahme (Fund). */
+        const imBuch = runde.modus === "bibliothek" && typeof BIBLIOTHEK !== "undefined";
+        const vorherSicht = imBuch ? APP.bibliothekStand() : null;
+        const bonus = imBuch ? BIBLIOTHEK.belohnung(runde.mitnahme, { geloest: runde.zustand === "gewonnen",
+            versuche: runde.versuche.length, hilfe: WORDLE.hilfeGenutzt(runde) }) : null;
         /* Gerechnet wird mit dem Konto-Stand dazu (Level, Serie, ×1,5 aus
            Blunderlucks Zweig vom Konto); geschrieben wird nur der eigene
            Zweig — aufs Gerät, danach ans Konto (seit 0.15.1). */
@@ -385,6 +391,10 @@ const APP = {
             }, APP._stufen());
             /* Münzen (seit 0.17.0, wie Blunderluck v0.152.0). */
             r.muenzen = APP.muenzenFuerRunde(basis, r, runde, tagesaufgabe, datum);
+            /* Fund „Doppelbuchstabe" (×2) und „Wette" (+50), seit 0.21.0. */
+            if (bonus) {
+                r.muenzen = r.muenzen * bonus.muenzenMal + bonus.muenzenPlus;
+            }
             if (r.muenzen > 0) {
                 r.stand = UPCREW_MUENZEN.verdienen(r.stand, FORTSCHRITT.APP, r.muenzen, Date.now());
             }
@@ -410,10 +420,22 @@ const APP = {
         if (ergebnis.muenzen > 0) {
             meldung.push("+" + ergebnis.muenzen + " " + UPCREW_MUENZEN.WAEHRUNG.name);
         }
+        /* Herzen und Rückfall (seit 0.21.0). */
+        const bibliothek = imBuch ? APP._bibliothekNachRunde(runde, vorherSicht) : null;
+        if (bibliothek && bibliothek.voll) {
+            meldung.push("Herzen voll");
+        } else if (bibliothek && bibliothek.herzPlus > 0) {
+            meldung.push("+" + bibliothek.herzPlus + " Herz");
+        }
+        if (bibliothek && bibliothek.rueck) {
+            meldung.push(APP.rueckText(bibliothek));
+        } else if (bibliothek && bibliothek.verlust > 0) {
+            meldung.push("−" + bibliothek.verlust + (bibliothek.verlust === 1 ? " Herz" : " Herzen"));
+        }
         if (meldung.length) {
             DIALOG.kurzmeldung(meldung.join(" · "), 2500);
         }
-        return { wertung: wertung, ergebnis: ergebnis };
+        return { wertung: wertung, ergebnis: ergebnis, bibliothek: bibliothek };
     },
 
     /* ---------------------------------------------------------------- *
@@ -439,12 +461,55 @@ const APP = {
             return null;
         }
         /* Seit 0.20.0 je Station (Schlüssel „Buch-Nr", Nr ab 10); Elite
-           eine Figur mehr (js/bibliothek.js figurenFuer). */
+           eine Figur mehr (js/bibliothek.js figurenFuer), seit 0.21.0 mit
+           der Belohnung der Mitnahme (Fund „5 Versuche"). */
         return {
             schluessel: st.schluessel,
-            figuren: BIBLIOTHEK.figurenFuer(runde.zustand === "gewonnen", wertung.figuren,
-                WORDLE.hilfeGenutzt(runde), st.art)
+            figuren: BIBLIOTHEK.figurenDerRunde(runde, wertung.figuren, WORDLE.hilfeGenutzt(runde))
         };
+    },
+
+    /* Der Text zum Rückfall (seit 0.21.1: Rast oder Elite als Checkpoint). */
+    rueckText(bib) {
+        if (!bib || bib.cp === null || bib.cp === undefined) {
+            return "Zurück zum Anfang";
+        }
+        return bib.cpArt === "r" ? "Zurück zur Rast" : "Zurück zur Elite";
+    },
+
+    /*
+     * Nach einer Bibliothek-Runde (seit 0.21.0): Herzen und Rückfall bei
+     * Scheitern an der Front, Mitnahme verbraucht, Herz aus der Belohnung.
+     * `vorherSicht` = die Sicht VOR dem Schreiben (war die Station die
+     * Front?). Schreibt nur den Durchgang (Gerät). Liefert
+     * { verlust, rueck, cp, cpArt, herzen, mitHerzen, herzPlus, voll } oder
+     * null.
+     */
+    _bibliothekNachRunde(runde, vorherSicht) {
+        if (!runde || runde.modus !== "bibliothek" || typeof BIBLIOTHEK === "undefined"
+                || !BIBLIOTHEK.station(runde.buch, runde.station)) {
+            return null;
+        }
+        const b = runde.buch;
+        const nr = runde.station;
+        const geloest = runde.zustand === "gewonnen";
+        const bel = BIBLIOTHEK.belohnung(runde.mitnahme,
+            { geloest: geloest, versuche: runde.versuche.length, hilfe: WORDLE.hilfeGenutzt(runde) });
+        const vorher = APP.durchgang(b);
+        let dg = BIBLIOTHEK.nachRunde(vorher, b, nr, runde.mitnahme, geloest, bel.herzPlus);
+        let r = { verlust: 0, rueck: false, cp: null };
+        if (!geloest) {
+            r = BIBLIOTHEK.scheitern(vorherSicht, b, nr, dg);
+            dg = r.dg;
+        }
+        APP._durchgangSetzen(b, dg);
+        /* Seit 0.21.1: Art des Checkpoints (Rast oder Elite) für die Meldung,
+           `voll` = Elite besiegt, Herzen voll. */
+        const cpArt = r.cp !== null ? BIBLIOTHEK.station(b, r.cp).art : "";
+        return { verlust: r.verlust, rueck: r.rueck, cp: r.cp, cpArt: cpArt, herzen: dg.herzen,
+            mitHerzen: BIBLIOTHEK.mitHerzen(b), herzPlus: geloest ? Math.max(0, dg.herzen - vorher.herzen) : 0,
+            voll: geloest && BIBLIOTHEK.station(b, nr).art === "e" && BIBLIOTHEK.mitHerzen(b)
+                && vorher.herzen < BIBLIOTHEK.HERZEN };
     },
 
     /* ---------------------------------------------------------------- *
@@ -452,15 +517,113 @@ const APP = {
      * Händler — geschrieben nur über den Fortschritt (Gerät + Konto)
      * ---------------------------------------------------------------- */
 
-    bibliothekStand() {
-        return FORTSCHRITT.turmStand(APP.fortschritt());
+    /* Der Stand der Bibliothek, wie das Buch ihn zeigt: seit 0.21.0 die
+       SICHT (nach einem Rückfall neu zu spielende Stationen gelten als
+       offen, js/bibliothek.js `sicht`). `echt` = true: der gespeicherte
+       Stand ohne Rückfall (für „schon einmal geöffnet"). */
+    bibliothekStand(echt) {
+        const turm = FORTSCHRITT.turmStand(APP.fortschritt());
+        return echt ? turm : BIBLIOTHEK.sicht(turm, APP._durchgaenge());
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Der Durchgang (seit 0.21.0): Herzen, neu zu spielende Stationen,
+     * Rast, Fund-Wirkung — NUR auf diesem Gerät (Spielstand
+     * „bibliothek-durchgang", je Spieler-Id und Buch). Die heutige Regel
+     * §11b hat dafür kein Feld; mit §12 zieht es ans Konto.
+     * ---------------------------------------------------------------- */
+
+    DURCHGANG: "bibliothek-durchgang",
+
+    _durchgaenge() {
+        const alle = ICH.spielstand(APP.DURCHGANG);
+        const meine = (alle && typeof alle === "object") ? alle[APP.fortschrittId()] : null;
+        return (meine && typeof meine === "object" && !Array.isArray(meine)) ? meine : {};
+    },
+
+    durchgang(b) {
+        return BIBLIOTHEK.durchgangNormalisieren(APP._durchgaenge()[b], b);
+    },
+
+    _durchgangSetzen(b, dg) {
+        const roh = ICH.spielstand(APP.DURCHGANG);
+        const alle = (roh && typeof roh === "object" && !Array.isArray(roh)) ? roh : {};
+        const id = APP.fortschrittId();
+        const meine = (alle[id] && typeof alle[id] === "object") ? alle[id] : {};
+        meine[b] = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        alle[id] = meine;
+        ICH.spielstandSetzen(APP.DURCHGANG, alle);
+    },
+
+    /* Münzen ausgeben ohne Ware (Fund: Wette, Herz kaufen) — so, wie der
+       Baustein bucht: `muenzenAusgegeben` im eigenen Zweig wächst. Rein. */
+    _muenzenAusgeben(alt, betrag, zeitpunkt) {
+        const stand = FORTSCHRITT.normalisieren(alt);
+        const zweig = stand.spiele[FORTSCHRITT.APP] || FORTSCHRITT.zweigLeer();
+        const zaehler = (zweig.zaehler && typeof zweig.zaehler === "object") ? zweig.zaehler : {};
+        const bisher = (typeof zaehler.muenzenAusgegeben === "number" && zaehler.muenzenAusgegeben > 0)
+            ? Math.floor(zaehler.muenzenAusgegeben) : 0;
+        zaehler.muenzenAusgegeben = Math.min(bisher + Math.max(0, Math.floor(betrag)), 1000000000);
+        zweig.zaehler = zaehler;
+        zweig.stand = Math.max((zweig.stand || 0) + 1, zeitpunkt || 0);
+        stand.spiele[FORTSCHRITT.APP] = zweig;
+        return stand;
+    },
+
+    /* Rast: „heilen" oder „ueben" (js/bibliothek.js `rastWaehlen`), danach
+       ist die Rast gegangen. Liefert true/false. */
+    rastWaehlen(buch, nr, wahl) {
+        const r = BIBLIOTHEK.rastWaehlen(APP.durchgang(buch), buch, nr, wahl);
+        if (!r.ok) {
+            return false;
+        }
+        APP._durchgangSetzen(buch, r.dg);
+        APP.stationMerken(buch, nr, 0);
+        return true;
+    },
+
+    /* Fund: einen Tausch nehmen oder „Nein" (`id` leer). Münzen gebucht
+       über den Fortschritt. Liefert true/false. */
+    fundNehmen(buch, nr, id) {
+        if (!id) {
+            APP.stationMerken(buch, nr, 0);
+            return true;
+        }
+        const muenzen = typeof UPCREW_MUENZEN !== "undefined" ? UPCREW_MUENZEN.anzeige(APP.fortschritt()) : 0;
+        const r = BIBLIOTHEK.fundNehmen(APP.durchgang(buch), buch, nr, id, muenzen);
+        if (!r.ok) {
+            return false;
+        }
+        if (r.muenzen !== 0 && typeof UPCREW_MUENZEN !== "undefined") {
+            const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+                const basis = FORTSCHRITT_ABGLEICH.mitKonto(stand);
+                return { stand: r.muenzen > 0
+                    ? UPCREW_MUENZEN.verdienen(basis, FORTSCHRITT.APP, r.muenzen, Date.now())
+                    : APP._muenzenAusgeben(basis, -r.muenzen, Date.now()) };
+            });
+            FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        }
+        APP._durchgangSetzen(buch, r.dg);
+        APP.stationMerken(buch, nr, 0);
+        return true;
+    },
+
+    /* Was eine Bibliothek-Runde aus dem Durchgang mitnimmt (seit 0.21.0;
+       nur an der Front, js/bibliothek.js `mitnahme`). */
+    bibliothekMitnahme(buch, nr) {
+        return BIBLIOTHEK.mitnahme(APP.bibliothekStand(), buch, nr, APP.durchgang(buch));
     },
 
     /* Eine Station ohne Figuren betreten (Truhe öffnen: `muenzen` > 0;
-       Händler verlassen: 0). Liefert true, wenn neu gemerkt. */
+       Händler, Rast, Fund: 0). Liefert true, wenn neu gemerkt. Seit
+       0.21.0: nach einem Rückfall zählt sie wieder als gegangen, bringt
+       aber keine Münzen ein zweites Mal. */
     stationMerken(buch, nr, muenzen) {
         const schluessel = BIBLIOTHEK.merkerSchluessel(buch, nr);
-        if (BIBLIOTHEK.erledigt(APP.bibliothekStand(), buch, nr)) {
+        if (APP.durchgang(buch).wieder.indexOf(nr) !== -1) {
+            APP._durchgangSetzen(buch, BIBLIOTHEK.wiederErledigt(APP.durchgang(buch), buch, nr));
+        }
+        if (BIBLIOTHEK.erledigt(APP.bibliothekStand(true), buch, nr)) {
             return false;
         }
         const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {

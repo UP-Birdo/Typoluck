@@ -67,6 +67,13 @@
  *                                      &bildschirm=wordle&modus=bibliothek:
  *                                      Buch und &station=12 der Runde, dazu
  *                                      &versuche=
+ *     &herzen=2&effekt=fuenf&ueben     der Durchgang (seit 0.21.0, Gerät)
+ *     &wieder=13,15                    im Buch &buch (Vorgabe 2): Herzen,
+ *                                      Fund-Wirkung (doppelt|fuenf|zeit|
+ *                                      wette), Rast „Üben", nach einem
+ *                                      Rückfall neu zu spielende Stationen.
+ *                                      &effekt/&ueben gelten auch für eine
+ *                                      Runde mit &modus=bibliothek&versuche=
  *     &regeln=ohneGelb,hart,versuche7, eine Übungsrunde mit Regeln (seit
  *       zeit90,nurEchte0,ohneTipp,      0.19.0, js/wordle.js „DIE REGELN JE
  *       ohneLeben,ersteZeileBlind,      RUNDE"); mit &bildschirm=wordle
@@ -213,6 +220,7 @@ const WERKSTATT = {
            0.11.0 wird NUR der Eintrag der Werkstatt ersetzt: Auf dem
            gemeinsamen Server (8093) liegt daneben Blunderlucks Stand. */
         WERKSTATT._fortschrittAnlegen(speicher, ids[0], heute);
+        WERKSTATT._durchgangAnlegen(ids[0]);
 
         const schwer = WERKSTATT._parameter().has("schwer");
         if (schwer) {
@@ -245,9 +253,10 @@ const WERKSTATT = {
                gezogen, Mitte der Liste), dann die Versuche. */
             const buch = parseInt(WERKSTATT.wert("buch"), 10) || 1;
             const station = parseInt(WERKSTATT.wert("station"), 10) || BIBLIOTHEK.NR_AB;
+            const mitnahme = { effekt: WERKSTATT.wert("effekt") || "", ueben: WERKSTATT._parameter().has("ueben") ? 1 : 0 };
             let runde = WORDLE.neueRunde({ modus: "bibliothek", buch: buch, station: station,
                 loesung: BIBLIOTHEK.wortZiehen(buch, station, 0.5, []), zeitpunkt: 1,
-                regeln: BIBLIOTHEK.regeln(buch, station) || {} });
+                regeln: BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {}, mitnahme: mitnahme });
             for (const wort of versuche.split(",")) {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }
@@ -338,6 +347,28 @@ const WERKSTATT = {
             alle[id] = eintrag;
         }
         speicher.setItem(FORTSCHRITT.SCHLUESSEL, JSON.stringify(alle));
+    },
+
+    /* Der Durchgang der Bibliothek (seit 0.21.0): &herzen= &effekt= &ueben
+       &wieder= für das Buch &buch (Vorgabe 2) — wie APP ihn ablegt. */
+    _durchgangAnlegen(id) {
+        const p = WERKSTATT._parameter();
+        if (!["herzen", "effekt", "ueben", "wieder"].some((name) => p.has(name))) {
+            ICH.spielstandSetzen(APP.DURCHGANG, null);
+            return;
+        }
+        const b = parseInt(WERKSTATT.wert("buch"), 10) || 2;
+        const roh = {
+            herzen: parseInt(WERKSTATT.wert("herzen"), 10) || BIBLIOTHEK.HERZEN,
+            wieder: (WERKSTATT.wert("wieder") || "").split(",").map((t) => parseInt(t, 10)).filter((n) => n > 0),
+            geheilt: [],
+            ueben: p.has("ueben") ? 1 : 0,
+            effekt: WERKSTATT.wert("effekt") || ""
+        };
+        const alle = {};
+        alle[id] = {};
+        alle[id][b] = BIBLIOTHEK.durchgangNormalisieren(roh, b);
+        ICH.spielstandSetzen(APP.DURCHGANG, alle);
     },
 
     /* `&regeln=` lesen (seit 0.19.0): Liste von Stichworten → Regel-Objekt. */
