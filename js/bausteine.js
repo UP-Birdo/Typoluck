@@ -298,6 +298,8 @@ const BAUSTEINE = {
             + "M16 4.3 A3.3 3.3 0 0 1 16 10.7 M18 14.4 C20 15.2 21.5 17.2 21.5 20",
         profil: "M12 12 A4 4 0 1 0 12 4 A4 4 0 0 0 12 12 Z M4 21 C4 17 7.6 14 12 14 C16.4 14 20 17 20 21",
         zurueck: "M15 5 L8 12 L15 19",
+        /* Shop (seit 0.17.0): eine Einkaufstasche. */
+        shop: "M5 8 H19 L18 20 H6 Z M9 8 V6.5 A3 3 0 0 1 15 6.5 V8",
         /* Verwaltung (seit 0.16.3, nur für Admins): ein Schild. */
         schild: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z M9 12 L11 14 L15 10",
         /* Drei gleich lange Balken wie in Blunderluck (seit 0.3.0) —
@@ -354,7 +356,21 @@ const BAUSTEINE = {
         /* Hell/dunkel in den Einstellungen (seit 0.6.0): ein Kreis, halb
            geteilt, mit Strichen in der dunklen Hälfte. */
         darstellung: "M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 Z M12 3 V21 "
-            + "M12 7 H16.5 M12 11 H18.5 M12 15 H18 M12 18.5 H15.5"
+            + "M12 7 H16.5 M12 11 H18.5 M12 15 H18 M12 18.5 H15.5",
+        /* Die Bibliothek (seit 0.18.0, js/start-bibliothek.js): drei Bücher
+           im Regal; Frei = die Regler wie Blunderlucks Art „Frei". */
+        bibliothek: "M4 20 V5 H8 V20 M8 20 V8 H12 V20 M13 19.5 L16 6 L20 7 L17 20.5 Z M3 20.5 H21",
+        frei: "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19",
+        buch: "M12 6 C10 4.5 6.5 4 4 4.5 V19 C6.5 18.5 10 19 12 20.5 C14 19 17.5 18.5 20 19 V4.5 "
+            + "C17.5 4 14 4.5 12 6 Z M12 6 V20.5",
+        buchOffen: "M3 6 C6 5 9.5 5.5 12 7.5 C14.5 5.5 18 5 21 6 V19 C18 18 14.5 18.5 12 20.5 "
+            + "C9.5 18.5 6 18 3 19 Z M12 7.5 V20.5",
+        boss: "M4 5 L8 9 H16 L20 5 L18.5 14 C17.5 18 15 20.5 12 20.5 C9 20.5 6.5 18 5.5 14 Z "
+            + "M8.5 13 L10.5 14 M15.5 13 L13.5 14 M10 17.5 H14",
+        schloss: "M7 11 V8 A5 5 0 0 1 17 8 V11 M5 11 H19 V20 H5 Z",
+        auf: "M6 15 L12 9 L18 15",
+        ab: "M6 9 L12 15 L18 9",
+        haken: "M5 12.5 L10 17 L19 7"
     },
 
     zeichen(name) {

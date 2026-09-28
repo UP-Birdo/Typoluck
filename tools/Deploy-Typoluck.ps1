@@ -31,6 +31,13 @@
 
     Warum ein einziger Commit? GitHub Pages baut nach jedem Commit neu und
     erlaubt nur wenige Bauvorgaenge je Stunde.
+
+    LOESCHEN (seit 0.18.2, Nutzer 28.09.2026: "ja"): Dateien, die auf GitHub
+    liegen, aber nicht mehr zur App gehoeren (z. B. js/lexikon-daten.js),
+    werden im selben Commit entfernt - nur nach der Regel in
+    tools\Loeschauswahl.ps1 (nur in verwalteten Ordnern, nie Schutzliste)
+    und nur nach einer Rueckfrage "j" im Fenster. -NurAnzeigen listet sie
+    getrennt auf und loescht nie.
 #>
 
 param(
@@ -42,6 +49,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $hier          = Split-Path -Parent $MyInvocation.MyCommand.Path
+. (Join-Path $hier "Loeschauswahl.ps1")
 $projektOrdner = Split-Path -Parent $hier
 $tokenDatei    = Join-Path $hier "github-token.dat"
 
@@ -63,8 +71,12 @@ $freigegebeneDateien = @("index.html", "sw.js", "README.md", "CHANGELOG.md",
 # "schrift" seit 0.8.0: die Crew-Schriften (woff2) samt LIZENZ.txt - der
 # Service Worker verlangt sie, ohne sie scheitert seine Installation.
 $freigegebeneOrdner  = @("css", "js", "icons", "schrift", "docs", "tests", "tools", ".github")
+# Seit 0.18.1: die volle Wort-Bewertung nie hochladen (Nutzer 28.09.2026:
+# "soll nicht oeffentlich sein") - weder das alte Admin-Lexikon noch die
+# Werkzeug-Datei, falls sie je in einem freigegebenen Ordner liegt.
 $gesperrteDateien    = @("TODO.md", "TODO-Archiv.md", "ROADMAP.md", "ROADMAP-Archiv.md",
-                         "CLAUDE.md", "STATUS.md", "github-token.dat")
+                         "CLAUDE.md", "STATUS.md", "github-token.dat",
+                         "lexikon-daten.js", "wortbewertung-voll.js")
 
 # Diese Endungen sind KEIN Text und muessen als eigener Datenklumpen (Blob)
 # hochgeladen werden.
@@ -258,13 +270,39 @@ foreach ($eintrag in $geaendert) {
     Write-Host ("   {0,-10} {1}" -f $eintrag.Art, $eintrag.Datei.Pfad)
 }
 
-if ($geaendert.Count -eq 0) {
+# Loesch-Kandidaten (seit 0.18.2): auf GitHub, aber nicht mehr Teil der App.
+$loeschen = Get-LoeschKandidaten -Vorhanden @($vorhanden.Keys) `
+    -Ausgeliefert @($dateien | ForEach-Object { $_.Pfad }) `
+    -Ordner $freigegebeneOrdner -Wurzeldateien $freigegebeneDateien
+if ($loeschen.Count -gt 0) {
+    Write-Host ""
+    Write-Host "Auf GitHub, aber nicht mehr Teil der App (wuerden geloescht): $($loeschen.Count)" -ForegroundColor Yellow
+    foreach ($pfad in $loeschen) {
+        Write-Host ("   {0,-10} {1}" -f "loeschen", $pfad)
+    }
+}
+
+if ($geaendert.Count -eq 0 -and $loeschen.Count -eq 0) {
     Write-Host "Alles auf dem neuesten Stand." -ForegroundColor Green
     exit 0
 }
 
 if ($NurAnzeigen) {
-    Write-Host "Nur angezeigt - es wurde nichts gesendet." -ForegroundColor Yellow
+    Write-Host "Nur angezeigt - es wurde nichts gesendet und nichts geloescht." -ForegroundColor Yellow
+    exit 0
+}
+
+# Vor dem echten Loeschen: Rueckfrage im Fenster. Ohne "j" bleibt alles liegen.
+if ($loeschen.Count -gt 0) {
+    $antwort = Read-Host "Diese $($loeschen.Count) Datei(en) auf GitHub loeschen? (j/n)"
+    if ($antwort -notmatch '^\s*[jJ]') {
+        Write-Host "Nichts geloescht." -ForegroundColor Yellow
+        $loeschen = @()
+    }
+}
+
+if ($geaendert.Count -eq 0 -and $loeschen.Count -eq 0) {
+    Write-Host "Nichts zu senden." -ForegroundColor Green
     exit 0
 }
 
@@ -297,6 +335,17 @@ foreach ($eintrag in $geaendert) {
         }
         Write-Host ("   Bild vorbereitet: {0}" -f $eintrag.Datei.Pfad)
     }
+}
+
+# Loeschen = Eintrag mit sha null im neuen Baum (Git-Data-API).
+foreach ($pfad in $loeschen) {
+    $baumEintraege += @{
+        path = $pfad
+        mode = "100644"
+        type = "blob"
+        sha  = $null
+    }
+    Write-Host ("   Wird geloescht: {0}" -f $pfad)
 }
 
 $neuerBaum = Invoke-GitHub -Pfad "/git/trees" -Methode "POST" -Koerper @{

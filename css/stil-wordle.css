@@ -422,3 +422,27 @@
         animation: none;
     }
 }
+
+/* Waren aus dem Shop im Spiel (seit 0.17.0): die aufgedeckten Tipps und der
+   Tipp-Knopf über der Tastatur. */
+.wordle-tipps {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 4px;
+}
+
+.wordle-tipp-marke {
+    padding: 2px 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--haupt);
+    background: var(--karte-leise);
+    border-radius: var(--rund-voll);
+}
+
+.wordle-tipp-knopf {
+    min-height: 34px;
+}

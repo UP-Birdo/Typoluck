@@ -5,8 +5,17 @@
  * Wörtern, und in beiden generell eine Spielerliste mit Statistiken und co —
  * aber nur der Admin-Account".
  *
- * NUR FÜR ADMINS (KONTO.istAdmin: UP#Plus oder Rolle „admin"): Der Eintrag
- * im Menü (drei Balken) erscheint nur für sie (`imMenue` als Frage), und der Bildschirm
+ * NUR IN DEN EINSTELLUNGEN (seit 0.17.1, Nutzer 27.09.2026: „der verwalten
+ * tab sollte aber nur in den einstellungen der beiden spiele liegen und
+ * nicht doppelt irgendwo"; wie Blunderluck js\einstellungen.js): Der
+ * Bildschirm steht NICHT im Menü und NICHT in der Leiste (`imMenue: false`,
+ * nicht in NAVIGATION.LEISTE, nicht wischbar); der einzige Weg ist der Knopf
+ * „Verwaltung" in der Karte „UPCrew-Konto" der Einstellungen
+ * (EINSTELLUNGEN_BILDSCHIRM._kontoBauen), und der steht nur da, wenn
+ * `erlaubt()`. Bis 0.16.3 stand er im Menü hinter den drei Balken.
+ *
+ * NUR FÜR ADMINS (KONTO.istAdmin: UP#Plus oder Rolle „admin"): Der Knopf
+ * erscheint nur für sie, und der Bildschirm
  * prüft beim Zeichnen selbst noch einmal — wer anders hierher kommt (Adresse
  * mit &bildschirm=verwaltung, Zurück-Taste), landet sofort auf dem Start und
  * sieht nichts. In der Werkstatt gibt es `&admin` zum Ansehen, aber NUR auf
@@ -18,17 +27,26 @@
  * kommt an die Daten (siehe STATUS.md, Vorschlag zu den Regeln).
  *
  * Zwei Teile (Umschalter oben):
- *   Lexikon  alle Wörter — Lösungen (bewertet) und Zusatzwörter getrennt;
- *            die volle Bewertung wird erst beim Öffnen nachgeladen
- *            (js/lexikon-daten.js, nicht im Vorabspeicher). Nur ansehen:
- *            Korrekturen bleiben im lokalen Werkzeug (werkzeug\).
+ *   Lexikon  alle Wörter — Lösungen (bewertet) und Zusatzwörter getrennt.
+ *            SEIT 0.18.1 (Nutzer 28.09.2026: „soll nicht öffentlich sein")
+ *            wird die volle Bewertung NICHT mehr ausgeliefert (bis 0.18.0
+ *            js/lexikon-daten.js, öffentlich lesbar). Bis sie aus einem nur
+ *            für Admins lesbaren Datenbank-Knoten kommt (nächste Regel,
+ *            Konzept bei der Koordination), zeigt der Teil „Lösungen" nur
+ *            „Nur im Werkzeug" — die Bewertung sieht der Nutzer im lokalen
+ *            Werkzeug (werkzeug\woerter-werkzeug.html). Die reinen
+ *            Funktionen `lexikonZeilen`/`lexikonFiltern` bleiben für dann;
+ *            die Quelle trägt `LEXIKON_QUELLE` ein (heute null).
  *   Spieler  der gemeinsame Baustein js/upcrew-spielerliste.js — nur lesen.
  */
 
 const VERWALTUNG_BILDSCHIRM = {
 
     TITEL: "Verwaltung",
-    LEXIKON_DATEI: "js/lexikon-daten.js",
+    /* Woher die volle Bewertung kommt: heute nirgendwoher (null) — später
+       eine Funktion, die sie aus dem Admin-Knoten der Datenbank holt und ein
+       Versprechen liefert. */
+    LEXIKON_QUELLE: null,
     SEITE: 60,
 
     _teil: "lexikon",
@@ -41,8 +59,8 @@ const VERWALTUNG_BILDSCHIRM = {
             id: "verwaltung",
             titel: VERWALTUNG_BILDSCHIRM.TITEL,
             zeichen: "schild",
-            /* Nur für Admins im Menü — eine Frage statt eines festen Werts. */
-            imMenue: () => VERWALTUNG_BILDSCHIRM.erlaubt(),
+            /* Seit 0.17.1 nie im Menü — nur der Knopf in den Einstellungen. */
+            imMenue: false,
             zeigen: (behaelter) => VERWALTUNG_BILDSCHIRM.zeigen(behaelter)
         });
     },
@@ -97,23 +115,22 @@ const VERWALTUNG_BILDSCHIRM = {
      * Lexikon
      * ---------------------------------------------------------------- */
 
-    /* Lädt js/lexikon-daten.js EINMAL nach (Skript-Element). */
+    /* Gibt es eine Quelle für die volle Bewertung? (seit 0.18.1 nein) */
+    lexikonDa() {
+        return typeof VERWALTUNG_BILDSCHIRM.LEXIKON_QUELLE === "function";
+    },
+
+    /* Holt die volle Bewertung EINMAL aus der Quelle. */
     lexikonLaden() {
-        if (typeof LEXIKON_DATEN !== "undefined") {
-            return Promise.resolve(LEXIKON_DATEN);
+        if (!VERWALTUNG_BILDSCHIRM.lexikonDa()) {
+            return Promise.reject(new Error("nur-werkzeug"));
         }
         if (!VERWALTUNG_BILDSCHIRM._lexikonLaden) {
-            VERWALTUNG_BILDSCHIRM._lexikonLaden = new Promise((erfuellen, ablehnen) => {
-                const skript = document.createElement("script");
-                skript.src = VERWALTUNG_BILDSCHIRM.LEXIKON_DATEI;
-                skript.onload = () => (typeof LEXIKON_DATEN !== "undefined"
-                    ? erfuellen(LEXIKON_DATEN) : ablehnen(new Error("leer")));
-                skript.onerror = () => {
+            VERWALTUNG_BILDSCHIRM._lexikonLaden = Promise.resolve(VERWALTUNG_BILDSCHIRM.LEXIKON_QUELLE())
+                .catch((fehler) => {
                     VERWALTUNG_BILDSCHIRM._lexikonLaden = null;
-                    ablehnen(new Error("nicht geladen"));
-                };
-                document.head.appendChild(skript);
-            });
+                    throw fehler;
+                });
         }
         return VERWALTUNG_BILDSCHIRM._lexikonLaden;
     },
@@ -166,6 +183,11 @@ const VERWALTUNG_BILDSCHIRM = {
             return;
         }
 
+        /* Seit 0.18.1: ohne Admin-Quelle nur der Hinweis. */
+        if (!VERWALTUNG_BILDSCHIRM.lexikonDa()) {
+            ort.appendChild(ZUSTAND.leer({ zeichen: "info", text: "Nur im Werkzeug" }));
+            return;
+        }
         const platz = ZUSTAND.laden({ zeilen: 6, nochmal: () => NAVIGATION.auffrischen() });
         ort.appendChild(platz);
         VERWALTUNG_BILDSCHIRM.lexikonLaden().then((voll) => {

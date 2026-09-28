@@ -17,10 +17,10 @@
  *   GETEILT = false (Standard):
  *     spieler/konten/<uid>/aussehenJe/typoluck
  *         { darstellung, farbwelt, schrift, knoepfe, leseschrift, stand }
- *     Geschrieben wird dorthin erst, wenn `AUSSEHEN_JE_AM_KONTO` true ist —
- *     der bleibt false, bis der Nutzer die Regel §11c
- *     (Apps\Blunderluck\SICHERHEIT.md) eingespielt hat; bis dahin bleibt das
- *     Aussehen auf dem Gerät. Gelesen wird der eigene Zweig; fehlt er, dient
+ *     Geschrieben wird dorthin, wenn `AUSSEHEN_JE_AM_KONTO` true ist — seit
+ *     0.18.4 (Regel §11c, Apps\Blunderluck\SICHERHEIT.md, vom Nutzer am
+ *     28.09.2026 eingespielt); bis 0.18.3 blieb das Aussehen auf dem Gerät.
+ *     Gelesen wird der eigene Zweig; fehlt er, dient
  *     das alte gemeinsame Feld `aussehen` EINMAL als Umzug (Merker
  *     `typoluck.aussehen-umzug`), danach nie wieder — sonst zöge eine
  *     Änderung aus einem älteren Spiel über das Konto doch wieder mit.
@@ -47,9 +47,9 @@
 
 const AUSSEHEN_ABGLEICH = {
 
-    /* Schreibt Typoluck sein Aussehen je Spiel ans Konto? Erst anschalten,
-       wenn der Nutzer Regel §11c eingespielt hat. */
-    AUSSEHEN_JE_AM_KONTO: false,
+    /* Schreibt Typoluck sein Aussehen je Spiel ans Konto? Seit 0.18.4 an:
+       Der Nutzer hat Regel §11c am 28.09.2026 eingespielt („ja ist drin"). */
+    AUSSEHEN_JE_AM_KONTO: true,
 
     APP: "typoluck",
     FELD: "aussehen",

@@ -43,9 +43,35 @@
  *
  * STUFEN: leicht / mittel / schwer über die Drittel der Zahlen (je rund
  * ein Drittel der Wörter — so kommen Tageswort-XP 15/20/30 im Mittel
- * gleich oft vor); dazu eine Skala 1–10 für den Turm (Zehntel). Die
- * Schwellen stehen in den Daten und ändern sich nur, wenn neu gerechnet
- * wird.
+ * gleich oft vor); dazu eine Skala 1–10 (Zehntel). Die Schwellen stehen in
+ * den Daten und ändern sich nur, wenn neu gerechnet wird.
+ *
+ * DIE ZAHL 0–100 SELBST (seit 0.18.0, für die Bibliothek, js\bibliothek.js):
+ * Nutzer 27.09.2026: „die Wörter haben ja einen Wert zwischen 0–100 von der
+ * Schwierigkeit her; ein Level soll ein Wort aus einem Bereich nehmen".
+ * Deshalb trägt js\wortbewertung-daten.js seitdem die Zahl je Wort und die
+ * Schwellen `stufenAb` (ab welcher Zahl mittel/schwer) und `skalaAb`.
+ * Teilwerte (Löser, Fallen, Muster) bleiben im Werkzeug. Korrektur von
+ * Hand: `zahl` 0–100.
+ *
+ * VERSCHLEIERT (seit 0.18.1, Nutzer 28.09.2026: „soll nicht öffentlich
+ * sein"): Die Daten tragen KEINE lesbaren Werte je Wort mehr — weder Zahl
+ * noch Stufe noch Skala. Nur `kodiert`: je Lösungswort ein Byte, die Zahl
+ * XOR einem Schlüssel aus dem WORT selbst (`_schleier`, FNV-1a über
+ * SCHLEIER + Wort), als Base64. Stufe und Skala rechnet die App aus der
+ * Zahl und den Schwellen. Ehrlich: Das ist Verschleierung, kein Geheimnis —
+ * wer diesen Code liest, kann es zurückrechnen; ohne Server geht es nicht
+ * anders, weil die App die Zahl zum Ziehen braucht. Aber niemand liest sie
+ * mehr einfach aus der Datei ab.
+ *
+ * EINE LESESTELLE (Nutzer 27.09.2026 spät, über die Koordination: „später
+ * soll die Schwierigkeit aus echten Spieldaten kommen … die heutige
+ * Wort-Bewertung wird dann nur noch der Startwert"): Wie schwer ein Wort
+ * ist, liest die App NUR über `WORTBEWERTUNG.schwierigkeit(wort)` (0–100).
+ * Die Tageswort-Stufe (`stufe`) wird daraus mit `stufenAb` gerechnet, die
+ * Bibliothek (js\bibliothek.js) sucht darüber die Wörter eines Bereichs
+ * beim Start. Wer die Quelle wechselt (Spieldaten), ändert nur diese
+ * Funktion — keine Wortliste hängt fest an einem Bereich.
  *
  * WEIL (a) TEUER IST, rechnet die App nichts live: werkzeug\Woerter-Bewerten.ps1
  * rechnet vorab — die volle Bewertung nach werkzeug\wortbewertung-voll.js
@@ -336,10 +362,69 @@ const WORTBEWERTUNG = {
                 "./wortbewertung-daten.js", null);
     },
 
+    /* Die Korrektur von Hand — seit 0.18.2 auch verschleiert lesbar
+       ({ kodiert: "…" }, siehe `korrekturVerschleiern`); die alte, lesbare
+       Form ({ wort: {…} }) gilt weiter. */
     korrektur() {
-        return WORTBEWERTUNG._korrekturErsatz
-            || WORTBEWERTUNG._global(typeof WORTBEWERTUNG_KORREKTUR !== "undefined" ? WORTBEWERTUNG_KORREKTUR : undefined,
-                "./wortbewertung-korrektur.js", {}) || {};
+        if (WORTBEWERTUNG._korrekturErsatz) {
+            return WORTBEWERTUNG._korrekturErsatz;
+        }
+        const roh = WORTBEWERTUNG._global(typeof WORTBEWERTUNG_KORREKTUR !== "undefined" ? WORTBEWERTUNG_KORREKTUR : undefined,
+            "./wortbewertung-korrektur.js", {}) || {};
+        if (typeof roh.kodiert === "string") {
+            if (WORTBEWERTUNG._korrekturFuer !== roh.kodiert) {
+                WORTBEWERTUNG._korrekturKlar = WORTBEWERTUNG.korrekturEntschleiern(roh.kodiert);
+                WORTBEWERTUNG._korrekturFuer = roh.kodiert;
+            }
+            return WORTBEWERTUNG._korrekturKlar;
+        }
+        return roh;
+    },
+
+    _korrekturKlar: null,
+    _korrekturFuer: null,
+
+    /*
+     * DIE KORREKTUR VERSCHLEIERT (seit 0.18.2, Nutzer 28.09.2026: „ja" —
+     * genauso wie die Daten): Das JSON der Korrektur (UTF-8) XOR einem
+     * Schlüsselstrom aus SCHLEIER, als Base64 — so steht weder ein Wort noch
+     * ein Wert lesbar in der ausgelieferten Datei. Ehrlich wie oben: aus dem
+     * Code zurückrechenbar, nicht geheim.
+     */
+    _strom(laenge) {
+        let h = 2166136261;
+        for (const z of WORTBEWERTUNG.SCHLEIER + "korrektur") {
+            h ^= z.codePointAt(0);
+            h = Math.imul(h, 16777619) >>> 0;
+        }
+        const strom = [];
+        for (let i = 0; i < laenge; i++) {
+            h ^= h << 13;
+            h >>>= 0;
+            h ^= h >>> 17;
+            h ^= h << 5;
+            h >>>= 0;
+            strom.push(h & 0xff);
+        }
+        return strom;
+    },
+
+    korrekturVerschleiern(korrektur) {
+        const bytes = Array.from(new TextEncoder().encode(JSON.stringify(korrektur || {})));
+        const strom = WORTBEWERTUNG._strom(bytes.length);
+        return WORTBEWERTUNG._inBase64(bytes.map((b, i) => b ^ strom[i]));
+    },
+
+    korrekturEntschleiern(kodiert) {
+        try {
+            const bytes = WORTBEWERTUNG._ausBase64(kodiert);
+            const strom = WORTBEWERTUNG._strom(bytes.length);
+            const klar = new TextDecoder().decode(new Uint8Array(bytes.map((b, i) => b ^ strom[i])));
+            const objekt = JSON.parse(klar);
+            return (objekt && typeof objekt === "object" && !Array.isArray(objekt)) ? objekt : {};
+        } catch (fehler) {
+            return {};
+        }
     },
 
     _liste() {
@@ -364,14 +449,90 @@ const WORTBEWERTUNG = {
         return (typeof i === "number") ? i : -1;
     },
 
-    /* Aus den Daten (ohne Korrektur): { stufe, skala } oder null. */
+    /* ---------------------------------------------------------------- *
+     * Der Schleier (seit 0.18.1, siehe Kopf)
+     * ---------------------------------------------------------------- */
+
+    SCHLEIER: "typoluck|wb|1|",
+
+    /* Das Schlüssel-Byte eines Wortes (FNV-1a, unteres Byte). */
+    _schleier(wort) {
+        let h = 2166136261;
+        for (const z of WORTBEWERTUNG.SCHLEIER + wort) {
+            h ^= z.codePointAt(0);
+            h = Math.imul(h, 16777619) >>> 0;
+        }
+        return h & 0xff;
+    },
+
+    _ausBase64(text) {
+        if (typeof atob === "function") {
+            return Array.from(atob(text), (z) => z.charCodeAt(0));
+        }
+        return Array.from(Buffer.from(text, "base64"));
+    },
+
+    _inBase64(bytes) {
+        if (typeof btoa === "function") {
+            return btoa(String.fromCharCode.apply(null, bytes));
+        }
+        return Buffer.from(bytes).toString("base64");
+    },
+
+    /* Zahlen (Listen-Reihenfolge) → `kodiert`; und zurück. */
+    verschleiern(zahlen, loesungen) {
+        return WORTBEWERTUNG._inBase64(zahlen.map((zahl, i) =>
+            (Math.max(0, Math.min(100, Math.round(zahl))) ^ WORTBEWERTUNG._schleier(loesungen[i])) & 0xff));
+    },
+
+    _kodiertCache: null,
+    _kodiertFuer: null,
+
+    _entschleiert(d, i, wort) {
+        if (WORTBEWERTUNG._kodiertFuer !== d.kodiert) {
+            WORTBEWERTUNG._kodiertCache = WORTBEWERTUNG._ausBase64(d.kodiert);
+            WORTBEWERTUNG._kodiertFuer = d.kodiert;
+        }
+        const byte = WORTBEWERTUNG._kodiertCache[i];
+        if (typeof byte !== "number") {
+            return null;
+        }
+        const zahl = byte ^ WORTBEWERTUNG._schleier(wort);
+        return zahl <= 100 ? zahl : null;
+    },
+
+    /* Stufe und Skala aus einer Zahl mit den Schwellen der Daten. */
+    _stufeAus(zahl, d) {
+        const ab = d.stufenAb || [27, 42];
+        return zahl >= ab[1] ? 3 : (zahl >= ab[0] ? 2 : 1);
+    },
+
+    _skalaAus(zahl, d) {
+        return 1 + (d.skalaAb || []).filter((g) => zahl >= g).length;
+    },
+
+    /* Aus den Daten (ohne Korrektur): { stufe, skala, zahl } oder null. */
     _auto(wort) {
         const d = WORTBEWERTUNG.daten();
         const i = WORTBEWERTUNG._index(wort);
-        if (!d || i < 0 || i >= d.stufen.length) {
+        if (!d || i < 0 || i >= d.anzahl) {
             return null;
         }
-        return { stufe: Number(d.stufen[i]), skala: parseInt(d.skala[i], 16) + 1 };
+        if (typeof d.kodiert === "string") {
+            const zahl = WORTBEWERTUNG._entschleiert(d, i, wort);
+            if (zahl === null) {
+                return null;
+            }
+            return { stufe: WORTBEWERTUNG._stufeAus(zahl, d), skala: WORTBEWERTUNG._skalaAus(zahl, d), zahl: zahl };
+        }
+        /* Alte, lesbare Form (bis 0.18.0) — nur noch als Rückfall. */
+        if (typeof d.stufen !== "string" || i >= d.stufen.length) {
+            return null;
+        }
+        const zahl = (typeof d.zahlen === "string" && d.zahlen.length >= 2 * (i + 1))
+            ? parseInt(d.zahlen.slice(2 * i, 2 * i + 2), 10) : null;
+        return { stufe: Number(d.stufen[i]), skala: parseInt(d.skala[i], 16) + 1,
+            zahl: Number.isInteger(zahl) ? zahl : null };
     },
 
     /* Stufe, Skala, ungeeignet eines Wortes — DIE KORREKTUR GEWINNT IMMER:
@@ -385,17 +546,34 @@ const WORTBEWERTUNG = {
         const k = WORTBEWERTUNG.korrektur()[w] || {};
         const stufe = [1, 2, 3].indexOf(k.stufe) !== -1 ? k.stufe : auto.stufe;
         const skala = (Number.isInteger(k.skala) && k.skala >= 1 && k.skala <= 10) ? k.skala : auto.skala;
+        const zahl = (Number.isInteger(k.zahl) && k.zahl >= 0 && k.zahl <= 100) ? k.zahl : auto.zahl;
         return {
-            wort: w, stufe: stufe, skala: skala, ungeeignet: k.ungeeignet === true,
-            korrigiert: stufe !== auto.stufe || skala !== auto.skala || k.ungeeignet === true,
+            wort: w, stufe: stufe, skala: skala, zahl: zahl, ungeeignet: k.ungeeignet === true,
+            korrigiert: stufe !== auto.stufe || skala !== auto.skala || zahl !== auto.zahl
+                || k.ungeeignet === true,
             auto: auto
         };
     },
 
-    /* 1 leicht, 2 mittel, 3 schwer — mit Korrektur; unbekannt: 2. */
+    /* 1 leicht, 2 mittel, 3 schwer — mit Korrektur; unbekannt: 2. Seit
+       0.18.0 aus `schwierigkeit` und den Schwellen `stufenAb` der Daten
+       (heute dasselbe wie die vorgerechnete Stufe, test-wortbewertung.js);
+       eine von Hand gesetzte Stufe gewinnt. */
     stufe(wort) {
         const e = WORTBEWERTUNG.eintrag(wort);
-        return e ? e.stufe : 2;
+        if (!e) {
+            return 2;
+        }
+        const k = WORTBEWERTUNG.korrektur()[e.wort] || {};
+        const ab = (WORTBEWERTUNG.daten() || {}).stufenAb;
+        if ([1, 2, 3].indexOf(k.stufe) !== -1 || !Array.isArray(ab) || ab.length !== 2) {
+            return e.stufe;
+        }
+        const zahl = WORTBEWERTUNG.schwierigkeit(e.wort);
+        if (!Number.isInteger(zahl)) {
+            return e.stufe;
+        }
+        return zahl >= ab[1] ? 3 : (zahl >= ab[0] ? 2 : 1);
     },
 
     /* 1–10 für den Turm — mit Korrektur; unbekannt: 5. */
@@ -404,25 +582,31 @@ const WORTBEWERTUNG = {
         return e ? e.skala : 5;
     },
 
+    /* DIE Schwierigkeit 0–100 (seit 0.18.0) — die EINE Lesestelle für
+       Tageswort und Bibliothek (siehe Kopf). Heute: vorgerechnet, Korrektur
+       gewinnt; unbekannt: null (dann kommt das Wort in keinen Bereich). */
+    schwierigkeit(wort) {
+        const e = WORTBEWERTUNG.eintrag(wort);
+        return e ? e.zahl : null;
+    },
+
     ungeeignet(wort) {
         const e = WORTBEWERTUNG.eintrag(wort);
         return !!(e && e.ungeeignet);
     },
 
-    /* Aus der vollen Bewertung (Werkzeug) die App-Daten: zwei Ziffernfolgen
-       in Listen-Reihenfolge (Stufe 1–3; Skala 1–10 als 0–9). */
+    /* Aus der vollen Bewertung (Werkzeug) die App-Daten (seit 0.18.1):
+       die Schwellen von Stufe und Skala und `kodiert` (je Wort die Zahl,
+       verschleiert). Keine lesbaren Werte je Wort. */
     appDaten(voll, loesungen) {
-        const stufen = [];
-        const skala = [];
-        for (const wort of loesungen) {
-            const zahl = voll.woerter[wort][0];
-            const st = zahl >= voll.stufen[1] ? 3 : (zahl >= voll.stufen[0] ? 2 : 1);
-            const sk = 1 + voll.skala.filter((g) => zahl >= g).length;
-            stufen.push(String(st));
-            skala.push((sk - 1).toString(16));
-        }
-        return { anzahl: loesungen.length, pruefsumme: WORTBEWERTUNG.pruefsumme(loesungen),
-            stufen: stufen.join(""), skala: skala.join("") };
+        return {
+            anzahl: loesungen.length,
+            pruefsumme: WORTBEWERTUNG.pruefsumme(loesungen),
+            stufenAb: [voll.stufen[0], voll.stufen[1]],
+            skalaAb: voll.skala.slice(),
+            /* Seit 0.18.1 nur verschleiert (siehe Kopf „VERSCHLEIERT"). */
+            kodiert: WORTBEWERTUNG.verschleiern(loesungen.map((wort) => voll.woerter[wort][0]), loesungen)
+        };
     },
 
     /* Der Inhalt von js\wortbewertung-korrektur.js zu einer Korrektur —
@@ -438,6 +622,9 @@ const WORTBEWERTUNG = {
             if (Number.isInteger(k.skala) && k.skala >= 1 && k.skala <= 10) {
                 eintrag.skala = k.skala;
             }
+            if (Number.isInteger(k.zahl) && k.zahl >= 0 && k.zahl <= 100) {
+                eintrag.zahl = k.zahl;
+            }
             if (k.ungeeignet === true) {
                 eintrag.ungeeignet = true;
             }
@@ -445,14 +632,19 @@ const WORTBEWERTUNG = {
                 sauber[wort] = eintrag;
             }
         }
+        /* Seit 0.18.2 verschleiert, sobald etwas darin steht. */
+        const inhalt = Object.keys(sauber).length
+            ? { kodiert: WORTBEWERTUNG.korrekturVerschleiern(sauber) } : {};
         return "/*\n"
             + " * wortbewertung-korrektur.js — Korrekturen von Hand zur Wort-Bewertung\n"
             + " * (js\\wortbewertung.js). Die Korrektur gewinnt immer. Entsteht auf der\n"
             + " * Werkzeug-Seite werkzeug\\woerter-werkzeug.html → „Korrekturen\n"
             + " * herunterladen\"; übernehmen mit werkzeug\\Wortkorrektur-Uebernehmen.ps1.\n"
-            + " * Je Wort: stufe 1–3 (leicht/mittel/schwer), skala 1–10, ungeeignet true.\n"
+            + " * Je Wort: stufe 1–3 (leicht/mittel/schwer), skala 1–10, zahl 0–100\n"
+            + " * (seit 0.18.0, Bibliothek), ungeeignet true. Seit 0.18.2 verschleiert\n"
+            + " * (`kodiert`, js\\wortbewertung.js `korrekturVerschleiern`).\n"
             + " */\n\n"
-            + "const WORTBEWERTUNG_KORREKTUR = " + JSON.stringify(sauber, null, 4) + ";\n\n"
+            + "const WORTBEWERTUNG_KORREKTUR = " + JSON.stringify(inhalt, null, 4) + ";\n\n"
             + "if (typeof module !== \"undefined\" && module.exports) {\n"
             + "    module.exports = WORTBEWERTUNG_KORREKTUR;\n"
             + "}\n";

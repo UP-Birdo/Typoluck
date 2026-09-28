@@ -141,6 +141,13 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         }
         reihe.appendChild(BAUSTEINE.knopf({ text: "Passwort ändern", art: "still", breit: true,
             beiKlick: () => ANMELDUNG.passwortAendern() }));
+        /* Die Verwaltung (seit 0.17.1 NUR hier, nicht im Menü; Nutzer
+           27.09.2026: „nur in den einstellungen … und nicht doppelt
+           irgendwo"; wie Blunderluck) — nur für Admins. */
+        if (typeof VERWALTUNG_BILDSCHIRM !== "undefined" && VERWALTUNG_BILDSCHIRM.erlaubt()) {
+            reihe.appendChild(BAUSTEINE.knopf({ text: "Verwaltung", art: "still", breit: true,
+                beiKlick: () => NAVIGATION.zeigen("verwaltung", null) }));
+        }
         reihe.appendChild(BAUSTEINE.knopf({ text: "Abmelden", art: "gefahr", breit: true,
             beiKlick: () => ANMELDUNG.abmelden(false) }));
         /* Seit v0.2.0 (Nutzer 25.09.2026): das Konto selbst löschen — gilt

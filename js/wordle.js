@@ -12,7 +12,10 @@
  * wiederherstellen):
  *
  *     {
- *         modus:    "tag" | "uebung",
+ *         modus:    "tag" | "uebung" | "bibliothek" (seit 0.18.0),
+ *         buch, level:  nur "bibliothek" — Buch ab 1, Level ab 0
+ *         grund:    Versuche ohne Extra-Leben (seit 0.18.1; fehlt = 6;
+ *                   gesetzt nur, wenn ein Level weniger hat, js/bibliothek.js)
  *         datum:    "2026-09-24"   (nur beim Tageswort),
  *         nummer:   1              (Rätsel-Nummer, nur beim Tageswort),
  *         loesung:  "abend",
@@ -168,8 +171,8 @@ const WORDLE = {
      * ---------------------------------------------------------------- */
 
     neueRunde(angaben) {
-        return {
-            modus: angaben.modus === "tag" ? "tag" : "uebung",
+        const runde = {
+            modus: ["tag", "bibliothek"].indexOf(angaben.modus) !== -1 ? angaben.modus : "uebung",
             datum: angaben.datum || "",
             nummer: angaben.nummer || 0,
             loesung: String(angaben.loesung || "").toLowerCase(),
@@ -177,8 +180,90 @@ const WORDLE = {
             zustand: "laeuft",
             begonnenAm: angaben.zeitpunkt || 0,
             beendetAm: 0,
-            schwer: angaben.schwer === true
+            schwer: angaben.schwer === true,
+            /* Seit 0.17.0 (Shop): `extra` = eingesetzte Extra-Leben (0 oder 1,
+               je ein 7. Versuch), `tipps` = aufgedeckte Stellen (0–4). */
+            extra: 0,
+            tipps: []
         };
+        /* Seit 0.18.0: ein Level der Bibliothek (js/bibliothek.js) — Buch
+           ab 1, Level ab 0. Nur in diesem Modus. */
+        if (runde.modus === "bibliothek") {
+            runde.buch = Number.isInteger(angaben.buch) && angaben.buch > 0 ? angaben.buch : 1;
+            runde.level = Number.isInteger(angaben.level) && angaben.level >= 0 ? angaben.level : 0;
+            /* Weniger Versuche (seit 0.18.1, Boss ab Buch 4): 3 bis 6. */
+            if (Number.isInteger(angaben.grund) && angaben.grund >= 3 && angaben.grund < WORDLE.VERSUCHE) {
+                runde.grund = angaben.grund;
+            }
+        }
+        return runde;
+    },
+
+    /* Die Versuche ohne Extra-Leben: 6, eine Boss-Runde ab Buch 4 hat 5
+       (seit 0.18.1, `grund`). */
+    versucheGrund(runde) {
+        return (runde && Number.isInteger(runde.grund)) ? runde.grund : WORDLE.VERSUCHE;
+    },
+
+    /* Wie viele Versuche diese Runde hat (6, mit Extra-Leben 7; beim Boss
+       ab Buch 4 5 bzw. 6). */
+    versucheMax(runde) {
+        return WORDLE.versucheGrund(runde) + ((runde && runde.extra === 1) ? 1 : 0);
+    },
+
+    /* Hat die Runde Hilfe aus dem Shop genutzt? (Tageswort: höchstens ein
+       Bauer, js/fortschritt.js `partie`.) */
+    hilfeGenutzt(runde) {
+        return !!runde && (runde.extra === 1 || (Array.isArray(runde.tipps) && runde.tipps.length > 0));
+    },
+
+    /* Kann ein Extra-Leben eingesetzt werden? Nur, wenn der letzte Versuch
+       (sonst der 6., beim Boss ab Buch 4 der 5.) danebenging und noch keins
+       eingesetzt ist. */
+    lebenMoeglich(runde) {
+        return !!runde && runde.zustand === "verloren" && runde.extra !== 1
+            && runde.versuche.length === WORDLE.versucheGrund(runde);
+    },
+
+    /* Das Extra-Leben einsetzen: ein 7. Versuch. Liefert die neue Runde
+       oder null. */
+    lebenEinsetzen(runde) {
+        if (!WORDLE.lebenMoeglich(runde)) {
+            return null;
+        }
+        const neu = JSON.parse(JSON.stringify(runde));
+        neu.extra = 1;
+        neu.beendetAm = 0;
+        neu.zustand = WORDLE._zustandVon(neu);
+        return neu;
+    },
+
+    /* Die Stelle, die ein Tipp aufdecken würde: die erste, an der noch kein
+       Versuch grün war und die noch nicht aufgedeckt ist; -1 = keine. */
+    tippStelle(runde) {
+        if (!runde || runde.zustand !== "laeuft") {
+            return -1;
+        }
+        const ziel = Array.from(runde.loesung);
+        const tipps = Array.isArray(runde.tipps) ? runde.tipps : [];
+        for (let i = 0; i < WORDLE.LAENGE; i++) {
+            const gruen = runde.versuche.some((wort) => Array.from(wort)[i] === ziel[i]);
+            if (!gruen && tipps.indexOf(i) === -1) {
+                return i;
+            }
+        }
+        return -1;
+    },
+
+    /* Einen Tipp einsetzen: { runde, stelle, buchstabe } oder null. */
+    tippEinsetzen(runde) {
+        const stelle = WORDLE.tippStelle(runde);
+        if (stelle < 0) {
+            return null;
+        }
+        const neu = JSON.parse(JSON.stringify(runde));
+        neu.tipps = (Array.isArray(neu.tipps) ? neu.tipps : []).concat([stelle]);
+        return { runde: neu, stelle: stelle, buchstabe: Array.from(runde.loesung)[stelle] };
     },
 
     /* Eine gespeicherte (vielleicht alte oder kaputte) Runde in Form
@@ -192,12 +277,17 @@ const WORDLE = {
         /* `schwer` fehlt in Runden von vor 0.6.0 — dann eben nicht schwer. */
         const runde = WORDLE.neueRunde({
             modus: roh.modus, datum: roh.datum, nummer: roh.nummer,
-            loesung: roh.loesung, zeitpunkt: roh.begonnenAm, schwer: roh.schwer
+            loesung: roh.loesung, zeitpunkt: roh.begonnenAm, schwer: roh.schwer,
+            buch: roh.buch, level: roh.level, grund: roh.grund
         });
+        runde.extra = roh.extra === 1 ? 1 : 0;
+        runde.tipps = (Array.isArray(roh.tipps) ? roh.tipps : [])
+            .filter((i, stelle, liste) => Number.isInteger(i) && i >= 0 && i < WORDLE.LAENGE
+                && liste.indexOf(i) === stelle);
         runde.versuche = (Array.isArray(roh.versuche) ? roh.versuche : [])
             .filter((wort) => typeof wort === "string"
                 && Array.from(wort).length === WORDLE.LAENGE)
-            .slice(0, WORDLE.VERSUCHE);
+            .slice(0, WORDLE.versucheMax(runde));
         runde.beendetAm = (typeof roh.beendetAm === "number") ? roh.beendetAm : 0;
         runde.zustand = WORDLE._zustandVon(runde);
         return runde;
@@ -460,7 +550,7 @@ const WORDLE = {
         if (runde.versuche.indexOf(runde.loesung) !== -1) {
             return "gewonnen";
         }
-        if (runde.versuche.length >= WORDLE.VERSUCHE) {
+        if (runde.versuche.length >= WORDLE.versucheMax(runde)) {
             return "verloren";
         }
         return "laeuft";

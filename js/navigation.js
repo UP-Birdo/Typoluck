@@ -92,7 +92,9 @@ const NAVIGATION = {
         { id: "sammlung", text: "Sammlung", zeichen: "sammlung" },
         { id: "start", text: "Start", zeichen: "start", auchAktivBei: ["wordle"] },
         { id: "rangliste", text: "Rangliste", zeichen: "rangliste" },
-        { text: "Bald", zeichen: "bald", platzhalter: true }
+        /* Seit 0.17.0 der Shop statt „Bald" (Nutzer 27.09.2026: „Shop auf
+           dem Platz von Bald soll der kommen"; wie Blunderluck v0.152.0). */
+        { id: "shop", text: "Shop", zeichen: "shop" }
     ],
 
     _leisteEl: null,

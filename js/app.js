@@ -115,6 +115,7 @@ const APP = {
         START.anmelden();
         PROFIL_BILDSCHIRM.anmelden();
         FREUNDE_BILDSCHIRM.anmelden();
+        SHOP_BILDSCHIRM.anmelden();
         VERWALTUNG_BILDSCHIRM.anmelden();
         EINSTELLUNGEN_BILDSCHIRM.anmelden();
         RANGLISTE_BILDSCHIRM.anmelden();
@@ -126,6 +127,11 @@ const APP = {
         /* 4. Spielerliste */
         APP._gestartet = true;
         await APP.abgleich.starten();
+        /* Werkstatt (seit 0.18.5): das Formular „Neues UPCrew-Konto" mit
+           Fehleingaben ansehen (&anmeldung&konto=neu, js/werkstatt.js). */
+        if (werkstatt && WERKSTATT.wert("konto") === "neu") {
+            WERKSTATT._kontoFormularZeigen();
+        }
 
         APP._serviceWorkerAnmelden(werkstatt);
     },
@@ -360,18 +366,30 @@ const APP = {
         /* Gerechnet wird mit dem Konto-Stand dazu (Level, Serie, ×1,5 aus
            Blunderlucks Zweig vom Konto); geschrieben wird nur der eigene
            Zweig — aufs Gerät, danach ans Konto (seit 0.15.1). */
-        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => FORTSCHRITT.partie(
-            FORTSCHRITT_ABGLEICH.mitKonto(stand), {
-            datum: datum,
-            tagesaufgabe: tagesaufgabe,
-            figuren: tagesaufgabe ? wertung.figuren : 0,
-            stufe: WERTUNG.schwierigkeit(runde.loesung),
-            koennen: wertung.genauigkeit,
-            zeitpunkt: Date.now(),
-            geloest: runde.zustand === "gewonnen",
-            versuche: runde.versuche.length,
-            schwer: runde.schwer === true
-        }, APP._stufen()));
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+            const basis = FORTSCHRITT_ABGLEICH.mitKonto(stand);
+            const r = FORTSCHRITT.partie(basis, {
+                datum: datum,
+                tagesaufgabe: tagesaufgabe,
+                figuren: tagesaufgabe ? wertung.figuren : 0,
+                stufe: WERTUNG.schwierigkeit(runde.loesung),
+                koennen: wertung.genauigkeit,
+                zeitpunkt: Date.now(),
+                geloest: runde.zustand === "gewonnen",
+                versuche: runde.versuche.length,
+                schwer: runde.schwer === true,
+                /* Tipp oder Extra-Leben aus dem Shop: höchstens ein Bauer. */
+                hilfe: WORDLE.hilfeGenutzt(runde),
+                /* Ein Level der Bibliothek (seit 0.18.0): seine Figuren. */
+                bibliothek: APP._bibliothekAngaben(runde, wertung)
+            }, APP._stufen());
+            /* Münzen (seit 0.17.0, wie Blunderluck v0.152.0). */
+            r.muenzen = APP.muenzenFuerRunde(basis, r, runde, tagesaufgabe, datum);
+            if (r.muenzen > 0) {
+                r.stand = UPCREW_MUENZEN.verdienen(r.stand, FORTSCHRITT.APP, r.muenzen, Date.now());
+            }
+            return r;
+        });
         FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
         APP._flammeAktualisieren();
 
@@ -389,10 +407,148 @@ const APP = {
         for (const belohnung of ergebnis.neu.filter((b) => b.art === "kachelset")) {
             meldung.push("Neu: " + (namen[belohnung.name] || belohnung.name));
         }
+        if (ergebnis.muenzen > 0) {
+            meldung.push("+" + ergebnis.muenzen + " " + UPCREW_MUENZEN.WAEHRUNG.name);
+        }
         if (meldung.length) {
             DIALOG.kurzmeldung(meldung.join(" · "), 2500);
         }
         return { wertung: wertung, ergebnis: ergebnis };
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Münzen, Shop und Serie ab Rundenstart (seit 0.17.0, wie Blunderluck
+     * v0.152.0 — js/upcrew-muenzen.js, js/fortschritt.js „DIE SERIE")
+     * ---------------------------------------------------------------- */
+
+    /*
+     * Was eine beendete Runde an Münzen bringt (rein, getestet): Tageswort
+     * zum ersten Mal heute geschafft +10, jede gelöste Übungsrunde +3, je
+     * Level-Aufstieg +10. Seit 0.18.0 dazu die Bibliothek: je neue Figur +5,
+     * erster gelöster Boss +25 (UPCREW_MUENZEN.VERDIENST, wie Blunderluck).
+     */
+    /* Die Angabe für FORTSCHRITT.partie zu einer Bibliothek-Runde, sonst
+       null (seit 0.18.0). */
+    _bibliothekAngaben(runde, wertung) {
+        if (!runde || runde.modus !== "bibliothek" || typeof BIBLIOTHEK === "undefined"
+                || !BIBLIOTHEK.buch(runde.buch)) {
+            return null;
+        }
+        return {
+            schluessel: BIBLIOTHEK.schluessel(runde.buch, runde.level),
+            figuren: BIBLIOTHEK.figurenFuer(runde.zustand === "gewonnen", wertung.figuren,
+                WORDLE.hilfeGenutzt(runde))
+        };
+    },
+
+    muenzenFuerRunde(vorher, ergebnis, runde, tagesaufgabe, datum) {
+        if (typeof UPCREW_MUENZEN === "undefined") {
+            return 0;
+        }
+        const v = UPCREW_MUENZEN.VERDIENST;
+        let summe = 0;
+        if (tagesaufgabe) {
+            if (!FORTSCHRITT.heuteVon(vorher, FORTSCHRITT.APP, datum)
+                    && FORTSCHRITT.heuteVon(ergebnis.stand, FORTSCHRITT.APP, datum) > 0) {
+                summe += v.tagesaufgabe;
+            }
+        } else if (runde.modus !== "tag" && runde.zustand === "gewonnen") {
+            summe += v.sieg;
+        }
+        /* Die Bibliothek (seit 0.18.0, wie Blunderlucks Turm): je neue Figur
+           eines Levels, beim ersten gelösten Boss eines Buchs dazu der Boss. */
+        if (runde.modus === "bibliothek" && typeof BIBLIOTHEK !== "undefined") {
+            const schluessel = BIBLIOTHEK.schluessel(runde.buch, runde.level);
+            const alt = FORTSCHRITT.turmFiguren(vorher)[schluessel] || 0;
+            const neu = FORTSCHRITT.turmFiguren(ergebnis.stand)[schluessel] || 0;
+            if (neu > alt) {
+                summe += (neu - alt) * v.figur;
+                if (alt === 0 && BIBLIOTHEK.istBoss(runde.buch, runde.level)) {
+                    summe += v.boss;
+                }
+            }
+        }
+        if (ergebnis.levelNachher > ergebnis.levelVorher) {
+            summe += (ergebnis.levelNachher - ergebnis.levelVorher) * v.level;
+        }
+        return summe;
+    },
+
+    /*
+     * EINE RUNDE HAT ANGEFANGEN (Nutzer 27.09.2026: „Serie soll einfach:
+     * einmal eine Runde starten, egal welches Game"). In Typoluck heisst
+     * „gestartet": heute ein Versuch abgegeben — im Tageswort wie in der
+     * Übung (js/bildschirm-wordle.js `_abschicken`). Nur das Öffnen zählt
+     * nicht: Wer bloss das fertige Tageswort ansieht, hat nicht gespielt.
+     * Einmal je Tag wirksam; wer damit 7, 14, 21 … Tage erreicht, bekommt
+     * +20 Münzen. Liefert { serie, muenzen } oder null.
+     */
+    rundeGestartet() {
+        const datum = WORDLE.datumText(APP.jetzt());
+        const probe = APP.fortschritt();
+        const schutzProbe = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(probe).level);
+        if (!FORTSCHRITT.rundeGestartet(probe, datum, Date.now(), undefined, schutzProbe).neu) {
+            return null;
+        }
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+            const vorher = FORTSCHRITT_ABGLEICH.mitKonto(stand);
+            const schutz = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(vorher).level);
+            const r = FORTSCHRITT.rundeGestartet(vorher, datum, Date.now(), undefined, schutz);
+            let muenzen = 0;
+            const bisher = FORTSCHRITT.serie(vorher, datum, schutz);
+            if (r.neu && typeof UPCREW_MUENZEN !== "undefined" && r.serie > 0 && r.serie % 7 === 0
+                    && !(bisher.heute && bisher.tage === r.serie)) {
+                muenzen = UPCREW_MUENZEN.VERDIENST.serieWoche;
+                r.stand = UPCREW_MUENZEN.verdienen(r.stand, FORTSCHRITT.APP, muenzen, Date.now());
+            }
+            return { stand: r.stand, serie: r.serie, muenzen: muenzen };
+        });
+        FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        APP._flammeAktualisieren();
+        if (ergebnis.muenzen > 0) {
+            DIALOG.kurzmeldung("+" + ergebnis.muenzen + " " + UPCREW_MUENZEN.WAEHRUNG.name, 2200);
+        }
+        return { serie: ergebnis.serie, muenzen: ergebnis.muenzen };
+    },
+
+    /* Kaufen im Shop: nur, wenn der Stand reicht. Liefert { ok, grund }. */
+    kaufen(ware) {
+        const pruefung = UPCREW_MUENZEN.kannKaufen(APP.fortschritt(), ware);
+        if (!pruefung.ok) {
+            return pruefung;
+        }
+        let ok = false;
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+            const r = UPCREW_MUENZEN.kaufen(FORTSCHRITT_ABGLEICH.mitKonto(stand), FORTSCHRITT.APP, ware, Date.now());
+            ok = r.ok;
+            return { stand: r.ok ? r.stand : FORTSCHRITT_ABGLEICH.mitKonto(stand), grund: r.grund };
+        });
+        if (ok) {
+            FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+            APP._flammeAktualisieren();
+        }
+        return { ok: ok, grund: ergebnis.grund };
+    },
+
+    /* Ein Stück aus dem Vorrat nehmen (Leben, Tipp). Liefert true/false. */
+    benutzen(ware) {
+        if (UPCREW_MUENZEN.vorrat(APP.fortschritt(), ware) < 1) {
+            return false;
+        }
+        let ok = false;
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
+            const r = UPCREW_MUENZEN.benutzen(FORTSCHRITT_ABGLEICH.mitKonto(stand), FORTSCHRITT.APP, ware, Date.now());
+            ok = r.ok;
+            return { stand: r.stand };
+        });
+        if (ok) {
+            FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        }
+        return ok;
+    },
+
+    vorrat(ware) {
+        return (typeof UPCREW_MUENZEN === "undefined") ? 0 : UPCREW_MUENZEN.vorrat(APP.fortschritt(), ware);
     },
 
     /* ---------------------------------------------------------------- *

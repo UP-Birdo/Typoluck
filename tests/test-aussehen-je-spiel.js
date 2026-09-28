@@ -113,7 +113,8 @@ pruefe("Der Schalter steht im Baustein auf false", /const GETEILT = false;/.test
 }
 
 pruefe("Intro: die eigene Farbwelt geht mit (upcrew.farbwelt wird nicht mehr geschrieben)",
-    /welt: \(typeof UPCREW_AUSSEHEN !== "undefined"\) \? UPCREW_AUSSEHEN\.lesen\(\)\.farbwelt : undefined,/.test(lesen("js/intro.js")));
+    /welt: INTRO\.welt\(\)/.test(lesen("js/intro.js"))
+        && /gewaehlt: aussehen \? aussehen\.lesen\(\)\.farbwelt : null/.test(lesen("js/intro.js")));
 pruefe("Anpassen: der Umschalter Typoluck/Blunderluck nur bei GETEILT",
     /const geteilt = A\.GETEILT !== false;/.test(lesen("js/upcrew-anpassen.js"))
         && /\$\{geteilt \? `<div class="upa-mini-seg"/.test(lesen("js/upcrew-anpassen.js")));

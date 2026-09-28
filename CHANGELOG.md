@@ -3,6 +3,86 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.18.5 — 28.09.2026
+
+- Als Gast den Spielstand sichern klappt jetzt auch, wenn du schon eine
+  Weile gespielt hast (vorher: „Die Anmeldung ist abgelaufen").
+- Beim Anlegen eines Kontos steht an jedem Feld, was genau nicht stimmt:
+  Name fehlt oder zu kurz, was dem Passwort fehlt, Wiederholung ungleich,
+  Name mit genau diesem Passwort schon vergeben, keine Verbindung. Der
+  Knopf ist immer drückbar und zeigt beim Drücken alle Meldungen.
+
+## 0.18.4 — 28.09.2026
+
+- Dein Aussehen in Typoluck (hell/dunkel, Farbwelt, Schrift, Knöpfe)
+  reist jetzt mit deinem UPCrew-Konto auf andere Geräte — getrennt vom
+  Aussehen in Blunderluck.
+
+## 0.18.3 — 28.09.2026
+
+- Alle Bosse der Bibliothek haben wieder sechs Versuche. Weniger Versuche
+  kommen später gezielt bei einzelnen Gegnern.
+- Das UPCrew-Intro zeigt die Farbwelt, die du in Typoluck gewählt hast,
+  auch in der Ansicht für Bildschirmfotos (Werkstatt).
+
+## 0.18.2 — 28.09.2026
+
+- Das UPCrew-Intro kommt jetzt auch beim Neuladen der Seite zuverlässig —
+  auch in der Ansicht für Bildschirmfotos (Werkstatt). Nur wenn die App
+  sich selbst auf eine neue Version neu lädt, kommt es nicht noch einmal.
+- Korrekturen an der Wort-Bewertung stehen nicht mehr lesbar in der App.
+
+## 0.18.1 — 28.09.2026
+
+- Die Bosse ab Buch 4 haben nur noch fünf Versuche (vorher sechs) — die
+  Vorstellung vor dem Boss zeigt es rot an. Ein Extra-Leben gibt einen
+  sechsten.
+- Wie schwer ein Wort ist, steht nicht mehr lesbar in den App-Dateien.
+- Admins: Das Lexikon mit der vollen Bewertung ist aus der App genommen
+  und zeigt „Nur im Werkzeug"; die Spielerliste bleibt.
+
+## 0.18.0 — 28.09.2026
+
+**Die Bibliothek — Typolucks Weg nach oben, Buch für Buch.**
+
+- Neu auf dem Start: die Bibliothek. Sechs Bücher mit je acht Leveln;
+  das letzte Level jedes Buchs ist ein Boss. Buch 1 fragt nur Nomen ab,
+  jedes weitere Buch wird schwerer.
+- Jedes Level hat einen festen Schwierigkeitsbereich — das Wort darin
+  ist bei jedem Start ein anderes (und bei jedem Spieler). Ein gerade
+  gespieltes Wort kommt nicht gleich wieder.
+- Je Level gibt es bis zu drei Figuren (Bauer, Springer, König) wie im
+  Blunderluck-Turm; der Boss öffnet das nächste Buch. Figuren bringen XP
+  und Münzen, der erste Sieg über einen Boss +25 Münzen.
+- Am Quadrat neben „Spielen" wählst du Bibliothek oder Frei; Frei zeigt
+  den Start wie bisher (Tageswort, Übung).
+- Im Profil steht bei Typoluck jetzt dein Buch statt „Turm bald".
+
+## 0.17.1 — 27.09.2026
+
+- Die Verwaltung (nur für Admins) steht nicht mehr im Menü hinter den
+  drei Balken, sondern nur noch als Knopf „Verwaltung" in den
+  Einstellungen (Karte „UPCrew-Konto") — wie in Blunderluck.
+- Shop: die Typoluck-Texte der Waren kommen jetzt über den gemeinsamen
+  Shop-Baustein (sichtbar ändert sich nichts).
+
+## 0.17.0 — 27.09.2026
+
+**Münzen, Shop und eine einfachere Serie — über beide Spiele.**
+
+- Neu: Münzen. Du bekommst sie in Typoluck und Blunderluck, der
+  Kontostand gilt in beiden: Tageswort geschafft +10, gelöste Übung +3,
+  Level-Aufstieg +10, jeder 7. Serientag +20.
+- Der Tab rechts unten ist jetzt der Shop (statt „Bald"):
+  - Flammen-Schild — rettet die Flamme über einen verpassten Tag;
+  - Extra-Leben — ein 7. Versuch, wenn der 6. danebengeht;
+  - Tipp — deckt einen richtigen Buchstaben an seiner Stelle auf.
+  Mit Tipp oder Extra-Leben gibt das Tageswort höchstens einen Bauern,
+  und in der Rangliste zählt ein 7. Versuch wie „X/6".
+- Die Serie zählt jetzt, sobald du an einem Tag in IRGENDEINEM Spiel eine
+  Runde spielst (in Typoluck: einen Versuch abgibst, Tageswort oder
+  Übung) — und sie geht über 60 Tage hinaus.
+
 ## 0.16.3 — 27.09.2026
 
 **Verwaltung für Admins.**

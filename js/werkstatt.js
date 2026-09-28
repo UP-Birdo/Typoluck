@@ -52,6 +52,24 @@
  *                                      Stand zum Umziehen; `&schutz` gibt
  *                                      es nicht mehr (Schutz = aus dem
  *                                      Level gerechnet)
+ *     &bibliothek=1-0:3,1-1:2          die Bibliothek (seit 0.18.0): Figuren
+ *                                      je „Buch-Level" (Level ab 0) im
+ *                                      Typoluck-Zweig; &bibliothek=alle-2 =
+ *                                      Buch 1 und 2 ganz durch (je 2 Fig.)
+ *     &art=frei                        Art des Starts (Vorgabe Bibliothek)
+ *     &buch=3                          auf dem Start: dieses Buch ansehen;
+ *                                      mit &bildschirm=wordle&modus=
+ *                                      bibliothek: Buch der Runde, dazu
+ *                                      &level=7 (ab 0; 7 = Boss) und wie
+ *                                      beim Tageswort &versuche=
+ *     &vs=2-7                          die Vorstellung dieses Levels offen
+ *     &anmeldung&konto=neu             das Formular „Neues UPCrew-Konto"
+ *                                      (seit 0.18.5); dazu &eingabe=Name,
+ *                                      Passwort,Wiederholung (vorbelegt),
+ *                                      &senden (Knopf drücken: alle
+ *                                      Meldungen), &absage=doppelt|netz|
+ *                                      vorhanden (so, wie die Absage vom
+ *                                      Server am Feld stünde)
  *
  * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
  * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
@@ -192,8 +210,27 @@ const WERKSTATT = {
         if (schwer) {
             ICH.einstellungSetzen("schwer", true);
         }
+        /* Art des Starts und angesehenes Buch (seit 0.18.0). */
+        if (WERKSTATT.wert("art") && typeof START.ART_SCHLUESSEL === "string") {
+            speicher.setItem(START.ART_SCHLUESSEL, WERKSTATT.wert("art"));
+        }
+        if (WERKSTATT.wert("buch") && WERKSTATT.wert("bildschirm") !== "wordle") {
+            START.buchBlick = parseInt(WERKSTATT.wert("buch"), 10) || 0;
+        }
         const versuche = WERKSTATT.wert("versuche");
-        if (versuche) {
+        if (versuche && WERKSTATT.wert("modus") === "bibliothek") {
+            /* Eine angefangene Bibliothek-Runde: Wort aus dem Bereich (fest
+               gezogen, Mitte der Liste), dann die Versuche. */
+            const buch = parseInt(WERKSTATT.wert("buch"), 10) || 1;
+            const level = parseInt(WERKSTATT.wert("level"), 10) || 0;
+            let runde = WORDLE.neueRunde({ modus: "bibliothek", buch: buch, level: level,
+                loesung: BIBLIOTHEK.wortZiehen(buch, level, 0.5, []), zeitpunkt: 1, schwer: schwer,
+                grund: BIBLIOTHEK.versuche(buch, level) });
+            for (const wort of versuche.split(",")) {
+                runde = WORDLE.raten(runde, wort, 2).runde;
+            }
+            ICH.spielstandSetzen("wordle-bibliothek", runde);
+        } else if (versuche) {
             const tag = WORDLE.tageswort(heute);
             let runde = WORDLE.neueRunde({ modus: "tag", datum: heute, nummer: tag.nummer,
                 loesung: tag.wort, zeitpunkt: 1, schwer: schwer });
@@ -236,7 +273,7 @@ const WERKSTATT = {
                 zaehler: { partien: Math.floor(zahl("xp") / 12), tagesaufgaben: zahl("serie"),
                     beideTage: 0, figuren: zahl("serie") * 2, besteSerie: zahl("serie") }
             };
-        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten"].some((name) => parameter.has(name))) {
+        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten", "bibliothek"].some((name) => parameter.has(name))) {
             const tage = [];
             let tag = heute;
             for (let i = 0; i < zahl("serie"); i++) {
@@ -252,6 +289,10 @@ const WERKSTATT = {
                 koennenSumme: zweig.partien * 64, koennenAnzahl: zweig.partien,
                 koennenBeste: zweig.partien ? 91 : 0 });
             zweig.taten = (WERKSTATT.wert("taten") || "").split(",").filter((id) => id);
+            const bibliothek = WERKSTATT._bibliothekFiguren(WERKSTATT.wert("bibliothek") || "");
+            if (Object.keys(bibliothek).length) {
+                zweig.turm = { figuren: bibliothek };
+            }
             const eintrag = { version: FORTSCHRITT.VERSION, spiele: { typoluck: zweig } };
             if (parameter.has("brett") || parameter.has("bxp") || parameter.has("turm")) {
                 const figuren = {};
@@ -271,6 +312,28 @@ const WERKSTATT = {
             alle[id] = eintrag;
         }
         speicher.setItem(FORTSCHRITT.SCHLUESSEL, JSON.stringify(alle));
+    },
+
+    /* `&bibliothek=` lesen: „1-0:3,1-1:2" oder „alle-2" (alle Level der
+       Bücher 1 bis 2 mit je 2 Figuren). */
+    _bibliothekFiguren(text) {
+        const figuren = {};
+        const alle = /^alle-(\d{1,2})$/.exec(text);
+        if (alle && typeof BIBLIOTHEK !== "undefined") {
+            for (let b = 1; b <= Math.min(Number(alle[1]), BIBLIOTHEK.anzahlBuecher()); b++) {
+                for (let i = 0; i < BIBLIOTHEK.anzahlLevel(b); i++) {
+                    figuren[BIBLIOTHEK.schluessel(b, i)] = 2;
+                }
+            }
+            return figuren;
+        }
+        for (const teil of text.split(",")) {
+            const [stelle, anzahl] = teil.split(":");
+            if (/^\d{1,2}-\d{1,2}$/.test(stelle)) {
+                figuren[stelle] = Math.min(3, Math.max(1, parseInt(anzahl, 10) || 1));
+            }
+        }
+        return figuren;
     },
 
     /* Die Leiste zum Durchschalten (nur Werkstatt): oben die Sets, darunter
@@ -307,7 +370,8 @@ const WERKSTATT = {
         if (!id) {
             return null;
         }
-        return { id: id, parameter: { modus: WERKSTATT.wert("modus") || "tag" } };
+        return { id: id, parameter: { modus: WERKSTATT.wert("modus") || "tag",
+            buch: parseInt(WERKSTATT.wert("buch"), 10) || 1, level: parseInt(WERKSTATT.wert("level"), 10) || 0 } };
     },
 
     /* Nach dem ersten Zeigen: Zustände, die man sonst nur mit einem Tipp
@@ -316,6 +380,10 @@ const WERKSTATT = {
     nachDemZeigen() {
         if (WERKSTATT._parameter().has("menue")) {
             NAVIGATION._menueOeffnen();
+        }
+        const vs = /^(\d{1,2})-(\d{1,2})$/.exec(WERKSTATT.wert("vs") || "");
+        if (vs && typeof START.vorstellungZeigen === "function") {
+            START.vorstellungZeigen(Number(vs[1]), Number(vs[2]));
         }
         if (WERKSTATT._parameter().has("regel") && NAVIGATION.aktuell === "wordle") {
             WORDLE_BILDSCHIRM._anleitungZeigen();
@@ -331,6 +399,38 @@ const WERKSTATT = {
             const stelle = parseInt(WERKSTATT.wert("stelle"), 10);
             WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeWaehlen(eingabe, stelle);
             WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
+        }
+    },
+
+    /* Das Formular „Neues UPCrew-Konto" mit Fehleingaben (seit 0.18.5) —
+       über dieselben Wege wie ein Tipp: Felder füllen (input-Ereignis),
+       Knopf drücken; die Server-Absage über ANMELDUNG._kontoFertig. */
+    _kontoFormularZeigen() {
+        ANMELDUNG._kontoRegelnZeigen = true;
+        ANMELDUNG.offen = true;
+        ANMELDUNG._wurzelEl.hidden = false;
+        document.body.classList.add("anmeldung-offen");
+        ANMELDUNG._neuesKontoZeigen();
+        const bloecke = Array.from(ANMELDUNG._wurzelEl.querySelectorAll(".feld-block"));
+        const teile = bloecke.map((block) => ({ feld: block.querySelector("input"),
+            fehler: block.querySelector(".feld-fehler") }));
+        const werte = (WERKSTATT.wert("eingabe") || "").split(",");
+        teile.forEach((teil, i) => {
+            teil.feld.value = werte[i] || "";
+            teil.feld.dispatchEvent(new Event("input"));
+        });
+        if (WERKSTATT._parameter().has("senden")) {
+            const knopf = ANMELDUNG._wurzelEl.querySelector(".knopf-haupt");
+            if (knopf) {
+                knopf.click();
+            }
+        }
+        const absage = WERKSTATT.wert("absage");
+        if (absage) {
+            const allgemein = { fehler: ANMELDUNG._wurzelEl.querySelector(".anmeldung-allgemein") };
+            ANMELDUNG._kontoFertig({ ok: false, feld: KONTO.fehlerFeld(absage), fehler: absage,
+                text: KONTO.fehlerText(absage) }, teile[0], () => true, "",
+            { name: teile[0], passwort: teile[1], wiederholung: teile[2], allgemein: allgemein });
         }
     },
 

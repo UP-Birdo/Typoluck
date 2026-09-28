@@ -77,15 +77,29 @@ const erlaubt = WOERTER.loesungen.concat(WOERTER.zusatz);
 {
     gleich("Daten: gleiche Anzahl wie die Lösungsliste", DATEN.anzahl, loesungen.length);
     gleich("Daten: gleiche Prüfsumme (Reihenfolge zählt)", DATEN.pruefsumme, WB.pruefsumme(loesungen));
-    pruefe("Daten: je Wort eine Stufe 1–3 und eine Skala 0–9",
-        DATEN.stufen.length === loesungen.length && /^[123]+$/.test(DATEN.stufen)
-            && DATEN.skala.length === loesungen.length && /^[0-9]+$/.test(DATEN.skala));
-    gleich("Daten: die App bekommt NUR Stufe und Skala", Object.keys(DATEN).sort(),
-        ["anzahl", "pruefsumme", "skala", "stufen"]);
+    /* Seit 0.18.1 verschleiert (Nutzer 28.09.2026: „soll nicht öffentlich
+       sein"): keine lesbaren Werte je Wort in der ausgelieferten Datei. */
+    gleich("Daten: nur Schwellen und `kodiert` (seit 0.18.1)", Object.keys(DATEN).sort(),
+        ["anzahl", "kodiert", "pruefsumme", "skalaAb", "stufenAb"]);
+    pruefe("Daten: `kodiert` ist Base64 mit einem Byte je Wort",
+        /^[A-Za-z0-9+/]+=*$/.test(DATEN.kodiert) && Buffer.from(DATEN.kodiert, "base64").length === loesungen.length);
+    const roh = Array.from(Buffer.from(DATEN.kodiert, "base64"));
+    pruefe("Daten: die Bytes sind NICHT die Zahlen (verschleiert)",
+        roh.filter((b, i) => b === WB.schwierigkeit(loesungen[i])).length < loesungen.length / 20);
+    const datei = lesen("js/wortbewertung-daten.js").replace(/\/\*[\s\S]*?\*\//g, "");
+    pruefe("Daten: keine lesbare Ziffernfolge je Wort mehr (stufen/skala/zahlen)",
+        !/"(stufen|skala|zahlen)"\s*:/.test(datei) && !/[0-9]{40,}/.test(datei));
+    pruefe("Eine Lesestelle: Stufe und Skala aus der Schwierigkeit",
+        loesungen.every((w) => { const e = WB.eintrag(w); return WB.stufe(w) === e.stufe
+            && e.stufe === (e.zahl >= DATEN.stufenAb[1] ? 3 : (e.zahl >= DATEN.stufenAb[0] ? 2 : 1)); }));
+    pruefe("WORTBEWERTUNG.schwierigkeit: jedes Lösungswort hat eine Zahl 0–100",
+        loesungen.every((w) => { const e = WB.eintrag(w); return Number.isInteger(e.zahl) && e.zahl >= 0 && e.zahl <= 100; }));
     const neu = WB.berechnen(loesungen, erlaubt);
     const frisch = WB.appDaten(neu, loesungen);
     pruefe("Daten = was die Rechnung heute ergibt (sonst werkzeug\\Woerter-Bewerten.ps1 neu ausführen)",
-        frisch.stufen === DATEN.stufen && frisch.skala === DATEN.skala);
+        JSON.stringify(frisch) === JSON.stringify(DATEN));
+    pruefe("Entschleiert = die gerechnete Zahl, für jedes Wort",
+        loesungen.every((w) => WB.schwierigkeit(w) === neu.woerter[w][0]));
     const vollDatei = pfad.join(wurzel, "werkzeug", "wortbewertung-voll.js");
     if (fs.existsSync(vollDatei)) {
         const voll = require(vollDatei);
@@ -95,11 +109,11 @@ const erlaubt = WOERTER.loesungen.concat(WOERTER.zusatz);
 
     /* 3. Stufen und Skala */
     for (const stufe of [1, 2, 3]) {
-        const anteil = DATEN.stufen.split("").filter((s) => Number(s) === stufe).length / loesungen.length;
+        const anteil = loesungen.filter((w) => WB.eintrag(w).stufe === stufe).length / loesungen.length;
         pruefe("Stufe " + WB.STUFEN_NAMEN[stufe] + ": etwa ein Drittel (" + Math.round(anteil * 100) + " %)",
             anteil > 0.25 && anteil < 0.42);
     }
-    pruefe("Skala: alle zehn Stufen belegt", new Set(DATEN.skala.split("")).size === 10);
+    pruefe("Skala: alle zehn Stufen belegt", new Set(loesungen.map((w) => WB.eintrag(w).skala)).size === 10);
     pruefe("Skala und Stufe passen zusammen (leicht nie über 5, schwer nie unter 6)",
         loesungen.every((w) => { const e = WB.eintrag(w); return !(e.stufe === 1 && e.skala > 5) && !(e.stufe === 3 && e.skala < 6); }));
 }
@@ -115,9 +129,12 @@ const erlaubt = WOERTER.loesungen.concat(WOERTER.zusatz);
     gleich("Korrektur: ungeeignet, als korrigiert markiert", [k.ungeeignet, k.korrigiert, WB.ungeeignet(w)], [true, true, true]);
     gleich("Korrektur: die gerechnete Stufe bleibt sichtbar", k.auto, auto.auto);
     gleich("Tageswort-Stufe folgt der Korrektur", WERTUNG.schwierigkeit(w), k.stufe);
-    WB._korrekturErsatz = { [w]: { stufe: 7, skala: 0, ungeeignet: "ja" } };
+    WB._korrekturErsatz = { [w]: { zahl: 77 } };
+    gleich("Korrektur gewinnt: Zahl 0–100 (seit 0.18.0, Bibliothek)", [WB.schwierigkeit(w), WB.eintrag(w).korrigiert], [77, true]);
+    WB._korrekturErsatz = { [w]: { stufe: 7, skala: 0, zahl: 101, ungeeignet: "ja" } };
     gleich("Ungültige Korrektur wird übergangen", [WB.eintrag(w).stufe, WB.eintrag(w).skala, WB.eintrag(w).ungeeignet],
         [auto.stufe, auto.skala, false]);
+    gleich("Ungültige Zahl wird übergangen", WB.schwierigkeit(w), auto.zahl);
 
     global.WORTBEWERTUNG = WB;
     WB._korrekturErsatz = {};
@@ -135,7 +152,25 @@ const erlaubt = WOERTER.loesungen.concat(WOERTER.zusatz);
     const text = WB.korrekturDatei({ "ärger": { stufe: 3, skala: 11, x: 1 }, "Kaputt!": { stufe: 1 }, "hallo": {} });
     const kasten = { module: { exports: {} } };
     vm.runInNewContext(text, kasten);
-    gleich("Korrektur-Datei: nur gültige Wörter und Felder", kasten.module.exports, { "ärger": { stufe: 3 } });
+    /* Seit 0.18.2 verschleiert: kein Wort, kein Wert lesbar. */
+    gleich("Korrektur-Datei: nur `kodiert`", Object.keys(kasten.module.exports), ["kodiert"]);
+    pruefe("Korrektur-Datei: kein Wort lesbar", text.replace(/\/\*[\s\S]*?\*\//g, "").indexOf("ärger") === -1);
+    gleich("Korrektur-Datei: entschleiert nur gültige Wörter und Felder",
+        WB.korrekturEntschleiern(kasten.module.exports.kodiert), { "ärger": { stufe: 3 } });
+    const leer = { module: { exports: {} } };
+    vm.runInNewContext(WB.korrekturDatei({}), leer);
+    gleich("Leere Korrektur bleibt {}", leer.module.exports, {});
+    /* Die App liest die verschleierte Form. */
+    const w0 = loesungen[3];
+    const kodiert = { module: { exports: {} } };
+    vm.runInNewContext(WB.korrekturDatei({ [w0]: { zahl: 91, ungeeignet: true } }), kodiert);
+    global.WORTBEWERTUNG_KORREKTUR = kodiert.module.exports;
+    gleich("Verschleierte Korrektur wirkt (Zahl, ungeeignet)", [WB.schwierigkeit(w0), WB.ungeeignet(w0)], [91, true]);
+    delete global.WORTBEWERTUNG_KORREKTUR;
+    WB._korrekturFuer = null;
+    const echt = require("../js/wortbewertung-korrektur.js");
+    pruefe("Die Korrektur im Projekt: leer oder verschleiert",
+        Object.keys(echt).length === 0 || (Object.keys(echt).length === 1 && typeof echt.kodiert === "string"));
     gleich("Die Korrektur im Projekt ist ein Objekt", typeof require("../js/wortbewertung-korrektur.js"), "object");
 }
 

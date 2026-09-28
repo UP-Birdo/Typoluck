@@ -1,0 +1,149 @@
+/*
+ * upcrew-shop.css — der Tab „Shop“ und die Münze (zu upcrew-shop.js und upcrew-muenzen.js), gleich in Blunderluck
+ * und Typoluck. Quelle künftig Design\3D-Schrift\final — KOPIEREN, nie abwandeln.
+ *
+ * Markup: siehe Kopf von upcrew-shop.js. Kopf wie die Sammlung (klebt, volle Breite; Stellschrauben
+ * --up-sm-rand und --oben-frei aus upcrew-sammlung.css). Farben nur aus der Farbwelt.
+ */
+
+/* ---- Die Münze (überall, wo UPCREW_MUENZEN.zeichen() steht) ---- */
+.up-mz-zeichen {
+    width: 1.1em;
+    height: 1.1em;
+    flex: none;
+    vertical-align: -0.18em;
+}
+
+.up-mz-rand {
+    fill: var(--haupt);
+    stroke: var(--haupt-kante, var(--haupt));
+    stroke-width: 1.5;
+}
+
+.up-mz-praege {
+    fill: var(--haupt-schrift);
+    opacity: 0.85;
+}
+
+/* ---- Der Tab ---- */
+.up-shop-kopf {
+    position: sticky;
+    top: var(--oben-frei, 0px);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 calc(-1 * var(--up-sm-rand, 12px));
+    padding: 8px var(--up-sm-rand, 12px) 10px;
+    background: var(--flaeche);
+    border-bottom: 1px solid var(--rahmen);
+}
+
+.up-shop-titel {
+    margin: 0;
+    flex: 1 1 auto;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.up-shop-betrag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.up-shop-saldo {
+    color: var(--haupt);
+    font-size: 1.05rem;
+}
+
+.up-shop-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0;
+}
+
+.up-shop-karte {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel, 14px);
+    background: var(--karte);
+}
+
+.up-shop-bild {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--rund-voll, 999px);
+    background: var(--karte-leise);
+    color: var(--haupt);
+}
+
+.up-shop-bild svg {
+    width: 28px;
+    height: 28px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.up-shop-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.up-shop-text h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.up-shop-text p {
+    margin: 2px 0 0;
+    color: var(--schrift-leise);
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.up-shop-text .up-shop-hast {
+    color: var(--schrift);
+    font-weight: 700;
+}
+
+.up-shop-kauf {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.up-shop-preis {
+    font-size: 0.95rem;
+}
+
+.up-shop-kaufen {
+    min-width: 88px;
+}
+
+/* Reicht es nicht (oder ist der Vorrat voll): die Karte leise. */
+.up-shop-zu .up-shop-bild,
+.up-shop-zu .up-shop-text,
+.up-shop-zu .up-shop-preis {
+    opacity: 0.55;
+}
+
+@media (max-width: 600px) {
+    .up-shop-titel {
+        font-size: 1.05rem;
+    }
+}

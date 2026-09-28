@@ -70,14 +70,19 @@ const NAV = vm.runInNewContext("({" + imMenueQuelle + "})");
 {
     const spieler = welt("uid-spieler");
     gleich("Nicht-Admin: kein Eintrag im Menü", NAV._imMenue(spieler.bildschirm), false);
+    gleich("Nicht-Admin: nicht erlaubt (kein Knopf in den Einstellungen)", spieler.V.erlaubt(), false);
     const kasten = { kinder: [], appendChild(x) { this.kinder.push(x); } };
     spieler.V.zeigen(kasten);
     gleich("Nicht-Admin über die Adresse: nichts gebaut, zurück zum Start",
         [kasten.kinder.length, spieler.gezeigt], [0, [["start", true]]]);
     gleich("Abgemeldet: kein Eintrag", NAV._imMenue(welt(null).bildschirm), false);
     gleich("Gast: kein Eintrag", NAV._imMenue(welt("uid-gast").bildschirm), false);
-    gleich("Rolle „admin“: Eintrag im Menü", NAV._imMenue(welt("uid-admin").bildschirm), true);
-    gleich("UP#Plus: Eintrag im Menü", NAV._imMenue(welt("uid-ober").bildschirm), true);
+    /* Seit 0.17.1 (Nutzer 27.09.2026: „nur in den einstellungen … nicht
+       doppelt irgendwo"): auch für Admins NIE im Menü, nur erlaubt. */
+    gleich("Rolle „admin“: erlaubt, aber nicht im Menü",
+        [welt("uid-admin").V.erlaubt(), NAV._imMenue(welt("uid-admin").bildschirm)], [true, false]);
+    gleich("UP#Plus: erlaubt, aber nicht im Menü",
+        [welt("uid-ober").V.erlaubt(), NAV._imMenue(welt("uid-ober").bildschirm)], [true, false]);
     gleich("Werkstatt &admin auf localhost: sichtbar", welt(null, "localhost", "werkstatt&admin").V.erlaubt(), true);
     gleich("Werkstatt &admin ausgeliefert (github.io): wirkt nicht",
         welt(null, "up-birdo.github.io", "werkstatt&admin").V.erlaubt(), false);
@@ -86,31 +91,49 @@ const NAV = vm.runInNewContext("({" + imMenueQuelle + "})");
     gleich("Feste Einträge wie bisher", [NAV._imMenue({ imMenue: true }), NAV._imMenue({})], [true, false]);
 }
 
-/* 2. Lexikon */
+/* 1b. Nur EIN Weg: der Knopf in den Einstellungen (seit 0.17.1) */
+{
+    const einst = lesen("js/bildschirm-einstellungen.js");
+    pruefe("Einstellungen: Knopf „Verwaltung“ nur mit VERWALTUNG_BILDSCHIRM.erlaubt()",
+        /VERWALTUNG_BILDSCHIRM\.erlaubt\(\)\) \{\s*reihe\.appendChild\(BAUSTEINE\.knopf\(\{ text: "Verwaltung"/.test(einst)
+            && /NAVIGATION\.zeigen\("verwaltung"/.test(einst));
+    pruefe("Verwaltung meldet sich mit imMenue: false an", /imMenue: false,/.test(lesen("js/bildschirm-verwaltung.js")));
+    pruefe("Verwaltung nicht in der Leiste (und damit nicht wischbar)", !/id: "verwaltung"/.test(lesen("js/navigation.js")));
+    const wege = fs.readdirSync(pfad.join(wurzel, "js")).filter((d) => d.endsWith(".js") && d !== "bildschirm-verwaltung.js")
+        .filter((d) => /["']verwaltung["']/.test(lesen("js/" + d)));
+    gleich("Kein zweiter Weg: nur die Einstellungen nennen den Bildschirm", wege, ["bildschirm-einstellungen.js"]);
+}
+
+/* 2. Lexikon — seit 0.18.1 NICHT mehr ausgeliefert (Nutzer 28.09.2026:
+   „soll nicht öffentlich sein"): ohne Admin-Quelle nur „Nur im Werkzeug". */
 spaeter("Lexikon", (async () => {
     const k = welt("uid-admin");
-    const laden = k.V.lexikonLaden();
-    gleich("Nachgeladen erst beim Öffnen: ein Skript js/lexikon-daten.js", k.eingehaengt.map((s) => s.src), ["js/lexikon-daten.js"]);
-    k.V.lexikonLaden();
-    gleich("… nur einmal", k.eingehaengt.length, 1);
-    vm.runInContext(lesen("js/lexikon-daten.js").replace("const LEXIKON_DATEN", "globalThis.LEXIKON_DATEN"), k);
-    k.eingehaengt[0].onload();
-    const voll = await laden;
-    gleich("… und liefert die volle Bewertung zur Liste", [voll.anzahl, voll.pruefsumme],
-        [WOERTER_DE.loesungen.length, WB.pruefsumme(WOERTER_DE.loesungen)]);
-    pruefe("Nicht in index.html und nicht im Vorabspeicher",
-        lesen("index.html").indexOf("lexikon-daten") === -1 && lesen("sw.js").indexOf("lexikon-daten") === -1);
-    const zeilen = k.V.lexikonZeilen(voll);
-    gleich("Alle Lösungswörter im Lexikon", zeilen.length, WOERTER_DE.loesungen.length);
-    const f = { suche: "", stufe: "3", vokale: "1", umlaut: false, doppelt: false, nach: "zahl" };
-    const schwer = k.V.lexikonFiltern(zeilen, f);
-    pruefe("Filter: nur schwer mit einem Vokal, absteigend nach Zahl",
-        schwer.length > 0 && schwer.every((z) => z.stufe === 3 && z.vokale === 1)
-            && schwer.every((z, i) => i === 0 || schwer[i - 1].zahl >= z.zahl));
-    gleich("Suche", k.V.lexikonFiltern(zeilen, { suche: "blick", stufe: "", vokale: "" }).map((z) => z.wort), ["blick"]);
-    const nachWort = k.V.lexikonFiltern(zeilen, { vokale: "", nach: "wort" });
-    gleich("Sortieren nach Wort", nachWort[0].wort, zeilen.map((z) => z.wort).sort((a, b) => a.localeCompare(b, "de"))[0]);
-    pruefe("Umlaut-Filter", k.V.lexikonFiltern(zeilen, { vokale: "", umlaut: true }).every((z) => z.umlaut === 1));
+    gleich("Ohne Quelle: kein Lexikon", k.V.lexikonDa(), false);
+    let abgelehnt = "";
+    await k.V.lexikonLaden().catch((f) => { abgelehnt = f.message; });
+    gleich("… Laden lehnt ab, lädt kein Skript nach", [abgelehnt, k.eingehaengt.length], ["nur-werkzeug", 0]);
+    pruefe("… der Bildschirm zeigt „Nur im Werkzeug“", /text: "Nur im Werkzeug"/.test(lesen("js/bildschirm-verwaltung.js")));
+    pruefe("js/lexikon-daten.js liegt nicht mehr in js/ und nirgends in index.html oder sw.js",
+        !fs.existsSync(pfad.join(wurzel, "js", "lexikon-daten.js"))
+            && lesen("index.html").indexOf("lexikon-daten") === -1 && lesen("sw.js").indexOf("lexikon-daten") === -1);
+    pruefe("Das Deploy-Skript sperrt lexikon-daten.js und wortbewertung-voll.js",
+        /"lexikon-daten\.js"/.test(lesen("tools/Deploy-Typoluck.ps1"))
+            && /"wortbewertung-voll\.js"/.test(lesen("tools/Deploy-Typoluck.ps1")));
+    /* Die reinen Funktionen bleiben für die spätere Admin-Quelle. */
+    const vollDatei = pfad.join(wurzel, "werkzeug", "wortbewertung-voll.js");
+    if (fs.existsSync(vollDatei)) {
+        const voll = require(vollDatei);
+        k.V.LEXIKON_QUELLE = () => voll;
+        gleich("Mit Quelle: geladen", (await k.V.lexikonLaden()).anzahl, WOERTER_DE.loesungen.length);
+        const zeilen = k.V.lexikonZeilen(voll);
+        gleich("Alle Lösungswörter im Lexikon", zeilen.length, WOERTER_DE.loesungen.length);
+        const f = { suche: "", stufe: "3", vokale: "1", umlaut: false, doppelt: false, nach: "zahl" };
+        const schwer = k.V.lexikonFiltern(zeilen, f);
+        pruefe("Filter: nur schwer mit einem Vokal, absteigend nach Zahl",
+            schwer.length > 0 && schwer.every((z) => z.stufe === 3 && z.vokale === 1)
+                && schwer.every((z, i) => i === 0 || schwer[i - 1].zahl >= z.zahl));
+        gleich("Suche", k.V.lexikonFiltern(zeilen, { suche: "blick", stufe: "", vokale: "" }).map((z) => z.wort), ["blick"]);
+    }
     pruefe("Das Lexikon zeigt Zusatzwörter getrennt", /Zusatz · /.test(lesen("js/bildschirm-verwaltung.js")));
 })());
 

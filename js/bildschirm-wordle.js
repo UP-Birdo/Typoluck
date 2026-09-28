@@ -15,6 +15,11 @@
  *             Rangliste. Angefangene Versuche überleben das Schliessen der
  *             App (ICH.spielstand).
  *   "uebung"  Ein zufälliges Wort, beliebig oft, zählt für nichts.
+ *   "bibliothek"  Ein Level der Bibliothek (seit 0.18.0, js/bibliothek.js):
+ *             Parameter `buch` (ab 1) und `level` (ab 0); das Wort wird
+ *             beim Start aus dem festen Bereich des Levels gezogen, eine
+ *             angefangene Runde desselben Levels geht weiter. Figuren,
+ *             XP und Münzen meldet APP.fortschrittMelden.
  *
  * DIE KACHEL UND DIE TASTE ENTSTEHEN JE AN EINER STELLE (`_kachelBauen`,
  * `_tasteBauen`). Das ist die Naht für die 3D-Fassung — siehe Kopf von
@@ -63,13 +68,16 @@ const WORDLE_BILDSCHIRM = {
             behaelter.appendChild(ZUSTAND.leer({ zeichen: "zahnrad", text: "UP#Plus spielt nicht" }));
             return;
         }
-        const modus = (parameter && parameter.modus === "uebung") ? "uebung" : "tag";
+        const modus = (parameter && ["uebung", "bibliothek"].indexOf(parameter.modus) !== -1)
+            ? parameter.modus : "tag";
         WORDLE_BILDSCHIRM._behaelter = behaelter;
         WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
         WORDLE_BILDSCHIRM._sperre = false;
 
         const neueUebung = parameter && parameter.neu;
-        WORDLE_BILDSCHIRM.runde = WORDLE_BILDSCHIRM._rundeHolen(modus, neueUebung);
+        WORDLE_BILDSCHIRM.runde = (modus === "bibliothek")
+            ? WORDLE_BILDSCHIRM._bibliothekRunde(parameter, neueUebung)
+            : WORDLE_BILDSCHIRM._rundeHolen(modus, neueUebung);
 
         /* Heute schon auf einem ANDEREN Gerät gespielt: Die Datenbank kennt
            das Ergebnis, dieses Gerät kennt die Runde nicht. Dann gibt es kein
@@ -128,6 +136,34 @@ const WORDLE_BILDSCHIRM = {
     },
 
     /*
+     * Eine Runde der Bibliothek (seit 0.18.0): Läuft eine angefangene Runde
+     * GENAU dieses Levels, geht sie weiter (so lässt sich ein Wort nicht
+     * durch Verlassen neu würfeln). Sonst ein neues Wort aus dem festen
+     * Bereich — die zuletzt gespielten Wörter (Gerät, „bibliothek-zuletzt")
+     * möglichst nicht. Zufall von hier, gezogen im Modell.
+     */
+    _bibliothekRunde(parameter, neu) {
+        const buch = parseInt(parameter && parameter.buch, 10) || 1;
+        const level = Math.max(0, parseInt(parameter && parameter.level, 10) || 0);
+        const schwer = WORDLE_BILDSCHIRM.schwerGewaehlt();
+        const gemerkt = WORDLE.normalisieren(ICH.spielstand("wordle-bibliothek"));
+        if (!neu && gemerkt && gemerkt.modus === "bibliothek" && gemerkt.zustand === "laeuft"
+                && gemerkt.buch === buch && gemerkt.level === level) {
+            return WORDLE_BILDSCHIRM._schwerVorDemErstenVersuch(gemerkt, schwer);
+        }
+        const zuletzt = ICH.spielstand("bibliothek-zuletzt");
+        const wort = BIBLIOTHEK.wortZiehen(buch, level, Math.random(), zuletzt)
+            || WORDLE.uebungswort(Math.random());
+        ICH.spielstandSetzen("bibliothek-zuletzt", BIBLIOTHEK.zuletztMerken(zuletzt, wort));
+        const runde = WORDLE.neueRunde({
+            modus: "bibliothek", buch: buch, level: level, loesung: wort,
+            zeitpunkt: APP.jetzt().getTime(), schwer: schwer, grund: BIBLIOTHEK.versuche(buch, level)
+        });
+        ICH.spielstandSetzen("wordle-bibliothek", runde);
+        return runde;
+    },
+
+    /*
      * Der Schwer-Modus (seit 0.6.0) ist eine Einstellung dieses Geräts; die
      * Runde merkt sich beim Anlegen, ob sie schwer ist (js\wordle.js). Eine
      * gemerkte Runde OHNE Versuch übernimmt noch die aktuelle Wahl — wer
@@ -174,7 +210,8 @@ const WORDLE_BILDSCHIRM = {
            Zurück-Pfeil oben. Beim Ergebnis ist sie wieder da. */
         document.body.classList.toggle("im-spiel", runde.zustand === "laeuft" || !!tastaturBehalten);
 
-        const titel = runde.modus === "tag" ? "Tageswort Nr. " + runde.nummer : "Übung";
+        const titel = runde.modus === "tag" ? "Tageswort Nr. " + runde.nummer
+            : (runde.modus === "bibliothek" ? BIBLIOTHEK.titel(runde.buch, runde.level) : "Übung");
         const kopf = BAUSTEINE.kopfzeile(titel, {
             zurueck: () => NAVIGATION.zurueck(),
             rechts: BAUSTEINE.knopf({
@@ -190,17 +227,84 @@ const WORDLE_BILDSCHIRM = {
             kopf.querySelector(".kopfzeile-titel")
                 .appendChild(BAUSTEINE.el("span", "kopfzeile-zusatz", "schwer"));
         }
+        /* Der Boss eines Buchs (seit 0.18.0): rote Kopfzeile mit „BOSS". */
+        if (runde.modus === "bibliothek" && BIBLIOTHEK.istBoss(runde.buch, runde.level)) {
+            kopf.classList.add("kopfzeile-boss");
+        }
         behaelter.appendChild(kopf);
 
         const spiel = BAUSTEINE.el("div", "wordle");
         spiel.appendChild(WORDLE_BILDSCHIRM._brettBauen());
 
+        const tipps = WORDLE_BILDSCHIRM._tippsBauen();
+        if (tipps) {
+            spiel.appendChild(tipps);
+        }
         if (runde.zustand === "laeuft" || tastaturBehalten) {
             spiel.appendChild(WORDLE_BILDSCHIRM._tastaturBauen());
         } else {
             spiel.appendChild(WORDLE_BILDSCHIRM._endeBauen());
         }
         behaelter.appendChild(spiel);
+    },
+
+    /*
+     * DIE WAREN AUS DEM SHOP (seit 0.17.0, js/bildschirm-shop.js):
+     *   Tipp  — ein Knopf über der Tastatur, nur mit Vorrat: deckt einen
+     *           richtigen Buchstaben an seiner Stelle auf (die erste Stelle,
+     *           die noch nie grün war) und schreibt ihn in die Eingabe.
+     *   Extra-Leben — angeboten, wenn der 6. Versuch danebenging: ein 7.
+     *           Versuch (`_beiRundenende`).
+     * Mit einer Ware gibt das Tageswort höchstens einen Bauern
+     * (js/fortschritt.js `partie`, angaben.hilfe), und die Rangliste zählt
+     * einen 7. Versuch nicht als gelöst (js/ergebnisse.js).
+     */
+    _tippsBauen() {
+        const runde = WORDLE_BILDSCHIRM.runde;
+        const tipps = Array.isArray(runde.tipps) ? runde.tipps : [];
+        const vorrat = (typeof APP !== "undefined" && APP.vorrat) ? APP.vorrat("tipp") : 0;
+        const knopfDa = runde.zustand === "laeuft" && vorrat > 0 && WORDLE.tippStelle(runde) >= 0;
+        if (!knopfDa && !tipps.length) {
+            return null;
+        }
+        const leiste = BAUSTEINE.el("div", "wordle-tipps");
+        for (const stelle of tipps) {
+            leiste.appendChild(BAUSTEINE.el("span", "wordle-tipp-marke",
+                "Feld " + (stelle + 1) + ": " + Array.from(runde.loesung)[stelle].toUpperCase()));
+        }
+        if (knopfDa) {
+            const knopf = BAUSTEINE.knopf({ text: "Tipp · " + vorrat, art: "still", zeichen: "info",
+                beiKlick: () => WORDLE_BILDSCHIRM._tippEinsetzen() });
+            knopf.classList.add("wordle-tipp-knopf");
+            leiste.appendChild(knopf);
+        }
+        return leiste;
+    },
+
+    async _tippEinsetzen() {
+        const runde = WORDLE_BILDSCHIRM.runde;
+        if (WORDLE_BILDSCHIRM._sperre || runde.zustand !== "laeuft") {
+            return;
+        }
+        const ja = await DIALOG.frage("Tipp einsetzen?", "Deckt einen richtigen Buchstaben auf"
+            + (runde.modus === "tag" ? " · Tageswort dann höchstens ein Bauer" : ""), "Einsetzen");
+        if (!ja) {
+            return;
+        }
+        const tipp = WORDLE.tippEinsetzen(WORDLE_BILDSCHIRM.runde);
+        if (!tipp || !APP.benutzen("tipp")) {
+            return;
+        }
+        WORDLE_BILDSCHIRM.runde = tipp.runde;
+        const eingabe = JSON.parse(JSON.stringify(WORDLE_BILDSCHIRM.eingabe));
+        eingabe.felder[tipp.stelle] = tipp.buchstabe;
+        if (eingabe.stelle === tipp.stelle) {
+            eingabe.stelle = WORDLE._naechstesLeeres(eingabe.felder, eingabe.stelle);
+        }
+        WORDLE_BILDSCHIRM.eingabe = eingabe;
+        WORDLE_BILDSCHIRM._merken();
+        WORDLE_BILDSCHIRM._zeichnen();
+        DIALOG.kurzmeldung("Feld " + (tipp.stelle + 1) + ": " + tipp.buchstabe.toUpperCase(), 1800);
     },
 
     _brettBauen() {
@@ -210,7 +314,7 @@ const WORDLE_BILDSCHIRM = {
         brett.setAttribute("role", "grid");
         brett.setAttribute("aria-label", "Spielbrett");
 
-        for (let zeile = 0; zeile < WORDLE.VERSUCHE; zeile++) {
+        for (let zeile = 0; zeile < WORDLE.versucheMax(runde); zeile++) {
             const reihe = BAUSTEINE.el("div", "wordle-zeile");
             reihe.setAttribute("role", "row");
 
@@ -339,7 +443,7 @@ const WORDLE_BILDSCHIRM = {
         const karte = BAUSTEINE.karte(null, "wordle-ende");
 
         karte.appendChild(BAUSTEINE.el("p", "wordle-ende-titel",
-            (gewonnen ? runde.versuche.length : "X") + "/" + WORDLE.VERSUCHE));
+            (gewonnen ? runde.versuche.length : "X") + "/" + WORDLE.versucheMax(runde)));
         const loesung = BAUSTEINE.el("p", "wordle-ende-loesung");
         loesung.appendChild(BAUSTEINE.el("span", "wordle-ende-wort-titel", "Lösung"));
         loesung.appendChild(BAUSTEINE.el("strong", null, runde.loesung.toUpperCase()));
@@ -359,6 +463,8 @@ const WORDLE_BILDSCHIRM = {
                 beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "uebung", neu: true }, true)
             }));
             karte.appendChild(BAUSTEINE.el("p", "wordle-ende-naechstes", "Nächstes Wort: 0 Uhr"));
+        } else if (runde.modus === "bibliothek") {
+            WORDLE_BILDSCHIRM._bibliothekEndeBauen(karte, runde, gewonnen);
         } else {
             karte.appendChild(BAUSTEINE.knopf({
                 text: "Neues Übungswort", art: "haupt", breit: true, zeichen: "uebung",
@@ -366,6 +472,33 @@ const WORDLE_BILDSCHIRM = {
             }));
         }
         return karte;
+    },
+
+    /* Das Ende eines Bibliothek-Levels (seit 0.18.0): gelöst → „Weiter"
+       zum nächsten offenen Level; nicht gelöst → „Nochmal" mit einem neuen
+       Wort aus demselben Bereich. Darunter immer zurück zur Bibliothek. */
+    _bibliothekEndeBauen(karte, runde, gewonnen) {
+        const figuren = FORTSCHRITT.turmFiguren(APP.fortschritt());
+        const weiter = gewonnen ? BIBLIOTHEK.danach(figuren, runde.buch, runde.level) : null;
+        if (weiter) {
+            karte.appendChild(BAUSTEINE.knopf({
+                text: BIBLIOTHEK.istBoss(weiter.buch, weiter.level) ? "Weiter · Boss"
+                    : (weiter.buch !== runde.buch ? "Weiter · Buch " + weiter.buch : "Weiter"),
+                art: "haupt", breit: true, zeichen: "weiter",
+                beiKlick: () => NAVIGATION.zeigen("wordle",
+                    { modus: "bibliothek", buch: weiter.buch, level: weiter.level, neu: true }, true)
+            }));
+        } else {
+            karte.appendChild(BAUSTEINE.knopf({
+                text: "Nochmal", art: "haupt", breit: true, zeichen: "uebung",
+                beiKlick: () => NAVIGATION.zeigen("wordle",
+                    { modus: "bibliothek", buch: runde.buch, level: runde.level, neu: true }, true)
+            }));
+        }
+        karte.appendChild(BAUSTEINE.knopf({
+            text: BIBLIOTHEK.NAME, art: "still", breit: true, zeichen: "bibliothek",
+            beiKlick: () => NAVIGATION.zeigen("start", null, true)
+        }));
     },
 
     /* Was die gerade beendete Runde an XP brachte (seit 0.10.0) — gesetzt
@@ -388,6 +521,10 @@ const WORDLE_BILDSCHIRM = {
         const kopf = BAUSTEINE.el("div", "wertung-kopf");
         if (runde.modus === "tag") {
             kopf.appendChild(BAUSTEINE.figuren(wertung.figuren));
+        } else if (runde.modus === "bibliothek") {
+            /* Wie der Fortschritt zählt: mit Hilfe aus dem Shop höchstens 1. */
+            kopf.appendChild(BAUSTEINE.figuren(BIBLIOTHEK.figurenFuer(runde.zustand === "gewonnen",
+                wertung.figuren, WORDLE.hilfeGenutzt(runde))));
         }
         const zahlen = BAUSTEINE.el("div", "wertung-zahlen");
         zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl(wertung.genauigkeit + " %", "Können"));
@@ -395,6 +532,9 @@ const WORDLE_BILDSCHIRM = {
         const gewinn = WORDLE_BILDSCHIRM._gewinn;
         if (gewinn && gewinn.loesung === runde.loesung && gewinn.begonnenAm === runde.begonnenAm) {
             zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl("+" + gewinn.xp, "XP"));
+            if (gewinn.muenzen > 0 && typeof UPCREW_MUENZEN !== "undefined") {
+                zahlen.appendChild(WORDLE_BILDSCHIRM._wertungZahl("+" + gewinn.muenzen, UPCREW_MUENZEN.WAEHRUNG.name));
+            }
         }
         kopf.appendChild(zahlen);
         teil.appendChild(kopf);
@@ -582,6 +722,11 @@ const WORDLE_BILDSCHIRM = {
         WORDLE_BILDSCHIRM.runde = antwort.runde;
         WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
         WORDLE_BILDSCHIRM._merken();
+        /* Serie ab Rundenstart (seit 0.17.0): heute ein Versuch abgegeben
+           = heute gespielt (js/app.js `rundeGestartet`, einmal je Tag). */
+        if (typeof APP !== "undefined" && APP.rundeGestartet) {
+            APP.rundeGestartet();
+        }
 
         /* Aufdecken: Das Brett wird mit der neuen Zeile gezeichnet, die Kacheln
            dieser Zeile drehen sich nacheinander um. Solange das läuft, nimmt
@@ -626,13 +771,31 @@ const WORDLE_BILDSCHIRM = {
         });
     },
 
-    _beiRundenende() {
+    async _beiRundenende() {
+        /* Extra-Leben (seit 0.17.0): Der 6. Versuch ging daneben, und es
+           ist eins im Vorrat — dann erst fragen, bevor gewertet wird. */
+        if (WORDLE.lebenMoeglich(WORDLE_BILDSCHIRM.runde) && APP.vorrat("leben") > 0) {
+            WORDLE_BILDSCHIRM._sperre = true;
+            const ja = await DIALOG.frage("Extra-Leben einsetzen?", "Ein "
+                + (WORDLE.versucheGrund(WORDLE_BILDSCHIRM.runde) + 1) + ". Versuch · Vorrat "
+                + APP.vorrat("leben") + (WORDLE_BILDSCHIRM.runde.modus === "tag"
+                    ? " · Tageswort dann höchstens ein Bauer, Rangliste wie X/6" : ""), "Einsetzen");
+            WORDLE_BILDSCHIRM._sperre = false;
+            const neu = ja ? WORDLE.lebenEinsetzen(WORDLE_BILDSCHIRM.runde) : null;
+            if (neu && APP.benutzen("leben")) {
+                WORDLE_BILDSCHIRM.runde = neu;
+                WORDLE_BILDSCHIRM._merken();
+                WORDLE_BILDSCHIRM._zeichnen();
+                return;
+            }
+        }
         const runde = WORDLE_BILDSCHIRM.runde;
         /* Seit 0.10.0: Wertung, XP, Heute — genau hier, einmal je Runde. Was
            dabei herauskam, zeigt das Ende-Feld (nur für DIESE Runde). */
         const gemeldet = APP.fortschrittMelden(runde);
         WORDLE_BILDSCHIRM._gewinn = gemeldet
-            ? { loesung: runde.loesung, begonnenAm: runde.begonnenAm, xp: gemeldet.ergebnis.xp }
+            ? { loesung: runde.loesung, begonnenAm: runde.begonnenAm, xp: gemeldet.ergebnis.xp,
+                muenzen: gemeldet.ergebnis.muenzen || 0 }
             : null;
         WORDLE_BILDSCHIRM._zeichnen();
 

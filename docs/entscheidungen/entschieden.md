@@ -2,6 +2,292 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## Konto-Formular sagt, was nicht stimmt; Gast-Umzug (28.09.2026, 0.18.5)
+
+Nutzer 28.09.2026 (live in Blunderluck gemeldet): „Wenn man von einem
+Gast-Account einen echten erstellen will, nimmt es das nicht an." · „Bei
+falscher Eingabe beim Account-Erstellen soll eine Meldung kommen, was genau
+nicht stimmt."
+- **Version 0.18.5 (PATCH):** zwei Fehler behoben.
+- `js\konto.js` = Blunderluck v0.152.4 bis auf `SCHLUESSEL`
+  (`tests\test-konto.js` vergleicht Zeile für Zeile). Begründungen dort im
+  Kopf von `gastSichern`, `_gastUmziehen`, `kombinationVergeben`,
+  `formularPruefen`.
+- Oberfläche wie Blunderluck (`js\anmeldung-konto.js`
+  `_kontoFormularPruefen`, `_kontoAllgemein`, `_kontoFertig`): Meldung am
+  Feld beim Tippen, Knopf immer drückbar, beim Drücken alle Meldungen und
+  Fokus ins erste falsche Feld; Server-Absage an `ergebnis.feld` (Name,
+  Passwort, Wiederholung) oder in die Zeile „allgemein" über dem Knopf
+  (Verbindung). Gilt für Neues Konto, Spielstand sichern, Neu verbinden.
+  Ohne Konto (lokaler Modus) dieselbe Form mit den alten Regeln aus
+  `js\spieler.js`.
+- Nicht gegen das echte Firebase gemessen: der Umzug bei
+  CREDENTIAL_TOO_OLD_LOGIN_AGAIN (nur Nachbau, wie in Blunderluck).
+
+## Aussehen je Spiel am Konto angeschaltet (28.09.2026, 0.18.4)
+
+Nutzer 28.09.2026 zur Regel §11c (`aussehenJe`): „ja ist drin".
+- **Version 0.18.4 (PATCH):** Das Aussehen je Spiel gab es seit 0.15.13;
+  jetzt reist es auch am Konto mit.
+- `AUSSEHEN_ABGLEICH.AUSSEHEN_JE_AM_KONTO = true` (wie Blunderluck
+  `AUSSEHEN_KONTO.AUSSEHEN_JE_AM_KONTO`). Geschrieben wird nur der
+  Teilpfad `konten/<uid>/aussehenJe/typoluck` mit `UPCREW_AUSSEHEN.fuerKonto()`
+  (die sechs Felder) plus `geaendertAm`; gelesen derselbe Pfad, fehlt er,
+  EINMAL das alte Feld `aussehen` als Umzug (Merker `typoluck.aussehen-umzug`,
+  seit 0.15.13 gebaut). Test: der geschriebene Eintrag besteht die
+  nachgebaute Regel §11c.
+
+## Bosse wieder 6 Versuche; Intro in der Farbwelt des Spiels (28.09.2026, 0.18.3)
+
+Nutzer 28.09.2026: „Nein → Boss heißt nicht automatisch weniger
+Versuche." · „Bei der Animation am Anfang soll sie sich auch ändern, wenn
+man ein neues Design-Paket nutzt, sprich pink, dann soll das UPCrew statt
+Orange Pink nutzen."
+
+- **Version 0.18.3 (PATCH).**
+- **Versuche:** Die Regel „Boss ab Buch 4 = 5" (0.18.1) ist weg, alle
+  Level und Bosse haben 6. Der Mechanismus bleibt (`bossVersuche`,
+  `BIBLIOTHEK.versuche`, Runde `grund`, „N Versuche" in der Vorstellung,
+  „X/N" am Ende) — Verschärfungen werden künftig je Level/Gegner gesetzt
+  (neue Bibliothek: Karte, Elite-Gegner, Boss-Eigenheiten). Der Test prüft
+  „alle 6" und den Mechanismus mit einem Probe-Wert.
+- **Intro — Befund:** Der Baustein nimmt `optionen.welt` (sonst
+  `upcrew.farbwelt`, sonst „werkstatt"). `js\intro.js` gab seit 0.15.13
+  schon `UPCREW_AUSSEHEN.lesen().farbwelt` mit — der Schlüssel
+  `typoluck.aussehen` stimmt, im Browser nachgemessen: Welt „Feld" →
+  Intro-Grund #e2e7e1, grün. Orange kam in der WERKSTATT: Das Intro läuft
+  vor `WERKSTATT.vorbereiten()`, und das setzt das Aussehen bei jedem Laden
+  auf den Standard (Werkstatt = Orange) plus `&farbwelt` — eine im Tab
+  „Sammlung" gewählte Welt war nach dem Neuladen wieder Orange, und das
+  Intro zeigte den Stand des vorigen Aufrufs. Ein „Pink" gibt es heute in
+  keinem Spiel; jede Farbwelt steht in `UPCREW_INTRO.WELTEN` (die
+  App-Farben werden daraus gerechnet, `js\upcrew-farbwelten.js`) — ein
+  neues Paket MUSS dort hinein, dann nimmt das Intro es automatisch.
+- **Intro — Lösung nur in `js\intro.js`** (Baustein unverändert, kein
+  Vorschlag nötig): `INTRO.welt()` → rein `INTRO.weltWaehlen({ werkstatt,
+  werkstattWelt, gewaehlt, standard, welten })`: normal die gewählte Welt
+  dieses Spiels (`UPCREW_AUSSEHEN.lesen().farbwelt`); Werkstatt
+  `&farbwelt`, sonst `UPCREW_AUSSEHEN.STANDARD.farbwelt`; eine Welt, die
+  `UPCREW_INTRO.WELTEN` nicht kennt → Standard. Dazu `INTRO.modus()` in der
+  Werkstatt ohne `&hell`/`&dunkel` = Gerät (wie vorbereiten), nicht der
+  gespeicherte Stand. Test `tests\test-intro.js`.
+
+## Intro beim Neuladen; Deploy löscht; Korrektur verschleiert (28.09.2026, 0.18.2)
+
+Nutzer 28.09.2026: „Wenn ich die Seite neu lade, soll die
+UPCrew-Animation erneut kommen." · Deploy-Skript soll löschen können:
+„ja" · Korrektur-Datei verschleiern: „ja" · Lösungsliste verschleiern:
+„später / gar nicht" (geparkt, `offen-und-abgelehnt.md`) · „Boss soll es
+jedes Buch am Ende geben" (war schon so, jetzt mit Test).
+
+- **Version 0.18.2 (PATCH):** bestehende Funktionen geradegezogen.
+- **Intro — Befund:** Im normalen Betrieb kam es schon bei jedem Laden
+  (DOMContentLoaded → `APP.starten` → `INTRO.zeigen`; im eingebauten
+  Browser nach `location.reload()` nachgemessen: 3,4 s sichtbar). Nicht
+  gekommen ist es in der WERKSTATT (`?werkstatt`, über die der Nutzer die
+  lokalen Stände ansieht): dort war es ohne `&intro` immer aus, auch beim
+  Neuladen. Kein Merker in sessionStorage, kein Service-Worker-Problem
+  gefunden.
+- **Intro — Lösung** (`INTRO.entscheiden`, rein, `tests\test-intro.js`):
+  jedes Laden → Intro, auch F5; Werkstatt → Intro, wenn die
+  Navigationsart „reload" ist (`performance.getEntriesByType("navigation")`),
+  sonst nur mit `&intro` (Bildschirmfotos sind frische Aufrufe). **Einzige
+  Ausnahme:** das automatische Neuladen der Aktualisierung
+  (`js\aktualisierung.js` setzt `sessionStorage["typoluck.neu-geladen"]`
+  direkt davor; Merker jünger als 15 s → kein Intro). Grund: Es passiert
+  von selbst mitten in der Benutzung an einem sicheren Moment; ein Intro
+  wäre eine Unterbrechung, die der Spieler nicht ausgelöst hat, und das
+  Intro dieser Sitzung hat er schon gesehen.
+- **Deploy löscht** (`tools\Loeschauswahl.ps1`, eingebunden in
+  `tools\Deploy-Typoluck.ps1`): Kandidat nur, wenn nicht in der aktuellen
+  Auslieferung, in einem verwalteten Ordner bzw. eine freigegebene
+  Wurzeldatei, nicht in der Schutzliste (CNAME, .nojekyll, README.md,
+  LICENSE(.md), .gitignore, .gitattributes, 404.html, alles unter
+  .github/). Fremde Ordner und unbekannte Wurzeldateien nie. Gelöscht wird
+  im selben Commit (Baum-Eintrag mit `sha: null`), nur nach „j" auf die
+  Rückfrage; `-NurAnzeigen` listet getrennt und löscht nie.
+- **Korrektur verschleiert:** `WORTBEWERTUNG.korrekturDatei` schreibt,
+  sobald Einträge da sind, `{ kodiert: "…" }` (JSON XOR Schlüsselstrom aus
+  SCHLEIER, Base64); leer bleibt `{}`. `WORTBEWERTUNG.korrektur()` liest
+  beide Formen, das Werkzeug liest darüber. Das Übernahme-Skript nimmt
+  `kodiert` an (Wörter prüft dann der Test) und erlaubt jetzt auch das
+  Feld `zahl` (fehlte seit 0.18.0).
+
+## Boss ab Buch 4 mit 5 Versuchen; Bewertung nicht mehr öffentlich (28.09.2026, 0.18.1)
+
+Nutzer 28.09.2026 auf die fünf Fragen aus 0.18.0: (1) Boss mit einem
+Versuch weniger — „Später, damit es schwerer wird." (2) Nicht-Nomen —
+„Ja, lasse es so." (3) Start zuerst Bibliothek — „Ja." (4) Zahl 0–100
+öffentlich — „Ne, soll nicht öffentlich sein." (5) Zahl im Werkzeug von
+Hand — „Ja, wenn zu komplex, dann nein, nicht so wichtig."
+
+- **Version 0.18.1 (PATCH):** alles ändert Bestehendes (Boss, Daten,
+  Verwaltung, Werkzeug); nichts kann der Spieler, was vorher nicht ging.
+- **Boss ab Buch 4: 5 Versuche** (`bossVersuche` in `BIBLIOTHEK.BUECHER`,
+  `BIBLIOTHEK.versuche`). Warum ab 4: Die Bücher 1–3 lernt man das Spiel
+  (Bereiche bis 50, viele Wörter); ab Buch 4 liegen die Bosse bei 52–100,
+  dort soll es spürbar schwerer werden, ohne dass Buch 1–3 abschrecken.
+  Umsetzung additiv: Die Runde trägt `grund` (Versuche ohne Extra-Leben,
+  fehlt = 6), `WORDLE.versucheGrund`; das Extra-Leben gibt dann den 6.
+  Versuch (`lebenMoeglich` am letzten Grund-Versuch). Sichtbar: rotes
+  „5 Versuche" in der Vorstellung, fünf Zeilen im Brett, „X/5" am Ende.
+- **Verschleiern statt Klartext** (`js\wortbewertung-daten.js`): nur noch
+  `kodiert` (Base64, je Lösungswort ein Byte = Zahl XOR Schlüssel-Byte aus
+  FNV-1a über „typoluck|wb|1|" + Wort) und die Schwellen `stufenAb`,
+  `skalaAb`. Stufe und Skala rechnet die App aus der Zahl. Warum so: Die
+  App braucht zum Ziehen die Zahl JEDES Wortes (Bereiche fest, Wörter
+  wandern später) — Kennungen je Bereich würden beim Wechsel auf
+  Spieldaten nicht mehr passen und verrieten trotzdem die Bereiche. Ein
+  Byte je Wort, am Wort verschlüsselt, ist klein und lässt nichts aus der
+  Datei ablesen. **Ehrliche Grenze:** Wer den Code liest, rechnet es
+  zurück; wirklich geheim geht nur mit einem Server.
+  **Aufwand gemessen:** Datei 3 048 → 1 466 Byte; Entschleiern aller 567
+  Wörter samt Nachschlagen 7,5 ms (Node, erster Aufruf); alle 567 Werte
+  (Zahl, Stufe, Skala) gleich wie vorher (Vergleich vor/nach).
+- **Admin-Lexikon nicht mehr ausgeliefert:** `js\lexikon-daten.js` liegt
+  jetzt als `werkzeug\lexikon-daten-alt-0.18.0.js` (nicht ausgeliefert; das
+  Werkzeug liest `wortbewertung-voll.js`), der Generator schreibt es nicht
+  mehr, `tools\Deploy-Typoluck.ps1` sperrt `lexikon-daten.js` und
+  `wortbewertung-voll.js` namentlich. Die Verwaltung zeigt „Nur im
+  Werkzeug", bis eine Admin-Quelle (Datenbank-Knoten nur für Admins,
+  nächste Regel) in `VERWALTUNG_BILDSCHIRM.LEXIKON_QUELLE` steht.
+  **Achtung:** Das Deploy-Skript löscht nichts auf GitHub — die dort seit
+  0.16.3 liegende Datei muss der Nutzer im Repository löschen; die
+  Git-Geschichte behält alte Fassungen.
+- **Sonst noch Klartext?** Geprüft (js, css, tests, docs, index.html,
+  sw.js): keine Zahlen je Wort mehr. `js\wortbewertung-korrektur.js` ist
+  leer; eine Korrektur von Hand stünde dort lesbar (Wort + Werte) — bei
+  Bedarf genauso verschleiern.
+- **Lösungsliste bleibt** (`js\woerter-de.js`, Nutzer). Zum Verschleiern
+  wäre nötig: Liste als Bytes kodieren (wie oben) und im Spiel erst beim
+  Ziehen entschlüsseln; `istErlaubt` bräuchte einen Hash-Vergleich statt
+  Klartext; Tageswort-Plan, Tests und Werkzeug lesen sie heute im
+  Klartext — mittlerer Umbau, bleibt ebenso zurückrechenbar.
+- **Werkzeug:** Spalte „Zahl" ist ein Eingabefeld (leer = gerechnet); die
+  Korrektur-Datei trägt `zahl` schon seit 0.18.0. Klein geblieben (ein
+  Feld), deshalb gebaut.
+
+## Die Bibliothek (28.09.2026, 0.18.0)
+
+Nutzer 27.09.2026 (spät) wörtlich: „benenne es bei typoluck um in
+Bibliothek und die Stockwerke … sollen Bücher werden -> Erste Buch nur
+Nomen, zweite etwas schwerer, immer so weiter. Wichtig: die einzelnen Level
+sollen nicht bei jedem dasselbe Wort haben, sondern die Wörter haben ja
+einen Wert zwischen 0–100 von der Schwierigkeit her; ein Level soll ein
+Wort aus einem Bereich nehmen, der soll fix sein, aber das Wort nicht fix
+pro Level. Bosse soll es auch geben."
+Nachtrag (Koordination, Nutzer-Entscheidung): Die Schwierigkeit soll später
+aus echten Spieldaten kommen, keine Häufigkeitsliste; die heutige Bewertung
+ist dann nur der Startwert — deshalb EINE Lesestelle.
+
+- **Version 0.18.0 (MINOR):** neue Funktion.
+- **Aufbau wie der Blunderluck-Turm** (`Apps\Blunderluck\js\turm.js`,
+  `start-turm.js`): Weg aus Punkten, Boss am Ende, Buch durch = Boss gelöst,
+  Boss erst nach allen Leveln, Nachholen erlaubt; Figuren 1–3 aus der
+  Wertung (`WERTUNG.runde`, Schwellen 55/75), mit Shop-Hilfe höchstens 1.
+- **Stand im bestehenden Feld:** `spiele.typoluck.turm.figuren`, Schlüssel
+  „Buch-Level" (Level ab 0) — Regel §11b erlaubt `^[0-9]{1,2}-[0-9]{1,2}$`,
+  1–3. Keine neuen Konto-Felder. Die Merkliste der zuletzt gespielten Wörter
+  bleibt auf dem Gerät (`ICH.spielstand("bibliothek-zuletzt")`, 30 Wörter).
+- **6 Bücher × 8 Level (7 + Boss):** Die Bewertung reicht 5–86, dicht
+  15–55, oben dünn (20 Wörter über 65). Sechs Bücher in Schritten von
+  rund 10 decken das ab, ohne dass oben ein Bereich leer läuft; acht Punkte
+  passen als ein Weg auf den Handy-Bildschirm und sind etwas mehr als
+  Blunderlucks 5–6 Stufen, weil ein Wort schneller gespielt ist als eine
+  Partie. Im Buch steigt jedes Level um 2 Punkte (Fenster 8–9 breit).
+- **Bereiche und Wortanzahl** (Stand 28.09.2026; Buch 1 nur Nomen gezählt;
+  Test verlangt ≥ 8):
+
+  | Buch | L1 | L2 | L3 | L4 | L5 | L6 | L7 | Boss |
+  |---|---|---|---|---|---|---|---|---|
+  | 1 (Nomen) | 5–14: 40 | 8–16: 50 | 10–18: 65 | 12–20: 90 | 14–22: 100 | 16–24: 102 | 18–26: 102 | 24–32: 84 |
+  | 2 | 15–22: 98 | 17–24: 102 | 19–26: 102 | 21–28: 89 | 23–30: 93 | 25–32: 90 | 27–34: 91 | 32–40: 119 |
+  | 3 | 25–32: 90 | 27–34: 91 | 29–36: 95 | 31–38: 95 | 33–40: 111 | 35–42: 106 | 37–44: 111 | 42–50: 101 |
+  | 4 | 35–42: 106 | 37–44: 111 | 39–46: 108 | 41–48: 94 | 43–50: 89 | 45–52: 75 | 47–54: 70 | 52–60: 61 |
+  | 5 | 45–52: 75 | 47–54: 70 | 49–56: 60 | 51–58: 57 | 53–60: 55 | 55–62: 39 | 57–64: 33 | 62–72: 20 |
+  | 6 | 52–58: 49 | 54–60: 46 | 56–62: 35 | 58–64: 28 | 60–66: 23 | 62–68: 16 | 64–72: 18 | 68–100: 10 |
+
+  Die Zahlen gelten für die heutige Bewertung. Wandern Wörter später
+  (Spieldaten), bleiben die Bereiche fest, der Test zählt über dieselbe
+  Lesestelle neu, und ein leer gewordener Bereich nimmt zur Laufzeit die
+  8 nächstgelegenen Wörter (`BIBLIOTHEK.naechsteWoerter`).
+- **Boss-Regel:** Bereich am oberen Ende des Buchs (Obergrenze über allen
+  Leveln, breiteres Fenster), sichtbar anders (grösserer roter Punkt mit
+  Maske, Vorstellung „BOSS" mit Beben, rote Kopfzeile in der Runde, +25
+  Münzen beim ersten Sieg) — aber **sechs Versuche wie immer**. Warum
+  nicht einen weniger: Das Extra-Leben aus dem Shop hängt am 6. Versuch
+  (`WORDLE.lebenMoeglich`), fünf Versuche würden Modell, Brett und Shop
+  zugleich ändern; und bei den schwersten Wörtern entscheidet mit fünf
+  Versuchen oft Glück statt Können (die Wertung trennt Glück bewusst ab).
+  Frage an den Nutzer, ob er es trotzdem will.
+- **Buch 1 nur Nomen:** `js\wortarten-daten.js` nennt die Ausnahmen
+  (alles andere gilt als Nomen). `keinNomen` (36): banal, blind, blond,
+  braun, bravo, breit, dicht, eigen, eilig, eitel, flach, flink, frech,
+  genau, glatt, grell, heute, klein, knapp, krank, krumm, leise, mager,
+  mutig, nackt, nobel, offen, prima, ruhig, sanft, sauer, schön, stark,
+  steil, still, weich. `beides` (11, auch nicht in Buch 1): bitte, elend,
+  essen, extra, feige, ideal, leben, lokal, recht, reich, stolz. Von Hand
+  gesetzt (Claude) — zum Nachsehen durch den Nutzer.
+- **Eine Lesestelle:** `WORTBEWERTUNG.schwierigkeit(wort)` (0–100,
+  vorgerechnet, Korrektur `zahl` gewinnt). `js\wortbewertung-daten.js`
+  trägt dafür `zahlen` (zwei Ziffern je Wort) und `stufenAb` [27, 42];
+  `WORTBEWERTUNG.stufe` (Tageswort-XP) rechnet seitdem daraus — heute
+  gleich der vorgerechneten Stufe (Test). Die Zahl liegt damit öffentlich
+  im Repository (wie schon `js\lexikon-daten.js`); die Teilwerte bleiben im
+  Werkzeug.
+- **Start:** Art-Wahl am Quadrat neben „Spielen" (Bibliothek · Frei, wie
+  Blunderluck); Vorgabe Bibliothek (Entwurf „Start-Tab = Turm"); Frei zeigt
+  die Kachel wie bisher, das Quadrat steht in ihrer Knopf-Reihe. Das
+  Tageswort bleibt über Frei und den Tab Aufgaben erreichbar.
+- **Nicht gebaut** (eigene Version nach Konzept): Datensammlung aus
+  Spielen, Spieler-Stufe, anpassendes Tageswort.
+
+## Verwaltung nur in den Einstellungen; Shop-Texte über `texte` (27.09.2026, 0.17.1)
+
+Nutzer 27.09.2026 (spät) wörtlich: „der verwalten tab sollte aber nur in den
+einstellungen der beiden spiele liegen und nicht doppelt irgendwo".
+- **Ein Weg:** Knopf „Verwaltung" in der Karte „UPCrew-Konto" der
+  Einstellungen, nur wenn `VERWALTUNG_BILDSCHIRM.erlaubt()` (Admin bzw.
+  Werkstatt `&admin` auf localhost) — wie Blunderluck
+  (`js\einstellungen.js`). Der Bildschirm meldet sich mit `imMenue: false`
+  an, steht nicht in `NAVIGATION.LEISTE` (also auch nicht wischbar);
+  `tests\test-verwaltung.js` prüft, dass keine andere js-Datei den
+  Bildschirm nennt. Die Werkstatt-Adresse `&bildschirm=verwaltung` bleibt
+  als Prüfhilfe (nur lokal, ohne Recht zurück zum Start).
+- **Platz in der Konto-Karte** (vor „Abmelden"), nicht als eigene Karte:
+  so steht er wie in Blunderluck zwischen den Konto-Knöpfen.
+- **Version 0.17.1 (PATCH):** Die Verwaltung gab es schon; sie zieht nur um.
+- **Shop-Texte:** `js\upcrew-shop.js` neu aus final (Option `texte`,
+  `UPCREW_SHOP.text`). `SHOP_BILDSCHIRM.TEXTE` wird als `texte` übergeben
+  und für Rückfrage/Kurzmeldung über `UPCREW_SHOP.text` gelesen;
+  `UPCREW_MUENZEN.WAREN` wird nicht mehr überschrieben (erledigt den
+  Vorschlag aus 0.17.0).
+
+## Münzen, Shop, Serie ab Rundenstart (27.09.2026, 0.17.0)
+
+Nutzer-Entscheidungen 27.09.; Blunderluck v0.152.0 baute zuerst, Typoluck
+übernimmt 1:1.
+- **Version 0.17.0** (neue Funktion für Spieler). Der Turm wird damit
+  frühestens 0.18.0.
+- **Rechnung gleich:** Die Serien- und Zähler-Funktionen in
+  `js\fortschritt.js` sind Zeile für Zeile Blunderlucks (Test vergleicht
+  elf Funktionen), dazu `spielLeer` als Name für `zweigLeer`.
+- **„Start" in Typoluck = heute einen Versuch abgegeben** (Tageswort oder
+  Übung, `APP.rundeGestartet`). Nur Öffnen zählt nicht — wer bloss das
+  fertige Tageswort ansieht, hat nicht gespielt; wie Blunderlucks
+  „Anpfiff" zählt erst die erste echte Handlung.
+- **Münzen:** Tageswort (erstes Schaffen des Tages) +10, gelöste Übung +3,
+  Level +10 je Stufe, jeder 7. Serientag +20; Figuren/Boss erst mit dem
+  Turm.
+- **Extra-Leben:** angeboten nach dem 6. Fehlversuch (einmal je Runde).
+  Rangliste: ein 7. Versuch zählt wie „X/6" (fair gegenüber allen ohne
+  Kauf, ältere Fassungen lesen höchstens 6 Versuche). **Tipp:** die erste
+  Stelle, die noch nie grün war, wird aufgedeckt und in die Eingabe
+  geschrieben. Mit einer Ware höchstens ein Bauer (`partie`, `hilfe`).
+- **Waren-Texte:** Der Baustein beschreibt Blunderlucks Waren; Typoluck
+  setzt beim Start eigene Texte (`SHOP_BILDSCHIRM.TEXTE`) — Vorschlag an
+  final: `UPCREW_SHOP.bauen(…, { texte })`, dann entfällt das.
+
 ## Verwaltung für Admins: Lexikon und Spielerliste (27.09.2026, 0.16.3)
 
 Nutzer: „der Admin soll in Typoluck das Lexikon sehen mit den Wörtern, und

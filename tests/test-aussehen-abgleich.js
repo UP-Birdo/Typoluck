@@ -36,9 +36,34 @@ const ablehnend = {
 
 gleich("Die Pfade am Konto", [AUSSEHEN_ABGLEICH.pfad("abc"), AUSSEHEN_ABGLEICH.pfadJe("abc")],
     ["konten/abc/aussehen", "konten/abc/aussehenJe/typoluck"]);
-gleich("Der Schalter steht aus, bis §11c eingespielt ist",
+gleich("Der Schalter steht an (Regel §11c am 28.09.2026 eingespielt, seit 0.18.4)",
     require("fs").readFileSync(require("path").join(__dirname, "..", "js", "aussehen-abgleich.js"), "utf8")
-        .match(/AUSSEHEN_JE_AM_KONTO: (true|false),/)[1], "false");
+        .match(/AUSSEHEN_JE_AM_KONTO: (true|false),/)[1], "true");
+
+/* Regel §11c (Apps\Blunderluck\SICHERHEIT.md) als Prüffunktion für
+   aussehenJe/<app>: Verstösse als Liste (leer = besteht). */
+function regel11c(je) {
+    const fehler = [];
+    for (const [app, a] of Object.entries(je || {})) {
+        if (!/^(blunderluck|typoluck)$/.test(app)) {
+            fehler.push("app " + app);
+        }
+        for (const [feld, wert] of Object.entries(a || {})) {
+            const ok = {
+                darstellung: (w) => typeof w === "string" && /^(geraet|hell|dunkel)$/.test(w),
+                farbwelt: (w) => typeof w === "string" && /^(werkstatt|studio|feld|tiefsee|gold)$/.test(w),
+                schrift: (w) => typeof w === "string" && /^S[1-6]$/.test(w),
+                knoepfe: (w) => typeof w === "string" && /^K[1-6]$/.test(w),
+                leseschrift: (w) => typeof w === "boolean",
+                stand: (w) => typeof w === "number" && w >= 0
+            }[feld];
+            if (!ok || !ok(wert)) {
+                fehler.push(app + "/" + feld + ": " + JSON.stringify(wert));
+            }
+        }
+    }
+    return fehler;
+}
 
 spaeter("Abgleich", (async () => {
 
@@ -58,6 +83,11 @@ spaeter("Abgleich", (async () => {
     const konto = konten()["uid-1"];
     gleich("Am Konto steht das Aussehen des Geräts unter aussehenJe/typoluck",
         konto.aussehenJe.typoluck, aussehen.fuerKonto());
+    gleich("§11c: aussehenJe besteht die Regel", regel11c(konto.aussehenJe), []);
+    gleich("§11c: genau die sechs Felder", Object.keys(konto.aussehenJe.typoluck).sort(),
+        ["darstellung", "farbwelt", "knoepfe", "leseschrift", "schrift", "stand"]);
+    pruefe("§11c: die Prüffunktion lehnt Fremdes ab",
+        regel11c({ typoluck: { farbwelt: "pink", extra: 1 }, trainer: {} }).length === 3);
     gleich("Nur die sechs Felder", Object.keys(konto.aussehenJe.typoluck).sort(),
         ["darstellung", "farbwelt", "knoepfe", "leseschrift", "schrift", "stand"]);
     gleich("Blunderlucks Zweig, das alte Feld, Name und Freunde bleiben unberührt",

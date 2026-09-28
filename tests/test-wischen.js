@@ -59,11 +59,13 @@ function welt() {
 {
     const { NAVIGATION, klassen, umgebung } = welt();
     const tabs = NAVIGATION.wischenTabs();
-    gleich("Wischbar: die Leiste in ihrer Reihenfolge, „Bald“ still", JSON.parse(JSON.stringify(tabs)),
-        ["herausforderungen", "sammlung", "start", "rangliste", { id: "platz-bald", still: true }]);
+    gleich("Wischbar: die Leiste in ihrer Reihenfolge, seit 0.17.0 mit dem Shop auf Platz 5", JSON.parse(JSON.stringify(tabs)),
+        ["herausforderungen", "sammlung", "start", "rangliste", "shop"]);
     gleich("Von Start nach links wischen = Rangliste", W.nachbar(tabs, "start", 1), "rangliste");
     gleich("Von Start nach rechts wischen = Sammlung", W.nachbar(tabs, "start", -1), "sammlung");
-    gleich("Rechtes Ende: nach Rangliste nur „Bald“ (still)", W.nachbar(tabs, "rangliste", 1), null);
+    gleich("Nach Rangliste kommt der Shop", W.nachbar(tabs, "rangliste", 1), "shop");
+    gleich("Rechtes Ende: nach dem Shop nichts", W.nachbar(tabs, "shop", 1), null);
+    gleich("Ein stiller Platz würde übersprungen", W.nachbar(["a", { id: "b", still: true }], "a", 1), null);
     gleich("Linkes Ende: vor Aufgaben nichts", W.nachbar(tabs, "herausforderungen", -1), null);
     gleich("In der Runde (Wordguesser) steht kein Leisten-Tab: kein Ziel", W.nachbar(tabs, "wordle", 1), null);
     gleich("Profil und Einstellungen (Menü) wischen nicht", [W.nachbar(tabs, "profil", 1),
@@ -158,46 +160,48 @@ spaeter("Wischen mit Zeigern", (async () => {
     try {
         const { NAVIGATION, klassen } = welt();
         const gezeigt = [];
-        NAVIGATION.aktuell = "start";
+        NAVIGATION.aktuell = "rangliste";
         NAVIGATION.zeigen = (id) => { gezeigt.push(id); NAVIGATION.aktuell = id; };
         const f = flaecheBauen();
         NAVIGATION.wischenEinrichten(f);
 
         f.zug([[300, 400], [250, 402], [180, 405]]);
         await warten();
-        gleich("Nach links gewischt: Start → Rangliste", gezeigt, ["rangliste"]);
+        gleich("Nach links gewischt: Rangliste → Shop", gezeigt, ["shop"]);
         f.zug([[300, 400], [250, 402], [180, 405]]);
         await warten();
-        gleich("Rechtes Ende: nichts", gezeigt, ["rangliste"]);
+        gleich("Rechtes Ende: nichts", gezeigt, ["shop"]);
         f.zug([[100, 400], [160, 401], [230, 403]]);
         await warten();
         f.zug([[100, 400], [160, 401], [230, 403]]);
         await warten();
         f.zug([[100, 400], [160, 401], [230, 403]]);
         await warten();
-        gleich("Nach rechts: Rangliste → Start → Sammlung → Aufgaben", gezeigt,
-            ["rangliste", "start", "sammlung", "herausforderungen"]);
         f.zug([[100, 400], [160, 401], [230, 403]]);
         await warten();
-        gleich("Linkes Ende: nichts", gezeigt.length, 4);
+        gleich("Nach rechts: Shop → Rangliste → Start → Sammlung → Aufgaben", gezeigt,
+            ["shop", "rangliste", "start", "sammlung", "herausforderungen"]);
+        f.zug([[100, 400], [160, 401], [230, 403]]);
+        await warten();
+        gleich("Linkes Ende: nichts", gezeigt.length, 5);
 
         f.zug([[200, 200], [205, 300], [210, 500]]);
         await warten();
-        gleich("Senkrecht rollen: kein Wechsel", gezeigt.length, 4);
+        gleich("Senkrecht rollen: kein Wechsel", gezeigt.length, 5);
         f.zug([[300, 400], [250, 402], [180, 405]], element([".tastatur"]));
         await warten();
-        gleich("Auf der Tastatur: kein Wechsel", gezeigt.length, 4);
+        gleich("Auf der Tastatur: kein Wechsel", gezeigt.length, 5);
         f.zug([[300, 400], [250, 402], [180, 405]], null, "mouse");
         await warten();
-        gleich("Mit der Maus: kein Wechsel", gezeigt.length, 4);
+        gleich("Mit der Maus: kein Wechsel", gezeigt.length, 5);
         klassen.add("im-spiel");
         f.zug([[300, 400], [250, 402], [180, 405]]);
         await warten();
-        gleich("In der Runde (body.im-spiel): kein Wechsel", gezeigt.length, 4);
+        gleich("In der Runde (body.im-spiel): kein Wechsel", gezeigt.length, 5);
         klassen.delete("im-spiel");
         f.zug([[300, 400], [250, 402], [180, 405]]);
         await warten();
-        gleich("Danach wieder: Aufgaben → Sammlung", gezeigt[4], "sammlung");
+        gleich("Danach wieder: Aufgaben → Sammlung", gezeigt[5], "sammlung");
         await new Promise((r) => setTimeout(r, 250));
         gleich("Die Fläche steht danach wieder an ihrem Platz", [f.style.transform, f.style.opacity], ["", ""]);
 
@@ -213,8 +217,8 @@ spaeter("Wischen mit Zeigern", (async () => {
             f.horcher.pointercancel({ pointerId: 2 });
             return weg;
         };
-        NAVIGATION.aktuell = "rangliste";
-        gleich("Rangliste, nach links gezogen: nichts bewegt sich", ziehen(300, 150), "translateX(0px)");
+        NAVIGATION.aktuell = "shop";
+        gleich("Shop (rechtes Ende), nach links gezogen: nichts bewegt sich", ziehen(300, 150), "translateX(0px)");
         NAVIGATION.aktuell = "herausforderungen";
         gleich("Aufgaben, nach rechts gezogen: nichts bewegt sich", ziehen(100, 250), "translateX(0px)");
         pruefe("Dazwischen folgt der Inhalt dem Finger", /translateX\(-\d/.test(ziehen(300, 150)));

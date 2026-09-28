@@ -41,7 +41,9 @@ const KOPIEN = [
     "js/upcrew-flamme.js", "css/upcrew-flamme.css",
     /* seit 0.16.3: Spielerliste der Admins — Vorschlag aus Typoluck für final,
        ab dort wie jede Kopie behandelt (nie abwandeln) */
-    "js/upcrew-spielerliste.js", "css/upcrew-spielerliste.css"
+    "js/upcrew-spielerliste.js", "css/upcrew-spielerliste.css",
+    /* seit 0.17.0: Münzen und Shop über beide Spiele */
+    "js/upcrew-muenzen.js", "js/upcrew-shop.js", "css/upcrew-shop.css"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -93,9 +95,10 @@ gleich("sw.js: Stildateien in der Reihenfolge von index.html",
 
 const aufPlatte = liste("js").concat(liste("css"), liste("icons"))
     .filter((datei) => /\.(js|css|png)$/.test(datei)).map((datei) => "./" + datei);
-/* Ausnahme (seit 0.16.3): das Lexikon der Admins wird nur nachgeladen,
-   NIE vorab gespeichert (js/bildschirm-verwaltung.js). */
-const NUR_NACHGELADEN = ["./js/lexikon-daten.js"];
+/* Ausnahme (0.16.3 bis 0.18.0): das Lexikon der Admins wurde nur
+   nachgeladen. Seit 0.18.1 wird es gar nicht mehr ausgeliefert
+   (tests/test-verwaltung.js); die Liste bleibt für künftige Fälle. */
+const NUR_NACHGELADEN = [];
 for (const datei of NUR_NACHGELADEN) {
     pruefe("Nur nachgeladen, nicht im Service Worker und nicht in index.html: " + datei,
         swListe.indexOf(datei) === -1 && indexSkripte.indexOf(datei.slice(2)) === -1);
@@ -294,9 +297,8 @@ pruefe("Links in der Leiste: Aufgaben",
     /id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben"/.test(leisteEintraege[0] || ""));
 pruefe("Platz 2: Sammlung",
     /id: "sammlung", text: "Sammlung", zeichen: "sammlung"/.test(leisteEintraege[1] || ""));
-pruefe("Platz 5: „Bald“ (still, ohne Bildschirm)",
-    /text: "Bald", zeichen: "bald", platzhalter: true/.test(leisteEintraege[4] || "")
-        && !/id:/.test(leisteEintraege[4] || ""));
+pruefe("Platz 5: der Shop (seit 0.17.0, statt „Bald“)",
+    /id: "shop", text: "Shop", zeichen: "shop"/.test(leisteEintraege[4] || ""));
 gleich("Das Sammlung-Zeichen ist der gemeinsame Pfad mit Blunderluck",
     (lesen("js/bausteine.js").match(/sammlung: "([^"]+)"/) || [])[1],
     "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z");

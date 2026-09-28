@@ -94,6 +94,16 @@ eigene Verwaltungs-Seite), ist zu entscheiden.
 
 ## Bewusst nicht gebaut
 
+### Die Lösungsliste verschleiern (geparkt, 28.09.2026)
+
+Nutzer auf die Frage aus 0.18.1: „später / gar nicht, so viel Aufwand nur,
+um die Möglichkeiten für einen zu verbessern". `js\woerter-de.js` bleibt
+lesbar. Was es bräuchte (falls es je wiederkommt): Liste als Bytes
+kodieren wie `js\wortbewertung-daten.js`, erst beim Ziehen entschlüsseln,
+`istErlaubt` über einen Hash statt Klartext, Tagesplan, Tests und Werkzeug
+umstellen — und es bliebe aus dem Code zurückrechenbar. Nicht erneut
+vorschlagen.
+
 - **Eigene Felder im Spieler-Eintrag** (etwa Wordle-Einstellungen) — sie
   würden beim nächsten Schreiben durch Blunderluck gelöscht. Einstellungen
   gehören auf das Gerät (`ICH`) oder unter `typoluck/…`.

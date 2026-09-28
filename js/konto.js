@@ -170,7 +170,9 @@ const KONTO = {
     /* Liefert "" bei gültigem Namen, sonst die Begründung. */
     namePruefen(name) {
         const wert = String(name || "");
-        if (wert !== KONTO.nameSaeubern(wert)) {
+        /* Zeichen und Länge getrennt (seit 28.09.2026): Ein zu langer Name
+           ist zu lang, nicht „falsche Zeichen". */
+        if (wert !== wert.normalize("NFC") || /[^A-Za-zÄÖÜäöüß0-9]/.test(wert)) {
             return "Nur Buchstaben und Ziffern, ohne Leerzeichen.";
         }
         if (wert.length < KONTO.NAME_MIN || wert.length > KONTO.NAME_MAX) {
@@ -429,22 +431,28 @@ const KONTO = {
      * ---------------------------------------------------------------- */
 
     /* Ein neues Konto mit Name und Passwort. */
+    /* Seit 28.09.2026 mit `feld` an jeder Absage und der Prüfung „Name +
+       Passwort schon vergeben" (siehe `gastSichern`). */
     async kontoAnlegen(speicher, daten, name, passwort) {
-        const regel = KONTO.namePruefen(name) || KONTO.passwortPruefen(passwort);
-        if (regel) {
-            return { ok: false, text: regel };
+        const pruefung = KONTO.formularPruefen(name, passwort, passwort);
+        if (pruefung.feld) {
+            return { ok: false, feld: pruefung.feld, text: pruefung[pruefung.feld] };
+        }
+        if (await KONTO.kombinationVergeben(daten, name, passwort)) {
+            return { ok: false, feld: "passwort", fehler: "doppelt", text: KONTO.fehlerText("doppelt") };
         }
         const tag = KONTO.tagWaehlen(daten, name, null);
         if (!tag) {
-            return { ok: false, text: "Für diesen Namen ist keine Nummer mehr frei." };
+            return { ok: false, feld: "name", text: "Für diesen Namen ist keine Nummer mehr frei." };
         }
         const id = KONTO._kennungErzeugen();
         const ergebnis = await KONTO.registrieren(id, passwort);
         if (!ergebnis.ok) {
-            return { ok: false, text: KONTO.fehlerText(ergebnis.fehler) };
+            return { ok: false, feld: KONTO.fehlerFeld(ergebnis.fehler), fehler: ergebnis.fehler,
+                text: KONTO.fehlerText(ergebnis.fehler) };
         }
         const eintrag = KONTO._neuerEintrag(id, name, tag, id);
-        return KONTO._eintragSchreibenOderAufraeumen(speicher, eintrag, null);
+        return KONTO._mitFeld(await KONTO._eintragSchreibenOderAufraeumen(speicher, eintrag, null));
     },
 
     /* Ein Gast: anonymes Konto, Name „Gast" mit zufälliger Nummer. */
@@ -461,23 +469,188 @@ const KONTO = {
         return KONTO._eintragSchreibenOderAufraeumen(speicher, eintrag, null);
     },
 
-    /* Der Gast sichert seinen Spielstand: eigener Name, Passwort — und alles,
-       was er als Gast gespielt hat, bleibt (dieselbe Spieler-Kennung). */
+    /*
+     * Der Gast sichert seinen Spielstand: eigener Name, Passwort — und alles,
+     * was er als Gast gespielt hat, bleibt (dieselbe Spieler-Kennung).
+     *
+     * SEIT 28.09.2026 MIT ZWEITEM WEG (Nutzer: „Wenn man von einem
+     * Gast-Account einen echten erstellen will, nimmt es das nicht an").
+     * Der erste Weg verknüpft das anonyme Firebase-Konto mit Adresse und
+     * Passwort (`accounts:update`). Firebase verlangt dafür eine FRISCHE
+     * Anmeldung: Liegt sie länger als ein paar Minuten zurück — und ein Gast
+     * hat meist erst eine ganze Runde gespielt —, lehnt es mit
+     * CREDENTIAL_TOO_OLD_LOGIN_AGAIN ab (dokumentierter Fehler des
+     * Verknüpfens). Ein Gast kann sich aber nicht „neu anmelden"; bisher kam
+     * „Die Anmeldung ist abgelaufen" und nichts ging. Dann zieht der Gast
+     * jetzt um (`_gastUmziehen`): neues Konto mit Adresse und Passwort,
+     * derselbe Eintrag mit derselben Spieler-Kennung — nach demselben Muster
+     * wie „Neu verbinden", unter den bestehenden Regeln (§11).
+     *
+     * Vorher: Gibt es den Namen schon mit genau diesem Passwort, wird
+     * abgelehnt (`kombinationVergeben`) — sonst wäre die Anmeldung mit
+     * Name + Passwort nicht mehr eindeutig.
+     *
+     * Jede Absage trägt `feld` („name", „passwort", „allgemein"), damit der
+     * Bildschirm sie an die richtige Stelle schreibt.
+     */
     async gastSichern(speicher, daten, eintrag, name, passwort) {
-        const regel = KONTO.namePruefen(name) || KONTO.passwortPruefen(passwort);
-        if (regel) {
-            return { ok: false, text: regel };
+        const pruefung = KONTO.formularPruefen(name, passwort, passwort);
+        if (pruefung.feld) {
+            return { ok: false, feld: pruefung.feld, text: pruefung[pruefung.feld] };
+        }
+        if (await KONTO.kombinationVergeben(daten, name, passwort)) {
+            return { ok: false, feld: "passwort", fehler: "doppelt", text: KONTO.fehlerText("doppelt") };
         }
         const tag = KONTO.tagWaehlen(daten, name, null);
+        if (!tag) {
+            return { ok: false, feld: "name", text: "Für diesen Namen ist keine Nummer mehr frei." };
+        }
         const kennung = KONTO._kennungErzeugen();
         const ergebnis = await KONTO.gastVerknuepfen(kennung, passwort);
         if (!ergebnis.ok) {
-            return { ok: false, text: KONTO.fehlerText(ergebnis.fehler) };
+            if (KONTO.UMZUG_STATT_VERKNUEPFEN.indexOf(ergebnis.fehler) !== -1) {
+                return KONTO._gastUmziehen(speicher, eintrag, name, tag, passwort);
+            }
+            return { ok: false, feld: KONTO.fehlerFeld(ergebnis.fehler), fehler: ergebnis.fehler,
+                text: KONTO.fehlerText(ergebnis.fehler) };
         }
         const neu = Object.assign(KONTO._sauber(eintrag),
             { name: name, tag: tag, kennung: kennung });
         delete neu.gast;
-        return KONTO._eintragSchreiben(speicher, neu, eintrag);
+        return KONTO._mitFeld(await KONTO._eintragSchreiben(speicher, neu, eintrag));
+    },
+
+    /* Bei diesen Absagen des Verknüpfens zieht der Gast stattdessen um. */
+    UMZUG_STATT_VERKNUEPFEN: ["zuAlt", "verloren", "sonst"],
+
+    /*
+     * DER GAST ZIEHT IN EIN NEUES KONTO UM (seit 28.09.2026). Vier Schritte,
+     * jeder unter den bestehenden Regeln (§11, `neuVerbinden`):
+     *   1. als Gast: der eigene Eintrag bekommt `neuVerbinden: true`
+     *      (so darf das neue Konto ihn gleich löschen),
+     *   2. als Gast: der Namens-Platz „gast/<nummer>" wird frei,
+     *   3. neues Firebase-Konto mit Adresse und Passwort (`registrieren`),
+     *   4. als neues Konto in EINEM Schritt: neuer Eintrag (dieselbe
+     *      Spieler-Kennung `id` — Partien, Freunde, Fortschritt gehören
+     *      weiter dazu), neuer Namens-Platz, alter Eintrag weg.
+     * Danach wird das anonyme Firebase-Konto gelöscht (mit dem gemerkten
+     * Gast-Schlüssel, ohne Warten auf Erfolg). Scheitert 3 oder 4, wird 1
+     * und 2 zurückgenommen, solange die Gast-Sitzung noch da ist.
+     */
+    async _gastUmziehen(speicher, eintrag, name, tag, passwort) {
+        const gastSitzung = KONTO.sitzung ? Object.assign({}, KONTO.sitzung) : null;
+        const alt = KONTO._sauber(eintrag);
+        const altPlatz = "namen/" + KONTO.nameSchluessel(alt.name) + "/" + alt.tag;
+        const markiert = Object.assign({}, alt, { neuVerbinden: true });
+        const schritt1 = await KONTO._schreiben(speicher,
+            { geaendertAm: Date.now(), ["konten/" + alt.uid]: markiert }, markiert);
+        if (!schritt1.ok) {
+            return { ok: false, feld: "allgemein", text: KONTO.fehlerText("netz") };
+        }
+        const schritt2 = await KONTO._schreiben(speicher, { [altPlatz]: null }, markiert);
+        const zuruecknehmen = async () => {
+            if (KONTO.sitzung && gastSitzung && KONTO.sitzung.uid === gastSitzung.uid) {
+                const zurueck = { geaendertAm: Date.now() };
+                zurueck["konten/" + alt.uid] = alt;
+                zurueck[altPlatz] = alt.uid;
+                await KONTO._schreiben(speicher, zurueck, alt);
+            }
+        };
+        if (!schritt2.ok) {
+            await zuruecknehmen();
+            return { ok: false, feld: "allgemein", text: KONTO.fehlerText("netz") };
+        }
+
+        const kennung = KONTO._kennungErzeugen();
+        const neuesKonto = await KONTO.registrieren(kennung, passwort);
+        if (!neuesKonto.ok) {
+            await zuruecknehmen();
+            return { ok: false, feld: KONTO.fehlerFeld(neuesKonto.fehler), fehler: neuesKonto.fehler,
+                text: KONTO.fehlerText(neuesKonto.fehler) };
+        }
+        const neu = Object.assign({}, alt, { name: name, tag: tag, uid: KONTO.uid(), kennung: kennung });
+        delete neu.gast;
+        delete neu.neuVerbinden;
+        const weitere = {};
+        weitere["konten/" + alt.uid] = null;
+        const ergebnis = await KONTO._eintragSchreiben(speicher, neu, null, weitere);
+        if (!ergebnis.ok) {
+            /* Das neue Firebase-Konto wieder weg; die Gast-Sitzung zurück,
+               damit der Gast weiterspielt. */
+            await KONTO.loeschen();
+            if (gastSitzung) {
+                KONTO.sitzung = gastSitzung;
+                KONTO._schreibenGeraet();
+            }
+            await zuruecknehmen();
+            return KONTO._mitFeld(ergebnis);
+        }
+        if (gastSitzung && gastSitzung.idToken) {
+            KONTO._rufen("accounts:delete", { idToken: gastSitzung.idToken }).catch(() => null);
+        }
+        return ergebnis;
+    },
+
+    /* Ein Schreib-Ergebnis mit dem Feld „allgemein" für den Bildschirm. */
+    _mitFeld(ergebnis) {
+        return ergebnis.ok ? ergebnis : Object.assign({ feld: "allgemein" }, ergebnis);
+    },
+
+    /*
+     * GIBT ES DIESEN NAMEN SCHON MIT GENAU DIESEM PASSWORT? (seit 28.09.2026,
+     * Nutzer: „Bei falscher Eingabe beim Account-Erstellen soll eine Meldung
+     * kommen, was genau nicht stimmt" — darunter „Name+Passwort schon
+     * vergeben"). Geprüft wird ohne Sitzung (`_pruefen`), höchstens
+     * ANMELDEN_REIHUM_MAX Konten dieses Namens. Netzfehler oder „zu viele
+     * Versuche" zählen als „nein" — das Anlegen selbst meldet sie dann.
+     */
+    async kombinationVergeben(daten, name, passwort) {
+        const schluessel = KONTO.nameSchluessel(name);
+        const liste = ((daten && Array.isArray(daten.spieler)) ? daten.spieler : [])
+            .filter((spieler) => spieler.gast !== true && spieler.neuVerbinden !== true
+                && spieler.tag && KONTO.nameSchluessel(spieler.name) === schluessel)
+            .slice(0, KONTO.ANMELDEN_REIHUM_MAX);
+        for (const spieler of liste) {
+            const ergebnis = await KONTO._pruefen(KONTO.kennungVon(spieler), passwort);
+            if (ergebnis.ok) {
+                return true;
+            }
+            if (ergebnis.fehler !== "falsch") {
+                return false;
+            }
+        }
+        return false;
+    },
+
+    /*
+     * DAS FORMULAR „NEUES KONTO" / „SPIELSTAND SICHERN", rein (seit
+     * 28.09.2026, in jedem UPCrew-Spiel gleich): je Feld die Meldung, was
+     * genau nicht stimmt — "" wenn es passt — und `feld`, das erste Feld
+     * mit Fehler ("" wenn alles passt). Auch ein LEERES Feld hat eine
+     * Meldung; der Bildschirm zeigt sie spätestens beim Absenden.
+     */
+    formularPruefen(name, passwort, wiederholung) {
+        const ergebnis = { name: "", passwort: "", wiederholung: "", feld: "" };
+        const n = String(name === undefined || name === null ? "" : name);
+        const p = String(passwort === undefined || passwort === null ? "" : passwort);
+        const w = String(wiederholung === undefined || wiederholung === null ? "" : wiederholung);
+        ergebnis.name = n === "" ? "Name fehlt." : KONTO.namePruefen(n);
+        ergebnis.passwort = p === "" ? "Passwort fehlt." : KONTO.passwortPruefen(p);
+        ergebnis.wiederholung = w === "" ? "Bitte das Passwort wiederholen."
+            : (w !== p ? "Die Passwörter sind nicht gleich." : "");
+        ergebnis.feld = ["name", "passwort", "wiederholung"].find((f) => ergebnis[f] !== "") || "";
+        return ergebnis;
+    },
+
+    /* Zu welchem Feld gehört eine Absage von Firebase? */
+    fehlerFeld(art) {
+        if (art === "vorhanden") {
+            return "name";
+        }
+        if (art === "schwach" || art === "doppelt" || art === "falsch") {
+            return "passwort";
+        }
+        return "allgemein";
     },
 
     /*
@@ -766,7 +939,10 @@ const KONTO = {
             case "zuViele":
                 return "Zu viele Versuche. Bitte warte ein paar Minuten.";
             case "verloren":
+            case "zuAlt":
                 return "Die Anmeldung ist abgelaufen. Bitte melde dich neu an.";
+            case "doppelt":
+                return "Diesen Namen gibt es schon mit genau diesem Passwort. Nimm ein anderes Passwort.";
             case "schwach":
                 return "Firebase lehnt dieses Passwort ab: " + KONTO.passwortRegelText() + ".";
             case "netz":
@@ -949,9 +1125,14 @@ const KONTO = {
         if (code === "WEAK_PASSWORD" || code === "PASSWORD_DOES_NOT_MEET_REQUIREMENTS") {
             return "schwach";
         }
+        /* Eigene Art seit 28.09.2026: Das Verknüpfen eines Gasts verlangt
+           eine frische Anmeldung — das ist kein verlorenes Konto
+           (`gastSichern` zieht dann um). */
+        if (code === "CREDENTIAL_TOO_OLD_LOGIN_AGAIN") {
+            return "zuAlt";
+        }
         if (["TOKEN_EXPIRED", "USER_NOT_FOUND", "USER_DISABLED",
-                "INVALID_REFRESH_TOKEN", "INVALID_ID_TOKEN",
-                "CREDENTIAL_TOO_OLD_LOGIN_AGAIN"].indexOf(code) !== -1) {
+                "INVALID_REFRESH_TOKEN", "INVALID_ID_TOKEN"].indexOf(code) !== -1) {
             return "verloren";
         }
         return "sonst";

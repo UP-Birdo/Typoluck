@@ -316,27 +316,30 @@ const ANMELDUNG = {
             : "Damit spielst du in allen UPCrew-Spielen. Deinen Namen sehen die anderen in der Rangliste.");
         const name = ANMELDUNG._feldBauen(kasten,
             "Name", false, "username");
-        const passwort = ANMELDUNG._feldBauen(kasten, "Passwort (" + (mitKonto
+        const passwort = ANMELDUNG._feldBauen(kasten, "Passwort (" + (ANMELDUNG._kontoRegeln()
             ? KONTO.passwortRegelText()
             : SPIELER.PASSWORT_MIN + " bis " + SPIELER.PASSWORT_MAX + " Zeichen") + ")",
             true, "new-password");
         const wiederholung = ANMELDUNG._feldBauen(kasten, "Passwort wiederholen", true, "new-password");
-        if (mitKonto) {
+        if (ANMELDUNG._kontoRegeln()) {
             ANMELDUNG._nameFeldSaeubern(name.feld);
         }
 
         const los = BAUSTEINE.knopf({ text: "Konto erstellen", art: "haupt", breit: true });
         const pruefen = ANMELDUNG._formularPruefen(name, passwort, wiederholung, los);
+        const allgemein = ANMELDUNG._allgemeinBauen(kasten);
+        const felder = { name: name, passwort: passwort, wiederholung: wiederholung, allgemein: allgemein };
 
         los.addEventListener("click", async () => {
-            if (los.disabled) {
+            if (los.disabled || !pruefen(true)) {
                 return;
             }
             los.disabled = true;
+            allgemein.fehler.textContent = "";
             if (mitKonto) {
                 const ergebnis = await KONTO.kontoAnlegen(ANMELDUNG.abgleich.speicher,
                     ANMELDUNG.abgleich.daten, name.feld.value, passwort.feld.value);
-                await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Angemeldet · ");
+                await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Angemeldet · ", felder);
                 return;
             }
             await ANMELDUNG._kontoAnlegen(name.feld.value.trim(), passwort.feld.value);
@@ -381,15 +384,18 @@ const ANMELDUNG = {
         const wiederholung = ANMELDUNG._feldBauen(kasten, "Passwort wiederholen", true, "new-password");
         const los = BAUSTEINE.knopf({ text: "Neu verbinden", art: "haupt", breit: true });
         const pruefen = ANMELDUNG._formularPruefen(null, passwort, wiederholung, los);
+        const allgemein = ANMELDUNG._allgemeinBauen(kasten);
 
         los.addEventListener("click", async () => {
-            if (los.disabled) {
+            if (los.disabled || !pruefen(true)) {
                 return;
             }
             los.disabled = true;
+            allgemein.fehler.textContent = "";
             const ergebnis = await KONTO.neuVerbinden(ANMELDUNG.abgleich.speicher,
                 ANMELDUNG.abgleich.daten, spieler, passwort.feld.value);
-            await ANMELDUNG._kontoFertig(ergebnis, passwort, pruefen, "Angemeldet · ");
+            await ANMELDUNG._kontoFertig(ergebnis, passwort, pruefen, "Angemeldet · ",
+                { passwort: passwort, wiederholung: wiederholung, allgemein: allgemein });
         });
 
         kasten.appendChild(los);
@@ -457,15 +463,18 @@ const ANMELDUNG = {
         const wiederholung = ANMELDUNG._feldBauen(kasten, "Passwort wiederholen", true, "new-password");
         const los = BAUSTEINE.knopf({ text: "Sichern", art: "haupt", breit: true });
         const pruefen = ANMELDUNG._formularPruefen(name, passwort, wiederholung, los);
+        const allgemein = ANMELDUNG._allgemeinBauen(kasten);
 
         los.addEventListener("click", async () => {
-            if (los.disabled) {
+            if (los.disabled || !pruefen(true)) {
                 return;
             }
             los.disabled = true;
+            allgemein.fehler.textContent = "";
             const ergebnis = await KONTO.gastSichern(ANMELDUNG.abgleich.speicher,
                 ANMELDUNG.abgleich.daten, eintrag, name.feld.value, passwort.feld.value);
-            await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Gesichert · ");
+            await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Gesichert · ",
+                { name: name, passwort: passwort, wiederholung: wiederholung, allgemein: allgemein });
         });
 
         kasten.appendChild(los);
@@ -766,41 +775,94 @@ const ANMELDUNG = {
         });
     },
 
-    /* Live-Prüfung: Name (optional), Passwort, Wiederholung. Mit UPCrew-Konto
-       die Regeln aus js\konto.js, sonst die alten aus js\spieler.js. */
-    _formularPruefen(name, passwort, wiederholung, knopf) {
-        const mitKonto = KONTO.aktiv();
-        const pruefen = () => {
-            let gueltig = true;
-            if (name) {
-                const wert = name.feld.value.trim();
-                const regel = wert === "" ? "" : (mitKonto
-                    ? KONTO.namePruefen(wert)
-                    : SPIELER.namePruefen(ANMELDUNG.abgleich.daten, wert, null));
-                name.fehler.textContent = regel;
-                gueltig = gueltig && wert !== "" && regel === "";
-            }
-            const wert = passwort.feld.value;
-            const regel = wert === "" ? ""
-                : (mitKonto ? KONTO.passwortPruefen(wert) : SPIELER.passwortPruefen(wert));
-            passwort.fehler.textContent = regel;
-            gueltig = gueltig && wert !== "" && regel === "";
+    /*
+     * Live-Prüfung: Name (optional), Passwort, Wiederholung.
+     *
+     * SEIT 0.18.5 SAGT DAS FORMULAR IMMER, WAS NICHT STIMMT (Nutzer
+     * 28.09.2026: „Bei falscher Eingabe beim Account-Erstellen soll eine
+     * Meldung kommen, was genau nicht stimmt"; wie Blunderluck v0.152.4,
+     * js\anmeldung-konto.js `_kontoFormularPruefen`). Bis dahin war der
+     * Knopf still gesperrt, solange etwas fehlte. Jetzt:
+     *   - beim Tippen die Meldung am Feld, sobald darin etwas steht;
+     *   - der Knopf ist immer drückbar; beim Drücken (`pruefen(true)`)
+     *     stehen ALLE Meldungen da (auch „Name fehlt."), der Fokus springt
+     *     ins erste falsche Feld;
+     *   - die Absage vom Server steht am richtigen Feld (`ergebnis.feld`,
+     *     `_kontoFertig`) oder in der Zeile über dem Knopf („allgemein").
+     * Mit UPCrew-Konto prüft `KONTO.formularPruefen` (in jedem Spiel
+     * gleich), ohne Konto (lokaler Modus, Werkstatt) die alten Regeln aus
+     * js\spieler.js in derselben Form. `pruefen(alles)` liefert, ob alles
+     * passt.
+     */
+    /* Nur Werkstatt (&konto=neu): die Regeln des UPCrew-Kontos zeigen, obwohl
+       die Werkstatt lokal läuft. Ändert NUR Prüfung und Beschriftung — der
+       Weg beim Absenden bleibt lokal (nie die echte Datenbank). */
+    _kontoRegelnZeigen: false,
 
-            const gleich = wiederholung.feld.value === wert;
-            wiederholung.fehler.textContent = (wiederholung.feld.value !== "" && !gleich)
-                ? "Die beiden Passwörter sind nicht gleich." : "";
-            gueltig = gueltig && wiederholung.feld.value !== "" && gleich;
-            knopf.disabled = !gueltig;
+    _kontoRegeln() {
+        return KONTO.aktiv() || ANMELDUNG._kontoRegelnZeigen === true;
+    },
+
+    _formularPruefung(name, passwort, wiederholung) {
+        if (ANMELDUNG._kontoRegeln()) {
+            return KONTO.formularPruefen(name, passwort, wiederholung);
+        }
+        const n = String(name || "").trim();
+        const ergebnis = {
+            name: n === "" ? "Name fehlt." : SPIELER.namePruefen(ANMELDUNG.abgleich.daten, n, null),
+            passwort: passwort === "" ? "Passwort fehlt." : SPIELER.passwortPruefen(passwort),
+            wiederholung: wiederholung === "" ? "Bitte das Passwort wiederholen."
+                : (wiederholung !== passwort ? "Die Passwörter sind nicht gleich." : ""),
+            feld: ""
+        };
+        ergebnis.feld = ["name", "passwort", "wiederholung"].find((f) => ergebnis[f]) || "";
+        return ergebnis;
+    },
+
+    _formularPruefen(name, passwort, wiederholung, knopf) {
+        const pruefen = (alles) => {
+            /* Ohne Namensfeld (Neu verbinden) zählt der Name als passend. */
+            const ergebnis = ANMELDUNG._formularPruefung(name ? name.feld.value : "Abc",
+                passwort.feld.value, wiederholung.feld.value);
+            const zeigen = (teil, schluessel) => {
+                if (teil) {
+                    teil.fehler.textContent = (alles === true || teil.feld.value !== "")
+                        ? ergebnis[schluessel] : "";
+                }
+            };
+            zeigen(name, "name");
+            zeigen(passwort, "passwort");
+            zeigen(wiederholung, "wiederholung");
+            knopf.disabled = false;
+            if (alles === true && ergebnis.feld) {
+                const erstes = { name: name, passwort: passwort, wiederholung: wiederholung }[ergebnis.feld];
+                if (erstes && erstes.feld.focus) {
+                    erstes.feld.focus();
+                }
+            }
+            return !ergebnis.feld;
         };
         [name, passwort, wiederholung].filter(Boolean)
-            .forEach((teil) => teil.feld.addEventListener("input", pruefen));
+            .forEach((teil) => teil.feld.addEventListener("input", () => pruefen(false)));
         return pruefen;
     },
 
-    async _kontoFertig(ergebnis, meldungFeld, pruefen, gruss) {
+    /* Die allgemeine Meldungszeile über dem Knopf (Verbindung, Server —
+       seit 0.18.5). */
+    _allgemeinBauen(kasten) {
+        const zeile = BAUSTEINE.el("p", "feld-fehler anmeldung-allgemein");
+        zeile.setAttribute("role", "alert");
+        kasten.appendChild(zeile);
+        return { feld: { focus() { } }, fehler: zeile };
+    },
+
+    /* `felder` (seit 0.18.5): { name, passwort, wiederholung, allgemein } —
+       die Absage steht am Feld aus `ergebnis.feld`, sonst an `meldungFeld`. */
+    async _kontoFertig(ergebnis, meldungFeld, pruefen, gruss, felder) {
         if (!ergebnis.ok) {
-            meldungFeld.fehler.textContent = ergebnis.text;
-            pruefen();
+            pruefen(false);
+            const ziel = (felder && ergebnis.feld && felder[ergebnis.feld]) || meldungFeld;
+            ziel.fehler.textContent = ergebnis.text;
             return;
         }
         await ANMELDUNG._nachladen();

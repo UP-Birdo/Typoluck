@@ -110,6 +110,17 @@ function regel11b(knoten) {
             }
             zahl(wert, 0, 1000000000, app + "/zaehler/" + name);
         }
+        /* turm: nur figuren ("Zahl-Zahl": 1–3) und schwuere (seit 0.18.0
+           schreibt Typoluck die Bibliothek hierher). */
+        if (zweig.turm !== undefined) {
+            for (const feld of Object.keys(zweig.turm)) {
+                if (["figuren", "schwuere"].indexOf(feld) === -1) {
+                    fehler.push(app + "/turm: " + feld);
+                }
+            }
+            liste(zweig.turm.figuren, /^[0-9]{1,2}-[0-9]{1,2}$/, (w, wo) => zahl(w, 1, 3, wo), app + "/turm/figuren");
+            liste(zweig.turm.schwuere, /^[0-9]{1,3}$/, (w, wo) => zahl(w, 0, 3, wo), app + "/turm/schwuere");
+        }
     }
     return fehler;
 }
@@ -147,7 +158,8 @@ gleich("Normaler Stand besteht die Regel", regel11b(anwenden(null, aenderung, "u
 const viel = (n, f) => Array.from({ length: n }, (_, i) => f(i));
 const uebervoll = { version: 1, oben: "fremd", schutz: { alt: 3 }, spiele: {
     typoluck: {
-        xp: 99999999999, partien: -5, stand: 17, turm: { figuren: { "1-0": 3 } },
+        xp: 99999999999, partien: -5, stand: 17,
+        turm: { figuren: { "1-0": 3, "1-1": 9, "1-2": 0, "x-1": 2, "123-1": 1 }, fremd: 1 },
         gezaehlt: viel(250, (i) => "p-" + i),
         tage: viel(1500, (i) => new Date(Date.UTC(2020, 0, 1 + i)).toISOString().slice(0, 10)),
         taten: viel(1500, (i) => "t" + i).concat(["x".repeat(80)]),
@@ -161,7 +173,8 @@ const aenderungVoll = FORTSCHRITT_ABGLEICH.aenderungen("uid-b", uebervoll, 1);
 const kontoVoll = anwenden(null, aenderungVoll, "uid-b");
 gleich("Übervoller Stand: besteht trotzdem die Regel", regel11b(kontoVoll), []);
 const tv = kontoVoll.spiele.typoluck;
-pruefe("… ohne umzug, turm, Zusatzfelder", !("umzug" in tv) && !("turm" in tv) && !("neuesFeld" in tv));
+pruefe("… ohne umzug und Zusatzfelder", !("umzug" in tv) && !("neuesFeld" in tv));
+gleich("… Bibliothek: nur gültige Figuren (seit 0.18.0)", tv.turm, { figuren: { "1-0": 3, "1-1": 3 } });
 pruefe("… Blunderlucks Zweig wird nicht mitgeschickt", !("blunderluck" in kontoVoll.spiele));
 pruefe("… Listen gekappt (tage/taten ≤ 1000, gezaehlt ≤ 100)",
     tv.tage.length <= 1000 && tv.taten.length <= 1000 && tv.gezaehlt.length <= 100);

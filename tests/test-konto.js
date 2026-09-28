@@ -169,6 +169,12 @@ function firebaseNachbauen() {
                 if (!uid || !fb.konten[uid]) {
                     return fehler("INVALID_ID_TOKEN");
                 }
+                /* Wie das echte Firebase nach ein paar Minuten (seit 0.18.5,
+                   Nachbau wie Blunderluck v0.152.4): Verknüpfen verlangt eine
+                   frische Anmeldung. Gegen das ECHTE Firebase nicht gemessen. */
+                if (fb.anmeldungZuAlt && d.email) {
+                    return fehler("CREDENTIAL_TOO_OLD_LOGIN_AGAIN");
+                }
                 if (d.email) {
                     if (uidZuAdresse(d.email) && uidZuAdresse(d.email) !== uid) {
                         return fehler("EMAIL_EXISTS");
@@ -365,6 +371,67 @@ spaeter("UPCrew-Konto", (async () => {
     gleich("Dieselbe Konto-Nummer", w.KONTO.uid(), gastUid);
     pruefe("Nicht mehr anonym", !fb.konten[gastUid].anonym);
 
+    /* Seit 0.18.5 (Nutzer 28.09.2026: „Wenn man von einem Gast-Account
+       einen echten erstellen will, nimmt es das nicht an"): Lehnt Firebase
+       das Verknüpfen ab (Anmeldung zu alt), zieht der Gast um. */
+    w.KONTO.abmelden();
+    w.ANMELDUNG.ichId = null;
+    await nachladen(w);
+    const gastAlt = await w.KONTO.gastAnlegen(w.speicher, w.abgleich.daten);
+    const gastAltUid = w.KONTO.uid();
+    await nachladen(w);
+    w.ANMELDUNG._uebernehmen(gastAlt.eintrag);
+    fb.anmeldungZuAlt = true;
+    const umgezogen = await w.KONTO.gastSichern(w.speicher, w.abgleich.daten, w.ANMELDUNG.ich(),
+        "Rosa", "Rosa#Pass1");
+    fb.anmeldungZuAlt = false;
+    pruefe("Gast → Konto trotz alter Anmeldung (Umzug)", umgezogen.ok, JSON.stringify(umgezogen));
+    const rosaUid = w.KONTO.uid();
+    pruefe("… neues Firebase-Konto", rosaUid && rosaUid !== gastAltUid);
+    const rosa = konten(fb)[rosaUid] || {};
+    gleich("… Name neu, Spieler-Kennung bleibt", [rosa.name, rosa.id], ["Rosa", gastAlt.eintrag.id]);
+    pruefe("… sauber (kein gast, kein neuVerbinden), alter Eintrag weg, Gast-Platz frei",
+        !("gast" in rosa) && !("neuVerbinden" in rosa) && !konten(fb)[gastAltUid]
+            && (!namen(fb).gast || !namen(fb).gast[gastAlt.eintrag.tag]));
+    gleich("… Namens-Platz", namen(fb).rosa[rosa.tag], rosaUid);
+    await new Promise((fertig) => setTimeout(fertig, 0));
+    pruefe("… anonymes Firebase-Konto gelöscht", !fb.konten[gastAltUid]);
+    w.KONTO.abmelden();
+    await nachladen(w);
+    const rosaWieder = await w.KONTO.anmeldenMitEingabe(w.abgleich.daten, "Rosa", "Rosa#Pass1");
+    pruefe("… Anmelden mit Name + Passwort", rosaWieder.ok, JSON.stringify(rosaWieder));
+
+    /* Seit 0.18.5 (Nutzer 28.09.2026: „Bei falscher Eingabe beim
+       Account-Erstellen soll eine Meldung kommen, was genau nicht stimmt"). */
+    const K = w.KONTO;
+    const f = (n, p, r) => K.formularPruefen(n, p, r);
+    gleich("Formular leer: erst der Name, „Name fehlt.“", [f("", "", "").feld, f("", "", "").name], ["name", "Name fehlt."]);
+    pruefe("Name zu kurz / zu lang: 3 bis 16", /3 bis 16/.test(f("Jo", "Abc#1234", "Abc#1234").name)
+        && /3 bis 16/.test(f("Jonas12345678901X", "Abc#1234", "Abc#1234").name));
+    pruefe("Name mit Leerzeichen: Buchstaben und Ziffern", /Buchstaben und Ziffern/.test(f("Jo nas", "Abc#1234", "Abc#1234").name));
+    pruefe("Name reserviert", /reserviert/.test(f("Admin", "Abc#1234", "Abc#1234").name));
+    pruefe("Passwort: Länge und was fehlt", /8 bis 12/.test(f("Jonas", "Ab#1", "Ab#1").passwort)
+        && /Grossbuchstabe/.test(f("Jonas", "abc#12345", "abc#12345").passwort));
+    gleich("Wiederholung ungleich", f("Jonas", "Abc#1234", "Abc#1235").feld, "wiederholung");
+    gleich("Alles gut", f("Jonas", "Abc#1234", "Abc#1234").feld, "");
+    gleich("Server-Absagen am richtigen Feld", [K.fehlerFeld("vorhanden"), K.fehlerFeld("schwach"),
+        K.fehlerFeld("doppelt"), K.fehlerFeld("netz"), K.fehlerFeld("zuAlt")],
+        ["name", "passwort", "passwort", "allgemein", "allgemein"]);
+    const kurz = await K.kontoAnlegen(w.speicher, w.abgleich.daten, "Mira", "kurz");
+    gleich("Anlegen meldet das Feld", [kurz.ok, kurz.feld], [false, "passwort"]);
+    K.netz = async () => { throw new Error("offline"); };
+    const offline = await K.kontoAnlegen(w.speicher, w.abgleich.daten, "Mira", "Mira#Pass1");
+    K.netz = null;
+    gleich("Ohne Netz: Zeile „allgemein“", [offline.ok, offline.feld], [false, "allgemein"]);
+    pruefe("… Text „Keine Verbindung“", /Keine Verbindung/.test(offline.text), offline.text);
+
+    /* Die Oberfläche: jede Absage an ihr Feld (js/anmeldung.js). */
+    const anm = require("fs").readFileSync(require("path").join(__dirname, "..", "js", "anmeldung.js"), "utf8");
+    pruefe("Formular: Knopf immer drückbar, beim Drücken alle Meldungen (pruefen(true))",
+        /knopf\.disabled = false;/.test(anm) && (anm.match(/!pruefen\(true\)/g) || []).length === 3);
+    pruefe("Formular: Absage an ergebnis.feld, allgemeine Zeile über dem Knopf",
+        /felder\[ergebnis\.feld\]/.test(anm) && /_allgemeinBauen\(kasten\)/.test(anm));
+
     /* Ein zweiter Gast meldet sich ab: Rückfrage, Gast-Konto weg */
     w.KONTO.abmelden();
     w.ANMELDUNG.ichId = null;
@@ -474,9 +541,18 @@ spaeter("UPCrew-Konto", (async () => {
     const sam1Uid = w.KONTO.uid();
     w.KONTO.abmelden();
     await nachladen(w);
+    /* Seit 0.18.5 lehnt das Anlegen genau diese Kombination ab („doppelt");
+       ältere Doppel gibt es aber, und für sie bleibt die Auswahl — das
+       zweite entsteht deshalb an der Prüfung vorbei. */
+    const abgelehnt = await w.KONTO.kontoAnlegen(w.speicher, w.abgleich.daten, "Sam", "Same#Pw11");
+    gleich("Gleicher Name + gleiches Passwort: abgelehnt am Passwort-Feld",
+        [abgelehnt.ok, abgelehnt.fehler, abgelehnt.feld], [false, "doppelt", "passwort"]);
+    const kombination = w.KONTO.kombinationVergeben;
+    w.KONTO.kombinationVergeben = async () => false;
     const sam2 = await w.KONTO.kontoAnlegen(w.speicher, w.abgleich.daten, "Sam", "Same#Pw11");
+    w.KONTO.kombinationVergeben = kombination;
     const sam2Uid = w.KONTO.uid();
-    pruefe("Zweites „Sam“ mit gleichem Passwort angelegt, andere Nummer",
+    pruefe("Zweites „Sam“ (an der Prüfung vorbei) angelegt, andere Nummer",
         sam1.ok && sam2.ok && sam1.eintrag.tag !== sam2.eintrag.tag, JSON.stringify([sam1, sam2]));
     w.KONTO.abmelden();
     await nachladen(w);
@@ -583,6 +659,18 @@ spaeter("UPCrew-Konto", (async () => {
     pruefe("Anmelden: Feld „Name“, kein „Name#Nummer“, keine „(#1234)“",
         !/Name#Nummer/.test(anmeldung) && !/\(#1234\)/.test(anmeldung) && /"Name und Passwort/.test(anmeldung));
     gleich("konto.js ist Blunderlucks Fassung (nur SCHLUESSEL eigen): Reihum-Grenze", require("../js/konto.js").ANMELDEN_REIHUM_MAX, 20);
+    {
+        /* Seit 0.18.5 Zeile für Zeile: Blunderlucks konto.js (v0.152.4), nur SCHLUESSEL eigen. */
+        const fsx = require("fs");
+        const blDatei = require("path").join(__dirname, "..", "..", "Blunderluck", "js", "konto.js");
+        if (fsx.existsSync(blDatei)) {
+            const tl = fsx.readFileSync(require("path").join(__dirname, "..", "js", "konto.js"), "utf8").split("\n");
+            const bl = fsx.readFileSync(blDatei, "utf8").split("\n");
+            const anders = tl.map((z, i) => (z === bl[i] ? null : z.trim())).filter(Boolean);
+            gleich("konto.js = Blunderluck bis auf SCHLUESSEL", [tl.length === bl.length, anders],
+                [true, ['SCHLUESSEL: "typoluck.konto",']]);
+        }
+    }
 }
 
 fazit();

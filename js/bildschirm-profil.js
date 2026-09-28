@@ -173,17 +173,23 @@ const PROFIL_BILDSCHIRM = {
         }
 
         /* Spiele (seit 0.12.0): je Spiel der Ort im Turm und die Figuren.
-           Blunderluck aus dessen Zweig; Typoluck hat noch keinen Turm. */
+           Blunderluck aus dessen Zweig; Typoluck seit 0.18.0 das erreichte
+           Buch der Bibliothek (bis 0.17: „Turm bald"). */
         karte.appendChild(BAUSTEINE.el("h3", "level-zwischen", "Spiele"));
         const andere = KONFIG.andereSpiele.blunderluck;
         const namen = { typoluck: "Typoluck", blunderluck: andere.name };
         for (const spiel of FORTSCHRITT.spiele(fortschritt, ["blunderluck", "typoluck"])) {
             const zeile = BAUSTEINE.el("div", "profil-spiel");
             zeile.appendChild(BAUSTEINE.el("strong", "profil-spiel-name", namen[spiel.app]));
-            const ortName = spiel.app === "blunderluck" && spiel.ort > 0
+            let ortName = spiel.app === "blunderluck" && spiel.ort > 0
                 ? (andere.orte[spiel.ort - 1] || "Ort " + spiel.ort) : "";
+            if (spiel.app === "typoluck" && typeof BIBLIOTHEK !== "undefined") {
+                const buch = Math.min(BIBLIOTHEK.erreicht(FORTSCHRITT.turmFiguren(fortschritt)),
+                    BIBLIOTHEK.anzahlBuecher());
+                ortName = BIBLIOTHEK.NAME + " · Buch " + buch;
+            }
             zeile.appendChild(BAUSTEINE.el("span", "profil-ort" + (ortName ? "" : " profil-ort-leer"),
-                ortName || (spiel.app === "typoluck" ? "Turm bald" : "—")));
+                ortName || "—"));
             const figuren = BAUSTEINE.el("span", "profil-figuren");
             figuren.appendChild(BAUSTEINE.zeichen("koenig"));
             figuren.appendChild(BAUSTEINE.el("strong", null, String(spiel.figuren)));

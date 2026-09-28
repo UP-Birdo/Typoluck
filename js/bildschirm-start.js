@@ -9,6 +9,8 @@
  *
  * Auf dem Start: Begrüssung, je Spiel eine Kachel mit dem Stand des Tages
  * (offen / angefangen / erledigt) und darunter „Heute bei deinen Freunden".
+ * Seit 0.18.0 zwei Arten (js/start-bibliothek.js): Bibliothek (Weg durch
+ * das Buch) oder Frei (die Kachel wie bisher).
  */
 
 const START = {
@@ -116,13 +118,36 @@ const START = {
         kopf.appendChild(rechts);
         behaelter.appendChild(kopf);
 
-        for (const spiel of START.SPIELE) {
-            behaelter.appendChild(START._spielKachelBauen(spiel));
+        /*
+         * DIE ART BESTIMMT DEN OBEREN TEIL (seit 0.18.0, wie Blunderluck
+         * v0.147.0; js/start-bibliothek.js): In der BIBLIOTHEK steht dort
+         * der Weg durch das aktuelle Buch und „Spielen" für das nächste
+         * Level, in FREI wie bisher die Spiel-Kachel (Tageswort, Übung).
+         * Gewählt wird am Quadrat neben „Spielen".
+         */
+        const mitArt = typeof START.art === "function";
+        if (mitArt && START.art() === "bibliothek") {
+            behaelter.appendChild(START._bibliothekKarteBauen());
+            behaelter.appendChild(START._bibliothekSpielenBauen());
+        } else {
+            START.SPIELE.forEach((spiel, i) => {
+                const kachel = START._spielKachelBauen(spiel);
+                const reihe = kachel.querySelector(".knopf-reihe");
+                if (mitArt && i === 0 && reihe) {
+                    reihe.appendChild(START._artKnopfBauen());
+                }
+                behaelter.appendChild(kachel);
+            });
         }
 
         behaelter.appendChild(START._freundeKarteBauen());
         START._freundeLaden(false);
         START._auffrischenAn();
+
+        /* Ein neu erreichtes Buch wird einmal gefeiert (seit 0.18.0). */
+        if (mitArt && START.art() === "bibliothek" && typeof START._neuesBuchPruefen === "function") {
+            START._neuesBuchPruefen();
+        }
     },
 
     /*

@@ -46,10 +46,16 @@ const ERGEBNISSE = {
 
     /* Aus einer beendeten Runde (js\wordle.js) das Ergebnis bauen. */
     ausRunde(runde) {
+        /* Seit 0.17.0: Ein Extra-Leben aus dem Shop (7. Versuch) verbessert
+           die Rangliste NICHT — gelöst zählt nur in höchstens sechs
+           Versuchen, sonst wie verloren („X/6"); das Muster zeigt die
+           ersten sechs Zeilen. So bleibt die Rangliste fair, und ältere
+           Fassungen (höchstens 6 Versuche) lesen das Ergebnis weiter. */
+        const inSechs = runde.zustand === "gewonnen" && runde.versuche.length <= WORDLE.VERSUCHE;
         return {
-            geloest: runde.zustand === "gewonnen",
-            versuche: runde.zustand === "gewonnen" ? runde.versuche.length : WORDLE.VERSUCHE,
-            muster: WORDLE.muster(runde),
+            geloest: inSechs,
+            versuche: inSechs ? runde.versuche.length : WORDLE.VERSUCHE,
+            muster: WORDLE.muster(runde).slice(0, WORDLE.VERSUCHE),
             nummer: runde.nummer || 0,
             beendetAm: runde.beendetAm || 0,
             dauerMs: Math.max(0, (runde.beendetAm || 0) - (runde.begonnenAm || 0))
