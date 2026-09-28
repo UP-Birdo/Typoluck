@@ -3,6 +3,104 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.24.0 — 29.09.2026
+
+**Spielzeit und „dabei seit" — wie in Blunderluck.**
+
+- Typoluck zählt, wie lange du spielst (nur solange die App offen und
+  sichtbar ist), auch als Gast. Dazu, seit wann du dabei bist.
+- Im eigenen Profil: Spielzeit je Spiel und gesamt („N min", ab einer
+  Stunde „1h+", „2h+" …) und „dabei seit".
+- Einstellungen, Karte UPCrew-Konto: „Spielzeit Privat/Öffentlich". Der
+  Haken gilt am Konto, also in allen UPCrew-Spielen; Standard privat.
+- Sicherst du als Gast deinen Spielstand, ziehen Spielzeit und „dabei
+  seit" mit.
+- Die kleine Nummer (#1234) steht jetzt bei allen Spielern, auch aus dem
+  öffentlichen Auszug.
+- Admins sehen in der Verwaltung die Spielzeit je Spieler.
+
+## 0.23.4 — 28.09.2026
+
+**Besser erklärt: Funde, Gegner, Legende — und Tageswort und Übung getrennt.**
+
+- Fund: Jedes Angebot sagt, was du gibst, was du bekommst und wann es
+  wirkt. Bei der Wette stehen Einsatz, Bedingung und Gewinn. Geht ein
+  Tausch nicht, steht dort, warum.
+- Elite und Boss zeigen ihre Besonderheit als Chip: im Buch neben dem
+  Gegner, im Blatt vor dem Start und oben in der Runde. Das „i“ erklärt,
+  was passiert, was gesperrt ist und wie du es schaffst.
+- Legende im Buch („?“): alle Symbole auf einen Blick. Beim ersten
+  Aufschlagen erscheint sie von selbst.
+- Die Vorschau auf dem Start zeigt nur noch eine Buchseite um deine
+  Stelle, ohne Zusatzangaben. Antippen öffnet das Buch; der Knopf
+  „Aufschlagen“ ist weg.
+- Alle Stationen liegen mit Abstand innerhalb der Seite, nie auf dem Rand.
+- An einer Kreuzung öffnet sich das Buch nach der Runde von selbst und
+  fragt „Wo lang?“.
+- Üben: Tageswort und Übung sind zwei getrennte Karten. Das Tageswort
+  zeigt seinen Stand und die Zeit bis zum nächsten Wort. Am Ende der
+  Übung steht „Nächstes Übungswort“.
+- Viel mehr Wörter zum Raten: eine große, geprüfte Wortliste (CC BY-SA
+  4.0). Lösungswörter bleiben dieselben.
+
+## 0.23.3 — 28.09.2026
+
+**Die Tastatur bleibt unten fest.**
+
+- In der Runde steht die Tastatur fest am unteren Rand — auch über der
+  Wischleiste am Handy.
+- Werden es mehr Versuche, rollt nur das Rate-Feld; die aktuelle Zeile
+  rollt von selbst ins Bild.
+- Oben bleiben Kopf, Uhr und Tipps stehen; die Seite selbst rollt nicht.
+
+## 0.23.2 — 28.09.2026
+
+**Das Buch auf dem Handy: Vorschau auf dem Start, aufgeschlagen im Vollbild.**
+
+- Auf dem Start siehst du das Buch als kleine Vorschau — mit Herzen,
+  Tinte, wie weit der Boss ist, und was als Nächstes kommt.
+- Antippen oder „Aufschlagen" öffnet das Buch über den ganzen Bildschirm.
+  Dort Stationen antippen, bestätigen, spielen; blättern mit Wischen hoch
+  oder runter; unten „Verlassen".
+- Wartet nach einer Runde eine Kreuzung, heisst der Knopf „Wo lang?" und
+  das Buch öffnet sich genau dort.
+- Die Pfeile neben „Spielen" sind weg — geblättert wird mit Wischen oder
+  über die Kapitel-Punkte.
+- Überall gelten nur noch echte Wörter als Versuch — auch im ersten Buch.
+
+## 0.23.1 — 28.09.2026
+
+**Vorbereitet: Typoluck lernt, wie schwer jedes Wort wirklich ist.**
+
+- Nach jeder Runde merkt sich Typoluck still, wie es gelaufen ist. In die
+  Datenbank geht das erst, wenn dort die neue Schutz-Regel gilt — bis dahin
+  wartet es auf dem Gerät.
+- Für Admins in der Verwaltung (erst mit der neuen Regel): Lexikon
+  einspielen und aus der Datenbank ansehen, die Schwierigkeit aus den
+  gesammelten Runden neu rechnen, alte Statistik aufräumen, und je Spieler
+  seine Wörter ansehen.
+- „Freunde heute" ist jetzt auch im Hintergrund ganz weg.
+
+## 0.23.0 — 28.09.2026
+
+**Tipp fest, besseres Löschen, Tinte, und der Start passt auf den Bildschirm.**
+
+- Ein Tipp setzt seinen Buchstaben fest an die richtige Stelle — gleich
+  richtig gefärbt, nicht löschbar, auch in allen weiteren Zeilen.
+- Löschen springt nach links und über feste Felder hinweg; Tippen
+  überspringt sie nach rechts. Tastatur und Bildschirm-Tastatur gleich.
+- **Tinte** in der Bibliothek: ein Gratis-Tipp aus dem Buch — eine zu
+  Beginn, an der Rast +1 (höchstens 3), verfällt am Buchende. Oben neben
+  den Herzen steht, wie viel du hast. Der Fund kennt jetzt auch „Herz
+  gegen 2 Tinte" und „Tinte gegen 35 Münzen".
+- Der Start rollt nicht mehr: Das Buch ist so gross, wie der Bildschirm
+  es zulässt, alles bleibt innerhalb des Buchs. Kapitel wechselst du mit
+  Wischen nach oben oder unten; zur Seite wischen wechselt den Tab.
+- „Freunde heute" ist vom Start verschwunden — Freunde findest du in der
+  Rangliste.
+- Hinter jedem Namen steht wieder klein die Nummer („#1234"), in
+  Rangliste, Profil und Freunden.
+
 ## 0.22.0 — 28.09.2026
 
 **Vorbereitet auf den besseren Schutz der Spielerdaten (Regel §12).**

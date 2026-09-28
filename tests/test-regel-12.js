@@ -98,7 +98,7 @@ function appLaden(fb) {
         removeItem(s) { delete gespeichert[s]; }
     };
     const umgebung = {
-        console, URL, URLSearchParams, AbortController, TextEncoder, Uint8Array, Uint32Array,
+        console, URL, URLSearchParams, AbortController, TextEncoder, Uint8Array, Uint32Array, atob, btoa,
         crypto: globalThis.crypto,
         setTimeout, clearTimeout,
         setInterval() { return 0; },
@@ -130,11 +130,14 @@ function appLaden(fb) {
     vm.createContext(umgebung);
 
     const quelltext = ["konto.js", "upcrew-abzeichen.js", "fortschritt.js", "fortschritt-abgleich.js",
-        "versiegelung.js", "spieler.js", "ich.js", "speicher.js", "abgleich.js", "anmeldung.js"]
+        "versiegelung.js", "spieler.js", "ich.js", "speicher.js", "abgleich.js", "anmeldung.js",
+        "woerter-de.js", "wortbewertung-daten.js", "wortbewertung-korrektur.js", "wortbewertung.js",
+        "wortstatistik.js", "wortstatistik-abgleich.js", "spielzeit.js"]
         .map((name) => dateisystem.readFileSync(pfad.join(projekt, "js", name), "utf8"))
         .join("\n;\n")
         + "\nObject.assign(globalThis, { KONTO, FORTSCHRITT, FORTSCHRITT_ABGLEICH, SPIELER, ICH, ANMELDUNG,"
-        + " Abgleich, SpeicherGemeinsam, SpeicherKonten, speicherErzeugen });";
+        + " Abgleich, SpeicherGemeinsam, SpeicherKonten, speicherErzeugen, WORTSTATISTIK, WORTSTATISTIK_ABGLEICH,"
+        + " WORTBEWERTUNG, WOERTER_DE, SPIELZEIT });";
     vm.runInContext(quelltext, umgebung, { filename: "typoluck-regel-12.js" });
 
     const { KONTO, SPIELER, ANMELDUNG, KONFIG } = umgebung;
@@ -227,12 +230,22 @@ const spieler = (fb) => fb.db.spieler;
 
 (async () => {
 
-    await pruefe("Regeltext §12: gültiges JSON; §11c-Zeilen bis auf die geänderten enthalten", () => {
+    await pruefe("Regeltext §12: gültiges JSON, byte-gleich mit Blunderlucks SICHERHEIT.md §14; §11c-Zeilen bis auf die geänderten enthalten", () => {
         wahr(REGEL_12.rules && REGEL_12.rules.spieler, "Regel §12 gelesen");
+        /* Seit 0.24.0 (Blunderluck v0.155.2): derselbe Text steht in
+           SICHERHEIT.md §14 und im Konzept Abschnitt 11. */
+        gleich(blockNach(sicherheit, "## 14. Regel §12", "text") === TEXT_12, true,
+            "Konzept Abschnitt 11 = SICHERHEIT.md §14");
+        wahr(TEXT_12.indexOf("\"spielzeitOeffentlich\"") !== -1, "Regeltext mit spielzeitOeffentlich (v0.155.2)");
         const zeilen12 = new Set(TEXT_12.split("\n").map((z) => z.trim()));
         const fehlen = TEXT_11C.split("\n").map((z) => z.trim())
             .filter((z) => /"\.(read|write|validate)"/.test(z) && !zeilen12.has(z));
-        gleich(fehlen.map((z) => z.slice(0, 15)), ["\"geaendertAm\": ", "\"$tag\": { \".wri"], "nur die geänderten Zeilen fehlen");
+        /* Geändert laut Konzept: `geaendertAm` (+ .read), `namen/$name/$tag`;
+           seit v0.155.0 dazu `blunderluck` (.write wandert nach unten,
+           Löschregel) und `team-schach` (mehrzeilig) — wie in Blunderlucks
+           test-regel-12.js. */
+        gleich(fehlen.map((z) => z.slice(0, 15)), ["\"geaendertAm\": ", "\"$tag\": { \".wri",
+            "\".write\": \"auth", "\"team-schach\": "], "nur die geänderten Zeilen fehlen");
         wahr(REGEL_11C.rules.spieler[".read"] === true && REGEL_12.rules.spieler[".read"] === undefined,
             "spieler/.read gestrichen");
         wahr(REGEL_12.rules.typoluck, "Bereich typoluck bleibt");
@@ -287,7 +300,7 @@ const spieler = (fb) => fb.db.spieler;
         const nochmal = await umstieg.w.KONTO.nachziehen(umstieg.w.speicher);
         gleich([nochmal.geschrieben, nochmal.uebersprungen], [0, anzahl], "zweiter Lauf: nichts zu tun");
         const auszug = spieler(fb).oeffentlich["uid-jonas2"];
-        gleich(Object.keys(auszug).sort(), ["auszug", "id", "name"], "nur erlaubte Felder");
+        gleich(Object.keys(auszug).sort(), ["auszug", "id", "name", "tag"], "nur erlaubte Felder (seit 0.24.0 mit #Tag)");
         gleich(auszug.auszug.xp, 900, "XP im Auszug (Typoluck-Zweig)");
     });
 
@@ -308,12 +321,15 @@ const spieler = (fb) => fb.db.spieler;
         const ich = daten.spieler.find((s) => s.name === "Anna");
         wahr(ich && ich.tag && ich.kennung, "eigener Eintrag mit Nummer");
         const bert = daten.spieler.find((s) => s.name === "Bert");
-        wahr(bert && !bert.tag && !bert.kennung && !bert.fortschritt && bert.auszug, "Bert nur als Auszug");
+        wahr(bert && bert.tag && !bert.kennung && !bert.fortschritt && bert.auszug, "Bert nur als Auszug (seit 0.24.0 mit Nummer)");
         wahr(w.SPIELER.istVerteiler(daten.spieler.find((s) => s.uid === OBER)), "UP#Plus ohne Nummer erkannt");
         wahr(!w.SPIELER.mitspieler(daten).some((s) => s.uid === OBER), "UP#Plus in keiner Liste");
         const jonas = daten.spieler.filter((s) => s.name === "Jonas");
-        gleich(jonas.map((s) => w.SPIELER.nummerZusatz(daten, s)).filter((z) => /^Level \d+$/.test(z)).length, 2,
-            "gleiche Namen: „Level N“, keine Nummer");
+        /* Seit 0.23.0 „#Tag" bei allen — seit 0.24.0 (Blunderluck v0.155.0)
+           steht er unter §12 auch im fremden Auszug. */
+        gleich(jonas.map((s) => w.SPIELER.nummerZusatz(daten, s)), jonas.map((s) => "#" + s.tag), "fremde mit #Tag aus dem Auszug");
+        wahr(jonas.every((s) => /^[0-9A-Z]{4}$/.test(s.tag)), "beide Jonas mit Nummer");
+        gleich(w.SPIELER.nummerZusatz(daten, ich), "#" + ich.tag, "eigener mit #Tag");
     });
 
     await pruefe("§12 Anmelden: vor der Anmeldung keine Spieler; falsches Passwort, Gast, unbekannt; danach eigener Eintrag", async () => {
@@ -420,7 +436,8 @@ const spieler = (fb) => fb.db.spieler;
         wahr(ok, "gesendet");
         gleich(spieler(fb).konten[uid].fortschritt.spiele.typoluck.xp, 640, "Fortschritt am Konto");
         gleich(spieler(fb).oeffentlich[uid].auszug.xp, 640, "Auszug zog mit");
-        gleich(Object.keys(spieler(fb).oeffentlich[uid]).sort().indexOf("tag"), -1, "keine Nummer im Auszug");
+        gleich(spieler(fb).oeffentlich[uid].tag, spieler(fb).konten[uid].tag, "Nummer im Auszug = die am Konto (seit 0.24.0)");
+        gleich(Object.keys(spieler(fb).oeffentlich[uid]).indexOf("kennung"), -1, "keine Kennung im Auszug");
     });
 
     await pruefe("§12 Typoluck: Aussehen je Spiel als Teilpfad wird angenommen", async () => {
@@ -428,6 +445,44 @@ const spieler = (fb) => fb.db.spieler;
         const uid = w.KONTO.uid();
         await w.speicher.teilSchreiben({ ["konten/" + uid + "/aussehenJe/typoluck"]: { farbwelt: "feld", stand: 9 } });
         gleich(spieler(fb).konten[uid].aussehenJe.typoluck.farbwelt, "feld", "geschrieben");
+    });
+
+    await pruefe("§12 Spielzeit (0.24.0): Haken am Konto gezielt, Auszug mit/ohne Spielzeit; nur Ja/Nein, nur der Besitzer; §11c nimmt es an", async () => {
+        const w = await angemeldetAls(fb, "Anna", PW.anna);
+        const uid = w.KONTO.uid();
+        const U = w.umgebung;
+        U.APP = { spielerSpeicher: w.speicher, fortschrittId: () => uid, _aussehenUid: () => uid,
+            fortschritt: () => U.FORTSCHRITT.laden(uid) };
+        U.FORTSCHRITT_ABGLEICH.einrichten(w.speicher, () => uid, () => uid);
+        wahr(U.SPIELZEIT._eigener() && U.SPIELZEIT.oeffentlich() === false, "eigener Eintrag, Standard privat");
+        const stand = U.FORTSCHRITT.spielzeitZaehlen({ version: 1, spiele: { typoluck: { xp: 10, stand: 5 } } },
+            100, Date.now(), "typoluck");
+        U.FORTSCHRITT.aendern(uid, () => ({ stand: stand }));
+        wahr(await U.FORTSCHRITT_ABGLEICH.senden(stand), "gesendet");
+        gleich(spieler(fb).konten[uid].fortschritt.spiele.typoluck.zaehler.spielzeit, 100, "Spielzeit am Konto (§11b)");
+        wahr(!("spielzeit" in spieler(fb).oeffentlich[uid].auszug.werte), "privat: nicht im Auszug");
+        wahr(await U.SPIELZEIT.oeffentlichSetzen(true), "Haken an");
+        gleich(spieler(fb).konten[uid].spielzeitOeffentlich, true, "Haken am Konto");
+        gleich(spieler(fb).oeffentlich[uid].auszug.werte.spielzeit, 100, "öffentlich: im eigenen Auszug");
+        const mehr = U.FORTSCHRITT.spielzeitZaehlen(stand, 20, Date.now(), "typoluck");
+        U.FORTSCHRITT.aendern(uid, () => ({ stand: mehr }));
+        wahr(await U.FORTSCHRITT_ABGLEICH.senden(mehr), "nochmal gesendet");
+        gleich(spieler(fb).oeffentlich[uid].auszug.werte.spielzeit, 120, "Auszug zieht mit");
+        wahr(await U.SPIELZEIT.oeffentlichSetzen(false), "Haken aus");
+        wahr(!("spielzeit" in spieler(fb).oeffentlich[uid].auszug.werte), "wieder privat");
+        const nachbau = new RegelNachbau(REGEL_12);
+        const weg = (a) => Object.keys(a).map((k) => ({ weg: ["spieler"].concat(k.split("/")), wert: a[k] }));
+        const auth = { uid: uid, provider: "password" };
+        wahr(!nachbau.schreibenPruefen(fb.db, weg({ geaendertAm: 9, ["konten/" + uid + "/spielzeitOeffentlich"]: "ja" }),
+            auth).ok, "nur Ja/Nein");
+        const baum = JSON.parse(JSON.stringify(fb.db));
+        baum.spieler.rollen = Object.assign({}, baum.spieler.rollen, { "u-adm": "admin" });
+        wahr(!nachbau.schreibenPruefen(baum, weg(U.SPIELZEIT.aenderungen(uid, true, 9)),
+            { uid: "u-adm", provider: "password" }).ok, "ein Admin ändert den Haken nicht");
+        wahr(nachbau.schreibenPruefen(fb.db, weg(U.SPIELZEIT.aenderungen(uid, true, 9)), auth).ok, "Besitzer darf");
+        const alt = new RegelNachbau(REGEL_11C);
+        wahr(alt.schreibenPruefen(fb.db, weg(U.SPIELZEIT.aenderungen(uid, true, 9)), auth).ok,
+            "§11c nimmt das Feld gezielt an");
     });
 
     await pruefe("Auszug: nur erlaubte Felder; Level und fünf Abzeichen = aus dem vollen Fortschritt", async () => {
@@ -453,7 +508,7 @@ const spieler = (fb) => fb.db.spieler;
         }
         const oeff = w.KONTO.oeffentlichVon({ id: "i", name: "N", tag: "0001", kennung: "k", uid: "u",
             aussehen: {}, fortschritt: staende[1], stufe: {}, freunde: ["a"], abzeichen: [] });
-        gleich(Object.keys(oeff).sort(), ["auszug", "freunde", "id", "name"], "öffentlich nur erlaubte Felder");
+        gleich(Object.keys(oeff).sort(), ["auszug", "freunde", "id", "name", "tag"], "öffentlich nur erlaubte Felder (seit 0.24.0 mit #Tag)");
     });
 
     await pruefe("401 mitten im Lauf: alte Regel zurück → App fällt von selbst in den Modus alt, und wieder vor", async () => {
@@ -477,6 +532,158 @@ const spieler = (fb) => fb.db.spieler;
         await laden(w);
         gleich(w.KONTO.regel, "p12", "401 beim Laden: neu erkannt");
         wahr(wertBei(fb.db, ["spieler", "oeffentlich"]), "Knoten stehen noch");
+    });
+
+    /* ---------------------------------------------------------------- *
+     * Typoluck-Teil (seit 0.23.1): Lexikon, Wortstatistik, Schwierigkeit
+     * gegen die echte Regel §12 (`typoluck-intern`). Der Nachbau kennt
+     * `.sv` nicht — die Hülle unten löst `{".sv": {"increment": n}}` vor
+     * dem Prüfen so auf, wie der Server es tut.
+     * ---------------------------------------------------------------- */
+    const echtesFetch = fb.fetch;
+    fb.fetch = async (adresse, einstellungen) => {
+        if (einstellungen && einstellungen.method === "PATCH" && typeof einstellungen.body === "string"
+                && einstellungen.body.indexOf(".sv") !== -1) {
+            const basisPfad = new URL(adresse).pathname.replace(/\.json$/, "").split("/").filter((t) => t);
+            const inhalt = JSON.parse(einstellungen.body);
+            for (const k of Object.keys(inhalt)) {
+                const w = inhalt[k];
+                if (w && typeof w === "object" && w[".sv"] && typeof w[".sv"].increment === "number") {
+                    const alt = wertBei(fb.db, basisPfad.concat(k.split("/")));
+                    inhalt[k] = (typeof alt === "number" ? alt : 0) + w[".sv"].increment;
+                }
+            }
+            einstellungen = Object.assign({}, einstellungen, { body: JSON.stringify(inhalt) });
+        }
+        return echtesFetch(adresse, einstellungen);
+    };
+    const intern = (w) => new w.umgebung.SpeicherGemeinsam(BASIS, "typoluck-intern");
+    const WS12 = require("../js/wortstatistik.js");
+    const LOESUNGEN = require("../js/woerter-de.js").loesungen;
+    const KEY = WS12.schluessel("abend");
+    const abgelehnt = async (speicher, a) => {
+        try {
+            await speicher.teilSchreiben(a);
+            return false;
+        } catch (fehler) {
+            return fehler.status === 401;
+        }
+    };
+    /* Anmelden direkt mit der Kennung (unabhängig vom Anmeldeverzeichnis,
+       damit dieser Teil nur `typoluck-intern` prüft). */
+    const direkt = async (eintrag, passwort) => {
+        const w = appLaden(fb);
+        const an = await w.KONTO.anmelden(eintrag.kennung, passwort);
+        wahr(an.ok, "angemeldet " + eintrag.name);
+        await laden(w);
+        return w;
+    };
+    const lesenGesperrt = async (speicher, p) => {
+        try {
+            await speicher.teilLaden(p);
+            return false;
+        } catch (fehler) {
+            return fehler.status === 401;
+        }
+    };
+
+    await pruefe("§12 Lexikon: UP#Plus spielt die Werkzeug-Datei ein; Spieler lesen das Lexikon nicht", async () => {
+        const up = appLaden(fb);
+        await up.KONTO.anmelden("up-plus", PW.ober);
+        await laden(up);
+        const voll = require("../werkzeug/wortbewertung-voll.js");
+        const gepr = WS12.lexikonPruefen(JSON.parse(JSON.stringify(WS12.lexikonExport(voll, {}, LOESUNGEN))));
+        for (const schritt of WS12.lexikonSchritte(gepr.eintraege)) {
+            await intern(up).teilSchreiben(schritt);
+        }
+        gleich(fb.db["typoluck-intern"].lexikon[KEY].w, "abend", "eingespielt");
+        const anna = await direkt(konten.anna, PW.anna);
+        wahr(await lesenGesperrt(intern(anna), "lexikon"), "Anna liest das Lexikon nicht");
+    });
+
+    await pruefe("§12 Wortstatistik: Runde → EIN Schritt (Datensatz + Summen) angenommen; zweite Runde w…", async () => {
+        const w = await direkt(konten.anna, PW.anna);
+        const uid = w.KONTO.uid();
+        const A = w.umgebung.WORTSTATISTIK_ABGLEICH;
+        A.einrichten(intern(w), w.speicher, () => uid, () => uid, () => true);
+        const runde = { modus: "tag", loesung: "abend", versuche: ["tisch", "abend"], zustand: "gewonnen",
+            begonnenAm: 1000, beendetAm: 61000, tipps: [], extra: 0 };
+        A.melden(runde, "2026-10-01", 5);
+        await new Promise((r) => setTimeout(r, 50));
+        await A.senden();
+        const satz = fb.db["typoluck-intern"].runden[uid][KEY];
+        gleich([satz.r, satz.l, fb.db["typoluck-intern"].summen[KEY].a2, fb.db["typoluck-intern"].summen[KEY].n],
+            [1, "a2", 1, 1], "Datensatz und Summen");
+        A.melden(Object.assign({}, runde, { versuche: ["tisch"], zustand: "verloren" }), "2026-10-02", 6);
+        await new Promise((r) => setTimeout(r, 50));
+        await A.senden();
+        gleich([fb.db["typoluck-intern"].runden[uid][KEY].r, fb.db["typoluck-intern"].summen[KEY].w0,
+            fb.db["typoluck-intern"].summen[KEY].n], [2, 1, 2], "zweite Runde");
+        gleich(A.warte().length, 0, "Warteschlange leer");
+        gleich(fb.db.spieler.konten[uid].stufe.typoluck.runden, 2, "Stufe am Konto");
+        wahr(await lesenGesperrt(intern(w), "summen"), "Spieler lesen keine Summen");
+        wahr((await intern(w).teilLaden("runden/" + uid + "/" + KEY)).r === 2, "eigenen Datensatz lesen geht");
+    });
+
+    await pruefe("§12 Wortstatistik: Gegenproben (Datensatz allein, falsche Klasse, fremde uid, Wort ohne Lexikon)", async () => {
+        const w = await direkt(konten.bert, PW.bert);
+        const uid = w.KONTO.uid();
+        const t = WS12.tatsachen({ modus: "uebung", loesung: "abend", versuche: ["abend"], zustand: "gewonnen",
+            begonnenAm: 1, beendetAm: 2000, tipps: [] }, "2026-10-01");
+        const satz = WS12.datensatz(null, t, 30);
+        const s = intern(w);
+        wahr(await abgelehnt(s, { ["runden/" + uid + "/" + KEY]: satz }), "Datensatz ohne Summen");
+        const falscheKlasse = WS12.schritt(uid, KEY, satz);
+        falscheKlasse["summen/" + KEY + "/a5"] = { ".sv": { increment: 1 } };
+        delete falscheKlasse["summen/" + KEY + "/a1"];
+        wahr(await abgelehnt(s, falscheKlasse), "falsche Klasse");
+        wahr(await abgelehnt(s, WS12.schritt("uid-fremd", KEY, satz)), "fremde uid");
+        wahr(await abgelehnt(s, WS12.schritt(uid, "ffffffff", satz)), "Wort ohne Lexikon");
+        wahr(!(await abgelehnt(s, WS12.schritt(uid, KEY, satz))), "richtiger Schritt geht");
+    });
+
+    await pruefe("§12 Schwierigkeit: UP#Plus rechnet und schreibt; Spieler lesen sie, die App nimmt sie", async () => {
+        const up = appLaden(fb);
+        await up.KONTO.anmelden("up-plus", PW.ober);
+        await laden(up);
+        const [lexikon, summen] = await Promise.all([intern(up).teilLaden("lexikon"), intern(up).teilLaden("summen")]);
+        const daten = WS12.appDaten(lexikon, summen, LOESUNGEN, 7);
+        await intern(up).teilSchreiben({ schwierigkeit: daten });
+        const w = await direkt(konten.anna, PW.anna);
+        const uid = w.KONTO.uid();
+        w.umgebung.WORTSTATISTIK_ABGLEICH.einrichten(intern(w), w.speicher, () => uid, () => uid, () => true);
+        wahr(await w.umgebung.WORTSTATISTIK_ABGLEICH.schwierigkeitHolen(), "geholt und angewandt");
+        wahr(w.umgebung.WORTBEWERTUNG._datenErsatz && w.umgebung.WORTBEWERTUNG._datenErsatz.kodiert === daten.kodiert,
+            "die EINE Lesestelle liest die neue");
+        wahr(await lesenGesperrt(intern(appLaden(fb)), "schwierigkeit"), "ohne Anmeldung nicht lesbar");
+    });
+
+    await pruefe("§12 Aufräumen: UP#Plus löscht alte Datensätze eines Spielers, Summen bleiben", async () => {
+        const up = appLaden(fb);
+        await up.KONTO.anmelden("up-plus", PW.ober);
+        await laden(up);
+        const uid = Object.keys(fb.db["typoluck-intern"].runden)[0];
+        fb.db["typoluck-intern"].runden[uid][KEY].z = 20240101;
+        const summeVorher = JSON.stringify(fb.db["typoluck-intern"].summen[KEY]);
+        const schritt = WS12.aufraeumen(uid, await intern(up).teilLaden("runden/" + uid), 20261001);
+        await intern(up).teilSchreiben(schritt);
+        wahr(!wertBei(fb.db, ["typoluck-intern", "runden", uid, KEY]), "gelöscht");
+        gleich(JSON.stringify(fb.db["typoluck-intern"].summen[KEY]), summeVorher, "Summen unverändert");
+    });
+
+    await pruefe("Alte Regel: die App sendet keine Wortstatistik (Warteschlange)", async () => {
+        fb.regelSetzen(REGEL_11C);
+        const w = appLaden(fb);
+        await laden(w);
+        const A = w.umgebung.WORTSTATISTIK_ABGLEICH;
+        A.einrichten(intern(w), w.speicher, () => "uid-x", () => "uid-x", () => true);
+        const vorher = fb.aufrufe.length;
+        A.melden({ modus: "tag", loesung: "abend", versuche: ["abend"], zustand: "gewonnen",
+            begonnenAm: 1, beendetAm: 2, tipps: [] }, "2026-10-03", 9);
+        await new Promise((r) => setTimeout(r, 50));
+        wahr(!fb.aufrufe.slice(vorher).some((a) => /typoluck-intern/.test(a.pfad)), "nichts an typoluck-intern");
+        gleich(A.warte().length, 1, "wartet");
+        fb.regelSetzen(REGEL_12);
     });
 
     console.log(anzahlOk + " ok, " + anzahlFehler + " Fehler");

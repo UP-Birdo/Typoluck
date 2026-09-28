@@ -127,6 +127,23 @@ const EINSTELLUNGEN_BILDSCHIRM = {
             }
             karte.appendChild(wer);
         }
+        /* Spielzeit öffentlich zeigen? (seit 0.24.0, wie Blunderluck
+           v0.155.2: ein Feld AM KONTO, gilt in allen UPCrew-Spielen;
+           Standard privat). Nur mit echtem Konto. */
+        if (typeof SPIELZEIT !== "undefined" && SPIELZEIT._eigener()) {
+            karte.appendChild(EINSTELLUNGEN_BILDSCHIRM._zeileBauen("uhr", "Spielzeit",
+                BAUSTEINE.segment(
+                    [{ wert: false, text: "Privat" }, { wert: true, text: "Öffentlich" }],
+                    SPIELZEIT.oeffentlich(),
+                    (wert) => {
+                        SPIELZEIT.oeffentlichSetzen(wert).then((ok) => {
+                            if (!ok) {
+                                DIALOG.kurzmeldung("Nicht gespeichert");
+                            }
+                            NAVIGATION.auffrischen();
+                        });
+                    }, "Spielzeit")));
+        }
         const reihe = BAUSTEINE.el("div", "knopf-spalte");
         /* Ein Gast (seit v0.2.0) sichert hier seinen Spielstand. */
         if (ANMELDUNG.istGast()) {

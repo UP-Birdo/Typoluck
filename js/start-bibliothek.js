@@ -107,14 +107,28 @@ Object.assign(START, {
         return START.INITIALEN[(nr * 7 + b * 3) % START.INITIALEN.length];
     },
 
-    /* Lage einer Stelle im Buch (viewBox 400 × 560; Falz bei 280, keine
-       Station zwischen 244 und 316) — aus dem Entwurf. */
+    /*
+     * Lage einer Stelle im Buch (viewBox 400 × 560; Falz bei 280).
+     * Seit 0.23.4 (Nutzer: „die einzelnen Steps sollen nicht am Rand vom
+     * Buch liegen, sondern passend auf den Seiten, nicht außerhalb oder
+     * auf der Außenlinie"): gerechnet aus dem INNENRAHMEN der Seite —
+     * Seite 4 px vom Buchrand, Innenrahmen 10 px weiter, davon noch 8 px
+     * Abstand plus Stationsradius (Boss 8 %, Front 7 %, Station 6 % der
+     * Buchbreite). Das Buch hat dafür ein festes Seitenverhältnis 400 : 560
+     * (css/stil-bibliothek.css). Bis 0.23.3: unten 530–316, oben 244–34
+     * (der Boss lag auf der Aussenlinie). tests/test-bibliothek.js misst
+     * es für Buchbreiten 250–700 px.
+     */
+    LAGE_UNTEN: [516, 344],
+    LAGE_OBEN: [216, 68],
+
     _lage(kap, s, i) {
         const n = kap.length;
         const unten = Math.ceil(n / 2);
         const oben = n - unten;
         const vert = (von, bis, anz, j) => (anz === 1 ? (von + bis) / 2 : von + (bis - von) * j / (anz - 1));
-        const y = s < unten ? vert(530, 316, unten, s) : vert(244, 34, oben, s - unten);
+        const y = s < unten ? vert(START.LAGE_UNTEN[0], START.LAGE_UNTEN[1], unten, s)
+            : vert(START.LAGE_OBEN[0], START.LAGE_OBEN[1], oben, s - unten);
         const x = kap[s].length === 1 ? 200 : (i === 0 ? 96 : 304);
         return { x: x, y: y };
     },
@@ -172,17 +186,147 @@ Object.assign(START, {
      * Die Bibliothek auf dem Start
      * ---------------------------------------------------------------- */
 
+    /*
+     * VORSCHAU UND VOLLBILD (seit 0.23.2, Nutzer 28.09.2026 zu 0.23.0 am
+     * Handy: „das Buch auf dem Handy passt so nicht"):
+     *   - Auf dem Start steht das Buch nur als VORSCHAU: klein, nicht
+     *     bedienbar — Buch, Fortschritt (Herzen, Tinte, Boss in n) und die
+     *     nächste Station. Antippen (oder „Aufschlagen") öffnet es.
+     *   - Das VOLLBILD nutzt den ganzen Bildschirm (Leiste unten weg,
+     *     Kerbe oben frei) — die bewusste Ausnahme von „keine Vollbild-
+     *     Menüs". Stationen antippen, im Blatt bestätigen, spielen;
+     *     Blättern mit Wischen hoch/runter; unten „Verlassen".
+     *   - Nach einer Runde, wenn als Nächstes eine Kreuzung wartet, öffnet
+     *     sich das Buch von selbst dort und fragt „Wo lang?" (Knopf „Weiter"
+     *     am Rundenende, js/bildschirm-wordle.js).
+     * `buchOffen` merkt nur die Anzeige; nichts wird gespeichert.
+     */
+    buchOffen: false,
+
     _bibliothekBauen(behaelter) {
-        if (START.regalOffen) {
-            behaelter.appendChild(START._regalBauen());
+        const turm = START._turm();
+        const b = START._buchNr();
+        const lauf = BIBLIOTHEK.lauf(turm, b);
+        /* Seit 0.23.4 ohne Knopf „Aufschlagen" (Nutzer: „Aufschlagen soll
+           raus als Knopf … man soll bei der Vorschau nichts auswählen
+           können, nur die Vollansicht öffnen"): die Vorschau selbst ist
+           der eine Knopf. */
+        behaelter.appendChild(START._vorschauBauen(turm, b, lauf));
+        START._vollbildAuffrischen();
+    },
+
+    /* Was als Nächstes wartet — für die Vorschau: { zeichen, text }. */
+    naechste(turm, b, lauf) {
+        if (lauf.durch) {
+            return BIBLIOTHEK.buch(b + 1) && BIBLIOTHEK.offen(turm, b + 1)
+                ? { zeichen: "weiter", text: "Buch " + (b + 1) } : { zeichen: "haken", text: "Geschafft" };
+        }
+        if (lauf.gabel) {
+            return { zeichen: "gabel", text: "Wo lang?" };
+        }
+        const st = BIBLIOTHEK.station(b, lauf.jetzt);
+        const name = st.art === "e" ? BIBLIOTHEK.elite(b, st.nr).name
+            : (st.art === "b" ? BIBLIOTHEK.buch(b).boss.name : BIBLIOTHEK.ARTEN[st.art].name);
+        return { zeichen: st.art === "w" ? "weiter" : BIBLIOTHEK.ARTEN[st.art].zeichen,
+            text: BIBLIOTHEK.ROEM[st.k] + " · " + name };
+    },
+
+    /*
+     * Die Vorschau (seit 0.23.4, Nutzer: „die Vorschau soll nur die halbe
+     * Seite anzeigen; die ganzen Infos zur Karte sollen kommen, wenn man
+     * drauf klickt"): Nummer und Titel, darunter ein Ausschnitt so hoch wie
+     * eine Buchseite um die Stelle, an der man steht — ohne Herzen, Tinte,
+     * „Boss in n" und Stations-Text. Ein Knopf; alles andere im Vollbild.
+     */
+    _vorschauBauen(turm, b, lauf) {
+        const buch = BIBLIOTHEK.buch(b);
+        const n = START.naechste(turm, b, lauf);
+        const knopf = BAUSTEINE.knopf({ art: "flach", titel: buch.titel + " aufschlagen · " + n.text,
+            beiKlick: () => START.buchOeffnen() });
+        knopf.classList.add("bib-vorschau", "bib-stil-" + buch.stil);
+        knopf.style.setProperty("--th", buch.farbe);
+        const kopf = BAUSTEINE.el("span", "bib-kopf");
+        kopf.appendChild(BAUSTEINE.el("span", "bib-nr", String(b)));
+        kopf.appendChild(BAUSTEINE.el("span", "bib-titel", buch.titel));
+        knopf.appendChild(kopf);
+        const platz = BAUSTEINE.el("span", "bib-buch-platz");
+        const halb = BAUSTEINE.el("span", "bib-halb");
+        const buchEl = START._buchBauen(b, lauf, lauf.kapitel, true);
+        const ab = START.halbAb(b, lauf);
+        buchEl.style.top = ab ? "-100%" : "0";
+        halb.classList.add(ab ? "schnitt-oben" : "schnitt-unten");
+        halb.appendChild(buchEl);
+        platz.appendChild(halb);
+        knopf.appendChild(platz);
+        return knopf;
+    },
+
+    /* Wo der Ausschnitt der Vorschau beginnt: 0 (obere Seite) oder 280
+       (untere Seite) — immer eine GANZE Seite, die Schnittkante liegt im
+       Falz, keine Station wird angeschnitten (Nutzer: „besser
+       abschneiden"). Die Seite, auf der man steht (Front, Mitte der
+       Gabelung; durch = oben beim Boss). Rein. */
+    halbAb(b, lauf) {
+        const kap = BIBLIOTHEK.kapitel(b, lauf.kapitel);
+        const nrn = lauf.durch ? [] : (lauf.jetzt !== null ? [lauf.jetzt] : (lauf.gabel || []));
+        const ys = nrn.map((nr) => BIBLIOTHEK.station(b, nr)).filter((st) => st && st.k === lauf.kapitel)
+            .map((st) => START._lage(kap, st.s, st.i).y);
+        const y = ys.length ? ys.reduce((a, c) => a + c, 0) / ys.length : (lauf.durch ? 0 : 280);
+        return y < 280 ? 0 : 280;
+    },
+
+    buchOeffnen() {
+        START.buchOffen = true;
+        START.kapBlick = null;
+        START.regalOffen = false;
+        NAVIGATION.auffrischen();
+        START._legendeEinmal();
+    },
+
+    buchSchliessen() {
+        START.buchOffen = false;
+        START.regalOffen = false;
+        START._blattZu();
+        START._vollbildEntfernen();
+        NAVIGATION.auffrischen();
+    },
+
+    _vollbildEntfernen() {
+        const alt = document.querySelector(".bib-vollbild");
+        if (alt) {
+            alt.remove();
+        }
+        document.body.classList.remove("buch-offen");
+    },
+
+    /* Beim Verlassen des Starts (NAVIGATION): Vollbild zu. */
+    buchVerlassen() {
+        START.buchOffen = false;
+        START.regalOffen = false;
+        START._vollbildEntfernen();
+    },
+
+    _vollbildAuffrischen() {
+        START._vollbildEntfernen();
+        if (!START.buchOffen || START.art() !== "bibliothek") {
             return;
         }
         const turm = START._turm();
         const b = START._buchNr();
         const lauf = BIBLIOTHEK.lauf(turm, b);
         const k = START._kapNr(b, lauf);
-        behaelter.appendChild(START._buchKarteBauen(turm, b, lauf, k));
-        behaelter.appendChild(START._spielReiheBauen(turm, b, lauf, k));
+        const voll = BAUSTEINE.el("div", "bib-vollbild");
+        voll.setAttribute("role", "dialog");
+        voll.setAttribute("aria-label", BIBLIOTHEK.buch(b).titel);
+        if (START.regalOffen) {
+            voll.appendChild(START._regalBauen());
+            voll.appendChild(START._vollbildReiheBauen(turm, b, null, k));
+        } else {
+            voll.appendChild(START._buchKarteBauen(turm, b, lauf, k));
+            voll.appendChild(START._vollbildReiheBauen(turm, b, lauf, k));
+        }
+        document.body.appendChild(voll);
+        document.body.classList.add("buch-offen");
     },
 
     _buchKarteBauen(turm, b, lauf, k) {
@@ -196,21 +340,48 @@ Object.assign(START, {
         const regal = BAUSTEINE.knopf({ art: "flach", zeichen: "regal", titel: "Bücherregal",
             beiKlick: () => { START.regalOffen = true; NAVIGATION.auffrischen(); } });
         regal.classList.add("bib-regal-knopf");
+        /* Die Legende (seit 0.23.4): alle Symbole erklärt. */
+        const legende = BAUSTEINE.knopf({ art: "flach", text: "?", titel: "Legende",
+            beiKlick: () => START.legendeZeigen() });
+        legende.classList.add("bib-regal-knopf", "bib-legende-knopf");
+        kopf.appendChild(legende);
         kopf.appendChild(regal);
         karte.appendChild(kopf);
 
-        const leiste = BAUSTEINE.el("div", "bib-leiste");
+        karte.appendChild(START._leisteBauen(turm, b, lauf, k, false));
+
+        /* Seit 0.23.0 in einem Platz, der das Buch so gross macht, wie der
+           Bildschirm es zulässt (die Startseite rollt nicht mehr). */
+        const platz = BAUSTEINE.el("div", "bib-buch-platz");
+        platz.appendChild(START._buchBauen(b, lauf, k));
+        karte.appendChild(platz);
+        return karte;
+    },
+
+    /* Herzen, Tinte, Kapitel-Punkte, „Boss in n" — im Vollbild und (als
+       Bild, `vorschau`) in der Vorschau. */
+    _leisteBauen(turm, b, lauf, k, vorschau) {
+        const leiste = BAUSTEINE.el(vorschau ? "span" : "div", "bib-leiste");
         /* Die Herzen (seit 0.21.0, Konzept §3.7): ab Buch 2, solange das
            Buch nicht durch ist; sonst hält ein leerer Platz die Mitte. */
-        if (BIBLIOTHEK.mitHerzen(b) && !lauf.durch) {
-            leiste.appendChild(WORDLE_BILDSCHIRM.herzenBauen(APP.durchgang(b).herzen, 0));
-        } else {
-            leiste.appendChild(BAUSTEINE.el("span", "bib-herzen-platz"));
+        /* Seit 0.23.0 daneben die Tinte des Buchs (Tintenfass + Zahl). */
+        const vorrat = BAUSTEINE.el("span", "bib-vorrat");
+        if (!lauf.durch) {
+            if (BIBLIOTHEK.mitHerzen(b)) {
+                vorrat.appendChild(WORDLE_BILDSCHIRM.herzenBauen(APP.durchgang(b).herzen, 0));
+            }
+            const tinte = BAUSTEINE.el("span", "bib-tinte");
+            tinte.setAttribute("aria-label", APP.durchgang(b).tinte + " Tinte");
+            tinte.appendChild(BAUSTEINE.zeichen("tintenfass"));
+            tinte.appendChild(BAUSTEINE.el("b", null, String(APP.durchgang(b).tinte)));
+            vorrat.appendChild(tinte);
         }
+        leiste.appendChild(vorrat);
         const punkte = BAUSTEINE.el("span", "bib-kap-punkte");
         for (let n = 0; n < BIBLIOTHEK.anzahlKapitel(b); n++) {
-            const p = BAUSTEINE.knopf({ art: "flach", titel: "Kapitel " + BIBLIOTHEK.ROEM[n],
-                beiKlick: () => START._blaettern(n) });
+            const p = vorschau ? BAUSTEINE.el("span", "knopf bib-kap-punkt")
+                : BAUSTEINE.knopf({ art: "flach", titel: "Kapitel " + BIBLIOTHEK.ROEM[n],
+                    beiKlick: () => START._blaettern(n) });
             p.classList.add("bib-kap-punkt");
             if (n === k) {
                 p.classList.add("an");
@@ -229,13 +400,10 @@ Object.assign(START, {
         bossIn.appendChild(BAUSTEINE.el("b", null, lauf.durch ? "" : String(BIBLIOTHEK.bossIn(turm, b))));
         bossIn.setAttribute("aria-label", lauf.durch ? "Buch durch" : "Boss in " + BIBLIOTHEK.bossIn(turm, b) + " Stationen");
         leiste.appendChild(bossIn);
-        karte.appendChild(leiste);
-
-        karte.appendChild(START._buchBauen(b, lauf, k));
-        return karte;
+        return leiste;
     },
 
-    _buchBauen(b, lauf, k) {
+    _buchBauen(b, lauf, k, vorschau) {
         const kap = BIBLIOTHEK.kapitel(b, k);
         const z = START._zustaende(b, k, lauf);
         const buchEl = BAUSTEINE.el("div", "buch");
@@ -289,7 +457,8 @@ Object.assign(START, {
                 el = BAUSTEINE.el("span", "st st-" + art + " " + zustand);
             } else {
                 const st = BIBLIOTHEK.stationAn(b, k, s, i);
-                el = START._stationKnopf(b, st, zustand);
+                /* In der Vorschau (seit 0.23.2) nur ein Bild: kein Knopf. */
+                el = vorschau ? START._stationBild(b, st, zustand) : START._stationKnopf(b, st, zustand);
             }
             el.style.left = (L.x / 4) + "%";
             el.style.top = (L.y / 5.6) + "%";
@@ -300,20 +469,42 @@ Object.assign(START, {
             buchEl.appendChild(BAUSTEINE.el("div", "umblatt " + START._klapp));
         }
 
-        /* Wischen blättert (waagrecht, wie im Entwurf). */
-        let x0 = null;
-        buchEl.addEventListener("pointerdown", (e) => { x0 = e.clientX; });
+        /*
+         * Wischen blättert — seit 0.23.0 HOCH/RUNTER (Nutzer 28.09.2026:
+         * „von oben nach unten wischen soll die buchseiten wechseln, nicht
+         * von rechts nach links"): nach oben = nächstes Kapitel, nach unten
+         * = voriges. Waagrecht gehört das Wischen wieder dem Tab-Wechsel
+         * (gemeinsamer Baustein upcrew-wischen; `.buch` steht deshalb nicht
+         * mehr in NAVIGATION.WISCHEN_SPERREN). `BUCH_WISCH` rechnet es.
+         */
+        if (vorschau) {
+            return buchEl;
+        }
+        let start = null;
+        buchEl.addEventListener("pointerdown", (e) => { start = { x: e.clientX, y: e.clientY }; });
+        buchEl.addEventListener("pointercancel", () => { start = null; });
         buchEl.addEventListener("pointerup", (e) => {
-            if (x0 === null) {
+            if (start === null) {
                 return;
             }
-            const d = e.clientX - x0;
-            x0 = null;
-            if (Math.abs(d) > 50) {
-                START._blaettern(k + (d < 0 ? 1 : -1));
+            const schritt = START.buchWisch(e.clientX - start.x, e.clientY - start.y);
+            start = null;
+            if (schritt !== 0) {
+                START._blaettern(k + schritt);
             }
         });
         return buchEl;
+    },
+
+    /* Ein Wisch im Buch: +1 (nach oben, nächstes Kapitel), -1 (nach unten),
+       0 (zu kurz oder eher waagrecht — dann ist es ein Tab-Wisch). Rein. */
+    BUCH_WISCH_PX: 50,
+
+    buchWisch(dx, dy) {
+        if (Math.abs(dy) < START.BUCH_WISCH_PX || Math.abs(dy) <= Math.abs(dx)) {
+            return 0;
+        }
+        return dy < 0 ? 1 : -1;
     },
 
     /* Der Inhalt einer Station (Initiale oder Symbol). */
@@ -323,6 +514,13 @@ Object.assign(START, {
         } else {
             ziel.appendChild(BAUSTEINE.zeichen(BIBLIOTHEK.ARTEN[st.art].zeichen));
         }
+    },
+
+    /* Die Station als Bild (Vorschau auf dem Start, seit 0.23.2). */
+    _stationBild(b, st, zustand) {
+        const el = BAUSTEINE.el("span", "st st-" + st.art + " " + zustand);
+        START._stationInhalt(b, st, el);
+        return el;
     },
 
     _stationKnopf(b, st, zustand) {
@@ -340,6 +538,19 @@ Object.assign(START, {
             const cp = BAUSTEINE.el("span", "st-cp");
             cp.setAttribute("aria-label", "Checkpoint");
             knopf.appendChild(cp);
+        }
+        /* Seit 0.23.4: die Besonderheit kurz am Gegner (nicht gegangen). */
+        if ((st.art === "e" || st.art === "b") && zustand !== "fertig" && zustand !== "blass") {
+            const kurz = START._gegnerKurz(b, st.nr);
+            /* Neben der Station zur Buchmitte hin (Elite auf einer Spur; nach
+               aussen läge der Chip auf dem Seitenrand), der Boss oben in der
+               Mitte links neben sich (darunter wartet die Rast, rechts unten
+               das Schloss) — nie über eine andere Station. */
+            const spalte = BIBLIOTHEK.kapitel(b, st.k)[st.s];
+            const seite = spalte.length === 2 ? (st.i === 0 ? " rechts" : " links") : " links";
+            if (kurz) {
+                knopf.appendChild(BAUSTEINE.el("span", "st-eigen" + seite, kurz));
+            }
         }
         if (st.art === "b" && zustand !== "fertig") {
             const schloss = BAUSTEINE.el("span", "st-schloss");
@@ -372,22 +583,21 @@ Object.assign(START, {
             tun: () => START.stationBlatt(b, st.nr) };
     },
 
-    _spielReiheBauen(turm, b, lauf, k) {
+    /* Unten im Vollbild (seit 0.23.2): „Verlassen" zurück zur Vorschau,
+       daneben die Hauptaktion. Die Pfeile ‹ › neben „Spielen" sind weg —
+       geblättert wird mit Wischen hoch/runter oder über die Kapitel-Punkte. */
+    _vollbildReiheBauen(turm, b, lauf, k) {
         const reihe = BAUSTEINE.el("div", "bib-spiel-reihe");
-        const zurueck = BAUSTEINE.knopf({ art: "still", zeichen: "links", titel: "Kapitel zurück",
-            beiKlick: () => START._blaettern(k - 1) });
-        zurueck.disabled = k === 0;
-        reihe.appendChild(zurueck);
-        const aktion = START._aktion(turm, b, lauf, k);
-        const spielen = BAUSTEINE.knopf({ text: aktion.text, art: "haupt", zeichen: aktion.zeichen,
-            beiKlick: () => aktion.tun && aktion.tun() });
-        spielen.classList.add("bib-spielen");
-        spielen.disabled = !!aktion.aus;
-        reihe.appendChild(spielen);
-        const vor = BAUSTEINE.knopf({ art: "still", zeichen: "weiter", titel: "Kapitel vor",
-            beiKlick: () => START._blaettern(k + 1) });
-        vor.disabled = k >= BIBLIOTHEK.anzahlKapitel(b) - 1;
-        reihe.appendChild(vor);
+        reihe.appendChild(BAUSTEINE.knopf({ text: "Verlassen", art: "still", zeichen: "links",
+            beiKlick: () => START.buchSchliessen() }));
+        if (lauf) {
+            const aktion = START._aktion(turm, b, lauf, k);
+            const spielen = BAUSTEINE.knopf({ text: aktion.text, art: "haupt", zeichen: aktion.zeichen,
+                beiKlick: () => aktion.tun && aktion.tun() });
+            spielen.classList.add("bib-spielen");
+            spielen.disabled = !!aktion.aus;
+            reihe.appendChild(spielen);
+        }
         return reihe;
     },
 
@@ -505,14 +715,16 @@ Object.assign(START, {
             if (buch.nurNomen) {
                 chips.push("Nomen");
             }
+            /* Die Besonderheit des Gegners (seit 0.23.4) steht als eigene
+               Reihe mit „i" darüber (START.gegnerChips). */
+            if (st.art === "e" || st.art === "b") {
+                blatt.appendChild(START.gegnerChips(b, nr));
+            }
             if (st.art === "e") {
-                chips.push(BIBLIOTHEK.elite(b, nr).eigen, "+1 Figur");
+                chips.push("+1 Figur");
                 if (herzen) {
                     chips.push("Checkpoint", "Herzen voll");
                 }
-            }
-            if (st.art === "b") {
-                chips.push(buch.boss.eigen);
             }
             chips.push(regeln.versuche + " Versuche");
             if (regeln.zeit) {
@@ -621,7 +833,7 @@ Object.assign(START, {
         if (herzen) {
             blatt.appendChild(START._chips(["Checkpoint"]));
         }
-        const wahl = BAUSTEINE.el("div", "bib-wahl " + (herzen ? "bib-wahl-zwei" : "bib-wahl-eins"));
+        const wahl = BAUSTEINE.el("div", "bib-wahl " + (herzen ? "bib-wahl-drei" : "bib-wahl-zwei"));
         const waehlen = (was, meldung) => {
             if (APP.rastWaehlen(b, nr, was)) {
                 DIALOG.kurzmeldung(meldung);
@@ -646,6 +858,15 @@ Object.assign(START, {
         ueben.appendChild(BAUSTEINE.el("span", "bib-preis", "Elite · Boss"));
         ueben.disabled = zu || !BIBLIOTHEK.rastMoeglich(dg, b, nr, "ueben");
         wahl.appendChild(ueben);
+        /* Tinte +1 (seit 0.23.0, Nutzer „Tinte A", höchstens 3). */
+        const tinte = BAUSTEINE.knopf({ art: "flach", titel: "Tinte",
+            beiKlick: () => waehlen("tinte", "+1 Tinte") });
+        tinte.classList.add("bib-ware");
+        tinte.appendChild(BAUSTEINE.zeichen("tintenfass"));
+        tinte.appendChild(BAUSTEINE.el("span", "bib-ware-name", "+1 Tinte"));
+        tinte.appendChild(BAUSTEINE.el("span", "bib-preis", dg.tinte + " / " + BIBLIOTHEK.TINTE_MAX));
+        tinte.disabled = zu || !BIBLIOTHEK.rastMoeglich(dg, b, nr, "tinte");
+        wahl.appendChild(tinte);
         blatt.appendChild(wahl);
         /* Ohne Wahl weiter (etwa bei vollen Herzen und schon geübt). */
         const weiter = BAUSTEINE.knopf({ text: "Weiter", art: "still",
@@ -667,8 +888,17 @@ Object.assign(START, {
         const dg = APP.durchgang(b);
         const muenzen = (typeof UPCREW_MUENZEN !== "undefined") ? UPCREW_MUENZEN.anzeige(APP.fortschritt()) : 0;
         const wahl = BAUSTEINE.el("div", "bib-wahl bib-tausch");
+        const erledigt = BIBLIOTHEK.erledigt(START._turm(), b, nr);
         for (const f of BIBLIOTHEK.fundAngebote(b, nr)) {
-            const k = BAUSTEINE.knopf({ art: "flach", titel: f.gib + " gegen " + f.kriegst,
+            /* Seit 0.23.4 (Nutzer: „Funde besser erklären"): je Angebot
+               Zeilen „Du gibst · Du bekommst · Wann" bzw. Wirkung aufs
+               nächste Wort bzw. Einsatz · Wenn · Gewinn — und gesperrt,
+               warum. */
+            const erklaerung = BIBLIOTHEK.fundErklaerung(f.id);
+            const zeilen = erklaerung ? erklaerung.zeilen : [{ was: "Du gibst", wert: f.gib, ton: "gib" },
+                { was: "Du bekommst", wert: f.kriegst, ton: "kriegst" }];
+            const grund = erledigt ? "" : (zu ? "Noch nicht dran" : BIBLIOTHEK.fundGrund(dg, b, f.id, muenzen));
+            const k = BAUSTEINE.knopf({ art: "flach", titel: zeilen.map((z) => z.was + " " + z.wert).join(", "),
                 beiKlick: () => {
                     if (APP.fundNehmen(b, nr, f.id)) {
                         DIALOG.kurzmeldung(f.kriegst);
@@ -677,9 +907,18 @@ Object.assign(START, {
                     }
                 } });
             k.classList.add("bib-tausch-knopf");
-            k.appendChild(BAUSTEINE.el("span", "bib-gib", f.gib));
-            k.appendChild(BAUSTEINE.el("span", "bib-pfeil", "→"));
-            k.appendChild(BAUSTEINE.el("span", "bib-kriegst", f.kriegst));
+            if (erklaerung && erklaerung.wette) {
+                k.classList.add("bib-wette");
+            }
+            for (const z of zeilen) {
+                const zeile = BAUSTEINE.el("span", "bib-tausch-zeile ton-" + z.ton);
+                zeile.appendChild(BAUSTEINE.el("span", "bib-tausch-was", z.was));
+                zeile.appendChild(BAUSTEINE.el("b", "bib-tausch-wert", z.wert));
+                k.appendChild(zeile);
+            }
+            if (grund) {
+                k.appendChild(BAUSTEINE.el("span", "bib-tausch-grund", grund));
+            }
             k.disabled = zu || !BIBLIOTHEK.fundMoeglich(dg, b, f.id, muenzen);
             wahl.appendChild(k);
         }
@@ -694,13 +933,167 @@ Object.assign(START, {
         return nein;
     },
 
+    /* ---------------------------------------------------------------- *
+     * BESSER ERKLÄREN (seit 0.23.4, Nutzer 28.09.2026: „die Besonderheit
+     * des Gegners muss hinter das i kommen oder ersichtlich sein, was
+     * passiert · eine Legende muss her"). Texte: js/bibliothek.js
+     * (`gegner`, `besonderheiten`, `LEGENDE`).
+     * ---------------------------------------------------------------- */
+
+    /* Die Besonderheit als Chips + „i" (Blatt, Regal; die Runde baut ihre
+       eigene Reihe mit denselben Texten). */
+    gegnerChips(b, nr) {
+        const g = BIBLIOTHEK.gegner(b, nr);
+        const reihe = BAUSTEINE.el("div", "bib-chips bib-gegner-chips");
+        if (!g) {
+            return reihe;
+        }
+        for (const x of g.besonderheiten) {
+            reihe.appendChild(BAUSTEINE.el("span", "bib-chip gegner", x.chip));
+        }
+        const info = BAUSTEINE.knopf({ art: "flach", zeichen: "info", titel: "Besonderheit erklärt",
+            beiKlick: () => START.gegnerErklaeren(b, nr) });
+        info.classList.add("bib-info");
+        reihe.appendChild(info);
+        return reihe;
+    },
+
+    /* Der Inhalt der Erklärung: je Besonderheit Chip + Was · Gesperrt ·
+       So geht's; darunter, was ein Sieg bringt und ein Scheitern kostet. */
+    gegnerErklaerungBauen(b, nr) {
+        const g = BIBLIOTHEK.gegner(b, nr);
+        const inhalt = BAUSTEINE.el("div", "bib-erklaerung");
+        if (!g) {
+            return inhalt;
+        }
+        for (const x of g.besonderheiten) {
+            const teil = BAUSTEINE.el("div", "bib-erkl-teil");
+            teil.appendChild(BAUSTEINE.el("span", "bib-chip gegner", x.chip));
+            const zeilen = [["Was", x.was], ["Gesperrt", x.gesperrt], ["So geht's", x.wie]];
+            for (const [was, wert] of zeilen) {
+                if (!wert) {
+                    continue;
+                }
+                const zeile = BAUSTEINE.el("div", "bib-erkl-zeile");
+                zeile.appendChild(BAUSTEINE.el("span", "bib-tausch-was", was));
+                zeile.appendChild(BAUSTEINE.el("b", null, wert));
+                teil.appendChild(zeile);
+            }
+            inhalt.appendChild(teil);
+        }
+        const bilanz = [];
+        if (g.art === "e") {
+            bilanz.push("+1 Figur");
+            if (BIBLIOTHEK.mitHerzen(b)) {
+                bilanz.push("Checkpoint", "Herzen voll");
+            }
+        } else {
+            bilanz.push("Buch geschafft");
+        }
+        if (BIBLIOTHEK.mitHerzen(b)) {
+            const v = BIBLIOTHEK.VERLUST[g.art];
+            bilanz.push("!Verloren: −" + v + (v === 1 ? " Herz" : " Herzen"));
+        }
+        const fuss = START._chips(bilanz);
+        fuss.classList.add("bib-erkl-fuss");
+        inhalt.appendChild(fuss);
+        return inhalt;
+    },
+
+    /* Als Hinweis-Fenster (über Blatt, Vollbild und Runde). Liegt ein Blatt
+       darunter, bleibt es „offen" (Wischen gesperrt). */
+    gegnerErklaeren(b, nr) {
+        const g = BIBLIOTHEK.gegner(b, nr);
+        if (!g || typeof DIALOG === "undefined") {
+            return;
+        }
+        const zu = DIALOG.hinweis(g.name, "", START.gegnerErklaerungBauen(b, nr));
+        START._blattWiederOffen(zu);
+    },
+
+    _blattWiederOffen(zu) {
+        if (zu && typeof zu.then === "function") {
+            zu.then(() => {
+                if (document.querySelector(".bib-blatt-grund")) {
+                    document.body.classList.add("dialog-offen");
+                }
+            });
+        }
+    },
+
+    /* Kurz am Gegner im Buch: die erste Besonderheit, bei mehr „+n". */
+    _gegnerKurz(b, nr) {
+        const g = BIBLIOTHEK.gegner(b, nr);
+        if (!g || !g.besonderheiten.length) {
+            return "";
+        }
+        const mehr = g.besonderheiten.length - 1;
+        return g.besonderheiten[0].kurz + (mehr > 0 ? " +" + mehr : "");
+    },
+
+    /* DIE LEGENDE: alle Stations-Symbole, wie sie im Buch aussehen. */
+    LEGENDE_SCHLUESSEL: "typoluck.legende-gesehen",
+
+    legendeBauen() {
+        const liste = BAUSTEINE.el("div", "bib-legende");
+        const buch = BIBLIOTHEK.buch(START._buchNr());
+        if (buch) {
+            liste.style.setProperty("--th", buch.farbe);
+        }
+        for (const l of BIBLIOTHEK.LEGENDE) {
+            const zeile = BAUSTEINE.el("div", "bib-legende-zeile");
+            const bild = BAUSTEINE.el("span", "st st-" + l.art + " " + l.zustand + " bib-legende-st");
+            if (l.art === "w") {
+                bild.appendChild(BAUSTEINE.el("span", "ini", "W"));
+            } else {
+                bild.appendChild(BAUSTEINE.zeichen(BIBLIOTHEK.ARTEN[l.art].zeichen));
+            }
+            if (l.cp) {
+                bild.appendChild(BAUSTEINE.el("span", "st-cp"));
+            }
+            if (l.schloss) {
+                const schloss = BAUSTEINE.el("span", "st-schloss");
+                schloss.appendChild(BAUSTEINE.zeichen("schloss"));
+                bild.appendChild(schloss);
+            }
+            zeile.appendChild(bild);
+            const text = BAUSTEINE.el("span", "bib-legende-text");
+            text.appendChild(BAUSTEINE.el("b", null, l.name));
+            text.appendChild(BAUSTEINE.el("span", null, l.text));
+            zeile.appendChild(text);
+            liste.appendChild(zeile);
+        }
+        return liste;
+    },
+
+    legendeZeigen() {
+        if (typeof DIALOG === "undefined") {
+            return;
+        }
+        START._blattWiederOffen(DIALOG.hinweis("Legende", "", START.legendeBauen()));
+    },
+
+    /* Beim ersten Aufschlagen eines Buchs einmal von selbst (Gerät). */
+    _legendeEinmal() {
+        let gesehen = false;
+        try {
+            gesehen = window.localStorage.getItem(START.LEGENDE_SCHLUESSEL) === "1";
+            window.localStorage.setItem(START.LEGENDE_SCHLUESSEL, "1");
+        } catch (fehler) {
+            gesehen = true;
+        }
+        if (!gesehen) {
+            START.legendeZeigen();
+        }
+    },
+
     /* An der Gabelung: zwei Knöpfe mit der Symbolreihe je Spur bis zum
        Treffpunkt; die Wahl öffnet das Blatt der ersten Station. */
-    gabelBlatt(b, gabel) {
+    gabelBlatt(b, gabel, titel) {
         const buch = BIBLIOTHEK.buch(b);
         const bild = BAUSTEINE.el("span", "st moeglich bib-blatt-bild");
         bild.appendChild(BAUSTEINE.zeichen("gabel"));
-        const blatt = START._blatt(bild, "Weg wählen", buch.farbe);
+        const blatt = START._blatt(bild, titel || "Weg wählen", buch.farbe);
         const wahl = BAUSTEINE.el("div", "bib-gabel-wahl");
         gabel.forEach((nr) => {
             const erste = BIBLIOTHEK.station(b, nr);
@@ -780,7 +1173,8 @@ Object.assign(START, {
                             const bild = BAUSTEINE.el("span", "st st-b moeglich bib-blatt-bild");
                             bild.appendChild(BAUSTEINE.zeichen("siegelband"));
                             const blatt = START._blatt(bild, buch.boss.name, buch.farbe);
-                            blatt.appendChild(START._chips([buch.boss.eigen]));
+                            const boss = BIBLIOTHEK.stationen(b).find((st) => st.art === "b");
+                            blatt.appendChild(START.gegnerChips(b, boss.nr));
                             START._knopfReihe(blatt, []);
                         } });
                     gegner.classList.add("bib-gegner-kopf");

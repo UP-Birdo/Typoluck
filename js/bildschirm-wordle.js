@@ -80,6 +80,9 @@ const WORDLE_BILDSCHIRM = {
         WORDLE_BILDSCHIRM.runde = (modus === "bibliothek")
             ? WORDLE_BILDSCHIRM._bibliothekRunde(parameter, neueUebung)
             : WORDLE_BILDSCHIRM._rundeHolen(modus, neueUebung);
+        /* Aufgedeckte Buchstaben (Tipp, Tinte) stehen fest in der Zeile
+           (seit 0.23.0). */
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeFuer(WORDLE_BILDSCHIRM.runde);
 
         /* Heute schon auf einem ANDEREN Gerät gespielt: Die Datenbank kennt
            das Ergebnis, dieses Gerät kennt die Runde nicht. Dann gibt es kein
@@ -245,6 +248,11 @@ const WORDLE_BILDSCHIRM = {
         behaelter.appendChild(kopf);
 
         const spiel = BAUSTEINE.el("div", "wordle");
+        /* Elite und Boss (seit 0.23.4): die Besonderheit als Chips + „i". */
+        const gegner = WORDLE_BILDSCHIRM._gegnerBauen();
+        if (gegner) {
+            spiel.appendChild(gegner);
+        }
         /* Die Uhr einer Runde mit Regel `zeit` (seit 0.21.0). */
         const uhr = WORDLE_BILDSCHIRM._uhrBauen();
         if (uhr) {
@@ -263,6 +271,53 @@ const WORDLE_BILDSCHIRM = {
         }
         behaelter.appendChild(spiel);
         WORDLE_BILDSCHIRM._uhrTakten();
+        WORDLE_BILDSCHIRM._aktiveZeileZeigen();
+    },
+
+    /* Die Besonderheit des Gegners in der Runde (seit 0.23.4, Nutzer:
+       „die Besonderheit des Gegners muss hinter das i kommen"): kurze
+       Chips, antippen (oder „i") öffnet die Erklärung — auch mitten in der
+       Runde. Nur Elite und Boss der Bibliothek. */
+    _gegnerBauen() {
+        const runde = WORDLE_BILDSCHIRM.runde;
+        if (runde.modus !== "bibliothek" || typeof START === "undefined" || !START.gegnerErklaeren) {
+            return null;
+        }
+        const g = BIBLIOTHEK.gegner(runde.buch, runde.station);
+        if (!g || !g.besonderheiten.length) {
+            return null;
+        }
+        const knopf = BAUSTEINE.knopf({ art: "flach", titel: g.name + ": Besonderheit erklärt",
+            beiKlick: () => START.gegnerErklaeren(runde.buch, runde.station) });
+        knopf.classList.add("wordle-gegner");
+        for (const x of g.besonderheiten) {
+            knopf.appendChild(BAUSTEINE.el("span", "bib-chip gegner", x.kurz));
+        }
+        const info = BAUSTEINE.el("span", "wordle-gegner-info");
+        info.appendChild(BAUSTEINE.zeichen("info"));
+        knopf.appendChild(info);
+        return knopf;
+    },
+
+    /* Seit 0.23.3 rollt während einer Runde nur das Brett (Tastatur fest
+       unten, css/stil-wordle.css): Die Zeile, in die getippt wird, rückt
+       in den Blick — nur das Brett rollt, nie die Seite. Mit der letzten
+       Zeile darunter, damit man sieht, wie viele noch kommen. */
+    _aktiveZeileZeigen() {
+        const behaelter = WORDLE_BILDSCHIRM._behaelter;
+        const brett = behaelter && behaelter.querySelector(".wordle-brett");
+        const zeile = brett && (brett.querySelector(".wordle-zeile-aktiv")
+            || brett.children[Math.max(0, WORDLE_BILDSCHIRM.runde.versuche.length - 1)]);
+        if (!brett || !zeile || brett.scrollHeight <= brett.clientHeight) {
+            return;
+        }
+        const oben = zeile.offsetTop;
+        const unten = oben + zeile.offsetHeight;
+        if (oben < brett.scrollTop) {
+            brett.scrollTop = Math.max(0, oben - 4);
+        } else if (unten > brett.scrollTop + brett.clientHeight) {
+            brett.scrollTop = unten - brett.clientHeight + 6;
+        }
     },
 
     /* ---------------------------------------------------------------- *
@@ -358,48 +413,65 @@ const WORDLE_BILDSCHIRM = {
      */
     _tippsBauen() {
         const runde = WORDLE_BILDSCHIRM.runde;
-        const tipps = Array.isArray(runde.tipps) ? runde.tipps : [];
         const vorrat = (typeof APP !== "undefined" && APP.vorrat) ? APP.vorrat("tipp") : 0;
         /* Seit 0.19.0 fragt der Knopf das Modell (Regel ohneTipp). */
         const knopfDa = vorrat > 0 && WORDLE.tippMoeglich(runde);
-        if (!knopfDa && !tipps.length) {
+        /* Tinte (seit 0.23.0): der Gratis-Tipp des Buchs, nur in der
+           Bibliothek, Vorrat im Durchgang (js/app.js `durchgang`). */
+        const tinte = (runde.modus === "bibliothek" && typeof APP !== "undefined" && APP.durchgang)
+            ? APP.durchgang(runde.buch).tinte : 0;
+        const tinteDa = tinte > 0 && WORDLE.tinteMoeglich(runde);
+        /* Die aufgedeckten Buchstaben stehen seit 0.23.0 fest und grün in der
+           Zeile — eine eigene Marke darüber braucht es nicht mehr. */
+        if (!knopfDa && !tinteDa) {
             return null;
         }
         const leiste = BAUSTEINE.el("div", "wordle-tipps");
-        for (const stelle of tipps) {
-            leiste.appendChild(BAUSTEINE.el("span", "wordle-tipp-marke",
-                "Feld " + (stelle + 1) + ": " + Array.from(runde.loesung)[stelle].toUpperCase()));
+        if (tinteDa) {
+            const knopf = BAUSTEINE.knopf({ text: "Tinte · " + tinte, art: "still", zeichen: "tintenfass",
+                beiKlick: () => WORDLE_BILDSCHIRM._aufdecken("tinte") });
+            knopf.classList.add("wordle-tipp-knopf");
+            leiste.appendChild(knopf);
         }
         if (knopfDa) {
             const knopf = BAUSTEINE.knopf({ text: "Tipp · " + vorrat, art: "still", zeichen: "info",
-                beiKlick: () => WORDLE_BILDSCHIRM._tippEinsetzen() });
+                beiKlick: () => WORDLE_BILDSCHIRM._aufdecken("tipp") });
             knopf.classList.add("wordle-tipp-knopf");
             leiste.appendChild(knopf);
         }
         return leiste;
     },
 
+    /* Für ältere Aufrufe (bis 0.22.0). */
     async _tippEinsetzen() {
+        return WORDLE_BILDSCHIRM._aufdecken("tipp");
+    },
+
+    /*
+     * Einen Buchstaben aufdecken — Tipp aus dem Vorrat (Münzen) oder Tinte
+     * des Buchs. Seit 0.23.0 (Nutzer: „fix, nicht löschbar und gleich
+     * richtig eingefärbt"): Der Buchstabe steht fest an seiner Stelle, in
+     * dieser und jeder weiteren Zeile (`WORDLE.eingabeFestsetzen`).
+     */
+    async _aufdecken(art) {
         const runde = WORDLE_BILDSCHIRM.runde;
         if (WORDLE_BILDSCHIRM._sperre || runde.zustand !== "laeuft") {
             return;
         }
-        const ja = await DIALOG.frage("Tipp einsetzen?", "Deckt einen richtigen Buchstaben auf"
-            + (runde.modus === "tag" ? " · Tageswort dann höchstens ein Bauer" : ""), "Einsetzen");
+        const tinte = art === "tinte";
+        const ja = await DIALOG.frage(tinte ? "Tinte einsetzen?" : "Tipp einsetzen?",
+            "Deckt einen richtigen Buchstaben auf"
+            + (runde.modus === "tag" ? " · Tageswort dann höchstens ein Bauer" : "")
+            + (runde.modus === "bibliothek" ? " · höchstens eine Figur" : ""), "Einsetzen");
         if (!ja) {
             return;
         }
-        const tipp = WORDLE.tippEinsetzen(WORDLE_BILDSCHIRM.runde);
-        if (!tipp || !APP.benutzen("tipp")) {
+        const tipp = tinte ? WORDLE.tinteEinsetzen(WORDLE_BILDSCHIRM.runde) : WORDLE.tippEinsetzen(WORDLE_BILDSCHIRM.runde);
+        if (!tipp || !(tinte ? APP.tinteNutzen(runde.buch) : APP.benutzen("tipp"))) {
             return;
         }
         WORDLE_BILDSCHIRM.runde = tipp.runde;
-        const eingabe = JSON.parse(JSON.stringify(WORDLE_BILDSCHIRM.eingabe));
-        eingabe.felder[tipp.stelle] = tipp.buchstabe;
-        if (eingabe.stelle === tipp.stelle) {
-            eingabe.stelle = WORDLE._naechstesLeeres(eingabe.felder, eingabe.stelle);
-        }
-        WORDLE_BILDSCHIRM.eingabe = eingabe;
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeFestsetzen(WORDLE_BILDSCHIRM.eingabe, tipp.runde);
         WORDLE_BILDSCHIRM._merken();
         WORDLE_BILDSCHIRM._zeichnen();
         DIALOG.kurzmeldung("Feld " + (tipp.stelle + 1) + ": " + tipp.buchstabe.toUpperCase(), 1800);
@@ -429,7 +501,11 @@ const WORDLE_BILDSCHIRM = {
 
             for (let stelle = 0; stelle < WORDLE.LAENGE; stelle++) {
                 const kachel = WORDLE_BILDSCHIRM._kachelBauen(
-                    buchstaben[stelle] || "", bewertung ? bewertung[stelle] : null);
+                    buchstaben[stelle] || "", bewertung ? bewertung[stelle]
+                        : (aktiv && WORDLE._istFest(WORDLE_BILDSCHIRM.eingabe, stelle) ? WORDLE.RICHTIG : null));
+                if (aktiv && WORDLE._istFest(WORDLE_BILDSCHIRM.eingabe, stelle)) {
+                    kachel.classList.add("kachel-fest");
+                }
                 if (aktiv) {
                     WORDLE_BILDSCHIRM._kachelAntippbarMachen(kachel, stelle);
                 }
@@ -558,16 +634,14 @@ const WORDLE_BILDSCHIRM = {
                 text: "Rangliste", art: "haupt", breit: true, zeichen: "rangliste",
                 beiKlick: () => NAVIGATION.zeigen("rangliste", null, true)
             }));
-            karte.appendChild(BAUSTEINE.knopf({
-                text: "Übungsrunde", art: "still", breit: true, zeichen: "uebung",
-                beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "uebung", neu: true }, true)
-            }));
-            karte.appendChild(BAUSTEINE.el("p", "wordle-ende-naechstes", "Nächstes Wort: 0 Uhr"));
+            /* Seit 0.23.4 getrennt (Nutzer: „Tageswort und Übung getrennt"):
+               kein Übungs-Knopf am Ende des Tagesworts. */
+            karte.appendChild(BAUSTEINE.el("p", "wordle-ende-naechstes", "Nächstes Tageswort: 0 Uhr"));
         } else if (runde.modus === "bibliothek") {
             WORDLE_BILDSCHIRM._bibliothekEndeBauen(karte, runde, gewonnen);
         } else {
             karte.appendChild(BAUSTEINE.knopf({
-                text: "Neues Übungswort", art: "haupt", breit: true, zeichen: "uebung",
+                text: "Nächstes Übungswort", art: "haupt", breit: true, zeichen: "uebung",
                 beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "uebung", neu: true }, true)
             }));
         }
@@ -617,10 +691,22 @@ const WORDLE_BILDSCHIRM = {
         if (gewonnen) {
             /* Nach dem Boss steht das nächste Buch offen. */
             const naechstes = BIBLIOTHEK.istBoss(runde.buch, runde.station) ? BIBLIOTHEK.buch(runde.buch + 1) : null;
-            karte.appendChild(BAUSTEINE.knopf({
-                text: naechstes ? "Weiter · " + naechstes.titel : "Weiter", art: "haupt", breit: true, zeichen: "weiter",
+            /* Seit 0.23.2: Wartet eine Kreuzung, heisst der Knopf „Wo lang?" — der
+               Start öffnet dann das Buch dort (js/bildschirm-start.js). */
+            const kreuzung = !naechstes && !!BIBLIOTHEK.lauf(APP.bibliothekStand(), runde.buch).gabel;
+            const weiter = BAUSTEINE.knopf({
+                text: naechstes ? "Weiter · " + naechstes.titel : (kreuzung ? "Wo lang?" : "Weiter"), art: "haupt",
+                breit: true, zeichen: kreuzung ? "gabel" : "weiter",
                 beiKlick: () => NAVIGATION.zeigen("start", { bibliothek: true }, true)
-            }));
+            });
+            karte.appendChild(weiter);
+            /* Seit 0.23.4 (Nutzer, Kreuzung entschieden): das Ergebnis kurz
+               zeigen, dann öffnet sich das Buch VON SELBST und fragt „Wo
+               lang?" — der Knopf geht sofort. Nur direkt nach der Runde
+               (`bib` = eben gewertet), einmal je Runde. */
+            if (kreuzung && bib) {
+                WORDLE_BILDSCHIRM._kreuzungPlanen(runde, weiter);
+            }
             return;
         }
         karte.appendChild(BAUSTEINE.knopf({
@@ -632,6 +718,29 @@ const WORDLE_BILDSCHIRM = {
             text: BIBLIOTHEK.NAME, art: "still", breit: true, zeichen: "buch",
             beiKlick: () => NAVIGATION.zeigen("start", { bibliothek: true }, true)
         }));
+    },
+
+    /* Nach einer gelösten Runde an einer Kreuzung: nach KREUZUNG_MS von
+       selbst ins Buch (Start öffnet es mit „Wo lang?"). Der Knopf zeigt
+       die Zeit als Balken. Wer vorher weggeht, bleibt, wo er ist. */
+    KREUZUNG_MS: 2000,
+    _kreuzungFuer: "",
+
+    _kreuzungPlanen(runde, knopf) {
+        const schluessel = runde.buch + "-" + runde.station + "-" + runde.begonnenAm;
+        if (WORDLE_BILDSCHIRM._kreuzungFuer === schluessel) {
+            return;
+        }
+        WORDLE_BILDSCHIRM._kreuzungFuer = schluessel;
+        knopf.classList.add("wordle-gleich");
+        knopf.style.setProperty("--gleich-ms", WORDLE_BILDSCHIRM.KREUZUNG_MS + "ms");
+        window.setTimeout(() => {
+            const jetzt = WORDLE_BILDSCHIRM.runde;
+            if (NAVIGATION.aktuell === "wordle" && jetzt && jetzt.begonnenAm === runde.begonnenAm
+                    && !document.body.classList.contains("dialog-offen")) {
+                NAVIGATION.zeigen("start", { bibliothek: true }, true);
+            }
+        }, WORDLE_BILDSCHIRM.KREUZUNG_MS);
     },
 
     /* Die Herzen als Reihe (seit 0.21.0; auch auf der Buch-Karte,
@@ -725,10 +834,6 @@ const WORDLE_BILDSCHIRM = {
         karte.appendChild(BAUSTEINE.knopf({
             text: "Rangliste", art: "haupt", breit: true, zeichen: "rangliste",
             beiKlick: () => NAVIGATION.zeigen("rangliste", null, true)
-        }));
-        karte.appendChild(BAUSTEINE.knopf({
-            text: "Übungsrunde", art: "still", breit: true, zeichen: "uebung",
-            beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "uebung", neu: true }, true)
         }));
         behaelter.appendChild(karte);
     },
@@ -844,6 +949,7 @@ const WORDLE_BILDSCHIRM = {
         if (!zeile) {
             return;
         }
+        WORDLE_BILDSCHIRM._aktiveZeileZeigen();
         const felder = WORDLE_BILDSCHIRM.eingabe.felder;
         Array.from(zeile.children).forEach((kachel, i) => {
             const buchstabe = felder[i] || "";
@@ -884,7 +990,7 @@ const WORDLE_BILDSCHIRM = {
 
         const zeilenNummer = WORDLE_BILDSCHIRM.runde.versuche.length;
         WORDLE_BILDSCHIRM.runde = antwort.runde;
-        WORDLE_BILDSCHIRM.eingabe = WORDLE.leereEingabe();
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeFuer(antwort.runde);
         WORDLE_BILDSCHIRM._merken();
         /* Serie ab Rundenstart (seit 0.17.0): heute ein Versuch abgegeben
            = heute gespielt (js/app.js `rundeGestartet`, einmal je Tag). */

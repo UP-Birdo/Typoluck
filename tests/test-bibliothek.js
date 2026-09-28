@@ -152,12 +152,14 @@ const loesungen = WOERTER.loesungen;
 {
     const wort = B.stationen(2).find((st) => st.art === "w");
     gleich("Wort: 6 Versuche, nur echte Wörter", B.regeln(2, wort.nr), { versuche: 6, nurEchte: true });
-    gleich("Buch 1: alles eintippbar", B.regeln(1, 10).nurEchte, false);
+    gleich("Buch 1: seit 0.23.2 auch nur echte Wörter (Nutzer)", B.regeln(1, 10).nurEchte, true);
+    pruefe("Kein Buch lässt Unsinn-Wörter zu", [1, 2, 3, 4, 5, 6].every((b) => B.stationen(b)
+        .filter((st) => B.istKampf(st.art)).every((st) => B.regeln(b, st.nr).nurEchte === true)));
     for (let b = 1; b <= 6; b++) {
         const boss = B.stationen(b).find((st) => st.art === "b");
         const r = W.regelnNormalisieren(B.regeln(b, boss.nr));
         pruefe("Boss Buch " + b + " (" + B.buch(b).boss.name + "): eigene Regel, keine Uhr",
-            JSON.stringify(r) !== JSON.stringify(W.regelnNormalisieren({ nurEchte: B.buch(b).nurEchte !== false }))
+            JSON.stringify(r) !== JSON.stringify(W.regelnNormalisieren({ nurEchte: true }))
                 && r.zeit === 0 && r.versuche >= 6);
     }
     for (let b = 1; b <= 6; b++) {
@@ -255,7 +257,7 @@ const loesungen = WOERTER.loesungen;
         && index.indexOf("js/start-bibliothek.js") > index.indexOf("js/bildschirm-start.js"));
     const start = lesen("js/start-bibliothek.js").replace(/\/\*[\s\S]*?\*\//g, "");
     pruefe("Start-Bibliothek baut keine eigenen Knöpfe", start.indexOf('createElement("button")') === -1);
-    pruefe("Keine Tinte, kein Siegel auf dem Buch (noch nicht gebaut)", !/Tinte|Siegel/.test(start));
+    pruefe("Kein Siegel auf dem Buch (noch nicht gebaut); Tinte seit 0.23.0", !/Siegel/.test(start) && /"tintenfass"/.test(start));
     pruefe("Herzen, Rast, Fund und Checkpoint auf dem Buch (seit 0.21.0)", /herzenBauen/.test(start)
         && /_rastBauen/.test(start) && /_fundBauen/.test(start) && /st-cp/.test(start));
     pruefe("Schalter Üben · Bibliothek", /text: "Üben"/.test(start) && /BIBLIOTHEK\.NAME/.test(start));
@@ -287,7 +289,7 @@ const loesungen = WOERTER.loesungen;
         [false, true, 0, 5]);
     gleich("Durchgang: Unsinn wird leer, fremde Nummern fallen weg",
         B.durchgangNormalisieren({ herzen: 9, wieder: [12, 12, 999, "x"], geheilt: [13], ueben: 3, effekt: "gift" }, 2),
-        { herzen: 5, wieder: [12], geheilt: [13], ueben: 0, effekt: "" });
+        { herzen: 5, wieder: [12], geheilt: [13], ueben: 0, effekt: "", tinte: 1 });
 
     const leer = { figuren: {}, schwuere: {} };
     const buch1 = B.scheitern(leer, 1, 10, B.durchgangLeer(1));
@@ -353,7 +355,7 @@ const loesungen = WOERTER.loesungen;
             B.rundeRegeln(2, 12, { ueben: 1 }).versuche], [1, 1, 0, 7]);
 
     /* Fund */
-    gleich("Buch 1: nur die Wette (ohne Herzen, ohne Tinte)", B.fundAngebote(1, 17).map((f) => f.id), ["wette"]);
+    gleich("Buch 1: Wette und Tinte gegen Münzen (ohne Herzen)", B.fundAngebote(1, 17).map((f) => f.id).sort(), ["tintemuenzen", "wette"]);
     const angebote = [17, 19, 32, 37].map((nr) => B.fundAngebote(2, nr).map((f) => f.id));
     pruefe("Buch 2: zwei verschiedene Angebote je Fund, fest je Station",
         angebote.every((a) => a.length === 2 && a[0] !== a[1])
@@ -406,6 +408,235 @@ const loesungen = WOERTER.loesungen;
     gleich("Münzen ausgeben: Kontostand −20, nur im eigenen Zweig", [M.saldo(arm), Object.keys(arm.spiele)], [30, ["typoluck"]]);
     pruefe("Konto: der Durchgang geht nicht ans Konto (§11b kennt ihn nicht)",
         JSON.stringify(F.fuerKonto(arm)).indexOf("herzen") === -1 && /bibliothek-durchgang/.test(quelle));
+}
+
+/* 9. Tinte (seit 0.23.0, Nutzer „Tinte A") */
+{
+    gleich("Tinte: Start 1, höchstens 3, auch in Buch 1", [B.durchgangLeer(1).tinte, B.durchgangLeer(2).tinte,
+        B.durchgangNormalisieren({ tinte: 9 }, 1).tinte, B.durchgangNormalisieren({}, 1).tinte], [1, 1, 3, 1]);
+    const r = B.rastWaehlen({ tinte: 2 }, 1, 13, "tinte");
+    gleich("Rast: Tinte +1", [r.ok, r.dg.tinte], [true, 3]);
+    gleich("… nicht über 3", B.rastMoeglich(r.dg, 1, 13, "tinte"), false);
+    const fall = B.scheitern(B.gehen(2, 3, "1").turm, 2, 15, { herzen: 1, tinte: 3 });
+    gleich("Rückfall: Tinte 1 (Konzept §3.7)", fall.dg.tinte, 1);
+    const tausch = B.fundNehmen({ herzen: 3, tinte: 1 }, 2, 17, "herztinte", 0);
+    gleich("Fund: −1 Herz → +2 Tinte", [tausch.dg.herzen, tausch.dg.tinte], [2, 3]);
+    const verkauft = B.fundNehmen({ tinte: 1 }, 1, 17, "tintemuenzen", 0);
+    gleich("Fund: 1 Tinte → +35 Münzen", [verkauft.dg.tinte, verkauft.muenzen], [0, 35]);
+    gleich("… ohne Tinte geht es nicht", B.fundMoeglich({ tinte: 0 }, 1, "tintemuenzen", 0), false);
+    const quelle = lesen("js/app.js");
+    pruefe("APP.tinteNutzen zieht eine vom Durchgang ab", /tinteNutzen\(buch\) \{[\s\S]*?dg\.tinte -= 1;/.test(quelle));
+    const bw = lesen("js/bildschirm-wordle.js");
+    pruefe("Runde: Tinte-Knopf nur mit Vorrat und WORDLE.tinteMoeglich; Einsetzen über APP.tinteNutzen",
+        /tinte > 0 && WORDLE\.tinteMoeglich\(runde\)/.test(bw) && /APP\.tinteNutzen\(runde\.buch\)/.test(bw));
+    pruefe("Mit Tinte höchstens eine Figur (Hilfe)", B.figurenDerRunde({ buch: 1, station: 10, zustand: "gewonnen",
+        versuche: ["abend"], tinte: [0] }, 3, W.hilfeGenutzt({ tinte: [0] })) === 1);
+}
+
+/* 10. Start und Buch (seit 0.23.0, Nutzer 28.09.2026) */
+{
+    const quelle = lesen("js/start-bibliothek.js");
+    const welt = {};
+    const start = vm.runInNewContext("(" + quelle.slice(quelle.indexOf("    BUCH_WISCH_PX:"),
+        quelle.indexOf("    /* Der Inhalt einer Station")).replace(/^\s*BUCH_WISCH_PX: 50,/, "{ BUCH_WISCH_PX: 50,")
+        .replace(/,\s*$/, "") + " })", welt);
+    welt.START = start;
+    gleich("Buch-Wisch: hoch = nächstes Kapitel, runter = voriges, waagrecht/kurz = nichts (Tab-Wisch)",
+        [start.buchWisch(5, -80), start.buchWisch(-4, 90), start.buchWisch(120, -60), start.buchWisch(0, 30)], [1, -1, 0, 0]);
+    pruefe("Waagrecht wechselt auch über dem Buch der Tab (.buch nicht mehr gesperrt)",
+        lesen("js/navigation.js").indexOf(", .buch,") === -1);
+    const startSeite = lesen("js/bildschirm-start.js").replace(/\/\*[\s\S]*?\*\//g, "");
+    pruefe("Freunde nicht mehr auf dem Start (Bibliothek und Üben); seit 0.23.1 ganz gelöscht",
+        !/_freundeKarte|_freundeLaden|start-freunde/.test(startSeite + lesen("css/stil-bildschirme.css")));
+    const stil = lesen("css/stil-bibliothek.css");
+    pruefe("Startseite rollt nicht: so hoch wie der Bildschirm, overflow hidden",
+        /\.inhalt\[data-bildschirm="start"\] \{[^}]*height: 100dvh;[^}]*overflow: hidden;/.test(stil));
+    pruefe("Buch-Inhalte bleiben im Buch (overflow hidden, Linien abgeschnitten)",
+        /\.buch \{\s*overflow: hidden;/.test(stil) && /svg\.pfad \{\s*overflow: hidden;/.test(stil));
+}
+
+/* 11. Vorschau und Vollbild (seit 0.23.2, Nutzer: „das Buch auf dem Handy passt so nicht") */
+{
+    const q = lesen("js/start-bibliothek.js");
+    /* Seit 0.23.4 (Nutzer: „Aufschlagen soll raus als Knopf … die Vorschau soll nur die halbe Seite anzeigen"). */
+    const bauen = q.slice(q.indexOf("    _bibliothekBauen(behaelter) {"), q.indexOf("    /* Was als Nächstes wartet"))
+        .replace(/\/\*[\s\S]*?\*\//g, "");
+    const vorschau = q.slice(q.indexOf("    _vorschauBauen(turm, b, lauf) {"), q.indexOf("    halbAb(b, lauf) {"));
+    pruefe("Start: nur die Vorschau (ein Knopf, Stationen als Bild), kein „Aufschlagen“, keine Pfeile ‹ ›",
+        /vorschau \? START\._stationBild\(b, st, zustand\) : START\._stationKnopf/.test(q) && bauen.length > 0
+            && !/Aufschlagen"/.test(bauen) && !/titel: "Kapitel zurück"/.test(q) && !/titel: "Kapitel vor"/.test(q));
+    pruefe("Vorschau: halbe Seite, ohne Herzen/Tinte/Boss in n/Stations-Text",
+        /bib-halb/.test(vorschau) && !/_leisteBauen|bib-naechste/.test(vorschau));
+    pruefe("Vollbild: Leiste weg (body.buch-offen), unten „Verlassen“ + Hauptaktion",
+        /document\.body\.classList\.add\("buch-offen"\)/.test(q) && /text: "Verlassen"/.test(q)
+            && /body\.buch-offen \.leiste\.up-leiste \{\s*display: none;/.test(lesen("css/stil-bibliothek.css")));
+    const s = lesen("js/bildschirm-start.js");
+    pruefe("Nach der Runde an einer Kreuzung: Buch von selbst offen, „Wo lang?“",
+        /START\.gabelBlatt\(b, lauf\.gabel, "Wo lang\?"\)/.test(s) && /verlassen: \(\) => START\.buchVerlassen/.test(s)
+            && /kreuzung \? "Wo lang\?" : "Weiter"/.test(lesen("js/bildschirm-wordle.js")));
+}
+
+
+/* 12. Besser erklären (seit 0.23.4, Nutzer: „Funde besser erklären · Besonderheit des Gegners hinter das i ·
+   eine Legende muss her") */
+{
+    gleich("Besonderheiten: Standard = keine", B.besonderheiten({ versuche: 6, nurEchte: true }), []);
+    gleich("Besonderheiten: feste Reihenfolge, Versuche und Uhr zuerst",
+        B.besonderheiten({ versuche: 5, zeit: 60, hart: true, farben: "ohneGelb", tastatur: "ohneGrau",
+            ohneTipp: true, ohneLeben: true }).map((x) => x.id),
+        ["versuche", "zeit", "hart", "ohneGelb", "ohneGrau", "ohneTipp", "ohneLeben"]);
+    pruefe("Jede Verschärfung hat Chip, kurz, was, wie",
+        Object.keys(B.VERSCHAERFUNGEN).every((id) => ["chip", "kurz", "was", "wie"]
+            .every((f) => typeof B.VERSCHAERFUNGEN[id][f] === "string" && B.VERSCHAERFUNGEN[id][f].length > 0)));
+    /* Jede Elite und jeder Boss hat mindestens eine Besonderheit, und jede Regel wird erklärt. */
+    let alleGegner = true;
+    let alleRegeln = true;
+    for (let b = 1; b <= B.anzahlBuecher(); b++) {
+        for (const st of B.stationen(b)) {
+            const g = B.gegner(b, st.nr);
+            if (st.art !== "e" && st.art !== "b") {
+                alleGegner = alleGegner && g === null;
+                continue;
+            }
+            alleGegner = alleGegner && !!g && g.besonderheiten.length > 0 && typeof g.name === "string";
+            const r = B.regeln(b, st.nr);
+            const ids = g.besonderheiten.map((x) => x.id);
+            alleRegeln = alleRegeln && (!r.hart || ids.indexOf("hart") !== -1)
+                && (!r.ohneTipp || ids.indexOf("ohneTipp") !== -1) && (!r.ohneLeben || ids.indexOf("ohneLeben") !== -1)
+                && (!r.tastatur || ids.indexOf("ohneGrau") !== -1) && (!r.farben || ids.indexOf(r.farben) !== -1);
+        }
+    }
+    pruefe("Gegner: nur Elite und Boss, jeder mit Name und mindestens einer Besonderheit", alleGegner);
+    pruefe("Gegner: jede Regel der Station steht in den Besonderheiten", alleRegeln);
+    gleich("Boss Buch 3: Harter Modus + 7 Versuche", B.gegner(3, B.stationen(3).find((s) => s.art === "b").nr)
+        .besonderheiten.map((x) => x.chip), ["7 Versuche", "Harter Modus"]);
+
+    pruefe("Fund: jedes Angebot erklärt (gibst/bekommst oder Wirkung, Wette mit Einsatz · Wenn · Gewinn)",
+        B.FUNDE.every((f) => {
+            const e = B.fundErklaerung(f.id);
+            return !!e && e.zeilen.length >= 2 && e.zeilen.some((z) => z.ton === "kriegst");
+        }));
+    gleich("Fund: −1 Herz → 2 Tinte, sofort", B.fundErklaerung("herztinte").zeilen.map((z) => z.wert),
+        ["1 Herz", "2 Tinte", "sofort"]);
+    gleich("Fund: Wette = Einsatz, Wenn, Gewinn", B.fundErklaerung("wette").zeilen.map((z) => z.was),
+        ["Einsatz", "Wenn", "Gewinn"]);
+    gleich("Fund: unbekannt → null", B.fundErklaerung("gibtsnicht"), null);
+    /* fundGrund "" genau dann, wenn fundMoeglich. */
+    let einig = true;
+    for (const b of [1, 2, 3]) {
+        for (const f of B.FUNDE) {
+            for (const dg of [{ herzen: 1, tinte: 0 }, { herzen: 5, tinte: 3 }, { herzen: 3, tinte: 1, effekt: "wette" },
+                { herzen: 3, tinte: 1 }]) {
+                for (const m of [0, 25, 100]) {
+                    einig = einig && ((B.fundGrund(dg, b, f.id, m) === "") === B.fundMoeglich(dg, b, f.id, m));
+                }
+            }
+        }
+    }
+    pruefe("Fund: Sperr-Grund genau dann leer, wenn der Tausch geht", einig);
+    gleich("Fund: Gründe", [B.fundGrund({ herzen: 1 }, 2, "herzmuenzen", 0), B.fundGrund({ herzen: 5 }, 2, "muenzenherz", 99),
+        B.fundGrund({ herzen: 3 }, 2, "muenzenherz", 10), B.fundGrund({ tinte: 0 }, 2, "tintemuenzen", 0),
+        B.fundGrund({ effekt: "zeit" }, 3, "wette", 99)],
+        ["Nur noch 1 Herz", "Herzen voll", "Zu wenig Münzen", "Keine Tinte", "Schon ein Tausch offen"]);
+
+    const arten = new Set(B.LEGENDE.map((l) => l.art));
+    pruefe("Legende: alle Stations-Arten + Lesezeichen, Nächste, Gegangen, Gesperrt",
+        Object.keys(B.ARTEN).every((a) => arten.has(a)) && B.LEGENDE.some((l) => l.cp)
+            && B.LEGENDE.some((l) => l.schloss) && B.LEGENDE.some((l) => l.zustand === "jetzt")
+            && B.LEGENDE.some((l) => l.zustand === "fertig" && !l.cp));
+
+    const q = lesen("js/start-bibliothek.js");
+    pruefe("Buch: Legende-Knopf im Vollbild, beim ersten Öffnen einmal von selbst",
+        /titel: "Legende"/.test(q) && /LEGENDE_SCHLUESSEL/.test(q) && /START\._legendeEinmal\(\)/.test(q));
+    pruefe("Buch und Blatt: Gegner-Chips mit „i“ (START.gegnerChips / gegnerErklaeren)",
+        /START\.gegnerChips\(b, nr\)/.test(q) && /gegnerErklaeren\(b, nr\)/.test(q) && /st-eigen/.test(q));
+    pruefe("Fund-Blatt: Erklärung und Sperr-Grund je Angebot",
+        /BIBLIOTHEK\.fundErklaerung\(f\.id\)/.test(q) && /BIBLIOTHEK\.fundGrund\(/.test(q));
+    const bw = lesen("js/bildschirm-wordle.js");
+    pruefe("Runde: Gegner-Chips mit „i“ auch während der Runde",
+        /_gegnerBauen\(\)/.test(bw) && /START\.gegnerErklaeren\(runde\.buch, runde\.station\)/.test(bw));
+}
+
+/* 13. Vorschau halb, Kreuzung von selbst (seit 0.23.4) */
+{
+    const quelle = lesen("js/start-bibliothek.js");
+    const teil = quelle.slice(quelle.indexOf("    halbAb(b, lauf) {"), quelle.indexOf("    buchOeffnen() {"));
+    const lageTeil = quelle.slice(quelle.indexOf("    LAGE_UNTEN:"), quelle.indexOf("    /* Zustände der Stellen"));
+    const welt = { BIBLIOTHEK: B };
+    const start = vm.runInNewContext("({" + lageTeil + teil + "})", welt);
+    welt.START = start;
+    const lauf = (b, k, jetzt, gabel, durch) => ({ kapitel: k, jetzt: jetzt, gabel: gabel || null, durch: !!durch });
+    const erste = B.stationen(2).find((st) => st.k === 0 && st.art === "w");
+    const ab = start.halbAb(2, lauf(2, 0, erste.nr));
+    pruefe("Vorschau: Ausschnitt 0–280, die Front liegt darin",
+        ab >= 0 && ab <= 280 && (() => { const y = start._lage(B.kapitel(2, 0), erste.s, erste.i).y; return y >= ab && y <= ab + 280; })());
+    gleich("Vorschau: Buch durch → oben (beim Boss)", start.halbAb(2, lauf(2, 3, null, null, true)), 0);
+    const bw = lesen("js/bildschirm-wordle.js");
+    pruefe("Kreuzung: nach der Runde von selbst ins Buch (Zeit, einmal je Runde, nur direkt nach der Wertung)",
+        /if \(kreuzung && bib\) \{\s*WORDLE_BILDSCHIRM\._kreuzungPlanen\(runde, weiter\);/.test(bw)
+            && /KREUZUNG_MS: 2000,/.test(bw) && /_kreuzungFuer === schluessel/.test(bw));
+}
+
+/* 14. Stationen im Innenrahmen der Seite (seit 0.23.4, Nutzer: „die einzelnen Steps sollen nicht am Rand vom
+   Buch liegen, sondern passend auf den Seiten, nicht außerhalb oder auf der Außenlinie") — gemessen wie im CSS:
+   Buch 400 : 560, Seite 4 px vom Rand, Innenrahmen 10 px weiter, Abstand ≥ 8 px; Radius Boss 8 %, sonst
+   höchstens 7 % (Front), Ein/Aus 2 % (mind. 5 px) der Buchbreite. */
+{
+    const quelle = lesen("js/start-bibliothek.js");
+    const teil = quelle.slice(quelle.indexOf("    LAGE_UNTEN:"), quelle.indexOf("    /* Zustände der Stellen"));
+    const welt = {};
+    const start = vm.runInNewContext("({" + teil + "})", welt);
+    welt.START = start;
+    let kleinster = Infinity;
+    let wo = "";
+    for (const breite of [250, 286, 320, 360, 400, 520, 700]) {
+        const hoehe = breite * 560 / 400;
+        const px = breite / 400;
+        for (let b = 1; b <= B.anzahlBuecher(); b++) {
+            for (let k = 0; k < B.anzahlKapitel(b); k++) {
+                const kap = B.kapitel(b, k);
+                kap.forEach((spalte, s) => spalte.forEach((art, i) => {
+                    const l = start._lage(kap, s, i);
+                    const x = l.x * px;
+                    const y = l.y * px;
+                    const r = art === "b" ? 0.08 * breite
+                        : (art === "ein" || art === "aus" ? Math.max(0.02 * breite, 5) : Math.max(0.07 * breite, 11));
+                    const oben = l.y < 280;
+                    const seite = oben ? [4, hoehe / 2 - 4] : [hoehe / 2 + 4, hoehe - 4];
+                    const rahmen = { l: 10, r: breite - 10, o: seite[0] + 10, u: seite[1] - 10 };
+                    const abstand = Math.min(x - r - rahmen.l, rahmen.r - (x + r), y - r - rahmen.o, rahmen.u - (y + r));
+                    if (abstand < kleinster) {
+                        kleinster = abstand;
+                        wo = "Buch " + b + " Kap " + k + " Spalte " + s + " (" + art + ") bei " + breite + " px";
+                    }
+                }));
+            }
+        }
+    }
+    pruefe("Jede Station ≥ 8 px im Innenrahmen ihrer Seite (Buchbreite 250–700 px); kleinster Abstand "
+        + kleinster.toFixed(1) + " px — " + wo, kleinster >= 8);
+    pruefe("Buch mit festem Seitenverhältnis 400 : 560 (Vollbild und Vorschau)",
+        /\.bib-buch-platz > \.buch \{\s*width: min\(100cqw, calc\(100cqh \* 400 \/ 560\)\);\s*height: auto;\s*aspect-ratio: 400 \/ 560;/
+            .test(lesen("css/stil-bibliothek.css")));
+    pruefe("Keine Station im Falz (280 ± 36)", [start.LAGE_OBEN[0], start.LAGE_UNTEN[1]]
+        .every((y) => Math.abs(y - 280) >= 36));
+}
+
+/* 15. Üben = zwei Modi (seit 0.23.4, Nutzer: „Tageswort und Übung getrennt … als zwei Spielmodi") */
+{
+    const s = lesen("js/bildschirm-start.js");
+    const teil = s.slice(s.indexOf("    bisMorgen(jetzt) {"), s.indexOf("    _modusKarte("));
+    const start = vm.runInNewContext("({" + teil + "})", {});
+    gleich("Bis zum nächsten Tageswort", [start.bisMorgen(new Date(2026, 8, 28, 18, 48)),
+        start.bisMorgen(new Date(2026, 8, 28, 23, 59, 30)), start.bisMorgen(new Date(2026, 8, 28, 0, 0))],
+    ["5 h 12 min", "1 min", "24 h 0 min"]);
+    pruefe("Üben: zwei Karten Tageswort und Übung, je ein Knopf",
+        /START\.SPIELE\.forEach\(\(spiel\) => behaelter\.appendChild\(START\._modiBauen\(spiel\)\)\);/.test(s)
+            && /_modusKarte\("kalender", "Tageswort"/.test(s) && /_modusKarte\("uebung", "Übung"/.test(s)
+            && !/_spielKachelBauen/.test(s));
+    const bw = lesen("js/bildschirm-wordle.js");
+    pruefe("Ende: „Nächstes Übungswort“ nur in der Übung, kein Übungs-Knopf am Tageswort",
+        /text: "Nächstes Übungswort"/.test(bw) && !/text: "Übungsrunde"/.test(bw));
 }
 
 fazit();

@@ -613,6 +613,10 @@ const FORTSCHRITT = {
        Zeile für Zeile mit Blunderlucks fortschritt.js). */
     SERIE_ZAEHLER: ["serie", "serieBis", "serieSchutz"],
 
+    /* Zähler, bei denen beim Zusammenführen der FRÜHERE Wert gilt
+       (JJJJMMTT „dabei seit", seit Blunderluck v0.155.0; seit Typoluck 0.24.0). */
+    FRUEH_ZAEHLER: ["seit"],
+
     /* Zwei Fassungen DESSELBEN Zweigs: Zähler je Name der grössere Wert,
        die Serien-Zähler gemeinsam aus der Fassung mit dem neueren serieBis. */
     _zaehlerZusammen(neuer, aelter) {
@@ -624,6 +628,14 @@ const FORTSCHRITT = {
         const zaehler = Object.assign({}, a || {});
         for (const k of Object.keys(b)) {
             if (FORTSCHRITT.SERIE_ZAEHLER.indexOf(k) !== -1) {
+                continue;
+            }
+            /* „dabei seit" (seit Blunderluck v0.155.0): das frühere Datum. */
+            if (FORTSCHRITT.FRUEH_ZAEHLER.indexOf(k) !== -1) {
+                if (typeof b[k] === "number" && b[k] > 0
+                        && !(typeof zaehler[k] === "number" && zaehler[k] > 0 && zaehler[k] <= b[k])) {
+                    zaehler[k] = b[k];
+                }
                 continue;
             }
             if (typeof b[k] === "number" && !(typeof zaehler[k] === "number" && zaehler[k] >= b[k])) {
@@ -1355,7 +1367,7 @@ const FORTSCHRITT = {
 
     AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],
 
-    auszug(stand, heute) {
+    auszug(stand, heute, optionen) {
         const sauber = FORTSCHRITT.normalisieren(stand);
         const datum = FORTSCHRITT._istDatum(heute) ? heute : FORTSCHRITT.datumVon(Date.now());
         const schutz = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(sauber).level);
@@ -1367,6 +1379,11 @@ const FORTSCHRITT = {
         const werte = {};
         for (const name of FORTSCHRITT.AUSZUG_WERTE) {
             werte[name] = FORTSCHRITT._zahl(roh[name], 1000000000);
+        }
+        /* Die Spielzeit nur, wenn der Spieler sie öffentlich zeigt (seit
+           Blunderluck v0.155.0, `optionen.spielzeit`). */
+        if (optionen && optionen.spielzeit === true) {
+            werte.spielzeit = FORTSCHRITT.spielzeitSumme(sauber);
         }
         return {
             xp: FORTSCHRITT._zahl(FORTSCHRITT.gesamtXp(sauber), 100000000),
@@ -1385,6 +1402,9 @@ const FORTSCHRITT = {
         const rohWerte = FORTSCHRITT._istObjekt(roh.werte) ? roh.werte : {};
         for (const name of FORTSCHRITT.AUSZUG_WERTE) {
             werte[name] = FORTSCHRITT._zahl(rohWerte[name], 1000000000);
+        }
+        if (typeof rohWerte.spielzeit === "number") {
+            werte.spielzeit = FORTSCHRITT._zahl(rohWerte.spielzeit, FORTSCHRITT.SPIELZEIT_MAX);
         }
         const bis = FORTSCHRITT._zahl(roh.serieBis, 99991231);
         return {
@@ -1438,6 +1458,95 @@ const FORTSCHRITT = {
                 }
             }
         };
+    },
+
+    /* ---------------------------------------------------------------- *
+     * SPIELZEIT UND „DABEI SEIT" (seit Blunderluck v0.155.0, Nutzer
+     * 28.09.2026: „log die zeit wie lange die app offen ist auf jedem
+     * account" · „okay privat … auch bei gästen … sowohl als auch der start
+     * datum" · „bis zur ersten stunde 0 bis 59 min danach 1h+ 2h …")
+     *
+     * Je Spiel ein Zähler im EIGENEN Zweig: `zaehler.spielzeit` (Sekunden,
+     * nur solange die App sichtbar ist — das misst die App) und
+     * `zaehler.seit` (JJJJMMTT des ersten gezählten Tages; beim
+     * Zusammenführen gilt das frühere, `FRUEH_ZAEHLER`). Beides passt in
+     * die Regel §11b (Zähler: Buchstaben-Name, Zahl bis 1e9). Ein einzelner
+     * Schritt zählt höchstens `SPIELZEIT_SCHRITT_MAX` Sekunden (Ausreisser:
+     * Ruhezustand, verstellte Uhr). Zwei Geräte zugleich: Es gilt der
+     * grössere Zähler, nicht die Summe (wie bei allen Zählern).
+     *
+     * Öffentlich nur mit Haken — seit v0.155.2 AM KONTO (Feld
+     * `spielzeitOeffentlich` des Eintrags, Nutzer 28.09.2026; Regel §14
+     * lässt es nur den Besitzer ändern), gilt also auf jedem Gerät und in
+     * jedem UPCrew-Spiel. Der Standard ist EINE Konstante.
+     * ---------------------------------------------------------------- */
+
+    SPIELZEIT_OEFFENTLICH_STANDARD: false,
+    SPIELZEIT_SCHRITT_MAX: 120,
+    SPIELZEIT_MAX: 315360000,
+
+    /* `sekunden` sichtbare Zeit auf den Zweig `app` buchen. Liefert einen
+       NEUEN Stand (unverändert bei 0 oder Unsinn). */
+    spielzeitZaehlen(stand, sekunden, zeitpunkt, app) {
+        const sauber = FORTSCHRITT.normalisieren(stand);
+        const dazu = Math.min(FORTSCHRITT._zahl(sekunden, FORTSCHRITT.SPIELZEIT_MAX),
+            FORTSCHRITT.SPIELZEIT_SCHRITT_MAX);
+        const jetzt = (typeof zeitpunkt === "number" && isFinite(zeitpunkt)) ? zeitpunkt : Date.now();
+        if (dazu <= 0) {
+            return sauber;
+        }
+        const name = app || FORTSCHRITT.APP;
+        const zweig = sauber.spiele[name] || FORTSCHRITT.spielLeer();
+        const zaehler = FORTSCHRITT._zaehlerAnlegen(zweig);
+        zaehler.spielzeit = Math.min(FORTSCHRITT._zahl(zaehler.spielzeit, FORTSCHRITT.SPIELZEIT_MAX) + dazu,
+            FORTSCHRITT.SPIELZEIT_MAX);
+        if (!(typeof zaehler.seit === "number" && zaehler.seit > 0)) {
+            zaehler.seit = FORTSCHRITT._datumZahl(FORTSCHRITT.datumVon(jetzt));
+        }
+        zweig.zaehler = zaehler;
+        zweig.stand = Math.max(zweig.stand + 1, jetzt);
+        sauber.spiele[name] = zweig;
+        return FORTSCHRITT.normalisieren(sauber);
+    },
+
+    /* Sekunden eines Spiels. */
+    spielzeitVon(stand, app) {
+        const zweig = FORTSCHRITT.normalisieren(stand).spiele[app || FORTSCHRITT.APP];
+        return (zweig && FORTSCHRITT._istObjekt(zweig.zaehler))
+            ? FORTSCHRITT._zahl(zweig.zaehler.spielzeit, FORTSCHRITT.SPIELZEIT_MAX) : 0;
+    },
+
+    /* Sekunden über alle Spiele. */
+    spielzeitSumme(stand) {
+        return Math.min(FORTSCHRITT._zaehlerSumme(stand, "spielzeit"), FORTSCHRITT.SPIELZEIT_MAX);
+    },
+
+    /* „dabei seit": das früheste `seit` aller Zweige als „JJJJ-MM-TT", sonst "". */
+    seitVon(stand) {
+        const sauber = FORTSCHRITT.normalisieren(stand);
+        let frueh = 0;
+        for (const app of Object.keys(sauber.spiele)) {
+            const z = sauber.spiele[app].zaehler;
+            const wert = FORTSCHRITT._istObjekt(z) ? FORTSCHRITT._zahl(z.seit, 99991231) : 0;
+            if (wert > 0 && (frueh === 0 || wert < frueh)) {
+                frueh = wert;
+            }
+        }
+        return frueh ? FORTSCHRITT._zahlDatum(frueh) : "";
+    },
+
+    /* Die Anzeige: unter einer Stunde „N min" (0–59), sonst „Nh+" (volle
+       Stunden abgerundet). */
+    spielzeitText(sekunden) {
+        const s = FORTSCHRITT._zahl(sekunden, FORTSCHRITT.SPIELZEIT_MAX);
+        return s < 3600 ? Math.floor(s / 60) + " min" : Math.floor(s / 3600) + "h+";
+    },
+
+    /* Zeigt dieser Konto-Eintrag seine Spielzeit öffentlich? Das Feld
+       `spielzeitOeffentlich` (Ja/Nein) am Konto, ohne Angabe der Standard. */
+    spielzeitOeffentlichVon(eintrag) {
+        return (eintrag && typeof eintrag.spielzeitOeffentlich === "boolean")
+            ? eintrag.spielzeitOeffentlich : FORTSCHRITT.SPIELZEIT_OEFFENTLICH_STANDARD;
     }
 };
 

@@ -13,6 +13,7 @@ const js = (name) => require("../js/" + name);
 
 global.KONFIG = js("konfig.js");
 global.WOERTER_DE = js("woerter-de.js");
+global.WOERTER_RATE_DE = js("woerter-rate-de.js");
 global.VERSIEGELUNG = js("versiegelung.js");
 global.SPIELER = js("spieler.js");
 global.ICH = js("ich.js");

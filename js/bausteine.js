@@ -394,7 +394,9 @@ const BAUSTEINE = {
         blatt: "M6 5.5 L16 3 L19.5 18 L9.5 20.5 Z M9 8.5 L15 7 M9.7 11.5 L15.7 10 M10.4 14.5 L14.5 13.5",
         lesezeichen: "M8 3 H16 V21 L12 17 L8 21 Z",
         herz: "M12 20 C6 15 3 12 3 8.5 A4.5 4.5 0 0 1 12 6 A4.5 4.5 0 0 1 21 8.5 C21 12 18 15 12 20 Z",
-        uhr: "M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M12 7 V12 L15.5 14.5"
+        uhr: "M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M12 7 V12 L15.5 14.5",
+        /* Tinte der Bibliothek (seit 0.23.0): ein Tintenfass mit Feder. */
+        tintenfass: "M6 12 H15 V20 H6 Z M8 12 V9.5 H13 V12 M8.5 16 H12.5 M14 9 L20 3 M17.5 4 L19 5.5"
     },
 
     zeichen(name) {

@@ -265,6 +265,12 @@ const KONTO = {
         return teile.tag === null ? teile.name : teile.name + "#" + teile.tag;
     },
 
+    /* „#1234" für die kleine Nummer hinter dem Namen (seit v0.155.0: in
+       Rangliste, Profil und Freunden bei allen), sonst "". */
+    tagZusatz(spieler) {
+        return (spieler && typeof spieler.tag === "string" && spieler.tag !== "") ? "#" + spieler.tag : "";
+    },
+
     anzeigeName(spieler) {
         if (!spieler) {
             return "";
@@ -1134,13 +1140,21 @@ const KONTO = {
 
     /*
      * DER ÖFFENTLICHE AUSZUG eines Eintrags (`spieler/oeffentlich/<uid>`,
-     * Konzept K3): nur, was fremde Bildschirme zeigen — nie Nummer, Kennung,
+     * Konzept K3): nur, was fremde Bildschirme zeigen — nie Kennung,
      * Aussehen, Fortschritt oder Stufe. `auszug` rechnet
      * `FORTSCHRITT.auszug` (in jedem Spiel gleich).
+     *
+     * SEIT v0.155.0 MIT `tag` (Nutzer 28.09.2026: „name und dann in klein #
+     * mit dem tag" in Rangliste, Profil, Freunden — die Regel §12 prüft ihn
+     * gleich dem `tag` im Konto). Die Spielzeit steht im Auszug nur, wenn
+     * `mitSpielzeit` (der EIGENE Eintrag und der Haken „öffentlich").
      */
-    oeffentlichVon(eintrag, heute) {
+    oeffentlichVon(eintrag, heute, mitSpielzeit) {
         const e = eintrag || {};
         const aus = { id: String(e.id || ""), name: String(e.name || "") };
+        if (typeof e.tag === "string" && e.tag !== "") {
+            aus.tag = e.tag;
+        }
         if (e.gast === true) {
             aus.gast = true;
         }
@@ -1169,9 +1183,16 @@ const KONTO = {
             aus.abzeichen = abzeichen;
         }
         if (typeof FORTSCHRITT !== "undefined" && typeof FORTSCHRITT.auszug === "function") {
-            aus.auszug = FORTSCHRITT.auszug(e.fortschritt || null, heute);
+            aus.auszug = FORTSCHRITT.auszug(e.fortschritt || null, heute, { spielzeit: mitSpielzeit === true });
         }
         return aus;
+    },
+
+    /* Die Spielzeit gehört nur in den EIGENEN Auszug, und nur mit Haken. */
+    _spielzeitZeigen(eintrag) {
+        return !!eintrag && !!eintrag.uid && eintrag.uid === KONTO.uid()
+            && typeof FORTSCHRITT !== "undefined" && typeof FORTSCHRITT.spielzeitOeffentlichVon === "function"
+            && FORTSCHRITT.spielzeitOeffentlichVon(eintrag);
     },
 
     /* Der Eintrag im Anmeldeverzeichnis: { k: Kennung, f: true bei
@@ -1199,7 +1220,8 @@ const KONTO = {
             return pfade;
         }
         const name = KONTO.nameSchluessel(eintrag.name);
-        pfade["oeffentlich/" + eintrag.uid] = KONTO.oeffentlichVon(eintrag);
+        pfade["oeffentlich/" + eintrag.uid] = KONTO.oeffentlichVon(eintrag, undefined,
+            KONTO._spielzeitZeigen(eintrag));
         const verzeichnis = KONTO.anmeldungVon(eintrag);
         if (verzeichnis) {
             pfade["anmeldung/" + name + "/" + eintrag.uid] = verzeichnis;
@@ -1416,6 +1438,13 @@ const KONTO = {
             }
             let anders = false;
             const soll = KONTO.oeffentlichVon(eintrag);
+            /* Eine selbst veröffentlichte Spielzeit bleibt stehen — ob der
+               Spieler sie zeigt, weiss nur sein Gerät. */
+            const bisher = istOeffentlich[uid];
+            if (bisher && bisher.auszug && bisher.auszug.werte
+                    && typeof bisher.auszug.werte.spielzeit === "number" && soll.auszug) {
+                soll.auszug.werte.spielzeit = bisher.auszug.werte.spielzeit;
+            }
             if (!KONTO._gleich(istOeffentlich[uid] || null, soll)) {
                 pfade["oeffentlich/" + uid] = soll;
                 anders = true;

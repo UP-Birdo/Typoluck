@@ -102,6 +102,9 @@ const VERWALTUNG_BILDSCHIRM = {
             NAVIGATION.auffrischen();
         }, "Teil der Verwaltung"));
 
+        /* Seit 0.23.1: Lexikon aus der Datenbank (nur §12), automatisch rechnen/aufräumen. */
+        VERWALTUNG_BILDSCHIRM._quelleSetzen();
+        VERWALTUNG_BILDSCHIRM._automatisch();
         const ort = BAUSTEINE.el("div", "verwaltung-ort");
         behaelter.appendChild(ort);
         if (VERWALTUNG_BILDSCHIRM._teil === "spieler") {
@@ -183,6 +186,10 @@ const VERWALTUNG_BILDSCHIRM = {
             return;
         }
 
+        const datenKarte = VERWALTUNG_BILDSCHIRM._datenKarteBauen();
+        if (datenKarte) {
+            ort.appendChild(datenKarte);
+        }
         /* Seit 0.18.1: ohne Admin-Quelle nur der Hinweis. */
         if (!VERWALTUNG_BILDSCHIRM.lexikonDa()) {
             ort.appendChild(ZUSTAND.leer({ zeichen: "info", text: "Nur im Werkzeug" }));
@@ -296,6 +303,25 @@ const VERWALTUNG_BILDSCHIRM = {
      * Spieler — der gemeinsame Baustein, nur lesen
      * ---------------------------------------------------------------- */
 
+    /* Spielzeit eines Spielers für Admins (seit 0.24.0, wie Blunderluck
+       v0.155.0 Spalte „Spielzeit"): aus dem vollen Fortschritt, sonst aus
+       einem veröffentlichten Auszug; „" ohne Angabe. Rein. */
+    spielzeitText(daten, uid) {
+        const stand = (daten && Array.isArray(daten.spieler)) ? daten.spieler : [];
+        const spieler = uid ? stand.find((s) => s.uid === uid) : null;
+        if (!spieler) {
+            return "";
+        }
+        if (spieler.fortschritt) {
+            const seit = FORTSCHRITT.seitVon(spieler.fortschritt);
+            return "Spielzeit · " + FORTSCHRITT.spielzeitText(FORTSCHRITT.spielzeitSumme(spieler.fortschritt))
+                + (seit ? " · dabei seit " + SPIELZEIT.datumText(seit) : "");
+        }
+        const auszug = spieler.auszug && spieler.auszug.werte;
+        return (auszug && typeof auszug.spielzeit === "number")
+            ? "Spielzeit · " + FORTSCHRITT.spielzeitText(auszug.spielzeit) : "";
+    },
+
     /* Die Zeilen aus der Spielerliste — rein, für den Test. */
     spielerZeilen(daten, heute) {
         const stand = (daten && Array.isArray(daten.spieler)) ? daten.spieler : [];
@@ -311,6 +337,217 @@ const VERWALTUNG_BILDSCHIRM = {
                 return { erreicht: liste.filter((a) => a.erreicht > 0).length, alle: liste.length };
             }
         });
+    },
+
+    /* ---------------------------------------------------------------- *
+     * TYPOLUCK-DATEN (seit 0.23.1, Regel §12 Phase A Punkt 5 + 6; Konzept
+     * DATENBANK-KONZEPT-12.md §6, §7.3, §7.4, §8): Lexikon einspielen und
+     * aus der Datenbank ansehen, Schwierigkeit neu rechnen (Knopf und
+     * höchstens 1× am Tag beim Öffnen), Statistik aufräumen (Knopf und
+     * höchstens 1× im Monat), Detail-Ansicht je Spieler (erst beim
+     * Antippen). Alles nur unter Regel §12 — unter der heutigen Regel gibt
+     * es `typoluck-intern` nicht, und nichts wird gesendet.
+     * ---------------------------------------------------------------- */
+
+    AUTO_RECHNEN: "typoluck.verwaltung-rechnen",
+    AUTO_AUFRAEUMEN: "typoluck.verwaltung-aufraeumen",
+    TAG_MS: 86400000,
+    MONAT_MS: 30 * 86400000,
+
+    _intern() {
+        const p12 = typeof KONTO !== "undefined" && typeof KONTO.istP12 === "function" && KONTO.istP12();
+        return (p12 && typeof APP !== "undefined" && APP.internSpeicher) ? APP.internSpeicher : null;
+    },
+
+    /* Die Quelle des Lexikons: unter §12 der Admin-Knoten, sonst keine. */
+    _quelleSetzen() {
+        const intern = VERWALTUNG_BILDSCHIRM._intern();
+        if (!intern) {
+            VERWALTUNG_BILDSCHIRM.LEXIKON_QUELLE = null;
+            return;
+        }
+        VERWALTUNG_BILDSCHIRM.LEXIKON_QUELLE = async () => {
+            const lexikon = await intern.teilLaden("lexikon");
+            if (!lexikon || typeof lexikon !== "object" || !Object.keys(lexikon).length) {
+                throw new Error("leer");
+            }
+            VERWALTUNG_BILDSCHIRM._lexikonRoh = lexikon;
+            return WORTSTATISTIK.lexikonAlsVoll(lexikon);
+        };
+    },
+
+    _lexikonRoh: null,
+
+    _datenKarteBauen() {
+        const intern = VERWALTUNG_BILDSCHIRM._intern();
+        if (!intern) {
+            return null;
+        }
+        const karte = BAUSTEINE.karte("Typoluck-Daten");
+        const reihe = BAUSTEINE.el("div", "verwaltung-knoepfe");
+        const datei = BAUSTEINE.el("input", "verwaltung-datei");
+        datei.type = "file";
+        datei.accept = ".json,application/json";
+        datei.hidden = true;
+        datei.addEventListener("change", async () => {
+            const f = datei.files && datei.files[0];
+            datei.value = "";
+            if (f) {
+                await VERWALTUNG_BILDSCHIRM.lexikonEinspielen(await f.text());
+            }
+        });
+        karte.appendChild(datei);
+        reihe.appendChild(BAUSTEINE.knopf({ text: "Lexikon einspielen", art: "still", zeichen: "buch",
+            beiKlick: () => datei.click() }));
+        reihe.appendChild(BAUSTEINE.knopf({ text: "Schwierigkeit neu rechnen", art: "still", zeichen: "aktualisieren",
+            beiKlick: async () => {
+                const r = await VERWALTUNG_BILDSCHIRM.schwierigkeitRechnen();
+                await DIALOG.hinweis(r.ok ? "Neu gerechnet" : "Nicht gerechnet", r.text);
+            } }));
+        reihe.appendChild(BAUSTEINE.knopf({ text: "Statistik aufräumen", art: "still", zeichen: "loeschen",
+            beiKlick: async () => {
+                const r = await VERWALTUNG_BILDSCHIRM.statistikAufraeumen();
+                await DIALOG.hinweis(r.ok ? "Aufgeräumt" : "Nicht aufgeräumt", r.text);
+            } }));
+        karte.appendChild(reihe);
+        return karte;
+    },
+
+    /* Eine Datei `lexikon-export.json` (Werkzeug) nach typoluck-intern/lexikon. */
+    async lexikonEinspielen(text) {
+        const intern = VERWALTUNG_BILDSCHIRM._intern();
+        let roh = null;
+        try {
+            roh = JSON.parse(text);
+        } catch (fehler) {
+            roh = null;
+        }
+        const gepruefte = WORTSTATISTIK.lexikonPruefen(roh);
+        if (!intern || !gepruefte.ok) {
+            await DIALOG.hinweis("Nicht eingespielt", intern ? gepruefte.fehler : "Nur unter Regel §12");
+            return { ok: false };
+        }
+        try {
+            for (const schritt of WORTSTATISTIK.lexikonSchritte(gepruefte.eintraege)) {
+                await intern.teilSchreiben(schritt);
+            }
+        } catch (fehler) {
+            await DIALOG.hinweis("Nicht eingespielt", "Die Datenbank lehnt ab");
+            return { ok: false };
+        }
+        VERWALTUNG_BILDSCHIRM._lexikonLaden = null;
+        await DIALOG.hinweis("Eingespielt", Object.keys(gepruefte.eintraege).length + " Wörter"
+            + (gepruefte.schlecht ? " · " + gepruefte.schlecht + " übersprungen" : ""));
+        NAVIGATION.auffrischen();
+        return { ok: true };
+    },
+
+    /* Summen + Lexikon lesen, neue Schwierigkeit schreiben. */
+    async schwierigkeitRechnen() {
+        const intern = VERWALTUNG_BILDSCHIRM._intern();
+        if (!intern) {
+            return { ok: false, text: "Nur unter Regel §12" };
+        }
+        try {
+            const [lexikon, summen] = await Promise.all([intern.teilLaden("lexikon"), intern.teilLaden("summen")]);
+            const daten = WORTSTATISTIK.appDaten(lexikon || {}, summen || {}, WOERTER_DE.loesungen, Date.now());
+            await intern.teilSchreiben({ schwierigkeit: daten });
+            VERWALTUNG_BILDSCHIRM._merken(VERWALTUNG_BILDSCHIRM.AUTO_RECHNEN);
+            WORTSTATISTIK_ABGLEICH._anwenden(daten);
+            return { ok: true, text: Object.keys(summen || {}).length + " Wörter mit Daten" };
+        } catch (fehler) {
+            return { ok: false, text: "Die Datenbank lehnt ab" };
+        }
+    },
+
+    /* Datensätze älter als 12 Monate löschen — Spieler für Spieler. */
+    async statistikAufraeumen() {
+        const intern = VERWALTUNG_BILDSCHIRM._intern();
+        const daten = ANMELDUNG.abgleich ? ANMELDUNG.abgleich.daten : null;
+        if (!intern || !daten) {
+            return { ok: false, text: "Nur unter Regel §12" };
+        }
+        const heute = WORTSTATISTIK.tagZahl(WORDLE.datumText(APP.jetzt()));
+        let weg = 0;
+        try {
+            for (const spieler of (daten.spieler || []).filter((s) => s.uid)) {
+                const runden = await intern.teilLaden("runden/" + spieler.uid);
+                const schritt = WORTSTATISTIK.aufraeumen(spieler.uid, runden, heute);
+                if (Object.keys(schritt).length) {
+                    await intern.teilSchreiben(schritt);
+                    weg += Object.keys(schritt).length;
+                }
+            }
+        } catch (fehler) {
+            return { ok: false, text: "Abgebrochen · " + weg + " gelöscht" };
+        }
+        VERWALTUNG_BILDSCHIRM._merken(VERWALTUNG_BILDSCHIRM.AUTO_AUFRAEUMEN);
+        return { ok: true, text: weg + " gelöscht" };
+    },
+
+    _merken(schluessel) {
+        try {
+            window.localStorage.setItem(schluessel, String(Date.now()));
+        } catch (fehler) {
+            /* dann eben beim nächsten Öffnen noch einmal */
+        }
+    },
+
+    _faellig(schluessel, abstand) {
+        try {
+            const zuletzt = Number(window.localStorage.getItem(schluessel) || 0);
+            return !(zuletzt > 0 && Date.now() - zuletzt < abstand);
+        } catch (fehler) {
+            return false;
+        }
+    },
+
+    /* Beim Öffnen: höchstens 1×/Tag rechnen, 1×/Monat aufräumen — still. */
+    _automatisch() {
+        if (!VERWALTUNG_BILDSCHIRM._intern()) {
+            return;
+        }
+        if (VERWALTUNG_BILDSCHIRM._faellig(VERWALTUNG_BILDSCHIRM.AUTO_RECHNEN, VERWALTUNG_BILDSCHIRM.TAG_MS)) {
+            VERWALTUNG_BILDSCHIRM._merken(VERWALTUNG_BILDSCHIRM.AUTO_RECHNEN);
+            VERWALTUNG_BILDSCHIRM.schwierigkeitRechnen();
+        }
+        if (VERWALTUNG_BILDSCHIRM._faellig(VERWALTUNG_BILDSCHIRM.AUTO_AUFRAEUMEN, VERWALTUNG_BILDSCHIRM.MONAT_MS)) {
+            VERWALTUNG_BILDSCHIRM._merken(VERWALTUNG_BILDSCHIRM.AUTO_AUFRAEUMEN);
+            VERWALTUNG_BILDSCHIRM.statistikAufraeumen();
+        }
+    },
+
+    /* Die Detail-Ansicht eines Spielers: erst beim Antippen `runden/<uid>`. */
+    _detailBauen(zeile) {
+        const halter = BAUSTEINE.el("div", "verwaltung-detail");
+        const intern = VERWALTUNG_BILDSCHIRM._intern();
+        if (!intern || !zeile.uid) {
+            return halter;
+        }
+        halter.appendChild(ZUSTAND.laden({ zeilen: 3 }));
+        Promise.all([intern.teilLaden("runden/" + zeile.uid),
+            VERWALTUNG_BILDSCHIRM._lexikonRoh ? Promise.resolve(VERWALTUNG_BILDSCHIRM._lexikonRoh)
+                : intern.teilLaden("lexikon").catch(() => ({}))]).then(([runden, lexikon]) => {
+            VERWALTUNG_BILDSCHIRM._lexikonRoh = lexikon || {};
+            const woerter = {};
+            Object.keys(lexikon || {}).forEach((k) => { woerter[k] = lexikon[k].w; });
+            const d = WORTSTATISTIK.detail(runden || {}, woerter);
+            halter.innerHTML = "";
+            halter.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", "Typoluck · " + d.summen.woerter + " Wörter · "
+                + d.summen.quote + " % gelöst · Ø " + d.summen.versuche + " Versuche · Ø " + d.summen.dauer
+                + " s · " + d.summen.hilfe + " % mit Hilfe"));
+            const liste = BAUSTEINE.el("ol", "verwaltung-detail-liste");
+            for (const z of d.zeilen.slice(0, 100)) {
+                liste.appendChild(BAUSTEINE.el("li", null, z.wort.toUpperCase() + " · " + (z.v ? z.v + "/" + z.g : "X/" + z.g)
+                    + " · " + { t: "Tag", u: "Üben", b: "Buch" }[z.m] + (z.h ? " · Hilfe " + z.h : "") + " · " + z.d + " s · "
+                    + z.f + (z.r > 1 ? " · +" + (z.r - 1) + " (" + z.wg + " gelöst)" : "")));
+            }
+            halter.appendChild(liste);
+        }).catch(() => {
+            halter.innerHTML = "";
+            halter.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", "Typoluck-Statistik nicht geladen"));
+        });
+        return halter;
     },
 
     /*
@@ -355,7 +592,18 @@ const VERWALTUNG_BILDSCHIRM = {
         }
         UPCREW_SPIELERLISTE.bauen(ort, {
             zeilen: zeilen,
-            beiAuswahl: (zeile) => DIALOG.hinweis(zeile.name + (zeile.tag ? " #" + zeile.tag : ""), "", UPCREW_SPIELERLISTE.details(zeile))
+            beiAuswahl: (zeile) => {
+                /* Seit 0.23.1 darunter die Typoluck-Statistik (nur §12, erst jetzt geladen). */
+                const inhalt = BAUSTEINE.el("div", "verwaltung-spieler");
+                inhalt.appendChild(UPCREW_SPIELERLISTE.details(zeile));
+                /* Seit 0.24.0: Spielzeit über alle Spiele und „dabei seit". */
+                const zeit = VERWALTUNG_BILDSCHIRM.spielzeitText(daten, zeile.uid);
+                if (zeit) {
+                    inhalt.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", zeit));
+                }
+                inhalt.appendChild(VERWALTUNG_BILDSCHIRM._detailBauen(zeile));
+                return DIALOG.hinweis(zeile.name + (zeile.tag ? " #" + zeile.tag : ""), "", inhalt);
+            }
         });
     }
 };

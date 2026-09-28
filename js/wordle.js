@@ -70,11 +70,15 @@ const WORDLE = {
     /* Eine Menge aller erlaubten Wörter, einmal gebaut. */
     _erlaubt: null,
 
+    /* Erlaubt = Lösungen + `zusatz` + seit 0.23.4 die grosse Rate-Liste
+       der passenden Länge (js/woerter-rate-de.js, nie Lösung). */
     istErlaubt(wort) {
         if (!WORDLE._erlaubt) {
             WORDLE._erlaubt = new Set(WORDLE_WOERTER.loesungen.concat(WORDLE_WOERTER.zusatz));
         }
-        return WORDLE._erlaubt.has(String(wort || "").toLowerCase());
+        const w = String(wort || "").toLowerCase();
+        return WORDLE._erlaubt.has(w)
+            || (typeof WOERTER_RATE_DE !== "undefined" && WOERTER_RATE_DE.hat(w));
     },
 
     /* ---------------------------------------------------------------- *
@@ -181,8 +185,10 @@ const WORDLE = {
      * verhält sich exakt wie bis 0.18.5.
      *
      *   versuche   4–8 (Standard 6)
-     *   nurEchte   true: nur Wörter der Liste (Standard); false: jede Folge
-     *              aus fünf erlaubten Buchstaben
+     *   nurEchte   IMMER true (seit 0.23.2, Nutzer 28.09.2026: „bei Typoluck
+     *              sollen doch immer nur echte Wörter zugelassen werden, auch
+     *              am Anfang" — überholt „am Anfang alles eintippbar");
+     *              `nurEchte: false` wird ignoriert
      *   hart       Schwer-Modus für DIESE Runde (in der Bibliothek gilt nur
      *              die Regel der Runde, nicht die Einstellung)
      *   zeit       0 = aus, sonst 30–300 Sekunden ab dem ersten Tastendruck
@@ -211,7 +217,7 @@ const WORDLE = {
         const zeit = zahl(r.zeit);
         return {
             versuche: versuche >= 4 && versuche <= 8 ? versuche : s.versuche,
-            nurEchte: r.nurEchte === false ? false : true,
+            nurEchte: true,
             hart: r.hart === true,
             zeit: zeit >= 30 && zeit <= 300 ? zeit : 0,
             ohneTipp: r.ohneTipp === true,
@@ -331,7 +337,9 @@ const WORDLE = {
     /* Hat die Runde Hilfe aus dem Shop genutzt? (Tageswort: höchstens ein
        Bauer, js/fortschritt.js `partie`.) */
     hilfeGenutzt(runde) {
-        return !!runde && (runde.extra === 1 || (Array.isArray(runde.tipps) && runde.tipps.length > 0));
+        return !!runde && (runde.extra === 1 || (Array.isArray(runde.tipps) && runde.tipps.length > 0)
+            /* Seit 0.23.0: Tinte der Bibliothek zählt wie ein Tipp. */
+            || (Array.isArray(runde.tinte) && runde.tinte.length > 0));
     },
 
     /* Kann ein Extra-Leben eingesetzt werden? Nur, wenn der letzte Versuch
@@ -363,7 +371,8 @@ const WORDLE = {
             return -1;
         }
         const ziel = Array.from(runde.loesung);
-        const tipps = Array.isArray(runde.tipps) ? runde.tipps : [];
+        const tipps = (Array.isArray(runde.tipps) ? runde.tipps : [])
+            .concat(Array.isArray(runde.tinte) ? runde.tinte : []);
         for (let i = 0; i < WORDLE.LAENGE; i++) {
             const gruen = runde.versuche.some((wort) => Array.from(wort)[i] === ziel[i]);
             if (!gruen && tipps.indexOf(i) === -1) {
@@ -382,6 +391,49 @@ const WORDLE = {
         const neu = JSON.parse(JSON.stringify(runde));
         neu.tipps = (Array.isArray(neu.tipps) ? neu.tipps : []).concat([stelle]);
         return { runde: neu, stelle: stelle, buchstabe: Array.from(runde.loesung)[stelle] };
+    },
+
+    /*
+     * TINTE (seit 0.23.0, Konzept Bibliothek §2.1, Nutzer „Tinte A"): ein
+     * Gratis-Tipp aus dem Vorrat des Buchs — deckt wie ein Tipp auf, steht in
+     * `runde.tinte` (nicht in `tipps`, damit der gekaufte Vorrat nicht
+     * zählt). Gesperrt, wo die Regel Tipps sperrt (`ohneTipp`).
+     */
+    tinteMoeglich(runde) {
+        return !!runde && runde.modus === "bibliothek" && runde.zustand === "laeuft"
+            && !WORDLE.regelnVon(runde).ohneTipp && WORDLE.tippStelle(runde) >= 0;
+    },
+
+    tinteEinsetzen(runde) {
+        if (!WORDLE.tinteMoeglich(runde)) {
+            return null;
+        }
+        const stelle = WORDLE.tippStelle(runde);
+        const neu = JSON.parse(JSON.stringify(runde));
+        neu.tinte = (Array.isArray(neu.tinte) ? neu.tinte : []).concat([stelle]);
+        return { runde: neu, stelle: stelle, buchstabe: Array.from(runde.loesung)[stelle] };
+    },
+
+    /*
+     * DIE FESTEN FELDER (seit 0.23.0, Nutzer 28.09.2026: „der Buchstabe,
+     * den man als Tipp bekommt, soll fix sein, nicht löschbar und gleich
+     * richtig eingefärbt"): Jede Stelle aus Tipp oder Tinte steht in JEDER
+     * weiteren Zeile schon da. Liefert je Stelle den Buchstaben oder "".
+     */
+    festeBuchstaben(runde) {
+        const fest = new Array(WORDLE.LAENGE).fill("");
+        if (!runde || typeof runde.loesung !== "string") {
+            return fest;
+        }
+        const ziel = Array.from(runde.loesung);
+        const stellen = (Array.isArray(runde.tipps) ? runde.tipps : [])
+            .concat(Array.isArray(runde.tinte) ? runde.tinte : []);
+        for (const i of stellen) {
+            if (Number.isInteger(i) && i >= 0 && i < WORDLE.LAENGE) {
+                fest[i] = ziel[i];
+            }
+        }
+        return fest;
     },
 
     /* Eine gespeicherte (vielleicht alte oder kaputte) Runde in Form
@@ -410,6 +462,11 @@ const WORDLE = {
         runde.tipps = (Array.isArray(roh.tipps) ? roh.tipps : [])
             .filter((i, stelle, liste) => Number.isInteger(i) && i >= 0 && i < WORDLE.LAENGE
                 && liste.indexOf(i) === stelle);
+        /* Tinte (seit 0.23.0) — nur, wenn welche eingesetzt ist. */
+        if (Array.isArray(roh.tinte) && roh.tinte.length) {
+            runde.tinte = roh.tinte.filter((i, stelle, liste) => Number.isInteger(i) && i >= 0
+                && i < WORDLE.LAENGE && liste.indexOf(i) === stelle && runde.tipps.indexOf(i) === -1);
+        }
         runde.versuche = (Array.isArray(roh.versuche) ? roh.versuche : [])
             .filter((wort) => typeof wort === "string"
                 && Array.from(wort).length === WORDLE.LAENGE)
@@ -548,23 +605,72 @@ const WORDLE = {
         return { felder: new Array(WORDLE.LAENGE).fill(""), stelle: 0 };
     },
 
+    /*
+     * FESTE FELDER (seit 0.23.0): Aufgedeckte Buchstaben aus Tipp und Tinte
+     * (`festeBuchstaben`) stehen fest in der Eingabe — `fest` je Stelle
+     * true/false, nur vorhanden, wenn es feste gibt. Ein festes Feld lässt
+     * sich nicht überschreiben, nicht löschen und nicht markieren; Tippen,
+     * Löschen und Pfeile springen darüber.
+     */
+    eingabeFestsetzen(eingabe, runde) {
+        const neu = WORDLE._eingabeKopie(eingabe);
+        const buchstaben = WORDLE.festeBuchstaben(runde);
+        if (buchstaben.every((b) => b === "")) {
+            return neu;
+        }
+        neu.fest = buchstaben.map((b) => b !== "");
+        buchstaben.forEach((b, i) => {
+            if (b) {
+                neu.felder[i] = b;
+            }
+        });
+        if (neu.stelle < WORDLE.LAENGE && neu.fest[neu.stelle]) {
+            neu.stelle = WORDLE._naechstesLeeres(neu.felder, neu.stelle);
+        }
+        return neu;
+    },
+
+    /* Die Eingabe für eine neue Zeile: leer bis auf die festen Felder,
+       markiert ist das erste freie. */
+    eingabeFuer(runde) {
+        const neu = WORDLE.eingabeFestsetzen(WORDLE.leereEingabe(), runde);
+        if (neu.fest && neu.fest[0]) {
+            neu.stelle = WORDLE._naechstesLeeres(neu.felder, 0);
+        }
+        return neu;
+    },
+
+    _istFest(eingabe, i) {
+        return !!(eingabe && Array.isArray(eingabe.fest) && eingabe.fest[i]);
+    },
+
     /* Ein Feld antippen: es wird markiert, auch wenn schon etwas darin
-       steht (der nächste Buchstabe ersetzt es dann). */
+       steht (der nächste Buchstabe ersetzt es dann). Feste Felder nicht. */
     eingabeWaehlen(eingabe, stelle) {
         const neu = WORDLE._eingabeKopie(eingabe);
-        if (Number.isInteger(stelle) && stelle >= 0 && stelle < WORDLE.LAENGE) {
+        if (Number.isInteger(stelle) && stelle >= 0 && stelle < WORDLE.LAENGE && !WORDLE._istFest(neu, stelle)) {
             neu.stelle = stelle;
         }
         return neu;
     },
 
     /* Pfeiltasten: die Markierung ein Feld weiter (+1) oder zurück (-1),
-       nie über den Rand hinaus. Aus „nichts markiert" führt links auf das
-       letzte Feld. */
+       nie über den Rand hinaus, über feste Felder hinweg. Aus „nichts
+       markiert" führt links auf das letzte freie Feld. */
     eingabeSchieben(eingabe, richtung) {
         const neu = WORDLE._eingabeKopie(eingabe);
-        const von = neu.stelle >= WORDLE.LAENGE ? WORDLE.LAENGE : neu.stelle;
-        neu.stelle = Math.min(WORDLE.LAENGE - 1, Math.max(0, von + (richtung < 0 ? -1 : 1)));
+        const schritt = richtung < 0 ? -1 : 1;
+        let i = neu.stelle >= WORDLE.LAENGE ? WORDLE.LAENGE : neu.stelle;
+        for (let n = 0; n < WORDLE.LAENGE; n++) {
+            i += schritt;
+            if (i < 0 || i >= WORDLE.LAENGE) {
+                return neu;
+            }
+            if (!WORDLE._istFest(neu, i)) {
+                neu.stelle = i;
+                return neu;
+            }
+        }
         return neu;
     },
 
@@ -573,7 +679,7 @@ const WORDLE = {
      * springt die Markierung auf das nächste LEERE Feld rechts davon; gibt
      * es rechts keins mehr, auf das erste leere Feld von vorn; ist die
      * Zeile voll, auf „nichts markiert". So füllt man Lücken, ohne selbst
-     * weiterzutippen.
+     * weiterzutippen. Feste Felder sind nie leer — sie werden übersprungen.
      */
     eingabeTippen(eingabe, buchstabe) {
         const neu = WORDLE._eingabeKopie(eingabe);
@@ -582,25 +688,32 @@ const WORDLE = {
                 || WORDLE.BUCHSTABEN.indexOf(zeichen) === -1) {
             return neu;
         }
+        if (WORDLE._istFest(neu, neu.stelle)) {
+            neu.stelle = WORDLE._naechstesLeeres(neu.felder, neu.stelle);
+            if (neu.stelle >= WORDLE.LAENGE) {
+                return neu;
+            }
+        }
         neu.felder[neu.stelle] = zeichen;
         neu.stelle = WORDLE._naechstesLeeres(neu.felder, neu.stelle);
         return neu;
     },
 
     /*
-     * Löschen: Steht im markierten Feld ein Buchstabe, geht genau der weg
-     * und die Markierung bleibt. Ist es leer (oder nichts markiert), geht
-     * der nächste Buchstabe LINKS davon weg und die Markierung wandert
-     * dorthin — das ist das gewohnte Zurück-Löschen beim Tippen.
+     * Löschen (seit 0.23.0 nach Nutzer 28.09.2026: „wenn man löschen drückt,
+     * soll man die Felder nach links springen und löschen"): Steht im
+     * markierten Feld ein Buchstabe, geht genau der weg und die Markierung
+     * bleibt. Sonst springt die Markierung auf das nächste FREIE Feld links
+     * (über feste hinweg) und leert es. Ganz links passiert nichts.
      */
     eingabeLoeschen(eingabe) {
         const neu = WORDLE._eingabeKopie(eingabe);
-        if (neu.stelle < WORDLE.LAENGE && neu.felder[neu.stelle] !== "") {
+        if (neu.stelle < WORDLE.LAENGE && neu.felder[neu.stelle] !== "" && !WORDLE._istFest(neu, neu.stelle)) {
             neu.felder[neu.stelle] = "";
             return neu;
         }
         for (let i = Math.min(neu.stelle, WORDLE.LAENGE) - 1; i >= 0; i--) {
-            if (neu.felder[i] !== "") {
+            if (!WORDLE._istFest(neu, i)) {
                 neu.felder[i] = "";
                 neu.stelle = i;
                 return neu;
@@ -625,7 +738,11 @@ const WORDLE = {
         }
         const stelle = (eingabe && Number.isInteger(eingabe.stelle)
             && eingabe.stelle >= 0 && eingabe.stelle <= WORDLE.LAENGE) ? eingabe.stelle : 0;
-        return { felder: felder, stelle: stelle };
+        const kopie = { felder: felder, stelle: stelle };
+        if (eingabe && Array.isArray(eingabe.fest) && eingabe.fest.some((f) => f === true)) {
+            kopie.fest = felder.map((_, i) => eingabe.fest[i] === true);
+        }
+        return kopie;
     },
 
     _naechstesLeeres(felder, von) {

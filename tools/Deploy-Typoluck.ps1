@@ -73,10 +73,16 @@ $freigegebeneDateien = @("index.html", "sw.js", "README.md", "CHANGELOG.md",
 $freigegebeneOrdner  = @("css", "js", "icons", "schrift", "docs", "tests", "tools", ".github")
 # Seit 0.18.1: die volle Wort-Bewertung nie hochladen (Nutzer 28.09.2026:
 # "soll nicht oeffentlich sein") - weder das alte Admin-Lexikon noch die
-# Werkzeug-Datei, falls sie je in einem freigegebenen Ordner liegt.
+# Werkzeug-Datei, falls sie je in einem freigegebenen Ordner liegt. Seit 0.23.1
+# auch der Lexikon-Export fuer die Datenbank (lexikon-export.json).
+# Seit 29.09.2026 auch docs\entscheidungen\historie.md (Nutzer: "nein lieber
+# nicht"): Dort steht seitdem die ganze alte STATUS.md, und die STATUS.md ist
+# hier ohnehin gesperrt. Die schon hochgeladene alte Fassung bleibt auf
+# GitHub, solange beim Loesch-Kandidaten niemand "j" antwortet.
 $gesperrteDateien    = @("TODO.md", "TODO-Archiv.md", "ROADMAP.md", "ROADMAP-Archiv.md",
                          "CLAUDE.md", "STATUS.md", "github-token.dat",
-                         "lexikon-daten.js", "wortbewertung-voll.js")
+                         "lexikon-daten.js", "wortbewertung-voll.js", "lexikon-export.json",
+                         "historie.md")
 
 # Diese Endungen sind KEIN Text und muessen als eigener Datenklumpen (Blob)
 # hochgeladen werden.

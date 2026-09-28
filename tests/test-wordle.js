@@ -221,4 +221,48 @@ gleich("Alte Runde ohne Feld: nicht schwer",
 pruefe("Gespeicherte schwere Runde bleibt schwer",
     WORDLE.normalisieren(JSON.parse(JSON.stringify(neueSchwere("apfel")))).schwer);
 
+/* ------------------------------------------------------------------ *
+ * Feste Felder aus Tipp und Tinte (seit 0.23.0, Nutzer: „fix, nicht
+ * löschbar und gleich richtig eingefärbt"; Löschen springt nach links)
+ * ------------------------------------------------------------------ */
+{
+    const r0 = WORDLE.neueRunde({ modus: "bibliothek", buch: 1, station: 10, loesung: "abend", zeitpunkt: 1 });
+    const t = WORDLE.tippEinsetzen(r0);
+    gleich("Tipp deckt die erste Stelle auf", [t.stelle, t.buchstabe], [0, "a"]);
+    let e = WORDLE.eingabeFuer(t.runde);
+    gleich("Neue Zeile: fester Buchstabe steht, Zeiger auf dem ersten freien Feld",
+        [e.felder, e.fest, e.stelle], [["a", "", "", "", ""], [true, false, false, false, false], 1]);
+    e = WORDLE.eingabeTippen(e, "b");
+    e = WORDLE.eingabeLoeschen(e);
+    e = WORDLE.eingabeLoeschen(e);
+    e = WORDLE.eingabeLoeschen(e);
+    gleich("Löschen springt über das feste Feld und löscht es nie", [e.felder[0], e.stelle], ["a", 1]);
+    gleich("Antippen des festen Felds markiert es nicht", WORDLE.eingabeWaehlen(e, 0).stelle, 1);
+    const mitte = WORDLE.eingabeFestsetzen({ felder: ["h", "", "", "", ""], stelle: 1 },
+        Object.assign({}, r0, { tipps: [2] }));
+    let m = WORDLE.eingabeTippen(mitte, "x");
+    gleich("Tippen überspringt das feste Feld nach rechts", [m.felder.join(""), m.stelle], ["hxe", 3]);
+    m = WORDLE.eingabeTippen(WORDLE.eingabeTippen(m, "y"), "z");
+    gleich("… volle Zeile", m.felder.join(""), "hxeyz");
+    m = WORDLE.eingabeLoeschen(WORDLE.eingabeLoeschen(WORDLE.eingabeLoeschen(m)));
+    gleich("Rücktaste: z, y weg, dann über das feste e auf x", [m.felder.join(""), m.stelle], ["he", 1]);
+    gleich("Pfeil links springt über das feste Feld",
+        WORDLE.eingabeSchieben({ felder: ["h", "x", "e", "", ""], stelle: 3, fest: [false, false, true, false, false] }, -1).stelle, 1);
+    const weiter = WORDLE.raten(t.runde, "abend", 2).runde;
+    gleich("Auch in späteren Zeilen fest (Tipp gilt für die Runde)", WORDLE.eingabeFuer(Object.assign({}, weiter,
+        { zustand: "laeuft" })).fest[0], true);
+    gleich("Ohne Tipp: Eingabe ohne `fest` (wie bisher)", WORDLE.eingabeFuer(r0), WORDLE.leereEingabe());
+    /* Tinte: wie ein Tipp, aber eigene Liste, nur in der Bibliothek, gesperrt mit ohneTipp. */
+    const tinte = WORDLE.tinteEinsetzen(t.runde);
+    gleich("Tinte deckt die nächste Stelle auf, eigene Liste", [tinte.stelle, tinte.runde.tinte, tinte.runde.tipps],
+        [1, [1], [0]]);
+    gleich("Tinte zählt als Hilfe", WORDLE.hilfeGenutzt(Object.assign({}, r0, { tinte: [3] })), true);
+    gleich("Tinte nur in der Bibliothek, nicht mit ohneTipp",
+        [WORDLE.tinteMoeglich(WORDLE.neueRunde({ modus: "uebung", loesung: "abend" })),
+            WORDLE.tinteMoeglich(WORDLE.neueRunde({ modus: "bibliothek", loesung: "abend", regeln: { ohneTipp: true } }))],
+        [false, false]);
+    gleich("Gespeichert bleibt die Tinte", WORDLE.normalisieren(JSON.parse(JSON.stringify(tinte.runde))).tinte, [1]);
+    gleich("Feste Buchstaben aus Tipp und Tinte", WORDLE.festeBuchstaben(tinte.runde), ["a", "b", "", "", ""]);
+}
+
 fazit();

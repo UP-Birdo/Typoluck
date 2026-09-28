@@ -7,8 +7,10 @@
  * Bildschirm, der sich bei NAVIGATION anmeldet — der Start selbst ändert
  * sich dafür nicht.
  *
- * Auf dem Start: Begrüssung, je Spiel eine Kachel mit dem Stand des Tages
- * (offen / angefangen / erledigt) und darunter „Heute bei deinen Freunden".
+ * Auf dem Start: Begrüssung, je Spiel (seit 0.23.4) ZWEI Karten —
+ * Tageswort (Stand des Tages, danach Zeit bis zum nächsten) und Übung.
+ * „Heute bei deinen Freunden" stand bis 0.23.0 darunter, seit 0.23.1 ist
+ * es gelöscht (Freunde: Rangliste).
  * Seit 0.18.0 zwei Arten (js/start-bibliothek.js), seit 0.20.0 als
  * Schalter Üben · Bibliothek oben: Bibliothek (das Buch als Doppelseite)
  * oder Üben (die Kachel wie bisher).
@@ -50,34 +52,6 @@ const START = {
         }
     ],
 
-    /*
-     * „FREUNDE HEUTE" LEBT (seit 0.8.1, ROADMAP Nr. 9). Solange der Start
-     * zu sehen ist, holt er die Tageswertung alle AUFFRISCHEN_MS still nach
-     * — und sofort, wenn die App in den Vordergrund zurückkommt. Still
-     * heisst: Die stehende Tabelle bleibt stehen (kein Lade-Platzhalter,
-     * kein Flackern), neu gezeichnet wird nur, wenn sich wirklich etwas
-     * geändert hat; ein Fehler beim Nachholen lässt die alte Tabelle stehen.
-     * Nur wenn noch nichts für HEUTE da ist (erster Aufruf, neuer Tag), gibt
-     * es den Platzhalter. Die Uhr läuft nur auf dem Start (beim Verlassen
-     * aus) und nie in der Werkstatt (deren Daten ändern sich nicht, und ein
-     * Kopflos-Bild bliebe sonst nie stehen).
-     *
-     * Kosten: Der Tagesknoten ist klein (je Spieler ein Ergebnis) — alle
-     * 30 s ein paar Kilobyte, nur während jemand auf den Start schaut.
-     */
-    AUFFRISCHEN_MS: 30000,
-
-    /* Der Tages-Stand der Freunde, für welches Datum er gilt, und der
-       Fehler des letzten Ladens (nur, wenn nichts Brauchbares da ist). */
-    _freundeHeute: null,
-    _freundeFuer: null,
-    _freundeFehler: "",
-
-    /* Laufende Nummer der Ladevorgänge — eine ältere Antwort, die nach
-       einer neueren ankommt, wird verworfen. */
-    _ladeNr: 0,
-    _uhr: null,
-
     anmelden() {
         NAVIGATION.anmelden({
             id: "start",
@@ -85,15 +59,8 @@ const START = {
             zeichen: "start",
             imMenue: false,
             zeigen: (behaelter, parameter) => START.zeigen(behaelter, parameter),
-            verlassen: () => START._auffrischenAus()
-        });
-        /* Zurück in den Vordergrund: gleich nachsehen, statt bis zu 30 s
-           auf die Uhr zu warten. */
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === "visible" && START._uhr !== null
-                && NAVIGATION.aktuell === "start") {
-                START._freundeLaden(true);
-            }
+            /* Seit 0.23.2: das Vollbild-Buch geht beim Verlassen zu. */
+            verlassen: () => START.buchVerlassen && START.buchVerlassen()
         });
     },
 
@@ -109,6 +76,15 @@ const START = {
             START.buchBlick = null;
             START.kapBlick = null;
             START.regalOffen = false;
+            /* Nur einmal (auch ein Neuzeichnen trägt denselben Parameter). */
+            parameter.bibliothek = false;
+            /* Seit 0.23.2: Wartet als Nächstes eine Kreuzung, öffnet sich das
+               Buch von selbst dort und fragt „Wo lang?". */
+            if (typeof START.buchOeffnen === "function") {
+                const lauf = BIBLIOTHEK.lauf(START._turm(), BIBLIOTHEK.aktuellesBuch(START._turm()));
+                START.buchOffen = !!lauf.gabel;
+                START._woLang = !!lauf.gabel;
+            }
         }
         const ich = ANMELDUNG.ich();
         const name = ich ? ich.name : (ICH.person() ? ICH.person().name : "");
@@ -144,14 +120,21 @@ const START = {
         }
         if (mitArt && START.art() === "bibliothek") {
             START._bibliothekBauen(behaelter);
+            if (START._woLang) {
+                START._woLang = false;
+                const b = START._buchNr();
+                const lauf = BIBLIOTHEK.lauf(START._turm(), b);
+                if (lauf.gabel) {
+                    START.gabelBlatt(b, lauf.gabel, "Wo lang?");
+                }
+            }
         } else {
-            START.SPIELE.forEach((spiel) => behaelter.appendChild(START._spielKachelBauen(spiel)));
+            START.SPIELE.forEach((spiel) => behaelter.appendChild(START._modiBauen(spiel)));
         }
 
-        behaelter.appendChild(START._freundeKarteBauen());
-        START._freundeLaden(false);
-        START._auffrischenAn();
-
+        /* „Freunde heute" ist seit 0.23.0 nicht mehr auf dem Start (Nutzer:
+           „freunde weg beim start · üben soll auch freunde raus"), seit
+           0.23.1 samt Laden und Uhr gelöscht. Freunde: Rangliste. */
     },
 
     /*
@@ -190,26 +173,6 @@ const START = {
         return werte;
     },
 
-    /* Die Uhr einschalten — mehrfach gerufen (jeder Neubau des Starts)
-       bleibt es bei EINER. */
-    _auffrischenAn() {
-        if (START._uhr !== null || (typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv())) {
-            return;
-        }
-        START._uhr = setInterval(() => {
-            if (document.visibilityState === "visible" && NAVIGATION.aktuell === "start") {
-                START._freundeLaden(true);
-            }
-        }, START.AUFFRISCHEN_MS);
-    },
-
-    _auffrischenAus() {
-        if (START._uhr !== null) {
-            clearInterval(START._uhr);
-            START._uhr = null;
-        }
-    },
-
     /*
      * Das Kurzprofil oben links (seit 0.7.0): Kreis mit Anfangsbuchstabe,
      * Name, darunter „83 % gelöst" (bis 0.16.1 „Serie 4 · 83 % gelöst" — seit
@@ -245,159 +208,96 @@ const START = {
         return knopf;
     },
 
-    _spielKachelBauen(spiel) {
-        const stand = spiel.tagesStand();
-        const karte = BAUSTEINE.karte(null, "spiel-kachel");
+    /*
+     * ÜBEN = ZWEI MODI (seit 0.23.4, Nutzer: „bei Typoluck sollen Tageswort
+     * und Übung getrennt werden, also schon auf derselben Seite stehen, nur
+     * als zwei Spielmodi"): zwei Karten, je ein Knopf.
+     *   Tageswort  einmal am Tag, für alle gleich — offen / angefangen /
+     *              gelöst / verloren, danach die Zeit bis zum nächsten.
+     *   Übung      beliebig oft.
+     * Zählung, Serie, Aufgaben und XP bleiben, wie sie sind (nur die
+     * Oberfläche ist getrennt). Bis 0.23.3 eine Kachel mit „Spielen" und
+     * „Übung" nebeneinander.
+     */
+    _modiBauen(spiel) {
+        const teil = document.createDocumentFragment();
+        teil.appendChild(START._tagesKarteBauen(spiel));
+        teil.appendChild(START._uebungKarteBauen(spiel));
+        return teil;
+    },
 
+    /* Stand des heutigen Tagesworts genauer: { stand: offen | angefangen |
+       geloest | verloren, versuche }. */
+    tagesDetail() {
+        const heute = WORDLE.datumText(APP.jetzt());
+        const ergebnis = APP.eigenesErgebnis(heute);
+        if (ergebnis) {
+            return { stand: ergebnis.geloest ? "geloest" : "verloren", versuche: ergebnis.versuche };
+        }
+        const runde = WORDLE.normalisieren(ICH.spielstand("wordle-tag"));
+        if (runde && runde.datum === heute) {
+            if (runde.zustand === "laeuft") {
+                return { stand: runde.versuche.length > 0 ? "angefangen" : "offen", versuche: runde.versuche.length };
+            }
+            return { stand: runde.zustand === "gewonnen" ? "geloest" : "verloren", versuche: runde.versuche.length };
+        }
+        return { stand: "offen", versuche: 0 };
+    },
+
+    /* Bis zum nächsten Tageswort (lokale Mitternacht): „5 h 12 min". Rein. */
+    bisMorgen(jetzt) {
+        const morgen = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate() + 1);
+        const minuten = Math.max(1, Math.ceil((morgen.getTime() - jetzt.getTime()) / 60000));
+        const h = Math.floor(minuten / 60);
+        return (h > 0 ? h + " h " : "") + (minuten % 60) + " min";
+    },
+
+    _modusKarte(zeichen, name, satz) {
+        const karte = BAUSTEINE.karte(null, "spiel-kachel modus-karte");
         const kopf = BAUSTEINE.el("div", "spiel-kachel-kopf");
         const bild = BAUSTEINE.el("span", "spiel-kachel-bild");
-        bild.appendChild(BAUSTEINE.zeichen(spiel.zeichen));
+        bild.appendChild(BAUSTEINE.zeichen(zeichen));
         kopf.appendChild(bild);
         const texte = BAUSTEINE.el("div", "spiel-kachel-texte");
-        texte.appendChild(BAUSTEINE.el("h2", "spiel-kachel-name", spiel.name));
-        texte.appendChild(BAUSTEINE.el("p", "spiel-kachel-satz", spiel.beschreibung));
+        texte.appendChild(BAUSTEINE.el("h2", "spiel-kachel-name", name));
+        texte.appendChild(BAUSTEINE.el("p", "spiel-kachel-satz", satz));
         kopf.appendChild(texte);
         karte.appendChild(kopf);
+        return karte;
+    },
 
-        const raetsel = spiel.tagesName();
-        /* Name des Rätsels und sein Stand als Stichwort — kein Satz. */
-        const schild = BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + stand, raetsel + " · " + {
+    _tagesKarteBauen(spiel) {
+        const d = START.tagesDetail();
+        const nummer = spiel.tagesName().replace("Tageswort ", "");
+        const karte = START._modusKarte("kalender", "Tageswort", nummer + " · für alle gleich");
+        const fertig = d.stand === "geloest" || d.stand === "verloren";
+        const text = {
             offen: "offen",
-            angefangen: "angefangen",
-            erledigt: "erledigt"
-        }[stand]);
-        karte.appendChild(schild);
-
-        const knoepfe = BAUSTEINE.el("div", "knopf-reihe");
-        if (stand === "erledigt") {
-            knoepfe.appendChild(BAUSTEINE.knopf({
-                text: "Übungsrunde", art: "haupt", zeichen: "uebung",
-                beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "uebung" })
-            }));
-            knoepfe.appendChild(BAUSTEINE.knopf({
-                text: "Ergebnis", art: "still",
-                beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "tag" })
-            }));
-        } else {
-            knoepfe.appendChild(BAUSTEINE.knopf({
-                text: stand === "angefangen" ? "Weiter" : "Spielen",
-                art: "haupt", zeichen: "weiter",
-                beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "tag" })
-            }));
-            knoepfe.appendChild(BAUSTEINE.knopf({
-                text: "Übung", art: "still", zeichen: "uebung",
-                beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "uebung" })
-            }));
-        }
-        karte.appendChild(knoepfe);
+            angefangen: "angefangen · " + d.versuche + "/" + WORDLE.VERSUCHE,
+            geloest: "gelöst · " + d.versuche + "/" + WORDLE.VERSUCHE,
+            verloren: "verloren"
+        }[d.stand] + (fertig ? " · nächstes in " + START.bisMorgen(APP.jetzt()) : "");
+        karte.appendChild(BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + d.stand, text));
+        const knopf = BAUSTEINE.knopf({
+            text: fertig ? "Ergebnis" : (d.stand === "angefangen" ? "Weiter" : "Spielen"),
+            art: fertig ? "still" : "haupt", breit: true, zeichen: fertig ? "rangliste" : "weiter",
+            beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "tag" })
+        });
+        karte.appendChild(knopf);
         return karte;
     },
 
-    /* „Freunde heute" — die Tagestabelle, nur Freunde und ich, höchstens
-       fünf Zeilen. Laden, Leer und Fehler kommen aus js\zustand.js. */
-    _freundeKarteBauen() {
-        const karte = BAUSTEINE.karte("Freunde heute", "start-freunde");
-        karte.id = "start-freunde";
-        START._freundeKarteFuellen(karte);
-        return karte;
-    },
-
-    _freundeKarteFuellen(karte) {
-        while (karte.children.length > 1) {
-            karte.removeChild(karte.lastChild);
-        }
-        const ich = ANMELDUNG.ich();
-        if (!ich) {
-            return;
-        }
-        if (START._freundeFehler) {
-            karte.appendChild(ZUSTAND.fehler({
-                technik: START._freundeFehler, nochmal: () => START._freundeLaden()
-            }));
-            return;
-        }
-        if (START._freundeHeute === null) {
-            karte.appendChild(ZUSTAND.laden({ zeilen: 3, nochmal: () => START._freundeLaden() }));
-            return;
-        }
-
-        const daten = ANMELDUNG.abgleich.daten;
-        const zeilen = RANGLISTE.tagesTabelle(START._freundeHeute, daten,
-            RANGLISTE.auswahl(daten, ich.id, true), ich.id).slice(0, 5);
-        const hatFreunde = SPIELER.freundeVon(daten, ich.id).freunde.length > 0;
-
-        if (!hatFreunde) {
-            karte.appendChild(ZUSTAND.leer({
-                zeichen: "freunde", text: "Noch keine Freunde",
-                aktion: { text: "Freunde finden", zeichen: "freunde",
-                    beiKlick: () => NAVIGATION.zeigen("freunde", null) }
-            }));
-            return;
-        }
-        if (zeilen.length === 0) {
-            karte.appendChild(ZUSTAND.leer({
-                zeichen: "wordle", text: "Heute noch niemand",
-                aktion: { text: "Spielen", zeichen: "weiter",
-                    beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "tag" }) }
-            }));
-        } else {
-            karte.appendChild(RANGLISTE_BILDSCHIRM.tabelleBauen(zeilen, "tag", ich.id));
-        }
-
+    _uebungKarteBauen(spiel) {
+        const karte = START._modusKarte("uebung", "Übung", "beliebig oft · eigenes Wort");
+        const runde = WORDLE.normalisieren(ICH.spielstand("wordle-uebung"));
+        const laeuft = !!runde && runde.modus === "uebung" && runde.zustand === "laeuft" && runde.versuche.length > 0;
+        karte.appendChild(BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + (laeuft ? "angefangen" : "offen"),
+            laeuft ? "angefangen · " + runde.versuche.length + "/" + WORDLE.versucheMax(runde) : "neues Wort"));
         karte.appendChild(BAUSTEINE.knopf({
-            text: "Ganze Rangliste", art: "flach", zeichen: "weiter",
-            beiKlick: () => NAVIGATION.zeigen("rangliste", null)
+            text: laeuft ? "Weiter" : "Spielen", art: "haupt", breit: true, zeichen: "uebung",
+            beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "uebung" })
         }));
-    },
-
-    /*
-     * Holt die Tageswertung.
-     *   still = false  zeigt den Lade-Platzhalter, AUSSER es liegt schon
-     *                  eine Wertung für heute vor (dann bleibt sie stehen,
-     *                  bis die neue da ist — so flackert der Start nicht bei
-     *                  jedem Neubau). Taugt auch für den Knopf „Nochmal".
-     *   still = true   die Uhr: nie ein Platzhalter; ein Fehler lässt eine
-     *                  stehende Tabelle stehen.
-     * Neu gezeichnet wird nur, was sich geändert hat.
-     */
-    async _freundeLaden(still) {
-        const heute = WORDLE.datumText(APP.jetzt());
-        const vorhanden = START._freundeHeute !== null && START._freundeFuer === heute
-            && !START._freundeFehler;
-        const nr = ++START._ladeNr;
-        if (!vorhanden && !still) {
-            START._freundeHeute = null;
-            START._freundeFuer = null;
-            START._freundeFehler = "";
-            START._freundeKarteNeu();
-        }
-        let neu;
-        try {
-            neu = await ERGEBNISSE.tagLaden(APP.spielSpeicher, heute);
-        } catch (fehler) {
-            if (nr !== START._ladeNr || (still && vorhanden)) {
-                return;
-            }
-            START._freundeFehler = fehler.message || "Fehler";
-            START._freundeKarteNeu();
-            return;
-        }
-        if (nr !== START._ladeNr) {
-            return;
-        }
-        const geaendert = !vorhanden || JSON.stringify(neu) !== JSON.stringify(START._freundeHeute);
-        START._freundeHeute = neu;
-        START._freundeFuer = heute;
-        START._freundeFehler = "";
-        if (geaendert) {
-            START._freundeKarteNeu();
-        }
-    },
-
-    _freundeKarteNeu() {
-        const karte = document.getElementById("start-freunde");
-        if (karte && NAVIGATION.aktuell === "start") {
-            START._freundeKarteFuellen(karte);
-        }
+        return karte;
     }
 };
+

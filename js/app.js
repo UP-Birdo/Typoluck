@@ -108,6 +108,25 @@ const APP = {
            dieselben Leute wie beim Aussehen — nur echte Konten. */
         FORTSCHRITT_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
 
+        /* Spielzeit und „dabei seit" (seit 0.24.0, wie Blunderluck v0.155.0):
+           gezählt, solange die Seite sichtbar ist — auch als Gast. */
+        if (typeof SPIELZEIT !== "undefined") {
+            SPIELZEIT.starten();
+        }
+
+        /* Wortstatistik und Spieler-Stufe (seit 0.23.1, js/wortstatistik-
+           abgleich.js): gesendet wird nur unter Regel §12, auf
+           `typoluck-intern` — in der Werkstatt nie. */
+        const intern = (KONTO.aktiv() && KONFIG.speicher.firebaseBasis && KONFIG.speicher.modus === "gemeinsam")
+            ? new SpeicherGemeinsam(KONFIG.speicher.firebaseBasis, APP.INTERN_PFAD) : null;
+        APP.internSpeicher = intern;
+        /* Nur wenn die Datei da ist (eine alte, noch zwischengespeicherte Seite
+           ohne sie darf nicht scheitern). */
+        if (typeof WORTSTATISTIK_ABGLEICH !== "undefined") {
+            WORTSTATISTIK_ABGLEICH.einrichten(intern, APP.spielerSpeicher, () => APP._aussehenUid(),
+                () => APP.fortschrittId(), () => APP._echtesKonto());
+        }
+
         /* 3. Bildschirme — die Reihenfolge ist die im Menü hinter den drei
            Balken (seit 0.3.0; wie Blunderluck: Profil zuerst; seit 0.5.0
            Einstellungen als letzter Eintrag). Die Leiste unten führt ihre
@@ -147,6 +166,7 @@ const APP = {
         ANMELDUNG.pruefen(APP.abgleich.geladen);
 
         const ich = ANMELDUNG.ich();
+        APP._regel12Nachziehen(ich);
         NAVIGATION.markeSetzen("freunde", ich
             ? SPIELER.freundeVon(APP.abgleich.daten, ich.id).offen.length : 0);
 
@@ -172,6 +192,36 @@ const APP = {
 
     /* Wer sein Aussehen am Konto mitführt: nur angemeldete Spieler mit
        UPCrew-Konto — Gäste und die Werkstatt nicht. */
+    /* Der Bereich nur für Admins und die Wortstatistik (Regel §12). */
+    INTERN_PFAD: "typoluck-intern",
+
+    /* Ein echtes Passwort-Konto: angemeldet, kein Gast, nicht UP#Plus. */
+    _echtesKonto() {
+        return !!APP._aussehenUid() && KONTO.uid() !== KONTO.OBER_UID;
+    },
+
+    /*
+     * Seit 0.23.1: Sobald Daten da sind und Regel §12 gilt, die Stufe vom
+     * Konto übernehmen (mehr Runden gewinnt), die Warteschlange der
+     * Wortstatistik senden und — einmal je Sitzung — die neue
+     * Schwierigkeit holen. Unter der heutigen Regel tut das nichts.
+     */
+    _schwierigkeitGeholt: false,
+
+    _regel12Nachziehen(ich) {
+        if (typeof WORTSTATISTIK_ABGLEICH === "undefined" || typeof KONTO.istP12 !== "function" || !KONTO.istP12()) {
+            return;
+        }
+        if (ich) {
+            WORTSTATISTIK_ABGLEICH.stufeVomKonto(ich);
+        }
+        WORTSTATISTIK_ABGLEICH.senden();
+        if (!APP._schwierigkeitGeholt && APP._aussehenUid()) {
+            APP._schwierigkeitGeholt = true;
+            WORTSTATISTIK_ABGLEICH.schwierigkeitHolen();
+        }
+    },
+
     _aussehenUid() {
         if (!KONTO.aktiv() || !ANMELDUNG.ich() || ANMELDUNG.istGast() || KONTO.istGastSitzung()) {
             return null;
@@ -420,6 +470,10 @@ const APP = {
         if (ergebnis.muenzen > 0) {
             meldung.push("+" + ergebnis.muenzen + " " + UPCREW_MUENZEN.WAEHRUNG.name);
         }
+        /* Wortstatistik und Stufe (seit 0.23.1) — im Hintergrund. */
+        if (typeof WORTSTATISTIK_ABGLEICH !== "undefined") {
+            WORTSTATISTIK_ABGLEICH.melden(runde, datum, Date.now());
+        }
         /* Herzen und Rückfall (seit 0.21.0). */
         const bibliothek = imBuch ? APP._bibliothekNachRunde(runde, vorherSicht) : null;
         if (bibliothek && bibliothek.voll) {
@@ -605,6 +659,18 @@ const APP = {
         }
         APP._durchgangSetzen(buch, r.dg);
         APP.stationMerken(buch, nr, 0);
+        return true;
+    },
+
+    /* Tinte einsetzen (seit 0.23.0): ein Stück aus dem Vorrat des Buchs.
+       Liefert true, wenn eins da war. */
+    tinteNutzen(buch) {
+        const dg = APP.durchgang(buch);
+        if (dg.tinte < 1) {
+            return false;
+        }
+        dg.tinte -= 1;
+        APP._durchgangSetzen(buch, dg);
         return true;
     },
 

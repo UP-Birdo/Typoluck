@@ -332,6 +332,11 @@ class SpeicherKonten extends SpeicherGemeinsam {
                 delete eintrag.aussehenJe;
             }
         }
+        /* Der Haken „Spielzeit öffentlich" (seit v0.155.2): nur Ja/Nein
+           (Regel §14 `spielzeitOeffentlich`). */
+        if ("spielzeitOeffentlich" in eintrag && typeof eintrag.spielzeitOeffentlich !== "boolean") {
+            delete eintrag.spielzeitOeffentlich;
+        }
         if (eintrag.fortschritt && typeof eintrag.fortschritt === "object"
                 && typeof FORTSCHRITT !== "undefined" && typeof FORTSCHRITT.fuerKonto === "function") {
             eintrag.fortschritt = FORTSCHRITT.fuerKonto(eintrag.fortschritt);
@@ -482,6 +487,19 @@ class SpeicherKonten extends SpeicherGemeinsam {
             roh.konten[uid] = eigen;
         }
         return roh;
+    }
+
+    /* Den eigenen Auszug sofort neu schreiben (seit v0.155.0: nach dem
+       Umschalten „Spielzeit öffentlich"). Unter der alten Regel nichts. */
+    oeffentlichNeu(daten) {
+        if (typeof KONTO === "undefined" || typeof KONTO.istP12 !== "function" || !KONTO.istP12()) {
+            return Promise.resolve();
+        }
+        this._eingetragen = false;
+        this.zuletztOeffentlich = null;
+        /* Was zuletzt vom Server kam, kann veraltet sein — sicher schreiben. */
+        this._oeffentlichVomServer = { neu: true };
+        return this._selbstEintragen(daten);
     }
 
     /*

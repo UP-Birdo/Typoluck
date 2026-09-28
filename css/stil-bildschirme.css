@@ -134,12 +134,6 @@
     color: var(--gut);
 }
 
-.start-freunde .knopf-flach {
-    margin-top: 4px;
-    padding-left: 0;
-    color: var(--haupt);
-}
-
 /* ------------------------------------------------------------------ *
  * Rangliste (auch auf dem Start benutzt)
  * ------------------------------------------------------------------ */
@@ -982,4 +976,79 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     font-size: 0.85rem;
     line-height: 1.8;
     word-spacing: 2px;
+}
+
+/* Verwaltung · Typoluck-Daten (seit 0.23.1): Lexikon einspielen,
+   Schwierigkeit neu rechnen, Statistik aufräumen, Detail je Spieler. */
+.verwaltung-knoepfe {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.verwaltung-detail-liste {
+    max-height: 40vh;
+    overflow-y: auto;
+    margin: 6px 0 0;
+    padding-left: 20px;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Üben = zwei Modi (seit 0.23.4): Tageswort und Übung als zwei Karten,
+   knapp genug für 360 × 640 ohne Rollen. */
+.spiel-kachel.modus-karte {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+}
+
+.modus-karte .spiel-kachel-kopf {
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.modus-karte .spiel-kachel-bild {
+    width: 44px;
+    height: 44px;
+}
+
+.modus-karte .spiel-kachel-bild .zeichen {
+    width: 24px;
+    height: 24px;
+}
+
+.modus-karte .spiel-kachel-name {
+    font-size: 1.15rem;
+}
+
+.modus-karte .spiel-kachel-satz {
+    font-size: 0.85rem;
+}
+
+.modus-karte .spiel-kachel-stand {
+    margin-bottom: 10px;
+    padding: 6px 10px;
+    font-size: 0.88rem;
+}
+
+.spiel-stand-geloest {
+    background: var(--gut-flaeche);
+    color: var(--gut);
+}
+
+.spiel-stand-verloren {
+    background: color-mix(in srgb, var(--gefahr) 16%, var(--karte-leise));
+}
+
+/* Spielzeit im Profil (seit 0.24.0, wie Blunderluck v0.155.0). */
+.profil-spielzeit-zeile {
+    margin: 0 0 4px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.profil-spielzeit-haken {
+    margin: 8px 0 0;
+    color: var(--schrift-leise);
+    font-size: 0.85rem;
 }

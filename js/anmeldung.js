@@ -476,6 +476,11 @@ const ANMELDUNG = {
                 ANMELDUNG.abgleich.daten, eintrag, name.feld.value, passwort.feld.value);
             await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Gesichert · ",
                 { name: name, passwort: passwort, wiederholung: wiederholung, allgemein: allgemein });
+            /* Spielzeit, „dabei seit" und der übrige Gast-Stand vom Gerät
+               ziehen mit (seit 0.24.0, wie Blunderluck v0.155.0). */
+            if (ergebnis.ok && typeof SPIELZEIT !== "undefined" && ANMELDUNG.ich()) {
+                SPIELZEIT.gastZumKonto(ANMELDUNG.ich().id);
+            }
         });
 
         kasten.appendChild(los);

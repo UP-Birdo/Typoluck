@@ -98,7 +98,9 @@ const aufPlatte = liste("js").concat(liste("css"), liste("icons"))
 /* Ausnahme (0.16.3 bis 0.18.0): das Lexikon der Admins wurde nur
    nachgeladen. Seit 0.18.1 wird es gar nicht mehr ausgeliefert
    (tests/test-verwaltung.js); die Liste bleibt für künftige Fälle. */
-const NUR_NACHGELADEN = [];
+/* Seit 0.23.4: die Rate-Listen mit 4, 6 und 7 Buchstaben lädt
+   js/woerter-rate-de.js erst, wenn eine Runde dieser Länge startet. */
+const NUR_NACHGELADEN = ["./js/woerter-rate-de-4.js", "./js/woerter-rate-de-6.js", "./js/woerter-rate-de-7.js"];
 for (const datei of NUR_NACHGELADEN) {
     pruefe("Nur nachgeladen, nicht im Service Worker und nicht in index.html: " + datei,
         swListe.indexOf(datei) === -1 && indexSkripte.indexOf(datei.slice(2)) === -1);
@@ -451,23 +453,27 @@ pruefe("Start: Kurzprofil mit Quote, die Serie zeigt nur die Flamme (seit 0.16.2
     /_kurzprofilBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
         && /werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js"))
         && !/"Serie " \+ werte\.serie/.test(lesen("js/bildschirm-start.js")));
-/* „Freunde heute" lebt (seit 0.8.1, ROADMAP Nr. 9): die Uhr läuft nur auf
-   dem Start und nie in der Werkstatt, und sie zeigt nie den Platzhalter. */
+/* „Freunde heute" auf dem Start ist seit 0.23.1 gelöscht (Laden, Uhr,
+   Karte) — Freunde zeigt die Rangliste. */
 const startText = lesen("js/bildschirm-start.js");
-pruefe("Start: Uhr wird beim Verlassen abgeschaltet",
-    /verlassen: \(\) => START\._auffrischenAus\(\)/.test(startText)
-        && /clearInterval\(START\._uhr\)/.test(startText));
-pruefe("Start: keine Uhr in der Werkstatt",
-    /_auffrischenAn\(\) \{\s*if \(START\._uhr !== null \|\| \(typeof WERKSTATT !== "undefined" && WERKSTATT\.aktiv\(\)\)\)/
-        .test(startText));
-pruefe("Start: die Uhr lädt still", /setInterval\([\s\S]*?START\._freundeLaden\(true\)/.test(startText));
-gleich("Start: alle 30 Sekunden", (startText.match(/AUFFRISCHEN_MS: (\d+)/) || [])[1], "30000");
+pruefe("Start: keine Freunde-Uhr mehr", !/_freundeLaden|_auffrischenAn|AUFFRISCHEN_MS|setInterval/.test(startText));
 pruefe("Mitte in der Leiste: Start", /id: "start"/.test(leisteEintraege[2] || ""));
 /* Seit 0.15.3 (Nutzer 27.09.2026): während einer Runde keine Leiste unten */
 const wordleQuelle = lesen("js/bildschirm-wordle.js");
 pruefe("Runde läuft: body.im-spiel wird im Zeichnen gesetzt (auch beim Aufdecken der letzten Zeile)",
     /_zeichnen\(tastaturBehalten\) \{[\s\S]*?classList\.toggle\("im-spiel", runde\.zustand === "laeuft" \|\| !!tastaturBehalten\)/
         .test(wordleQuelle));
+/* Seit 0.23.3 (Nutzer 28.09.2026): Tastatur unten fest, nur das Brett rollt */
+const wordleStil = lesen("css/stil-wordle.css");
+pruefe("Runde: Seite rollt nicht (100dvh, overflow hidden)",
+    /body\.im-spiel \.inhalt\[data-bildschirm="wordle"\] \{[^}]*height: 100dvh;[^}]*overflow: hidden;/.test(wordleStil));
+pruefe("Runde: unten Platz für die Wischleiste (safe-area)",
+    /body\.im-spiel \.inhalt\[data-bildschirm="wordle"\] \{[^}]*env\(safe-area-inset-bottom\)/.test(wordleStil));
+pruefe("Runde: nur das Brett rollt",
+    /\.wordle-brett \{[^}]*overflow-y: auto;/.test(wordleStil));
+pruefe("Runde: aktive Zeile rollt ins Bild",
+    /_aktiveZeileZeigen\(\) \{/.test(wordleQuelle)
+        && (wordleQuelle.match(/_aktiveZeileZeigen\(\);/g) || []).length >= 2);
 pruefe("Beim Verlassen kommt die Leiste zurück",
     /verlassen\(\) \{[\s\S]*?classList\.remove\("im-spiel"\)/.test(wordleQuelle));
 pruefe("Stil: im Spiel keine Leiste, unten nur der iPhone-Streifen",

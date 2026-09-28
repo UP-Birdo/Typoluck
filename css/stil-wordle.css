@@ -512,3 +512,129 @@
     height: 20px;
     color: var(--haupt);
 }
+
+/* Feste Felder (seit 0.23.0): aufgedeckt durch Tipp oder Tinte — grün
+   (Farbe „richtig") und nicht mehr zu ändern; ein Strich unten zeigt es. */
+.kachel.kachel-fest {
+    box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--kachel-text, var(--schrift)) 35%, transparent);
+}
+
+/* ------------------------------------------------------------------ *
+ * TASTATUR FEST UNTEN (seit 0.23.3, Nutzer 28.09.2026: „die Tastatur
+ * soll unten am Handy sein und fix; wenn die Versuche sich erhöhen, soll
+ * es scrollbar werden, aber die Tastatur fix bleiben"). Nur während einer
+ * Runde (`body.im-spiel`): Die Seite ist genau so hoch wie der Bildschirm
+ * und rollt nicht; oben Kopfzeile, Uhr und Tipp-Knöpfe, unten die
+ * Tastatur über dem iPhone-Streifen, dazwischen das Brett — nur DAS rollt
+ * (die aktive Zeile rückt von selbst in den Blick, js/bildschirm-wordle.js
+ * `_aktiveZeileZeigen`). Nach der Runde rollt die Seite wie immer.
+ * ------------------------------------------------------------------ */
+
+body.im-spiel .inhalt[data-bildschirm="wordle"] {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+body.im-spiel .inhalt[data-bildschirm="wordle"] > .kopfzeile {
+    flex: none;
+}
+
+body.im-spiel .inhalt[data-bildschirm="wordle"] > .wordle {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+}
+
+body.im-spiel .wordle > .wordle-uhr,
+body.im-spiel .wordle > .wordle-tipps,
+body.im-spiel .wordle > .tastatur {
+    flex: none;
+}
+
+/* Tipp-Knöpfe oben bei Uhr und Kopfzeile. */
+body.im-spiel .wordle > .wordle-tipps {
+    order: -1;
+    margin: 0;
+}
+
+body.im-spiel .wordle > .wordle-uhr {
+    order: -2;
+    margin: 0;
+}
+
+body.im-spiel .wordle > .wordle-brett {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px 2px 6px;
+}
+
+/* Die Besonderheit von Elite und Boss (seit 0.23.4): Chips + „i", ganz oben. */
+.knopf.wordle-gegner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 0;
+    padding: 2px 4px;
+    border: 0;
+    background: none;
+}
+
+.knopf.wordle-gegner .bib-chip {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+}
+
+.wordle-gegner-info {
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+}
+
+.wordle-gegner-info .zeichen {
+    width: 14px;
+    height: 14px;
+}
+
+body.im-spiel .wordle > .wordle-gegner {
+    flex: none;
+    order: -3;
+    margin: 0;
+}
+
+/* Gleich geht es weiter (seit 0.23.4, Kreuzung): ein Balken läuft über den
+   Knopf ab, dann öffnet sich das Buch von selbst. */
+.knopf.wordle-gleich {
+    position: relative;
+    overflow: hidden;
+}
+
+.knopf.wordle-gleich::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    width: 100%;
+    background: color-mix(in srgb, #fff 55%, transparent);
+    transform-origin: left center;
+    animation: wordle-gleich var(--gleich-ms, 2000ms) linear forwards;
+}
+
+@keyframes wordle-gleich {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+}

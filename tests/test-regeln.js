@@ -51,7 +51,8 @@ const rate = (runde, liste, t) => liste.reduce((r, w) => W.raten(r, w, t || 1).r
         [0, 30, 300, 0]);
     gleich("Unsinn wird Standard", n({ farben: "lila", tastatur: "bunt", hart: "ja", nurEchte: 0, ohneTipp: 1 }),
         W.REGELN_STANDARD);
-    gleich("nurEchte nur mit false aus", [n({ nurEchte: false }).nurEchte, n({ nurEchte: undefined }).nurEchte], [false, true]);
+    gleich("nurEchte immer an (seit 0.23.2, Nutzer: immer nur echte Wörter)", [n({ nurEchte: false }).nurEchte,
+        n({ nurEchte: undefined }).nurEchte], [true, true]);
 }
 
 /* 3. Jede Regel */
@@ -62,8 +63,9 @@ const rate = (runde, liste, t) => liste.reduce((r, w) => W.raten(r, w, t || 1).r
     const v4 = rate(mit({ versuche: 4 }), ["tisch", "adler", "birne", "kerze"]);
     gleich("versuche 4: nach 4 Fehlversuchen verloren", v4.zustand, "verloren");
 
-    gleich("nurEchte: false — jede Folge aus Buchstaben", W.raten(mit({ nurEchte: false }), "xqzvb", 1).fehler, "");
-    gleich("nurEchte: false — nur Buchstaben des Spiels", W.raten(mit({ nurEchte: false }), "ab1de", 1).fehler, "unbekannt");
+    gleich("Auch mit nurEchte: false kein Unsinn-Wort (seit 0.23.2)", W.raten(mit({ nurEchte: false }), "xqzvb", 1).fehler,
+        "unbekannt");
+    gleich("… ein echtes Wort geht", W.raten(mit({ nurEchte: false }), "tisch", 1).fehler, "");
 
     const hart = mit({ hart: true });
     pruefe("hart setzt den Schwer-Modus", hart.schwer === true);

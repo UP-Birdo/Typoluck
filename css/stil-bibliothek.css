@@ -984,3 +984,665 @@ svg.pfad {
 .bib-kriegst {
     color: var(--gut);
 }
+
+/* Vorrat im Buch (seit 0.23.0): Herzen und Tinte nebeneinander. */
+.bib-vorrat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 56px;
+}
+
+.bib-tinte {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    color: var(--tinte);
+    font-size: 0.8rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+}
+
+.bib-tinte .zeichen {
+    width: 16px;
+    height: 16px;
+}
+
+/* ---------------------------------------------------------------- *
+ * DIE STARTSEITE ROLLT NICHT (seit 0.23.0, Nutzer 28.09.2026: „dafür
+ * soll die startseite nicht von oben nach unten scrollbar sein"): Der
+ * Start ist genau so hoch wie der Bildschirm (ohne Leiste, mit dem
+ * iPhone-Streifen oben); das Buch nimmt den Platz, der übrig bleibt, und
+ * behält sein Seitenverhältnis (Container-Einheiten des Platzes).
+ * ---------------------------------------------------------------- */
+
+.inhalt[data-bildschirm="start"] {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: calc(10px + var(--leiste-hoehe) + env(safe-area-inset-bottom));
+}
+
+.inhalt[data-bildschirm="start"] > * {
+    flex: none;
+}
+
+.inhalt[data-bildschirm="start"] > .bib-karte {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.inhalt[data-bildschirm="start"] > .bib-spiel-reihe {
+    margin-bottom: 0;
+}
+
+.bib-karte > .bib-kopf,
+.bib-karte > .bib-leiste {
+    flex: none;
+}
+
+.bib-buch-platz {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    container-type: size;
+}
+
+/* Das Buch füllt den Platz: so breit wie möglich, aber nicht breiter als
+   1,4 × seine Höhe und nicht höher als 1,4 × seine Breite (die Stationen
+   liegen in Prozent, die Linien dehnen sich mit — `preserveAspectRatio`
+   ist aus). Seine Grössen rechnen in `cqmin` des Buchs. */
+.bib-buch-platz > .buch {
+    width: min(100cqw, calc(100cqh * 1.4));
+    height: min(100cqh, calc(min(100cqw, calc(100cqh * 1.4)) * 1.4));
+    aspect-ratio: auto;
+    container-type: size;
+}
+
+.bib-buch-platz > .buch .st,
+.bib-buch-platz > .buch .knopf.st {
+    width: 12cqmin;
+    min-width: 22px;
+    max-width: none;
+}
+
+.bib-buch-platz > .buch .st.jetzt,
+.bib-buch-platz > .buch .knopf.st.jetzt {
+    width: 14cqmin;
+}
+
+.bib-buch-platz > .buch .st.st-b,
+.bib-buch-platz > .buch .knopf.st.st-b {
+    width: 16cqmin;
+}
+
+.bib-buch-platz > .buch .lesezeichen {
+    height: 10cqh;
+}
+
+.bib-buch-platz > .buch .st .ini {
+    font-size: 46cqi;
+}
+
+.bib-buch-platz > .buch .st.st-ein,
+.bib-buch-platz > .buch .st.st-aus {
+    width: 4cqmin;
+    min-width: 10px;
+}
+
+/* Kleine Bildschirme (unter 720 px hoch): weniger Rand um das Buch. */
+ (max-height: 720px) {
+    .inhalt[data-bildschirm="start"] .start-kopf {
+        min-height: 52px;
+        margin-bottom: 4px;
+    }
+
+    .inhalt[data-bildschirm="start"] .start-art-schalter {
+        margin-bottom: 6px;
+    }
+
+    .inhalt[data-bildschirm="start"] > .bib-karte {
+        padding: 6px 6px 8px;
+        margin-bottom: 6px;
+    }
+
+    .inhalt[data-bildschirm="start"] .bib-kopf {
+        padding-bottom: 4px;
+    }
+
+    .inhalt[data-bildschirm="start"] .bib-leiste {
+        padding-bottom: 4px;
+    }
+}
+
+/* DIE BUCH-INHALTE BLEIBEN IM BUCH (seit 0.23.0, Nutzer: „die inhalte im
+   buch sollen im buch bleiben sprich nicht über den rand zeichnen"):
+   nichts ragt heraus — die Seiten rücken dafür 4 px nach innen (ihre
+   harte Kante bleibt sichtbar), Lesezeichen und Stationen bleiben innen,
+   Linien werden am Rand abgeschnitten. Wischen hoch/runter blättert
+   (js/start-bibliothek.js), waagrecht wechselt der Tab. */
+.buch {
+    overflow: hidden;
+    touch-action: none;
+}
+
+.buch-seite.oben {
+    top: 4px;
+    height: calc(50% - 8px);
+}
+
+.buch-seite.unten {
+    bottom: 4px;
+    height: calc(50% - 8px);
+}
+
+.lesezeichen {
+    top: 0;
+}
+
+svg.pfad {
+    overflow: hidden;
+}
+
+.st,
+.knopf.st {
+    max-width: 13%;
+}
+
+.st.jetzt,
+.knopf.st.jetzt,
+.st.st-b,
+.knopf.st.st-b {
+    max-width: 15%;
+}
+
+/* Auch das Regal passt auf den Bildschirm (seit 0.23.0): zwei Bretter
+   teilen sich die Höhe, die Buchrücken werden bei Bedarf kürzer. */
+.inhalt[data-bildschirm="start"] > .bib-regal-teil {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.inhalt[data-bildschirm="start"] .bib-regal {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 0;
+    padding-top: 12px;
+}
+
+.inhalt[data-bildschirm="start"] .bib-brett {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0;
+}
+
+.inhalt[data-bildschirm="start"] .bib-brett-buecher {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.inhalt[data-bildschirm="start"] .knopf.bib-ruecken {
+    max-height: 100%;
+}
+
+.inhalt[data-bildschirm="start"] .bib-brett-holz {
+    flex: none;
+}
+
+/* ---------------------------------------------------------------- *
+ * VORSCHAU AUF DEM START UND BUCH IM VOLLBILD (seit 0.23.2, Nutzer
+ * 28.09.2026: „das Buch auf dem Handy passt so nicht"). Die Vorschau ist
+ * ein einziger flacher Knopf (Bild, nicht bedienbar); das Vollbild liegt
+ * über allem ausser Blatt und Dialog, die Leiste unten ist dabei weg.
+ * ---------------------------------------------------------------- */
+
+.knopf.bib-vorschau {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    width: 100%;
+    min-height: 0;
+    margin: 0 0 10px;
+    padding: 10px 10px 12px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
+    color: var(--schrift);
+    text-align: left;
+    --papier: color-mix(in srgb, var(--th) 6%, color-mix(in srgb, var(--karte) 90%, var(--schrift)));
+    --papier-rand: color-mix(in srgb, var(--th) 14%, var(--rahmen));
+    --tinte: color-mix(in srgb, var(--th) 72%, var(--schrift));
+    --blass: color-mix(in srgb, var(--schrift-leise) 45%, transparent);
+}
+
+:root[data-darstellung="hell"] .knopf.bib-vorschau {
+    --papier: color-mix(in srgb, var(--th) 5%, color-mix(in srgb, var(--karte) 94%, var(--flaeche)));
+    --tinte: color-mix(in srgb, var(--th) 78%, #000);
+}
+
+.inhalt[data-bildschirm="start"] > .knopf.bib-vorschau {
+    flex: 1 1 auto;
+    min-height: 0;
+    justify-content: flex-start;
+    height: auto;
+    white-space: normal;
+    overflow: hidden;
+}
+
+.knopf.bib-vorschau > * {
+    flex: none;
+}
+
+.knopf.bib-vorschau > .bib-buch-platz {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.knopf.bib-vorschau .buch,
+.knopf.bib-vorschau .buch * {
+    pointer-events: none;
+}
+
+.bib-naechste {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 4px;
+    color: var(--tinte);
+    font-weight: 800;
+    font-size: 0.9rem;
+}
+
+.bib-naechste .zeichen {
+    width: 18px;
+    height: 18px;
+}
+
+body.buch-offen .leiste.up-leiste {
+    display: none;
+}
+
+.bib-vollbild {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: var(--inhalt-breite);
+    margin: 0 auto;
+    padding: calc(8px + var(--oben-frei)) var(--inhalt-rand) calc(10px + env(safe-area-inset-bottom));
+    background: var(--flaeche);
+}
+
+.bib-vollbild > .bib-karte,
+.bib-vollbild > .bib-regal-teil {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 10px;
+}
+
+.bib-vollbild .bib-regal {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 0;
+    padding-top: 12px;
+}
+
+.bib-vollbild .bib-brett {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    margin-bottom: 0;
+}
+
+.bib-vollbild .bib-brett-buecher {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.bib-vollbild .knopf.bib-ruecken {
+    max-height: 100%;
+}
+
+.bib-vollbild > .bib-spiel-reihe {
+    flex: none;
+    margin-bottom: 0;
+}
+
+.bib-vollbild > .bib-spiel-reihe > .knopf:not(.bib-spielen) {
+    flex: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Besser erklären (seit 0.23.4, Nutzer 28.09.2026): Fund-Zeilen,
+ * Gegner-Chips mit „i", kurz am Gegner im Buch, Legende.
+ * ------------------------------------------------------------------ */
+
+.knopf.bib-tausch-knopf {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    text-align: left;
+}
+
+.bib-tausch-zeile {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.bib-tausch-was {
+    flex: none;
+    color: var(--schrift-leise);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.bib-tausch-zeile > b {
+    min-width: 0;
+    text-align: right;
+}
+
+.bib-tausch-zeile.ton-gib > b {
+    color: var(--bib-boss);
+}
+
+.bib-tausch-zeile.ton-kriegst > b {
+    color: var(--gut);
+}
+
+.bib-tausch-grund {
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 2px 8px;
+    border-radius: var(--rund-voll);
+    background: color-mix(in srgb, var(--bib-boss) 22%, transparent);
+    font-size: 0.72rem;
+}
+
+.bib-gegner-chips {
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.bib-chip.gegner {
+    background: color-mix(in srgb, var(--bib-boss) 16%, var(--karte-leise));
+    color: var(--schrift);
+}
+
+.knopf.bib-info {
+    width: 30px;
+    height: 30px;
+    min-width: 0;
+    min-height: 0;
+    padding: 0;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+}
+
+.knopf.bib-info .zeichen {
+    width: 16px;
+    height: 16px;
+}
+
+.bib-erklaerung {
+    display: grid;
+    gap: 12px;
+    text-align: left;
+}
+
+.bib-erkl-teil {
+    display: grid;
+    justify-items: start;
+    gap: 4px;
+}
+
+.bib-erkl-zeile {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 8px;
+    align-items: baseline;
+    font-size: 0.86rem;
+}
+
+.bib-erkl-fuss {
+    padding-top: 8px;
+    border-top: 1px solid var(--rahmen);
+}
+
+/* Kurz am Gegner im Buch: unter der Station, im Buch (nie über den Rand). */
+.st-eigen {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 92px;
+    padding: 1px 6px;
+    overflow: hidden;
+    border-radius: var(--rund-voll);
+    background: var(--bib-boss);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    line-height: 1.35;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+.knopf.bib-legende-knopf {
+    font-size: 1.05rem;
+    font-weight: 900;
+}
+
+.bib-kopf .knopf.bib-legende-knopf + .knopf.bib-regal-knopf {
+    margin-left: 6px;
+}
+
+.bib-legende {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 8px;
+    text-align: left;
+}
+
+.bib-legende-zeile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.st.bib-legende-st {
+    position: relative;
+    transform: none;
+    flex: none;
+    width: 34px;
+    min-width: 34px;
+    animation: none;
+}
+
+.bib-legende-text {
+    display: grid;
+    min-width: 0;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    color: var(--schrift-leise);
+}
+
+.bib-legende-text > b {
+    color: var(--schrift);
+    font-size: 0.8rem;
+}
+
+/* Die Legende liegt im Hinweis-Fenster, nicht im Buch: dieselben Farben. */
+.bib-legende {
+    --th: var(--haupt);
+    --papier: color-mix(in srgb, var(--th) 6%, color-mix(in srgb, var(--karte) 90%, var(--schrift)));
+    --papier-rand: color-mix(in srgb, var(--th) 14%, var(--rahmen));
+    --tinte: color-mix(in srgb, var(--th) 72%, var(--schrift));
+    --blass: color-mix(in srgb, var(--schrift-leise) 45%, transparent);
+}
+
+:root[data-darstellung="hell"] .bib-legende {
+    --papier: color-mix(in srgb, var(--th) 5%, color-mix(in srgb, var(--karte) 94%, var(--flaeche)));
+    --tinte: color-mix(in srgb, var(--th) 78%, #000);
+}
+
+/* Elite auf einer Spur: der Chip steht zur Mitte hin neben der Station (zwei
+   Zeilen, bis zum Buchrand); unten zwischen den Stationen ist kein Platz. */
+.st-eigen.links,
+.st-eigen.rechts {
+    top: 50%;
+    width: max-content;
+    max-width: 50px;
+    padding: 2px 4px;
+    border-radius: var(--rund-klein);
+    font-size: 0.56rem;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+}
+
+.st-eigen.rechts {
+    left: calc(100% + 3px);
+    transform: translateY(-50%);
+}
+
+.st-eigen.links {
+    left: auto;
+    right: calc(100% + 3px);
+    transform: translateY(-50%);
+}
+
+/* Unter dem Boss: unter dem Schloss (ragt 7px heraus). */
+.st-eigen.unten {
+    top: calc(100% + 9px);
+}
+
+/* Leiste bei 5 Herzen + Tinte + 8 Kapiteln (Buch 6) auf 360 px: der
+   Vorrat schrumpft nicht (sonst lag die Tinten-Zahl unter den Punkten),
+   die Punkte rücken enger, „Boss in" nur so breit wie nötig. */
+.bib-leiste > .bib-vorrat {
+    flex: none;
+}
+
+.bib-leiste > .bib-kap-punkte {
+    min-width: 0;
+    gap: min(6px, 1.2vw);
+}
+
+.bib-leiste > .bib-boss-in {
+    flex: none;
+    width: auto;
+    min-width: 40px;
+}
+
+/* Vorschau = halbe Buchhöhe (seit 0.23.4): ein Fenster 400 × 280 über dem
+   ganzen Buch, das Buch darin verschoben (Skript: `top`, START.halbAb). */
+.bib-buch-platz > .bib-halb {
+    position: relative;
+    display: block;
+    width: min(100cqw, calc(100cqh * 400 / 280));
+    aspect-ratio: 400 / 280;
+    overflow: hidden;
+    border-radius: var(--rund-klein);
+}
+
+.bib-halb > .buch {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    aspect-ratio: auto;
+    container-type: size;
+}
+
+.bib-halb > .buch .st {
+    width: 12cqmin;
+    min-width: 22px;
+    max-width: none;
+}
+
+.bib-halb > .buch .st.jetzt {
+    width: 14cqmin;
+}
+
+.bib-halb > .buch .st.st-b {
+    width: 16cqmin;
+}
+
+.bib-halb > .buch .lesezeichen {
+    height: 10cqh;
+}
+
+.bib-halb > .buch .st .ini {
+    font-size: 46cqi;
+}
+
+.bib-halb > .buch .st.st-ein,
+.bib-halb > .buch .st.st-aus {
+    width: 4cqmin;
+    min-width: 10px;
+}
+
+/* Seit 0.23.4: das Buch hat IMMER das Seitenverhältnis 400 : 560 — die
+   Stationen liegen aus dem Innenrahmen gerechnet (START._lage) und
+   brauchen dafür ein festes Verhältnis von Breite zu Höhe. Bis 0.23.3
+   durfte es sich bis 1,4 : 1 dehnen (dann rutschten Stationen an den Rand). */
+.bib-buch-platz > .buch {
+    width: min(100cqw, calc(100cqh * 400 / 560));
+    height: auto;
+    aspect-ratio: 400 / 560;
+}
+
+/* Vorschau: eine ganze Seite; an der Schnittkante (im Falz) läuft sie weich
+   in die Kartenfarbe aus. */
+.bib-halb::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 8;
+    height: 14px;
+    pointer-events: none;
+}
+
+.bib-halb.schnitt-unten::after {
+    bottom: 0;
+    background: linear-gradient(to bottom, transparent, var(--karte));
+}
+
+.bib-halb.schnitt-oben::after {
+    top: 0;
+    background: linear-gradient(to top, transparent, var(--karte));
+}

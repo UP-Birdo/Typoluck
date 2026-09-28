@@ -127,7 +127,7 @@ const BIBLIOTHEK = {
      * `stil` = Papier-Muster. `boss` = Name, Eigenheit (Chip) und Regeln.
      */
     BUECHER: [
-        { titel: "Das Bilderlexikon", farbe: "#1d8a6e", stil: "lexikon", nurNomen: true, nurEchte: false,
+        { titel: "Das Bilderlexikon", farbe: "#1d8a6e", stil: "lexikon", nurNomen: true,
             von: 8, bis: 32, kap: ["A", "C", "X"],
             boss: { name: "Der Staubwedler", eigen: "Erste Zeile verstaubt", regeln: { farben: "ersteZeileBlind" } } },
         { titel: "Das Tagebuch", farbe: "#3a64c8", stil: "tagebuch", von: 12, bis: 38, kap: ["A", "B", "C", "X"],
@@ -177,6 +177,11 @@ const BIBLIOTHEK = {
     HEILEN: 2,
     /* Rast „Üben": die nächste Elite oder der Boss +1 Versuch. */
     UEBEN_PLUS: 1,
+    /* Tinte (seit 0.23.0, Nutzer „Tinte A"): Gratis-Tipps nur im Buch —
+       Start 1, Rast +1, höchstens 3, verfällt am Buchende (jedes Buch hat
+       seinen Durchgang). */
+    TINTE_START: 1,
+    TINTE_MAX: 3,
     /* Längste Listen im Durchgang (Gerät). */
     LISTE_MAX: 99,
 
@@ -191,12 +196,15 @@ const BIBLIOTHEK = {
     FUNDE: [
         { id: "herzmuenzen", gib: "−1 Herz", kriegst: "+40 Münzen", ab: 1, herzen: true },
         { id: "muenzenherz", gib: "30 Münzen", kriegst: "+1 Herz", ab: 1, herzen: true },
+        /* Seit 0.23.0 mit Tinte (Konzept §3.4). */
+        { id: "herztinte", gib: "−1 Herz", kriegst: "+2 Tinte", ab: 1, herzen: true },
+        { id: "tintemuenzen", gib: "1 Tinte", kriegst: "+35 Münzen", ab: 1 },
         { id: "doppelt", gib: "Doppelbuchstabe", kriegst: "Münzen ×2", ab: 2, naechste: true },
         { id: "fuenf", gib: "5 Versuche", kriegst: "+1 Figur", ab: 2, naechste: true },
         { id: "zeit", gib: "60 Sekunden", kriegst: "+1 Herz", ab: 3, herzen: true, naechste: true },
         { id: "wette", gib: "20 Münzen", kriegst: "≤ 4 Versuche: 50", ab: 1, naechste: true }
     ],
-    FUND_MUENZEN: { herzmuenzen: 40, muenzenherz: 30, wette: 20, wetteZurueck: 50, wetteBis: 4, zeit: 60 },
+    FUND_MUENZEN: { herzmuenzen: 40, muenzenherz: 30, tintemuenzen: 35, herzTinte: 2, wette: 20, wetteZurueck: 50, wetteBis: 4, zeit: 60 },
     ROEM: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"],
 
     /* ---------------------------------------------------------------- *
@@ -327,7 +335,9 @@ const BIBLIOTHEK = {
         if (!buch || !st || !BIBLIOTHEK.istKampf(st.art)) {
             return null;
         }
-        const grund = { versuche: BIBLIOTHEK.VERSUCHE, nurEchte: buch.nurEchte !== false };
+        /* Nur echte Wörter in JEDEM Buch (seit 0.23.2, Nutzer: „immer nur echte
+           Wörter … auch am Anfang"; bis 0.23.1 war Buch 1 „alles eintippbar"). */
+        const grund = { versuche: BIBLIOTHEK.VERSUCHE, nurEchte: true };
         if (st.art === "e") {
             return Object.assign(grund, BIBLIOTHEK.elite(b, nr).regeln);
         }
@@ -622,7 +632,7 @@ const BIBLIOTHEK = {
 
     durchgangLeer(b) {
         return { herzen: BIBLIOTHEK.mitHerzen(b) ? BIBLIOTHEK.HERZEN : 0, wieder: [], geheilt: [],
-            ueben: 0, effekt: "" };
+            ueben: 0, effekt: "", tinte: BIBLIOTHEK.TINTE_START };
     },
 
     /* Unsinn wird zum leeren Durchgang; nur Nummern dieses Buchs. */
@@ -641,7 +651,9 @@ const BIBLIOTHEK = {
             wieder: nummern(roh.wieder),
             geheilt: nummern(roh.geheilt),
             ueben: roh.ueben === 1 ? 1 : 0,
-            effekt: effekt
+            effekt: effekt,
+            tinte: Number.isInteger(roh.tinte) ? Math.max(0, Math.min(BIBLIOTHEK.TINTE_MAX, roh.tinte))
+                : BIBLIOTHEK.TINTE_START
         };
     },
 
@@ -715,6 +727,7 @@ const BIBLIOTHEK = {
         neu.herzen = BIBLIOTHEK.HERZEN;
         neu.ueben = 0;
         neu.effekt = "";
+        neu.tinte = BIBLIOTHEK.TINTE_START;
         return { dg: neu, verlust: verlust, rueck: true, cp: cp };
     },
 
@@ -733,6 +746,9 @@ const BIBLIOTHEK = {
         if (wahl === "heilen") {
             return BIBLIOTHEK.mitHerzen(b) && d.herzen < BIBLIOTHEK.HERZEN && d.geheilt.indexOf(nr) === -1;
         }
+        if (wahl === "tinte") {
+            return d.tinte < BIBLIOTHEK.TINTE_MAX;
+        }
         return wahl === "ueben" && d.ueben === 0;
     },
 
@@ -744,6 +760,8 @@ const BIBLIOTHEK = {
         if (wahl === "heilen") {
             neu.herzen = Math.min(BIBLIOTHEK.HERZEN, neu.herzen + BIBLIOTHEK.HEILEN);
             neu.geheilt.push(nr);
+        } else if (wahl === "tinte") {
+            neu.tinte = Math.min(BIBLIOTHEK.TINTE_MAX, neu.tinte + 1);
         } else {
             neu.ueben = 1;
         }
@@ -778,6 +796,12 @@ const BIBLIOTHEK = {
         if (id === "muenzenherz") {
             return d.herzen < BIBLIOTHEK.HERZEN && muenzen >= m.muenzenherz;
         }
+        if (id === "herztinte") {
+            return d.herzen > 1 && d.tinte < BIBLIOTHEK.TINTE_MAX;
+        }
+        if (id === "tintemuenzen") {
+            return d.tinte > 0;
+        }
         if (id === "wette") {
             return muenzen >= m.wette;
         }
@@ -800,6 +824,12 @@ const BIBLIOTHEK = {
         } else if (id === "muenzenherz") {
             neu.herzen += 1;
             betrag = -m.muenzenherz;
+        } else if (id === "herztinte") {
+            neu.herzen -= 1;
+            neu.tinte = Math.min(BIBLIOTHEK.TINTE_MAX, neu.tinte + m.herzTinte);
+        } else if (id === "tintemuenzen") {
+            neu.tinte -= 1;
+            betrag = m.tintemuenzen;
         } else if (id === "wette") {
             betrag = -m.wette;
         }
@@ -839,6 +869,157 @@ const BIBLIOTHEK = {
         }
         return r;
     },
+
+    /* ---------------------------------------------------------------- *
+     * BESSER ERKLÄREN (seit 0.23.4, Nutzer 28.09.2026: „Funde besser
+     * erklären · die Besonderheit des Gegners muss hinter das i kommen oder
+     * ersichtlich sein, was passiert · eine Legende muss her"). Rein: nur
+     * Texte aus Regeln und Angeboten; gezeigt wird in
+     * js/start-bibliothek.js und js/bildschirm-wordle.js.
+     * ---------------------------------------------------------------- */
+
+    /* Je Verschärfung: `chip` (Blatt), `kurz` (Buch, Runde), `was`
+       passiert, was `gesperrt` ist, `wie` man es schafft. */
+    VERSCHAERFUNGEN: {
+        hart: { chip: "Harter Modus", kurz: "Hart", was: "Gefundene Buchstaben müssen wieder rein",
+            gesperrt: "Wörter ohne deine Treffer", wie: "Grün stehen lassen · Gelb weiter nutzen" },
+        ersteZeileBlind: { chip: "Erste Zeile verdeckt", kurz: "Zeile 1 blind",
+            was: "Zeile 1 ohne Farben · auch nicht auf der Tastatur", gesperrt: "",
+            wie: "Zeile 1 als Test · ab Zeile 2 rechnen" },
+        ohneGelb: { chip: "Kein Gelb", kurz: "Kein Gelb", was: "Richtiger Buchstabe am falschen Platz zeigt Grau",
+            gesperrt: "", wie: "Grau heisst hier: vielleicht doch drin" },
+        ohneGrau: { chip: "Tastatur ohne Grau", kurz: "Ohne Grau", was: "Falsche Buchstaben bleiben auf der Tastatur hell",
+            gesperrt: "", wie: "Im Brett steht, was raus ist" },
+        ohneTipp: { chip: "Ohne Tipp", kurz: "Ohne Tipp", was: "Kein Tipp, keine Tinte",
+            gesperrt: "Tipp · Tinte", wie: "Selbst lösen" },
+        ohneLeben: { chip: "Ohne Extra-Leben", kurz: "Ohne Leben", was: "Keine Zeile dazu, wenn die letzte fehlt",
+            gesperrt: "Extra-Leben", wie: "Mit den Zeilen haushalten" }
+    },
+
+    /*
+     * Die Besonderheiten aus Regeln (js/bibliothek.js `regeln`): Liste von
+     * { id, chip, kurz, was, gesperrt, wie } — mehr oder weniger Versuche,
+     * Uhr, dann die Verschärfungen in fester Reihenfolge. Leer = keine.
+     */
+    besonderheiten(regeln) {
+        const r = regeln || {};
+        const liste = [];
+        const v = BIBLIOTHEK.VERSCHAERFUNGEN;
+        const versuche = r.versuche || BIBLIOTHEK.VERSUCHE;
+        if (versuche !== BIBLIOTHEK.VERSUCHE) {
+            const weniger = versuche < BIBLIOTHEK.VERSUCHE;
+            liste.push({ id: "versuche", chip: versuche + " Versuche", kurz: versuche + " Versuche",
+                was: versuche + " Zeilen statt " + BIBLIOTHEK.VERSUCHE, gesperrt: "",
+                wie: weniger ? "Früh viele Buchstaben prüfen" : "Eine Zeile Luft" });
+        }
+        if (r.zeit) {
+            liste.push({ id: "zeit", chip: r.zeit + " s", kurz: r.zeit + " s",
+                was: "Uhr ab dem ersten Buchstaben · bei 0 verloren", gesperrt: "", wie: "Zügig tippen" });
+        }
+        const an = [];
+        if (r.hart) {
+            an.push("hart");
+        }
+        if (r.farben === "ersteZeileBlind" || r.farben === "ohneGelb") {
+            an.push(r.farben);
+        }
+        if (r.tastatur === "ohneGrau") {
+            an.push("ohneGrau");
+        }
+        if (r.ohneTipp) {
+            an.push("ohneTipp");
+        }
+        if (r.ohneLeben) {
+            an.push("ohneLeben");
+        }
+        an.forEach((id) => liste.push(Object.assign({ id: id }, v[id])));
+        return liste;
+    },
+
+    /* Der Gegner einer Station (nur Elite und Boss): { art, name,
+       besonderheiten } — sonst null. */
+    gegner(b, nr) {
+        const st = BIBLIOTHEK.station(b, nr);
+        if (!st || (st.art !== "e" && st.art !== "b")) {
+            return null;
+        }
+        const name = st.art === "e" ? BIBLIOTHEK.elite(b, nr).name : BIBLIOTHEK.buch(b).boss.name;
+        return { art: st.art, name: name, besonderheiten: BIBLIOTHEK.besonderheiten(BIBLIOTHEK.regeln(b, nr)) };
+    },
+
+    /*
+     * Ein Fund-Angebot in Worten: { wette, zeilen: [{ was, wert, ton }] } —
+     * `ton` "gib" | "kriegst" | "wann". Sofort-Tausch: Du gibst · Du
+     * bekommst · Wann; Wirkung aufs nächste Wort: was dort gilt · was es
+     * bringt; die Wette: Einsatz · Wenn · Gewinn. Zahlen aus FUND_MUENZEN.
+     */
+    fundErklaerung(id) {
+        const m = BIBLIOTHEK.FUND_MUENZEN;
+        const z = (was, wert, ton) => ({ was: was, wert: wert, ton: ton });
+        const sofort = (gib, kriegst) => [z("Du gibst", gib, "gib"), z("Du bekommst", kriegst, "kriegst"),
+            z("Wann", "sofort", "wann")];
+        const texte = {
+            herzmuenzen: sofort("1 Herz", m.herzmuenzen + " Münzen"),
+            muenzenherz: sofort(m.muenzenherz + " Münzen", "1 Herz"),
+            herztinte: sofort("1 Herz", m.herzTinte + " Tinte"),
+            tintemuenzen: sofort("1 Tinte", m.tintemuenzen + " Münzen"),
+            doppelt: [z("Nächstes Wort", "mit Doppelbuchstabe", "gib"), z("Gelöst", "Münzen ×2", "kriegst")],
+            fuenf: [z("Nächstes Wort", "höchstens 5 Versuche", "gib"), z("Gelöst ohne Hilfe", "+1 Figur", "kriegst")],
+            zeit: [z("Nächstes Wort", "Uhr " + m.zeit + " s", "gib"), z("Gelöst", "+1 Herz", "kriegst")],
+            wette: [z("Einsatz", m.wette + " Münzen · sofort", "gib"),
+                z("Wenn", "nächstes Wort in ≤ " + m.wetteBis + " Versuchen", "wann"),
+                z("Gewinn", m.wetteZurueck + " Münzen", "kriegst")]
+        };
+        return texte[id] ? { wette: id === "wette", zeilen: texte[id] } : null;
+    },
+
+    /* Warum ein Fund-Tausch gerade nicht geht ("" = er geht; dieselben
+       Bedingungen wie `fundMoeglich`). */
+    fundGrund(dg, b, id, muenzen) {
+        const d = BIBLIOTHEK.durchgangNormalisieren(dg, b);
+        const f = BIBLIOTHEK.FUNDE.find((x) => x.id === id);
+        const m = BIBLIOTHEK.FUND_MUENZEN;
+        if (!f || (f.herzen && !BIBLIOTHEK.mitHerzen(b))) {
+            return "Nicht in diesem Buch";
+        }
+        if (f.naechste && d.effekt) {
+            return "Schon ein Tausch offen";
+        }
+        if ((id === "herzmuenzen" || id === "herztinte") && d.herzen <= 1) {
+            return "Nur noch 1 Herz";
+        }
+        if (id === "herztinte" && d.tinte >= BIBLIOTHEK.TINTE_MAX) {
+            return "Tinte voll";
+        }
+        if (id === "muenzenherz" && d.herzen >= BIBLIOTHEK.HERZEN) {
+            return "Herzen voll";
+        }
+        if ((id === "muenzenherz" && muenzen < m.muenzenherz) || (id === "wette" && muenzen < m.wette)) {
+            return "Zu wenig Münzen";
+        }
+        if (id === "tintemuenzen" && d.tinte <= 0) {
+            return "Keine Tinte";
+        }
+        return "";
+    },
+
+    /* Die Legende der Stations-Symbole (Vollbild-Buch): { art, zustand,
+       name, text, cp, schloss } — `art` = Stations-Art ("w" … "b"),
+       `zustand` wie im Buch. */
+    LEGENDE: [
+        { art: "w", zustand: "moeglich", name: "Wort", text: "Ein Wort raten" },
+        { art: "e", zustand: "moeglich", name: "Elite", text: "Schwerer · +1 Figur · Checkpoint" },
+        { art: "b", zustand: "moeglich", name: "Boss", text: "Ende des Buchs" },
+        { art: "r", zustand: "moeglich", name: "Rast", text: "Heilen, Üben oder Tinte" },
+        { art: "t", zustand: "moeglich", name: "Truhe", text: "Münzen" },
+        { art: "h", zustand: "moeglich", name: "Händler", text: "Billiger einkaufen" },
+        { art: "f", zustand: "moeglich", name: "Fund", text: "Tausch mit Risiko" },
+        { art: "r", zustand: "fertig", cp: true, name: "Lesezeichen", text: "Checkpoint · hier geht es weiter" },
+        { art: "w", zustand: "jetzt", name: "Nächste", text: "Hier bist du dran" },
+        { art: "w", zustand: "fertig", name: "Gegangen", text: "Geschafft" },
+        { art: "w", zustand: "blass", name: "Nicht genommen", text: "Anderer Weg" },
+        { art: "b", zustand: "moeglich", schloss: true, name: "Gesperrt", text: "Erst alles davor" }
+    ],
 
     /* Der Wort-Filter einer Mitnahme („Doppelbuchstabe" = Pflicht). */
     wortFilter(mitnahme) {

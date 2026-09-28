@@ -61,6 +61,8 @@
  *                                      alte 0.18.x-Schlüssel für den Umzug)
  *     &art=ueben                       Art des Starts (Vorgabe Bibliothek)
  *     &buch=3&kap=2                    auf dem Start: dieses Buch / Kapitel
+ *     &offen                           (seit 0.23.2) das Buch im Vollbild statt
+ *                                      der Vorschau
  *                                      (ab 1) ansehen; &regal = das Regal;
  *                                      &blatt=station|gabel|boss = das
  *                                      Blatt von unten offen. Mit
@@ -75,7 +77,7 @@
  *                                      &effekt/&ueben gelten auch für eine
  *                                      Runde mit &modus=bibliothek&versuche=
  *     &regeln=ohneGelb,hart,versuche7, eine Übungsrunde mit Regeln (seit
- *       zeit90,nurEchte0,ohneTipp,      0.19.0, js/wordle.js „DIE REGELN JE
+ *       zeit90,ohneTipp,                 0.19.0, js/wordle.js „DIE REGELN JE
  *       ohneLeben,ersteZeileBlind,      RUNDE"); mit &bildschirm=wordle
  *       ohneGrau                        &modus=uebung, dazu &versuche=…
  *     &anmeldung&konto=neu             das Formular „Neues UPCrew-Konto"
@@ -176,6 +178,10 @@ const WERKSTATT = {
         namen.forEach((name, i) => {
             daten = SPIELER.spielerHinzufuegen(daten, name, ids[i], 1);
         });
+        /* Nummern (seit 0.23.0 hinter jedem Namen zu sehen: „#Tag"). */
+        daten.spieler.forEach((spieler, i) => {
+            spieler.tag = String(4100 + i * 37);
+        });
         for (const freund of [1, 2, 3]) {
             daten = SPIELER.freundHinzufuegen(daten, ids[0], ids[freund], 1);
             daten = SPIELER.freundHinzufuegen(daten, ids[freund], ids[0], 1);
@@ -238,6 +244,11 @@ const WERKSTATT = {
         }
         if (WERKSTATT._parameter().has("regal")) {
             START.regalOffen = true;
+            START.buchOffen = true;
+        }
+        /* Seit 0.23.2: das Buch im Vollbild (&offen; &blatt öffnet es auch). */
+        if (WERKSTATT._parameter().has("offen") || WERKSTATT.wert("blatt")) {
+            START.buchOffen = true;
         }
         const versuche = WERKSTATT.wert("versuche");
         if (WERKSTATT.wert("regeln") !== null && WERKSTATT.wert("modus") === "uebung") {
@@ -380,8 +391,6 @@ const WERKSTATT = {
                 regeln.versuche = Number(treffer[1]);
             } else if ((treffer = /^zeit(\d+)$/.exec(teil))) {
                 regeln.zeit = Number(treffer[1]);
-            } else if (teil === "nurEchte0") {
-                regeln.nurEchte = false;
             } else if (["hart", "ohneTipp", "ohneLeben"].indexOf(teil) !== -1) {
                 regeln[teil] = true;
             } else if (["ohneGelb", "ersteZeileBlind"].indexOf(teil) !== -1) {

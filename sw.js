@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.22.0";
+const SPEICHER_NAME = "typoluck-v0.24.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -91,6 +91,7 @@ const DATEIEN = [
     "./js/speicher.js",
     "./js/abgleich.js",
     "./js/woerter-de.js",
+    "./js/woerter-rate-de.js",
     "./js/wordle.js",
     "./js/ergebnisse.js",
     "./js/rangliste.js",
@@ -120,6 +121,9 @@ const DATEIEN = [
     "./js/bildschirm-sammlung.js",
     "./js/aussehen-abgleich.js",
     "./js/fortschritt-abgleich.js",
+    "./js/spielzeit.js",
+    "./js/wortstatistik.js",
+    "./js/wortstatistik-abgleich.js",
     "./js/wunsch.js",
     "./js/werkstatt.js",
     "./js/intro.js",

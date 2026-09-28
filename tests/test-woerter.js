@@ -85,4 +85,39 @@ gleich("Tag 2 hat für immer dasselbe Wort", WORDLE.tageswort("2026-09-25"),
 gleich("Die ersten 567 Lösungswörter beginnen unverändert", W.loesungen.slice(0, 3),
     ["abend", "acker", "adler"]);
 
+/* ------------------------------------------------------------------ *
+ * Die grosse Rate-Liste (seit 0.23.4, js/woerter-rate-de.js und -4/-6/-7):
+ * dieselben Regeln wie oben, je Länge; nie Lösung; Lizenz im Kopf.
+ * ------------------------------------------------------------------ */
+{
+    const fs = require("fs");
+    const pfad = require("path");
+    const R = WOERTER_RATE_DE;
+    for (const n of [4, 6, 7]) {
+        require("../js/woerter-rate-de-" + n + ".js");
+    }
+    const erwartet = { 4: 1967, 5: 5063, 6: 10697, 7: 18610 };
+    for (const n of [4, 5, 6, 7]) {
+        const liste = R.liste(n);
+        gleich("Rate-Liste " + n + ": Anzahl wie geliefert", liste.length, erwartet[n]);
+        const muster = new RegExp("^[a-zäöü]{" + n + "}$");
+        const falsch = liste.filter((w) => !muster.test(w));
+        pruefe("Rate-Liste " + n + ": genau " + n + " erlaubte Buchstaben, kein ß", falsch.length === 0,
+            "Abweichend: " + falsch.slice(0, 10).join(", "));
+        pruefe("Rate-Liste " + n + ": kein Wort doppelt", new Set(liste).size === liste.length);
+    }
+    const quelle = fs.readFileSync(pfad.join(__dirname, "..", "js", "woerter-rate-de.js"), "utf8");
+    pruefe("Rate-Liste: Kopf nennt Quelle, Ursprung und CC BY-SA 4.0 mit Link",
+        ["german-pos-dict", "Morphy", "korrekturen.de", "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"]
+            .every((t) => quelle.indexOf(t) !== -1)
+        && [4, 6, 7].every((n) => fs.readFileSync(pfad.join(__dirname, "..", "js", "woerter-rate-de-" + n + ".js"), "utf8")
+            .indexOf("CC BY-SA 4.0") !== -1));
+    gleich("Rate-Liste: angenommen tisch, gehst, bäume, fluss; abgelehnt xqzvb",
+        ["tisch", "gehst", "bäume", "fluss", "xqzvb"].map((w) => WORDLE.istErlaubt(w)), [true, true, true, true, false]);
+    pruefe("Lösungen kommen nur aus `loesungen` (Tageswort und Übung ziehen nie aus der Rate-Liste)",
+        !/WOERTER_RATE_DE/.test(fs.readFileSync(pfad.join(__dirname, "..", "js", "wordle.js"), "utf8")
+            .replace(/istErlaubt\(wort\) \{[\s\S]*?\n    \},/, "")));
+    pruefe("Rate-Liste 5 unter 45 KB", Buffer.byteLength(quelle, "utf8") < 45 * 1024);
+}
+
 fazit();

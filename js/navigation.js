@@ -365,9 +365,10 @@ const NAVIGATION = {
      * der Tastatur und Umschaltern (`WISCHEN_SPERREN`, dazu die Sperren des
      * Bausteins: Felder, Regal-Reihen, alles, was selbst waagrecht rollt).
      */
-    /* Seit 0.20.0 auch das Buch der Bibliothek (dort blättert Wischen
-       die Kapitel) und das Blatt von unten. */
-    WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl, .buch, .bib-blatt-grund",
+    /* Seit 0.20.0 das Blatt von unten. Das Buch war es von 0.20.0 bis
+       0.22.0 auch; seit 0.23.0 blättert es senkrecht, waagrecht wechselt
+       auch dort der Tab. */
+    WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl, .bib-blatt-grund",
 
     wischenTabs() {
         return NAVIGATION.LEISTE.map((eintrag) => (eintrag.platzhalter

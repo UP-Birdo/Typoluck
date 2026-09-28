@@ -255,20 +255,18 @@ const SPIELER = {
      * SEIT 0.22.0 (Regel §12, wie Blunderluck v0.154.0, Nutzer F1): nie
      * mehr die Nummer eines anderen — sie ist sein Freundescode, nur der
      * Besitzer sieht sie im eigenen Profil. Bei gleichen Namen steht „Level
-     * N" (aus dem öffentlichen Auszug, `FORTSCHRITT.auszugVon`). Liefert
-     * „Level 7" oder "".
+     * N" (aus dem öffentlichen Auszug, `FORTSCHRITT.auszugVon`).
+     * SEIT 0.23.0 WIEDER DIE NUMMER, BEI ALLEN (Nutzer 28.09.2026: „in die
+     * rangliste name und dann in klein # mit dem tag sowie das profil" —
+     * überholt 0.22.0): „#1234" hinter JEDEM Namen, wo der Tag im Eintrag
+     * steht (heutige Regel: in den geladenen Konten; unter §12 kommt er
+     * künftig über `oeffentlich`). Ohne Tag nichts. Liefert „#1234" oder "".
      */
     nummerZusatz(daten, spieler) {
-        if (!spieler || SPIELER.istVerteiler(spieler)) {
+        if (!spieler || SPIELER.istVerteiler(spieler) || typeof spieler.tag !== "string" || !spieler.tag) {
             return "";
         }
-        const schluessel = String(spieler.name || "").trim().toLowerCase();
-        const gleich = SPIELER.mitspieler(daten).filter((anderer) =>
-            String(anderer.name || "").trim().toLowerCase() === schluessel).length;
-        if (gleich <= 1 || typeof FORTSCHRITT === "undefined" || typeof FORTSCHRITT.auszugVon !== "function") {
-            return "";
-        }
-        return "Level " + FORTSCHRITT.auszugLevel(FORTSCHRITT.auszugVon(spieler)).level;
+        return "#" + spieler.tag;
     },
 
     /* Passt der Spieler zum Suchtext? Der Name, oder „Name#Nummer", wenn

@@ -637,22 +637,13 @@ spaeter("UPCrew-Konto", (async () => {
     gleich("Anzeige ohne Nummer", w.ANMELDUNG.anzeigeName({ name: "Max", tag: "1234" }), "Max");
     const zweiMax = w.SPIELER.normalisieren({ spieler: [{ id: "a", name: "Max", tag: "1111" },
         { id: "b", name: "max", tag: "2222" }, { id: "c", name: "Lena", tag: "3333" }] });
-    /* Seit 0.22.0 (Regel §12): nie die Nummer eines anderen; bei gleichen
-       Namen „Level N". */
-    gleich("Keine fremde Nummer, auch nicht bei gleichen Namen",
-        ["a", "c"].map((id) => w.SPIELER.nummerZusatz(zweiMax, w.SPIELER.spielerFinden(zweiMax, id))), ["Level 1", ""]);
-    {
-        const S = require("../js/spieler.js");
-        global.UPCREW_ABZEICHEN = global.UPCREW_ABZEICHEN || require("../js/upcrew-abzeichen.js");
-        global.FORTSCHRITT = require("../js/fortschritt.js");
-        const mitLevel = S.normalisieren({ spieler: [{ id: "a", name: "Max", tag: "1111",
-            fortschritt: { version: 1, spiele: { typoluck: { xp: 250 } } } },
-        { id: "b", name: "max", tag: "2222", auszug: { xp: 0 } }, { id: "c", name: "Lena", tag: "3333" }] });
-        gleich("Gleiche Namen: „Level N“ aus dem Auszug (voller Fortschritt oder Auszug vom Server)",
-            ["a", "b", "c"].map((id) => S.nummerZusatz(mitLevel, S.spielerFinden(mitLevel, id))),
-            ["Level 3", "Level 1", ""]);
-        delete global.FORTSCHRITT;
-    }
+    /* Seit 0.23.0 (Nutzer 28.09.2026): „#Tag" klein hinter JEDEM Namen, wo
+       der Tag da ist (überholt 0.22.0 „Level N"); ohne Tag nichts. */
+    gleich("#Tag bei allen, ohne Tag nichts, UP#Plus nie",
+        [w.SPIELER.nummerZusatz(zweiMax, w.SPIELER.spielerFinden(zweiMax, "a")),
+            w.SPIELER.nummerZusatz(zweiMax, w.SPIELER.spielerFinden(zweiMax, "c")),
+            w.SPIELER.nummerZusatz(zweiMax, { id: "x", name: "Ohne" }),
+            w.SPIELER.nummerZusatz(zweiMax, { id: "u", name: "UP", tag: "Plus" })], ["#1111", "#3333", "", ""]);
     pruefe("Suche findet Name und Name#Nummer",
         w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "ma")
             && w.SPIELER.passtZurSuche({ name: "Max", tag: "1111" }, "max#11")

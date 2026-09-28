@@ -90,10 +90,59 @@ const PROFIL_BILDSCHIRM = {
         if (eigenes) {
             behaelter.appendChild(PROFIL_BILDSCHIRM._abzeichenBauen());
         }
+        /* Spielzeit und „dabei seit" (seit 0.24.0, wie Blunderluck v0.155.0). */
+        const spielzeit = PROFIL_BILDSCHIRM._spielzeitBauen(spieler, eigenes);
+        if (spielzeit) {
+            behaelter.appendChild(spielzeit);
+        }
 
         if (PROFIL_BILDSCHIRM._verlauf === null && !PROFIL_BILDSCHIRM._fehler) {
             PROFIL_BILDSCHIRM._laden(id, eigenes);
         }
+    },
+
+    /*
+     * SPIELZEIT (seit 0.24.0): im EIGENEN Profil je Spiel und gesamt, dazu
+     * „dabei seit" — auch als Gast (gezählt auf dem Gerät, js/spielzeit.js).
+     * Im fremden Profil nur, wenn er sie veröffentlicht hat (Auszug), und
+     * nur die Summe. Anzeige `FORTSCHRITT.spielzeitText` („N min", „Nh+").
+     */
+    SPIEL_NAMEN: { typoluck: "Typoluck", blunderluck: "Blunderluck" },
+
+    spielzeitZeilen(spieler, eigenes) {
+        if (eigenes) {
+            const zeit = SPIELZEIT.spielzeit();
+            const zeilen = Object.keys(zeit.spiele).filter((app) => zeit.spiele[app] > 0).sort()
+                .map((app) => (PROFIL_BILDSCHIRM.SPIEL_NAMEN[app] || app) + " · "
+                    + FORTSCHRITT.spielzeitText(zeit.spiele[app]));
+            zeilen.push("Gesamt · " + FORTSCHRITT.spielzeitText(zeit.summe));
+            if (zeit.seit) {
+                zeilen.push("dabei seit " + SPIELZEIT.datumText(zeit.seit));
+            }
+            return zeilen;
+        }
+        const auszug = spieler && spieler.auszug && spieler.auszug.werte;
+        return (auszug && typeof auszug.spielzeit === "number")
+            ? ["Gesamt · " + FORTSCHRITT.spielzeitText(auszug.spielzeit)] : [];
+    },
+
+    _spielzeitBauen(spieler, eigenes) {
+        if (typeof SPIELZEIT === "undefined") {
+            return null;
+        }
+        const zeilen = PROFIL_BILDSCHIRM.spielzeitZeilen(spieler, eigenes);
+        if (!zeilen.length) {
+            return null;
+        }
+        const karte = BAUSTEINE.karte(eigenes ? "Spielzeit · nur du" : "Spielzeit", "profil-spielzeit");
+        for (const zeile of zeilen) {
+            karte.appendChild(BAUSTEINE.el("p", "profil-spielzeit-zeile", zeile));
+        }
+        if (eigenes && SPIELZEIT._eigener()) {
+            karte.appendChild(BAUSTEINE.el("p", "profil-spielzeit-haken",
+                SPIELZEIT.oeffentlich() ? "Öffentlich · Einstellungen" : "Privat · Einstellungen"));
+        }
+        return karte;
     },
 
     /* Der Kopf des eigenen Profils (seit 0.12.0): Ring mit Rahmen, Name,

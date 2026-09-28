@@ -117,7 +117,11 @@ const FORTSCHRITT_ABGLEICH = {
         const mitAuszug = typeof KONTO !== "undefined" && typeof KONTO.istP12 === "function" && KONTO.istP12();
         const schritt = Object.assign({}, aenderungen);
         if (mitAuszug) {
-            schritt["oeffentlich/" + uid + "/auszug"] = FORTSCHRITT.auszug(FORTSCHRITT_ABGLEICH.mitKonto(stand));
+            /* Seit 0.24.0 mit der Spielzeit, wenn der Haken am Konto an ist
+               (jsspielzeit.js; wie `KONTO._spielzeitZeigen`). */
+            const mitSpielzeit = typeof SPIELZEIT !== "undefined" && SPIELZEIT.oeffentlich();
+            schritt["oeffentlich/" + uid + "/auszug"] = FORTSCHRITT.auszug(FORTSCHRITT_ABGLEICH.mitKonto(stand),
+                undefined, { spielzeit: mitSpielzeit });
         }
         try {
             await FORTSCHRITT_ABGLEICH._speicher.teilSchreiben(schritt);
