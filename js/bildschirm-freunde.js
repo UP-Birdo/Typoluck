@@ -1,6 +1,12 @@
 /*
  * bildschirm-freunde.js — Freunde finden, anfragen, annehmen, entfernen.
  *
+ * SEIT 0.26.0 KEINE EIGENE SEITE MEHR (Nutzer 29.09.2026: „alte
+ * Freunde-Seite ganz raus; Freunde nur noch als Reiter in der Rangliste"):
+ * `zeigen(ort)` baut nur noch den Inhalt des Reiters „Freunde" der
+ * Rangliste (js/bildschirm-rangliste.js). Bis 0.25.0 ein Blatt, davor ein
+ * Punkt im Menü hinter den drei Balken.
+ *
  * DIE FREUNDE GEHÖREN ZUM UPCREW-KONTO — sie stehen in der gemeinsamen
  * Kontenliste und gelten in jedem UPCrew-Spiel. Die Regeln (wer schreibt was) stehen in
  * js\spieler.js, Abschnitt „Freundschaft": Jede Aktion hier ändert NUR den
@@ -15,23 +21,7 @@ const FREUNDE_BILDSCHIRM = {
     /* Der Suchtext überlebt das Neuzeichnen. */
     suchtext: "",
 
-    anmelden() {
-        NAVIGATION.anmelden({
-            id: "freunde",
-            titel: "Freunde",
-            zeichen: "freunde",
-            /* Seit 0.25.0 ein Blatt, geöffnet aus der Rangliste (Knopf
-               „Freunde" im Kopf); bis 0.24.0 im Menü hinter den drei Balken. */
-            alsBlatt: true,
-            zeigen: (behaelter) => FREUNDE_BILDSCHIRM.zeigen(behaelter)
-        });
-    },
-
     zeigen(behaelter) {
-        if (!NAVIGATION.imBlatt(behaelter)) {
-            behaelter.appendChild(BAUSTEINE.kopfzeile("Freunde", { zurueck: () => NAVIGATION.zurueck() }));
-        }
-
         const ich = ANMELDUNG.ich();
         if (!ich) {
             behaelter.appendChild(ZUSTAND.leer({ zeichen: "profil", text: "Nicht angemeldet" }));
@@ -217,7 +207,7 @@ const FREUNDE_BILDSCHIRM = {
             text.appendChild(BAUSTEINE.el("span", "name-nummer", " " + nummer));
         }
         name.appendChild(text);
-        name.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: spieler.id }));
+        name.addEventListener("click", () => PROFIL_BILDSCHIRM.vorschauOeffnen(spieler.id));
         zeile.appendChild(name);
 
         const leiste = BAUSTEINE.el("span", "freunde-knoepfe");

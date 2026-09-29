@@ -4,6 +4,9 @@
  *
  * Nutzer, 27.09.2026: „wir brauchen eine In-Game-Währung, die über beide Spiele geht; mit denen kann man sich
  * Extra-Leben, Tipps und Schild für Flammen kaufen in einem Shop“ · „Name → Münzen“.
+ * Nutzer, 29.09.2026: „serien schild raus“ → die Ware `schild` (Flammen-Schild) ist WEG. Alte Zähler
+ * `schildGekauft`/`schildGenutzt` bleiben im Stand liegen und werden still übergangen (`vorrat(stand, "schild")` = 0,
+ * `kannKaufen`/`kaufen` → grund "unbekannt"). Bereits dafür ausgegebene Münzen bleiben ausgegeben.
  *
  * DER NAME steht an EINER Stelle: `WAEHRUNG` (Anzeige). Im Code heißt alles neutral „muenzen“/„waehrung“.
  *
@@ -11,7 +14,7 @@
  * (Regel SICHERHEIT.md §11b erlaubt dort jeden Namen aus Buchstaben mit einer Zahl 0 … 1 000 000 000 — keine neue
  * Regel nötig):
  *     muenzenVerdient, muenzenAusgegeben,
- *     schildGekauft, schildGenutzt, lebenGekauft, lebenGenutzt, tippGekauft, tippGenutzt
+ *     lebenGekauft, lebenGenutzt, tippGekauft, tippGenutzt   (alt, nur noch liegend: schildGekauft, schildGenutzt)
  * KEIN ÜBERSCHREIBEN ZWISCHEN DEN SPIELEN: Jedes Spiel schreibt nur in SEINEM Zweig; Kontostand und Vorrat sind
  * die SUMME über alle Zweige (verdient − ausgegeben, gekauft − genutzt). Die Zähler wachsen nur — beim
  * Zusammenführen zweier Fassungen desselben Zweigs gilt je Name der größere Wert (FORTSCHRITT.zusammenfuehren).
@@ -25,7 +28,7 @@
  * Nutzung:
  *     UPCREW_MUENZEN.saldo(stand)                      → Zahl (kann nach gleichzeitigen Käufen < 0 sein)
  *     UPCREW_MUENZEN.anzeige(stand)                    → Zahl ≥ 0
- *     UPCREW_MUENZEN.vorrat(stand, "schild")           → Stück
+ *     UPCREW_MUENZEN.vorrat(stand, "tipp")             → Stück
  *     UPCREW_MUENZEN.verdienen(stand, app, betrag, t)  → neuer Stand
  *     UPCREW_MUENZEN.kannKaufen(stand, "leben")        → { ok, grund }
  *     UPCREW_MUENZEN.kaufen(stand, app, "leben", t)    → { ok, stand, grund }
@@ -51,8 +54,6 @@
 
     /* Die Waren. `hoechstens` = größter Vorrat (0 = ohne Grenze). */
     const WAREN = {
-        schild: { id: "schild", name: "Flammen-Schild", preis: 50, hoechstens: 2,
-            text: "Rettet die Flamme über einen verpassten Tag" },
         leben: { id: "leben", name: "Extra-Leben", preis: 30, hoechstens: 0,
             text: "Eine verlorene Stufe gleich nochmal" },
         tipp: { id: "tipp", name: "Tipp", preis: 15, hoechstens: 0,

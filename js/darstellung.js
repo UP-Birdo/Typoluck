@@ -4,8 +4,6 @@
  *
  *     DARSTELLUNG.thema()                "geraet" | "hell" | "dunkel"
  *     DARSTELLUNG.themaSetzen(wert)
- *     DARSTELLUNG.leseschrift()          true = immer die Standard-Schrift
- *     DARSTELLUNG.leseschriftSetzen(an)
  *     DARSTELLUNG.anwenden(wurzel)       schreibt alles an <html>
  *     DARSTELLUNG.modus()                "hell" | "dunkel" (wie es gerade aussieht)
  *     DARSTELLUNG.kachelFarbeErlaubt(rolle, farbe)
@@ -72,20 +70,9 @@ const DARSTELLUNG = {
         }
     },
 
-    /* „Standard-Schrift" in den Einstellungen (seit 0.8.0): wer mit der
-       gewählten Crew-Schrift schlecht liest, stellt hier die Standard-Schrift
-       fest — die Wahl im Tab „Anpassen" bleibt dabei gespeichert. */
-    leseschrift() {
-        const aussehen = DARSTELLUNG._aussehen();
-        return aussehen ? aussehen.lesen().leseschrift === true : false;
-    },
-
-    leseschriftSetzen(an) {
-        const aussehen = DARSTELLUNG._aussehen();
-        if (aussehen) {
-            aussehen.setzen({ leseschrift: an === true });
-        }
-    },
+    /* „Standard-Schrift" (Leseschrift, seit 0.8.0) ist seit 0.26.0 weg
+       (Nutzer 29.09.2026: „brauchen wir eigentlich nicht"); der Baustein
+       übergeht das alte Feld still. */
 
     /* Einmalig: die bis 0.7.0 gespeicherte Wahl an den Baustein übergeben.
        Liefert true, wenn übergeben wurde. */

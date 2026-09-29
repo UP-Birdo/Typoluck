@@ -87,8 +87,8 @@ const ICH = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Einstellungen dieses Geräts (seit 0.4.0) — heute „schwer". Alt und
-     * nicht mehr gelesen: „vibration" (bis 0.8.0), „thema" (bis 0.7.0,
+     * Einstellungen dieses Geräts (seit 0.4.0). Alt und nicht mehr
+     * gelesen: „schwer" (bis 0.25.0), „vibration" (bis 0.8.0), „thema" (bis 0.7.0,
      * nur noch beim einmaligen Umzug ins gemeinsame Aussehen).
      * Ein fehlender Wert liefert die Vorgabe; so bekommt jede neue
      * Einstellung ihren Ab-Werk-Wert, ohne dass alte Stände etwas merken.

@@ -7,7 +7,8 @@
 
 :root {
     /* Das Blatt beginnt unter der Kopfzeile des Starts (8 px Rand + 64 px Kopf + 8 px Abstand) und endet über
-       der Leiste. Die Leiste (--ebene-leiste 15) liegt über den Blättern (14) und bleibt bedienbar; Hinweise,
+       der Leiste. Seit 0.26.0 misst upcrew-blatt.js die echte Unterkante des Kopfs (`data-up-bl-kopf`); dieser
+       Wert gilt nur ohne Kopf. Die Leiste (--ebene-leiste 15) liegt über den Blättern (14) und bleibt bedienbar; Hinweise,
        Kurzmeldungen und Dialoge liegen darüber, die Karten (14 + 20) über der Leiste. */
     --up-bl-oben: calc(var(--oben-frei, 0px) + 80px);
     --up-bl-unten: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom, 0px));
@@ -32,10 +33,13 @@ html {
     overflow: hidden;
 }
 
-/* ---- Kopf des Starts: Kurzprofil + Serien-Kapsel ---- */
+/* ---- Kopf des Starts: seit 0.26.0 die kompakte Kopfzeile (UPCREW_PROFIL.kopfzeile, upcrew-profil.css) ----
+   Flamme rechts darin, keine Serien-Kapsel und keine Woche (Koordination 29.09.2026 „Start ohne Scrollen“, gleich
+   wie Blunderluck). */
 
-.start-kopf .up-se-kapsel {
-    flex: none;
+.start-kopfzeile {
+    flex: 1 1 auto;
+    min-width: 0;
 }
 
 /* Unter 380 px nur der Ring (Entwurf Runde 7: „Name im Kopf unter 380 px aus"). */
@@ -51,9 +55,67 @@ html {
 
 /* ---- Profil ---- */
 
-/* Typolucks eigene Karten unter dem Baustein (Statistik, Level). */
+/* Typolucks eigene Karten unter dem Baustein. */
 .up-pf > .karte {
     margin: 14px 0 0;
+}
+
+/* „N/M Tage" unter „Tageswort gelöst" (seit 0.26.0). */
+.statistik-unter {
+    color: var(--schrift-leise);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* Die Partien im ausführlichen Profil: die letzten Tageswörter. */
+.profil-verlauf-liste {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    background: var(--karte);
+    overflow: hidden;
+}
+
+.profil-verlauf-zeile {
+    display: grid;
+    grid-template-columns: 3.4em 1fr auto 2.6em;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--rahmen);
+    font-size: 0.9rem;
+}
+
+.profil-verlauf-zeile:first-child {
+    border-top: 0;
+}
+
+.profil-verlauf-datum,
+.profil-verlauf-art {
+    color: var(--schrift-leise);
+    font-weight: 600;
+}
+
+.profil-verlauf-versuche {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.profil-verlauf-verloren .profil-verlauf-versuche {
+    color: var(--schrift-leise);
+}
+
+.profil-verlauf-punkte {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.profil-verlauf-leer {
+    margin: 0;
+    color: var(--schrift-leise);
 }
 
 /* ---- Einstellungen / Verwaltung im Blatt ---- */
@@ -67,23 +129,20 @@ html {
     margin: 0 0 10px;
 }
 
-/* ---- Rangliste: der Knopf „Freunde" mit offenen Anfragen ---- */
+/* ---- Rangliste: die Reiter Wertung · Freunde (seit 0.26.0) ---- */
 
-.inhalt[data-bildschirm="rangliste"] > .kopfzeile {
-    grid-template-columns: 96px 1fr 96px;
-}
-
-.rangliste-kopf-knoepfe {
+.rangliste-reiter {
     display: flex;
-    justify-content: flex-end;
+    margin: 0 0 var(--abstand);
 }
 
-.rangliste-freunde {
+.rangliste-reiter > .segment-wahl {
     position: relative;
+    flex: 1 1 0;
 }
 
-.rangliste-freunde > .menue-marke {
+.rangliste-reiter-freunde > .menue-marke {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: -6px;
+    right: 6px;
 }

@@ -90,15 +90,23 @@ const START = {
         const name = ich ? ich.name : (ICH.person() ? ICH.person().name : "");
 
         /* DIE KOPFZEILE WIE IN BLUNDERLUCK (seit 0.7.0, UPCrew-Runde 2):
-           links das Kurzprofil (Tipp → Profil-Blatt), daneben seit 0.25.0
-           die Serien-Kapsel (gemeinsame Runde 7). Den Drei-Balken-Knopf
-           rechts gab es von 0.3.0 bis 0.24.0 — seine Punkte liegen jetzt im
-           Profil (Zahnrad → Einstellungen) und in der Rangliste (Freunde).
-           Der Schriftzug „Typoluck" oben ist seit 26.09.2026 weg. */
+           links das Profil, daneben seit 0.25.0 die Serien-Kapsel
+           (gemeinsame Runde 7). Seit 0.26.0 ist das Profil hier die
+           VORSCHAU-KARTE des Bausteins (Nutzer 29.09.2026: „nur ein vorschau
+           profil … karte die oben ist mit den ausgerüsteten abzeichen titel
+           und level und flammen mit natürlich dem namen"): ein Tipp auf die
+           Karte (Bild oben links) → das ausführliche Profil, auf „Level N"
+           → der Level-Pfad. Ohne Baustein wie bis 0.25.0 die Pille. */
         const kopf = BAUSTEINE.el("header", "start-kopf");
+        /* Seit 0.26.0 abends (Koordination „Start ohne Scrollen"): EINE
+           kompakte Kopfzeile aus dem Baustein (Kreis mit Level-Ring, Name,
+           drei Abzeichen-Zeichen, Flamme rechts) statt der Vorschau-Karte;
+           `data-up-bl-kopf` = hier beginnen Blätter darunter (gemessen). */
+        kopf.setAttribute("data-up-bl-kopf", "");
+        START._kopfFlamme = null;
         if (name) {
-            kopf.appendChild(START._kurzprofilBauen(ich, name));
-            START._flammeBauen(kopf);
+            kopf.appendChild(START._profilKarteBauen(ich, name));
+            START._flammeBauen(kopf, START._kopfFlamme);
         }
         behaelter.appendChild(kopf);
 
@@ -144,23 +152,25 @@ const START = {
      *
      * SEIT 0.25.0 DIE SERIEN-KAPSEL (gemeinsamer Baustein js/upcrew-serie.js,
      * gemeinsame Runde 7, wie Blunderluck v0.156.0): hinter dem Flammen-Kreis
-     * die sieben Tage und die beiden Schilde (Flammen-Schild aus dem Shop,
-     * Serien-Schutz vom Level). Ein Tipp öffnet die Karte mit Erklärung und
-     * „Schild kaufen" (bei voller Höchstmenge gesperrt, Nutzer 29.09.2026)
-     * → Shop-SEITE. Die Serie steht nicht mehr in den Aufgaben. Ohne den
-     * Baustein wie bis 0.24.0 nur der Kreis, ein Tipp führt dann zu den
-     * Aufgaben.
+     * die sieben Tage. Ein Tipp öffnet die Karte (grosse Flamme, Woche).
+     * Seit 0.26.0 ohne Schilde, ohne Serien-Schutz und ohne „Schild kaufen"
+     * (Nutzer 29.09.2026: „serien schild raus"). Die Serie steht nicht mehr
+     * in den Aufgaben. Ohne den Baustein wie bis 0.24.0 nur der Kreis, ein
+     * Tipp führt dann zu den Aufgaben.
      */
     _flamme: null,
     _kapsel: null,
 
-    _flammeBauen(halter) {
+    _flammeBauen(halter, fertig) {
         START._flamme = null;
         START._kapsel = null;
         if (typeof UPCREW_FLAMME === "undefined") {
             return;
         }
-        if (typeof UPCREW_SERIE !== "undefined") {
+        if (fertig) {
+            /* Die Flamme der Kopfzeile (ein Kreis, keine Kapsel, keine Woche). */
+            START._flamme = fertig;
+        } else if (typeof UPCREW_SERIE !== "undefined") {
             START._kapsel = UPCREW_SERIE.kapsel(halter, { beiKlick: () => START.serieOeffnen() });
         } else {
             START._flamme = UPCREW_FLAMME.bauen(halter, {
@@ -170,9 +180,8 @@ const START = {
         START.flammeAktualisieren();
     },
 
-    /* Die Werte der Kapsel und der Karte: die letzten sieben Tage (heute
-       zuletzt, über alle Spiele), gekaufte Schilde mit ihrer Höchstmenge
-       und der Serien-Schutz des Levels (frei / verdient). */
+    /* Die Werte der Kapsel und der Karte: die Serie und die letzten sieben
+       Tage (heute zuletzt, über alle Spiele). */
     TAGE_KURZ: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
 
     serieWerte() {
@@ -186,18 +195,11 @@ const START = {
             tage.unshift(tag);
             tag = FORTSCHRITT._vortag(tag);
         }
-        const schilde = FORTSCHRITT.schildVorrat(stand);
-        const ware = (typeof UPCREW_MUENZEN !== "undefined" && UPCREW_MUENZEN.WAREN)
-            ? UPCREW_MUENZEN.WAREN.schild : null;
         return {
             serie: heute.tage,
             heute: heute.heute === true,
             woche: tage.map((d) => alleTage.has(d)),
-            tage: tage.map((d) => START.TAGE_KURZ[new Date(d + "T12:00:00").getDay()] || ""),
-            schild: schilde,
-            schildMax: ware ? ware.hoechstens : 0,
-            schutz: Math.max(0, heute.schutz - schilde),
-            schutzAlle: FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(stand).level)
+            tage: tage.map((d) => START.TAGE_KURZ[new Date(d + "T12:00:00").getDay()] || "")
         };
     },
 
@@ -213,11 +215,7 @@ const START = {
             titel: "Serie",
             klasse: "karte-serie",
             inhalt: (ort) => UPCREW_SERIE.karteFuellen(ort, werte, {
-                beiZu: () => UPCREW_BLATT.schliessen("knopf"),
-                beiKauf: () => {
-                    UPCREW_BLATT.schliessen("knopf");
-                    NAVIGATION.zeigen("shop", null);
-                }
+                beiZu: () => UPCREW_BLATT.schliessen("knopf")
             })
         });
     },
@@ -234,7 +232,7 @@ const START = {
             return null;
         }
         const heute = FORTSCHRITT.serieHeute(APP.fortschritt(), WORDLE.datumText(APP.jetzt()));
-        const werte = { serie: heute.tage, heuteGeschafft: heute.heute, schutz: heute.schutz };
+        const werte = { serie: heute.tage, heuteGeschafft: heute.heute };
         START._flamme.setzen(werte);
         return werte;
     },
@@ -244,15 +242,29 @@ const START = {
         NAVIGATION.zeigen("profil", null);
     },
 
+    /* Der Kopf oben (seit 0.26.0 die kompakte Kopfzeile, Tipp → Vorschau-
+       Karte → ausführliches Profil): Zahlen aus PROFIL_BILDSCHIRM.vorschauDaten
+       — dieselben wie im Profil und in der Rangliste. Ohne Baustein oder Konto
+       die Pille wie bis 0.25.0. */
+    _profilKarteBauen(ich, name) {
+        if (!ich || !PROFIL_BILDSCHIRM._mitBaustein() || typeof UPCREW_PROFIL.kopfzeile !== "function") {
+            return START._kurzprofilBauen(ich, name);
+        }
+        const spieler = SPIELER.spielerFinden(ANMELDUNG.abgleich.daten, ich.id) || ich;
+        const ort = BAUSTEINE.el("div", "start-kopfzeile");
+        const kopf = UPCREW_PROFIL.kopfzeile(ort, PROFIL_BILDSCHIRM.vorschauDaten(spieler, true), {
+            beiOeffnen: () => PROFIL_BILDSCHIRM.vorschauOeffnen(ich.id),
+            beiSerie: () => START.serieOeffnen()
+        });
+        START._kopfFlamme = kopf.flamme;
+        return ort;
+    },
+
     /*
-     * Das Kurzprofil oben links (seit 0.7.0): Kreis mit Anfangsbuchstabe,
-     * Name, darunter „83 % gelöst" (bis 0.16.1 „Serie 4 · 83 % gelöst" — seit
-     * 0.16.2 zeigt die Serie allein die Flamme daneben, über alle Spiele;
-     * so hat die Pille auch bei 320 px Platz). Ein Tipp öffnet das eigene
-     * Profil. Die Zahlen rechnet RANGLISTE.statistik — dieselbe Zählung wie
-     * auf der Profilseite, aus dem eigenen Verlauf samt noch nicht
-     * gesendeter Ergebnisse. Ohne Konto (nur Gerät bekannt) steht nur der
-     * Name da.
+     * Das Kurzprofil oben links (seit 0.7.0; seit 0.26.0 nur noch Rückfall
+     * ohne Baustein): Kreis mit Level-Ring, Name, darunter die
+     * Tageswort-Quote („83 % Tageswort", bis 0.25.0 „… gelöst"). Ein Tipp
+     * öffnet das eigene Profil. Die Zahlen rechnet RANGLISTE.statistik.
      */
     _kurzprofilBauen(ich, name) {
         const knopf = BAUSTEINE.knopf({
@@ -273,7 +285,7 @@ const START = {
             const verlauf = ERGEBNISSE.verlaufMitAusstehendem(APP.eigenerVerlauf, ich.id);
             const werte = RANGLISTE.statistik(verlauf, WORDLE.datumText(APP.jetzt()));
             texte.appendChild(BAUSTEINE.el("span", "start-profil-werte",
-                werte.quote + " % gelöst"));
+                werte.quote + " % Tageswort"));
         }
         knopf.appendChild(texte);
         return knopf;

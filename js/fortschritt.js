@@ -17,11 +17,9 @@
  *   Heute  je Spiel eine Tagesaufgabe — in Typoluck das Tageswort, in
  *          Blunderluck das Tagesbrett.
  *   Serie  Tage in Folge, an denen in IRGENDEINEM Spiel die Tagesaufgabe
- *          geschafft wurde (aus den `tage` aller Zweige gerechnet). Ein
- *          Serien-Schutz überbrückt einen fehlenden Tag; verdient wird er
- *          über das Level (nach Level 10 jedes Level, das kein Rahmen ist).
- *   Rahmen ab Level 10, dann alle 5 Level (10, 15, 20 …), dazwischen nach
- *          Level 10 je ein Serien-Schutz — EINE Regel für beide Spiele
+ *          geschafft wurde (aus den `tage` aller Zweige gerechnet). Seit
+ *          0.26.0 ohne Serien-Schutz: ein fehlender Tag beendet sie.
+ *   Rahmen ab Level 10, dann alle 5 Level (10, 15, 20 …) — EINE Regel für beide Spiele
  *          (seit 0.14.0, Namen wie Blunderluck `RAHMEN`/`TITEL`).
  * Seit 0.18.0 hat Typoluck die BIBLIOTHEK (js\bibliothek.js, Typolucks
  * Fassung des Turms): ihre Figuren stehen im Zweig unter `turm.figuren`
@@ -122,11 +120,12 @@
  *     Rechnung. Warum ein Zähler statt einer langen Tagesliste: Die Liste
  *     wüchse endlos und wäre gegen die Regel (§11b: `tage` höchstens 1000
  *     Einträge) irgendwann zu lang; zwei Zahlen reichen für jede Länge.
- *   - SCHUTZ: je Serie so viele Tage wie verdient (`schutzVerdient`, über das
- *     Level), danach gekaufte Flammen-Schilde (`zaehler.schildGekauft` −
- *     `schildGenutzt`, js\upcrew-muenzen.js). Ein gekaufter Schild wird beim
- *     Überbrücken verbraucht (`schildGenutzt` +1 im Spiel, das die Serie
- *     fortschreibt).
+ *   - SCHUTZ und SCHILD gibt es seit 0.26.0 nicht mehr (Nutzer 29.09.2026:
+ *     „serien schild raus"): `schutzVerdient` und `schildVorrat` liefern 0,
+ *     ein fehlender Tag beendet die Serie. Die Zähler `serieSchutz`,
+ *     `schildGekauft` und `schildGenutzt` bleiben liegen (nichts löschen,
+ *     Regeln unverändert); nicht verbrauchte Schilde erstattet
+ *     `schildeErstatten` einmal in Münzen.
  *   - ZUSAMMENFÜHREN (gleiches Spiel, zwei Geräte): Zähler, die nur wachsen
  *     (Münzen, Käufe, Tagesaufgaben …), nehmen je Name den GRÖSSEREN Wert;
  *     die drei Serien-Zähler kommen gemeinsam aus der Fassung mit dem
@@ -205,7 +204,7 @@ const FORTSCHRITT = {
     TATEN: [
         { id: "zweiter-versuch", titel: "Tageswort im 2. Versuch" },
         { id: "serie-7", titel: "7 Tage Serie" },
-        { id: "schwer-geloest", titel: "Gelöst im Schwer-Modus" },
+        { id: "schwer-geloest", titel: "Gelöst im Harten Modus" },
         { id: "koennen-90", titel: "90 % Können in einer Runde" }
     ],
 
@@ -736,11 +735,11 @@ const FORTSCHRITT = {
      * Name}, … } für die Anzeige. Seit 0.14.0 EINE Regel mit Blunderluck:
      * Rahmen ab Level 10, dann alle 5 (Silber, Gold, Platin, danach
      * „Glanz n"); Titel aus TITEL; nach Level 10 jedes Level, das kein
-     * Rahmen ist, ein Serien-Schutz. Seit 0.15.0 darf `stufen` zusätzlich
+     * Rahmen ist, ein Serien-Schutz (seit 0.26.0 weg). Seit 0.15.0 darf `stufen` zusätzlich
      * `kachelset` tragen (Kachel-Sets über das Level, Tabelle aus
      * SAMMLUNG.kachelsetStufen — js\app.js `_stufen` legt sie dazu).
      * Liefert [{ art, name }] — art: farbwelt | schrift | knoepfe |
-     * kachelset | titel | rahmen | schutz.
+     * kachelset | titel | rahmen.
      */
     belohnungen(level, stufen, namen) {
         const liste = [];
@@ -761,9 +760,6 @@ const FORTSCHRITT = {
             if (titel.ab === level) {
                 liste.push({ art: "titel", name: titel.name });
             }
-        }
-        if (level > 10 && !rahmen) {
-            liste.push({ art: "schutz", name: "Serien-Schutz" });
         }
         return liste;
     },
@@ -803,16 +799,11 @@ const FORTSCHRITT = {
      * Serie
      * ---------------------------------------------------------------- */
 
-    /* Serien-Schutze, die bis Level L verdient sind (Level 11 bis L, ohne
-       die Rahmen-Level) — wie Blunderluck. */
+    /* Serien-Schutz gibt es nicht mehr (seit 0.26.0, Nutzer 29.09.2026:
+       „serien schild raus … soll nach einem lose nicht aufhaltbar sein") —
+       immer 0, die Serie reisst ohne Rettung. Wie Blunderluck. */
     schutzVerdient(level) {
-        let anzahl = 0;
-        for (let l = 11; l <= level; l++) {
-            if (l % 5 !== 0) {
-                anzahl++;
-            }
-        }
-        return anzahl;
+        return 0;
     },
 
     /* Alle Tage mit geschaffter Tagesaufgabe, über alle Spiele. */
@@ -885,8 +876,39 @@ const FORTSCHRITT = {
 
     /* Gekaufte, noch nicht verbrauchte Flammen-Schilde über alle Spiele. */
     schildVorrat(stand) {
-        return Math.max(0, FORTSCHRITT._zaehlerSumme(stand, "schildGekauft")
-            - FORTSCHRITT._zaehlerSumme(stand, "schildGenutzt"));
+        return 0;
+    },
+
+    /*
+     * ERSTATTUNG ALTER SCHILDE (seit 0.26.0): Wer vor dem Wegfall Flammen-
+     * Schilde gekauft und nicht verbraucht hat, bekommt EINMAL den
+     * Kaufpreis als Münzen (`preis` je Stück, 50). Jedes Spiel erstattet
+     * nur, was in SEINEM Zweig gekauft wurde, gemerkt im Zähler
+     * `schildErstattet` (Stückzahl, wächst nur). Offen sind alle Käufe
+     * minus alle Verbrauche über alle Zweige; was ein anderes Spiel schon
+     * erstattet hat, zieht ab — so zahlt keiner zweimal. Rein; liefert
+     * { stand, stueck, muenzen } (ohne Erstattung stueck 0).
+     */
+    schildeErstatten(stand, app, preis, zeitpunkt) {
+        const sauber = FORTSCHRITT.normalisieren(stand);
+        const zweig = sauber.spiele[app];
+        const z = zweig && FORTSCHRITT._istObjekt(zweig.zaehler) ? zweig.zaehler : null;
+        const zahl = (wert) => (typeof wert === "number" && isFinite(wert) && wert > 0) ? Math.floor(wert) : 0;
+        const gekauft = z ? zahl(z.schildGekauft) : 0;
+        const erstattet = z ? zahl(z.schildErstattet) : 0;
+        const offen = Math.max(0, FORTSCHRITT._zaehlerSumme(sauber, "schildGekauft")
+            - FORTSCHRITT._zaehlerSumme(sauber, "schildGenutzt"));
+        const andere = FORTSCHRITT._zaehlerSumme(sauber, "schildErstattet") - erstattet;
+        const soll = Math.min(gekauft, Math.max(0, offen - andere));
+        const stueck = soll - erstattet;
+        if (stueck <= 0) {
+            return { stand: sauber, stueck: 0, muenzen: 0 };
+        }
+        const muenzen = stueck * Math.max(0, Math.floor(preis || 0));
+        z.schildErstattet = soll;
+        z.muenzenVerdient = Math.min(zahl(z.muenzenVerdient) + muenzen, 1000000000);
+        zweig.stand = Math.max((zweig.stand || 0) + 1, zeitpunkt || 0);
+        return { stand: sauber, stueck: stueck, muenzen: muenzen };
     },
 
     /* Der Stand der Serie über alle Spiele (Kopf „DIE SERIE SEIT 0.17.0“). */
@@ -1203,7 +1225,6 @@ const FORTSCHRITT = {
      */
     TL_ABZEICHEN: {
         azZweiVersuche: (zweig) => zweig.taten.indexOf("zweiter-versuch") !== -1,
-        azSchwer: (zweig) => zweig.taten.indexOf("schwer-geloest") !== -1,
         azKoennen: (zweig) => zweig.taten.indexOf("koennen-90") !== -1,
         azPerfekt: (zweig) => FORTSCHRITT._zaehlerVon(zweig, "koennenBeste") >= 100,
         azErstesBuch: (zweig, b) => b.erreicht >= 2,

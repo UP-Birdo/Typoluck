@@ -20,7 +20,23 @@
  * Der Abschnitt „spiel“ trägt ohne eigenen Titel „Nur in <Spiel>“ (Marke).
  *
  * Helfer für die rechte Seite: schalter(an, beiWechsel, name) · segment(optionen, wert, beiWahl, name) ·
- * pfeil() · wert(text). Kein Spiel-Eigenes hier; alle Texte über textContent, Farben aus der Farbwelt.
+ * pfeil() · wert(text) · lampe(zustand). Kein Spiel-Eigenes hier; alle Texte über textContent, Farben aus der Farbwelt.
+ *
+ * Nutzer 29.09.2026: „bei speicher mache eine status lampe rein · das einstellungs symbol ist kein zahnrad · zu viele
+ * texte sätze im profil / einstellungen“ →
+ *   STATUS-LAMPE:  const l = UPCREW_EINSTELLUNGEN.lampe("gespeichert" | "wartet" | "offline");  l.setzen("wartet");
+ *                  grün „Gespeichert“ · gelb „Wartet“ · rot „Keine Verbindung“ (Wort daneben, auch als aria-label).
+ *                  Kurzform für die Zeile im Abschnitt „ueber“ (bzw. wo die App „Speicher“ zeigt):
+ *                  zeilen.push(UPCREW_EINSTELLUNGEN.speicherZeile(zustand));  → { zeichen, titel: "Speicher",
+ *                  rechts: lampe }; die Lampe hängt an `zeile.lampe`, damit die App sie später umstellen kann.
+ *                  Auch "gruen"/"gelb"/"rot" und true/false/null (gespeichert/wartet/offline) werden verstanden.
+ *   ZAHNRAD:       ZEICHEN.zahnrad = das gefüllte Zahnrad aus Blunderluck start.js `_zahnradBauen` (8 Zähne mit
+ *                  geraden Flanken, Loch per evenodd) — NICHT mehr die „Sonne“ aus Kreis und Strichen.
+ *                  zeichen("zahnrad") zeichnet es gefüllt; zahnradKnopf(beiKlick, name, klasse) = fertiger Knopf.
+ *                  Jede Stelle, die zu den Einstellungen führt (Kopf, Profil-Blatt, Start), nimmt dieses Zeichen.
+ *   KURZ:          `unter` einer Zeile höchstens 3 Wörter, `hinweis` eines Abschnitts höchstens 6 Wörter — Längeres
+ *                  zeigt der Baustein NICHT (Warnung in der Konsole), damit keine Sätze mehr hineinrutschen.
+ *                  Titel: „Konto“, „Spieler“ statt „UPCrew-Konto · alle Spiele“ usw.
  */
 (function () {
     "use strict";
@@ -33,14 +49,14 @@
     };
 
     const TITEL = {
-        konto: "UPCrew-Konto · alle Spiele",
+        konto: "Konto",
         aussehen: "Aussehen",
         privatsphaere: "Privatsphäre",
         hilfe: "Hilfe",
         admin: "Admin",
         ueber: "Über",
         gefahr: "",
-        spieler: "Spieler · alle Spiele",
+        spieler: "Spieler",
         datenbank: "Datenbank",
         ende: ""
     };
@@ -65,8 +81,39 @@
         figur: "M9 20 H15 M10 20 L10.5 14 H13.5 L14 20 M12 4 A3 3 0 1 0 12 10 A3 3 0 1 0 12 4 Z",
         brett: "M4 4 H20 V20 H4 Z M12 4 V20 M4 12 H20",
         buch: "M4 5 C7 4 10 4 12 6 C14 4 17 4 20 5 V19 C17 18 14 18 12 20 C10 18 7 18 4 19 Z M12 6 V20",
-        rechts: "M9 5 L16 12 L9 19"
+        rechts: "M9 5 L16 12 L9 19",
+        /* Gefüllt (fill-rule evenodd), siehe Kopf „ZAHNRAD“. */
+        zahnrad: "M19.37 10.16 L22.47 10.34 A10.6 10.6 0 0 1 22.47 13.66 L19.37 13.84 A7.6 7.6 0 0 1 18.51 15.91 "
+            + "L20.58 18.23 A10.6 10.6 0 0 1 18.23 20.58 L15.91 18.51 A7.6 7.6 0 0 1 13.84 19.37 L13.66 22.47 "
+            + "A10.6 10.6 0 0 1 10.34 22.47 L10.16 19.37 A7.6 7.6 0 0 1 8.09 18.51 L5.77 20.58 A10.6 10.6 0 0 1 3.42 18.23 "
+            + "L5.49 15.91 A7.6 7.6 0 0 1 4.63 13.84 L1.53 13.66 A10.6 10.6 0 0 1 1.53 10.34 L4.63 10.16 "
+            + "A7.6 7.6 0 0 1 5.49 8.09 L3.42 5.77 A10.6 10.6 0 0 1 5.77 3.42 L8.09 5.49 A7.6 7.6 0 0 1 10.16 4.63 "
+            + "L10.34 1.53 A10.6 10.6 0 0 1 13.66 1.53 L13.84 4.63 A7.6 7.6 0 0 1 15.91 5.49 L18.23 3.42 "
+            + "A10.6 10.6 0 0 1 20.58 5.77 L18.51 8.09 A7.6 7.6 0 0 1 19.37 10.16 Z "
+            + "M15.4 12 A3.4 3.4 0 1 0 8.6 12 A3.4 3.4 0 1 0 15.4 12 Z"
     };
+    const GEFUELLT = { zahnrad: true };
+
+    /* Die Status-Lampe (siehe Kopf). */
+    const LAMPE = {
+        gespeichert: "Gespeichert",
+        wartet: "Wartet",
+        offline: "Keine Verbindung"
+    };
+    const LAMPE_ALIAS = { gruen: "gespeichert", ok: "gespeichert", gelb: "wartet", rot: "offline", aus: "offline" };
+
+    /* Höchstens so viele Wörter (siehe Kopf „KURZ“). */
+    const KURZ = { unter: 3, hinweis: 6 };
+    const woerter = (t) => String(t || "").trim().split(/\s+/).filter((w) => w !== "" && w !== "·").length;
+    function kurzGenug(text, art) {
+        if (woerter(text) <= KURZ[art]) {
+            return true;
+        }
+        if (typeof console !== "undefined" && console.warn) {
+            console.warn("upcrew-einstellungen: " + art + " zu lang, nicht gezeigt:", text);
+        }
+        return false;
+    }
 
     function el(tag, klasse, text) {
         const e = document.createElement(tag);
@@ -87,8 +134,64 @@
         svg.setAttribute("class", klasse || "up-es-zeichen");
         const p = document.createElementNS(RAUM, "path");
         p.setAttribute("d", ZEICHEN[name] || name || "");
+        if (GEFUELLT[name]) {
+            svg.classList.add("up-es-gefuellt");
+            p.setAttribute("fill-rule", "evenodd");
+        }
         svg.appendChild(p);
         return svg;
+    }
+
+    /* Ein fertiger Zahnrad-Knopf (→ Einstellungen). `klasse` z. B. "up-bl-kopf-knopf" für den Blatt-Kopf. */
+    function zahnradKnopf(beiKlick, name, klasse) {
+        const k = el("button", "up-es-zahnrad" + (klasse ? " " + klasse : ""));
+        k.type = "button";
+        k.setAttribute("aria-label", name || "Einstellungen");
+        k.title = name || "Einstellungen";
+        k.appendChild(zeichen("zahnrad"));
+        if (typeof beiKlick === "function") {
+            k.addEventListener("click", beiKlick);
+        }
+        return k;
+    }
+
+    function lampeArt(zustand) {
+        if (zustand === true) {
+            return "gespeichert";
+        }
+        if (zustand === false) {
+            return "wartet";
+        }
+        const z = LAMPE_ALIAS[zustand] || zustand;
+        return LAMPE[z] ? z : "offline";
+    }
+
+    /* Die Status-Lampe: Punkt + kurzes Wort. `texte` wahlfrei { gespeichert, wartet, offline }. */
+    function lampe(zustand, texte) {
+        const t = Object.assign({}, LAMPE, texte || {});
+        const l = el("span", "up-es-wert up-es-lampe");
+        l.setAttribute("role", "status");
+        const punkt = el("i");
+        punkt.setAttribute("aria-hidden", "true");
+        const wort = el("span");
+        l.appendChild(punkt);
+        l.appendChild(wort);
+        l.setzen = function (neu) {
+            const art = lampeArt(neu);
+            l.dataset.zustand = art;
+            wort.textContent = t[art];
+            l.setAttribute("aria-label", "Speicher: " + t[art]);
+            return art;
+        };
+        l.setzen(zustand);
+        return l;
+    }
+
+    /* Die Zeile „Speicher“ mit Lampe (für den Abschnitt, in dem die App den Speicher zeigt). */
+    function speicherZeile(zustand, extra) {
+        const l = lampe(zustand, extra && extra.texte);
+        return Object.assign({ zeichen: "datenbank", titel: "Speicher", rechts: l, lampe: l }, extra || {},
+            { rechts: l, lampe: l });
     }
 
     function pfeil() {
@@ -168,7 +271,7 @@
             titel.appendChild(el("span", "up-es-marke", z.marke));
         }
         text.appendChild(titel);
-        if (z.unter) {
+        if (z.unter && kurzGenug(z.unter, "unter")) {
             text.appendChild(el("small", "", z.unter));
         }
         zeile.appendChild(text);
@@ -204,7 +307,7 @@
         if (a.inhalt) {
             s.appendChild(a.inhalt);
         }
-        if (a.hinweis) {
+        if (a.hinweis && kurzGenug(a.hinweis, "hinweis")) {
             s.appendChild(el("p", "up-es-hinweis", a.hinweis));
         }
         return s;
@@ -231,8 +334,9 @@
     }
 
     const UPCREW_EINSTELLUNGEN = { bauen: bauen, ordnen: ordnen, zeile: zeileBauen, schalter: schalter,
-        segment: segment, pfeil: pfeil, wert: wert, zeichen: zeichen, REIHENFOLGE: REIHENFOLGE, TITEL: TITEL,
-        ZEICHEN: ZEICHEN };
+        segment: segment, pfeil: pfeil, wert: wert, zeichen: zeichen, zahnradKnopf: zahnradKnopf, lampe: lampe,
+        speicherZeile: speicherZeile, lampeArt: lampeArt, REIHENFOLGE: REIHENFOLGE, TITEL: TITEL, ZEICHEN: ZEICHEN,
+        LAMPE: LAMPE, KURZ: KURZ };
     if (typeof window !== "undefined") {
         window.UPCREW_EINSTELLUNGEN = UPCREW_EINSTELLUNGEN;
     }

@@ -177,8 +177,9 @@ const loesungen = WOERTER.loesungen;
     pruefe("Truhe: 15–30 Münzen (ab Buch 5 25–45)", B.stationen(1).filter((st) => st.art === "t")
         .every((st) => B.truheMuenzen(1, st.nr) >= 15 && B.truheMuenzen(1, st.nr) <= 30)
         && B.stationen(5).filter((st) => st.art === "t").every((st) => B.truheMuenzen(5, st.nr) >= 25 && B.truheMuenzen(5, st.nr) <= 45));
-    gleich("Händler: −30 % (Tipp, Extra-Leben, Schild)", ["tipp", "leben", "schild"].map((w) => B.haendlerPreis(M.WAREN[w].preis)),
-        [11, 21, 35]);
+    /* Seit 0.26.0 ohne Schild (Nutzer 29.09.2026: „serien schild raus"). */
+    gleich("Händler: −30 % (Tipp, Extra-Leben)", B.WAREN.map((w) => B.haendlerPreis(M.WAREN[w].preis)),
+        [11, 21]);
     gleich("Titel einer Station", [B.titel(1, 10), B.titel(1, B.stationen(1).find((st) => st.art === "b").nr)],
         ["Das Bilderlexikon · I", "Das Bilderlexikon · Boss"]);
 }

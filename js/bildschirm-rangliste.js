@@ -2,6 +2,14 @@
  * bildschirm-rangliste.js — die Rangliste: Heute oder die letzten 7 Tage,
  * alle Spieler oder nur ich und meine Freunde.
  *
+ * SEIT 0.26.0 ZWEI REITER (wie Blunderluck v0.156.1; Nutzer 29.09.2026:
+ * „alte Freunde-Seite am Start ganz raus; Freunde nur noch als Reiter in der
+ * Rangliste"): „Wertung" (die Tabelle wie bisher) und „Freunde" (Anfragen,
+ * Freundesliste, Suche — gebaut von js/bildschirm-freunde.js, das keine
+ * eigene Seite mehr ist). Der Reiter trägt die Zahl offener Anfragen. Ein
+ * Tipp auf einen Spieler öffnet seine Vorschau-Karte
+ * (PROFIL_BILDSCHIRM.vorschauOeffnen), von dort das ausführliche Profil.
+ *
  * Rechnet nichts selbst — Punkte und Plätze kommen aus js\rangliste.js.
  * Geladen wird bei jedem Öffnen und auf Knopfdruck; einen Dauer-Abgleich
  * gibt es hier nicht (die Tageswertung ändert sich selten, und jede Abfrage
@@ -13,6 +21,36 @@ const RANGLISTE_BILDSCHIRM = {
     /* Die Auswahl überlebt das Neuzeichnen und den Bildschirmwechsel. */
     zeitraum: "tag",
     nurFreunde: false,
+    /* Der Reiter: "wertung" | "freunde" (seit 0.26.0). */
+    ansicht: "wertung",
+
+    ansichtSetzen(id) {
+        RANGLISTE_BILDSCHIRM.ansicht = (id === "freunde") ? "freunde" : "wertung";
+        RANGLISTE_BILDSCHIRM._zeichnen();
+        if (RANGLISTE_BILDSCHIRM.ansicht === "wertung" && !RANGLISTE_BILDSCHIRM._stand) {
+            RANGLISTE_BILDSCHIRM._laden();
+        }
+    },
+
+    /* Die Freunde öffnen (von überall): Rangliste-Seite, Reiter „Freunde". */
+    freundeOeffnen() {
+        RANGLISTE_BILDSCHIRM.ansicht = "freunde";
+        NAVIGATION.zeigen("rangliste", null);
+    },
+
+    _reiterBauen() {
+        const reiter = BAUSTEINE.segment(
+            [{ wert: "wertung", text: "Wertung" }, { wert: "freunde", text: "Freunde" }],
+            RANGLISTE_BILDSCHIRM.ansicht,
+            (wert) => RANGLISTE_BILDSCHIRM.ansichtSetzen(wert), "Ansicht");
+        reiter.classList.add("rangliste-reiter");
+        const freunde = reiter.querySelectorAll(".segment-wahl")[1];
+        if (freunde) {
+            freunde.classList.add("rangliste-reiter-freunde");
+            NAVIGATION.markeAnbringen(freunde, "freunde");
+        }
+        return reiter;
+    },
 
     _stand: null,
     _fehler: "",
@@ -40,25 +78,29 @@ const RANGLISTE_BILDSCHIRM = {
         if (!behaelter || NAVIGATION.aktuell !== "rangliste") {
             return;
         }
+        /* Wer gerade im Suchfeld der Freunde schreibt, verliert es nicht
+           durch ein Neuzeichnen nach dem Laden der Wertung. */
+        if (RANGLISTE_BILDSCHIRM.ansicht === "freunde" && behaelter.querySelector("#freunde-suche")
+                && document.activeElement === behaelter.querySelector("#freunde-suche")) {
+            return;
+        }
         behaelter.innerHTML = "";
 
         /* Kein „Zurück" (seit 0.5.0): Die Rangliste ist ein Ziel der Leiste
-           unten, wie der Start — zurück geht es über die Leiste. */
-        /* Seit 0.25.0 rechts auch „Freunde" (bis 0.24.0 im Menü hinter den
-           drei Balken, wie in Blunderluck verteilt): öffnet das Blatt der
-           Freunde, die Zahl zeigt offene Anfragen. */
-        const rechts = BAUSTEINE.el("div", "rangliste-kopf-knoepfe");
-        const freunde = BAUSTEINE.knopf({
-            art: "flach", zeichen: "freunde", titel: "Freunde",
-            beiKlick: () => NAVIGATION.zeigen("freunde", null)
-        });
-        freunde.classList.add("rangliste-freunde");
-        rechts.appendChild(NAVIGATION.markeAnbringen(freunde, "freunde"));
-        rechts.appendChild(BAUSTEINE.knopf({
+           unten, wie der Start — zurück geht es über die Leiste. Den Knopf
+           „Freunde" rechts (0.25.0) ersetzt seit 0.26.0 der Reiter. */
+        const wertung = RANGLISTE_BILDSCHIRM.ansicht !== "freunde";
+        behaelter.appendChild(BAUSTEINE.kopfzeile("Rangliste", { rechts: wertung ? BAUSTEINE.knopf({
             art: "flach", zeichen: "info", titel: "Punkte",
             beiKlick: () => DIALOG.hinweis("Punkte", "", RANGLISTE_BILDSCHIRM.punkteTafelBauen())
-        }));
-        behaelter.appendChild(BAUSTEINE.kopfzeile("Rangliste", { rechts: rechts }));
+        }) : null }));
+        behaelter.appendChild(RANGLISTE_BILDSCHIRM._reiterBauen());
+        if (!wertung) {
+            const ort = BAUSTEINE.el("div", "rangliste-freunde-ort");
+            behaelter.appendChild(ort);
+            FREUNDE_BILDSCHIRM.zeigen(ort);
+            return;
+        }
 
         const auswahl = BAUSTEINE.el("div", "rangliste-auswahl");
         auswahl.appendChild(BAUSTEINE.segment(
@@ -70,7 +112,7 @@ const RANGLISTE_BILDSCHIRM = {
                 RANGLISTE_BILDSCHIRM._laden();
             }, "Zeitraum"));
         auswahl.appendChild(BAUSTEINE.segment(
-            [{ wert: false, text: "Alle" }, { wert: true, text: "Freunde" }],
+            [{ wert: false, text: "Alle" }, { wert: true, text: "Nur Freunde" }],
             RANGLISTE_BILDSCHIRM.nurFreunde,
             (wert) => {
                 RANGLISTE_BILDSCHIRM.nurFreunde = wert;
@@ -119,8 +161,8 @@ const RANGLISTE_BILDSCHIRM = {
     },
 
     /*
-     * Die Tabelle selbst — auch der Start benutzt sie für „Heute bei deinen
-     * Freunden". Ein Tipp auf eine Zeile öffnet das Profil dieses Spielers.
+     * Die Tabelle selbst. Ein Tipp auf eine Zeile öffnet die Vorschau-Karte
+     * dieses Spielers (seit 0.26.0; bis 0.25.0 gleich das Profil).
      */
     tabelleBauen(zeilen, zeitraum, ichId) {
         const liste = BAUSTEINE.el("ol", "rangliste");
@@ -129,7 +171,7 @@ const RANGLISTE_BILDSCHIRM = {
             const knopf = document.createElement("button");
             knopf.type = "button";
             knopf.className = "rangliste-knopf";
-            knopf.addEventListener("click", () => NAVIGATION.zeigen("profil", { id: zeile.id }));
+            knopf.addEventListener("click", () => PROFIL_BILDSCHIRM.vorschauOeffnen(zeile.id));
 
             knopf.appendChild(BAUSTEINE.el("span", "rangliste-platz", zeile.platz + "."));
             knopf.appendChild(BAUSTEINE.kreis(zeile.name));

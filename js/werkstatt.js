@@ -24,7 +24,6 @@
  *     &anmeldung                       NICHT angemeldet (Anmelde-Vollbild)
  *     &dunkel / &hell                  Darstellung festlegen (sonst wie
  *                                      das Gerät)
- *     &schwer                          Schwer-Modus an (seit 0.6.0)
  *     &seriekarte                      die Serien-Karte offen zeigen (seit
  *                                      0.25.0; bis 0.24.0 &menue = das Menü
  *                                      hinter den drei Balken, das es nicht
@@ -43,7 +42,7 @@
  *                                      A-F genau diese Art (seit 0.6.1)
  *     &schrift=S6 &knoepfe=K3          das gemeinsame Aussehen vorgeben
  *     &farbwelt=studio                 (seit 0.8.0; sonst der Standard des
- *     &leseschrift                     Bausteins). Im Tab „Sammlung" ist in
+ *                                      Bausteins). Im Tab „Sammlung" ist in
  *                                      der Werkstatt alles freigeschaltet;
  *                                      &bildschirm=sammlung zeigt ihn (bis
  *                                      0.8.1 hiess er „anpassen").
@@ -144,9 +143,6 @@ const WERKSTATT = {
                     wahl[teil] = WERKSTATT.wert(teil);
                 }
             }
-            if (WERKSTATT._parameter().has("leseschrift")) {
-                wahl.leseschrift = true;
-            }
             UPCREW_AUSSEHEN.setzen(wahl);
         }
         /* Darstellung über denselben Weg wie die Einstellungen (seit
@@ -234,10 +230,6 @@ const WERKSTATT = {
         WERKSTATT._fortschrittAnlegen(speicher, ids[0], heute);
         WERKSTATT._durchgangAnlegen(ids[0]);
 
-        const schwer = WERKSTATT._parameter().has("schwer");
-        if (schwer) {
-            ICH.einstellungSetzen("schwer", true);
-        }
         /* Art des Starts und angesehenes Buch (seit 0.18.0). */
         if (WERKSTATT.wert("art") && typeof START.ART_SCHLUESSEL === "string") {
             speicher.setItem(START.ART_SCHLUESSEL, WERKSTATT.wert("art"));
@@ -281,7 +273,7 @@ const WERKSTATT = {
         } else if (versuche) {
             const tag = WORDLE.tageswort(heute);
             let runde = WORDLE.neueRunde({ modus: "tag", datum: heute, nummer: tag.nummer,
-                loesung: tag.wort, zeitpunkt: 1, schwer: schwer });
+                loesung: tag.wort, zeitpunkt: 1 });
             for (const wort of versuche.split(",")) {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }

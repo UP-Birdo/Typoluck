@@ -102,12 +102,32 @@ const FORTSCHRITT_ABGLEICH = {
         return aenderungen;
     },
 
+    /* Der Stand des letzten Sendens für die Status-Lampe (seit 0.26.0):
+       "" (nichts gesendet) | "wartet" | "gespeichert" | "fehler";
+       `beiZustand` ruft die App nach jedem Wechsel. */
+    zustand: "",
+    beiZustand: null,
+
+    _zustandSetzen(zustand) {
+        FORTSCHRITT_ABGLEICH.zustand = zustand;
+        if (typeof FORTSCHRITT_ABGLEICH.beiZustand === "function") {
+            FORTSCHRITT_ABGLEICH.beiZustand(zustand);
+        }
+    },
+
     /* Typolucks Zweig ans Konto. Liefert true bei Erfolg. */
     async senden(stand) {
         const uid = FORTSCHRITT_ABGLEICH._uid();
         if (!uid || typeof FORTSCHRITT_ABGLEICH._speicher.teilSchreiben !== "function") {
             return false;
         }
+        FORTSCHRITT_ABGLEICH._zustandSetzen("wartet");
+        const ok = await FORTSCHRITT_ABGLEICH._senden(uid, stand);
+        FORTSCHRITT_ABGLEICH._zustandSetzen(ok ? "gespeichert" : "fehler");
+        return ok;
+    },
+
+    async _senden(uid, stand) {
         const aenderungen = FORTSCHRITT_ABGLEICH.aenderungen(uid, stand);
         /* Regel §12 (seit 0.22.0, Konzept Abschnitt 4 „Eigener
            Fortschritt"): der öffentliche Auszug zieht im selben Schritt mit

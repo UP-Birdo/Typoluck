@@ -67,7 +67,7 @@ function welt(geraet, konto) {
     gleich("Heute noch offen: Serie bis gestern, nicht geschafft", [o.serie, o.heuteGeschafft], [2, false]);
     const leer = welt({ version: 1, spiele: {} }, null);
     gleich("Nichts gespielt: Serie 0", leer.START.flammeAktualisieren().serie, 0);
-    pruefe("Schutz: eine Zahl ab 0", typeof w.schutz === "number" && w.schutz >= 0);
+    pruefe("Kein Schutz mehr an die Flamme (seit 0.26.0)", !("schutz" in w));
     const ohne = welt(geraet, null);
     ohne.START._flamme = null;
     gleich("Ohne Flamme (kein Kurzprofil): nichts passiert", ohne.START.flammeAktualisieren(), null);
@@ -76,8 +76,9 @@ function welt(geraet, konto) {
 /* 3. Einbindung */
 {
     const start = lesen("js/bildschirm-start.js");
-    pruefe("Gleich neben dem Kurzprofil in der Kopfzeile oben links",
-        /kopf\.appendChild\(START\._kurzprofilBauen\(ich, name\)\);[\s\S]{0,200}START\._flammeBauen\(kopf\);/.test(start));
+    pruefe("In der Kopfzeile oben rechts (seit 0.26.0 abends: die Flamme der Kopfzeile, keine Kapsel)",
+        /kopf\.appendChild\(START\._profilKarteBauen\(ich, name\)\);[\s\S]{0,200}START\._flammeBauen\(kopf, START\._kopfFlamme\);/.test(start)
+        && /beiSerie: \(\) => START\.serieOeffnen\(\)/.test(start));
     pruefe("Tipp führt zu den Aufgaben (Tab Heute)",
         /beiKlick: \(\) => NAVIGATION\.zeigen\("herausforderungen", null\)/.test(start));
     pruefe("Zahlen aus FORTSCHRITT.serieHeute(APP.fortschritt(), …) — keine eigene Serien-Rechnung",

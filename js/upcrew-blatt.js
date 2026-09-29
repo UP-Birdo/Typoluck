@@ -28,8 +28,24 @@
  * letzten Schliessen kommt die alte Rollposition zurück. Eine Karte allein lässt die Position stehen.
  * Bis 29.09. setzte der Baustein nur `body.up-bl-offen`, ohne eine Regel dazu — die Seite rollte hinter dem Blatt mit.
  *
+ * OBERKANTE GEMESSEN (29.09.2026 abends): Trägt ein Element der Seite `data-up-bl-kopf` (der Kopf des Starts), beginnt
+ * das erste Blatt 8 px unter seiner echten Unterkante (gemessen, nachdem die Seite nach oben gerollt ist) — sonst wie
+ * bisher bei `--up-bl-oben`. Höchstens bei der Hälfte der Fensterhöhe. Der Wert gilt für den ganzen Stapel.
+ *
+ * ZURÜCK-TASTE / WISCHGESTE (29.09.2026 abends, Koordination): Mit `einrichten({ verlauf: true })` legt JEDES Blatt und
+ * JEDE Karte einen Eintrag in den Browser-Verlauf (history.pushState, der alte Zustand bleibt darin, dazu `upBlatt`).
+ * Zurück schliesst dann das oberste (wie = "verlauf") statt die App-Seite zu verlassen. Wird etwas per Knopf/Grund/Esc/
+ * Code geschlossen, nimmt der Baustein seinen Eintrag still zurück (history.back nach dem laufenden Zug, das popstate
+ * dazu wird überhört; öffnet im selben Zug etwas Neues, übernimmt es den Eintrag per replaceState — `verlaufAbgleichen()`
+ * nimmt sofort zurück, z. B. in Tests);
+ * „alle“ (Tab-Wechsel) lässt die Einträge stehen — ein späteres Zurück darüber hinweg überspringt sie.
+ *   horchen: true (Vorgabe) — der Baustein horcht selbst auf popstate (Blunderluck).
+ *   horchen: false — die App hat einen eigenen popstate-Horcher und ruft darin ZUERST `UPCREW_BLATT.beiZurueck(ereignis)`;
+ *   liefert das true, war es für den Baustein (Typoluck js\navigation.js). Mit `oeffnen({ verlauf: false })` ohne
+ *   Eintrag (z. B. Werkstatt).
+ *
  * Aufruf:
- *   UPCREW_BLATT.einrichten({ ebenen: <div>, haupt: <main> });     // einmal
+ *   UPCREW_BLATT.einrichten({ ebenen: <div>, haupt: <main>, verlauf: true, horchen: true });     // einmal
  *   const b = UPCREW_BLATT.oeffnen({
  *       art: "blatt" | "karte",          // Vorgabe "blatt"
  *       titel: "Profil",
@@ -37,7 +53,8 @@
  *                                         // oder eine Funktion, die in `el` zeichnet
  *       rechts: [element, …],            // wahlfrei: Knöpfe rechts im Kopf (z. B. Zahnrad)
  *       klasse: "…",                     // wahlfrei: Zusatzklasse am Blatt
- *       beimSchliessen: (wie) => {}      // wahlfrei: wie = "knopf" | "grund" | "esc" | "code" | "alle"
+ *       beimSchliessen: (wie) => {}      // wahlfrei: wie = "knopf" | "grund" | "esc" | "code" | "alle" | "verlauf"
+ *       verlauf: false                   // wahlfrei: dieses ohne Verlaufseintrag
  *   });                                  // → { el, inhalt, schliessen() }
  *   UPCREW_BLATT.schliessen();  UPCREW_BLATT.alleSchliessen();  UPCREW_BLATT.anzahl();  UPCREW_BLATT.blaetter();
  *
@@ -57,6 +74,13 @@
     let ebenenEl = null;
     let hauptEl = null;
     let horcht = false;
+    let mitVerlauf = false;
+    let horchtVerlauf = false;
+    let stille = 0;
+    let letztesEreignis = null;
+    let obenPx = null;
+
+    const hatVerlauf = () => typeof history !== "undefined" && history && typeof history.pushState === "function";
 
     function zeichen(pfad) {
         const svg = document.createElementNS(RAUM, "svg");
@@ -95,10 +119,135 @@
 
     function hintenSetzen() {
         const an = blaetter() > 0;
+        /* Erst die Seite festhalten (rollt beim ersten Blatt nach oben), dann den Kopf messen, dann zurückrücken. */
+        seiteHalten(stapel.length > 0, an);
+        if (!an) {
+            obenPx = null;
+        } else if (obenPx === null) {
+            obenPx = kopfMessen();
+        }
         if (hauptEl && hauptEl.classList) {
             hauptEl.classList.toggle("up-bl-dahinter", an);
         }
-        seiteHalten(stapel.length > 0, blaetter() > 0);
+    }
+
+    /* Die Unterkante des Kopfs der Seite (`[data-up-bl-kopf]`) + 8 px — oder -1 (dann gilt --up-bl-oben). */
+    function kopfMessen() {
+        const wurzel = hauptEl || (typeof document !== "undefined" ? document : null);
+        if (!wurzel || typeof wurzel.querySelector !== "function" || typeof window === "undefined") {
+            return -1;
+        }
+        const kopf = wurzel.querySelector("[data-up-bl-kopf]");
+        if (!kopf || typeof kopf.getBoundingClientRect !== "function") {
+            return -1;
+        }
+        const r = kopf.getBoundingClientRect();
+        const hoehe = window.innerHeight || 0;
+        if (!(r.height > 0) || !(r.bottom > 0) || (hoehe > 0 && r.bottom > hoehe / 2)) {
+            return -1;
+        }
+        return Math.round(r.bottom + 8);
+    }
+
+    function obenSetzen(ebene) {
+        if (obenPx !== null && obenPx >= 0 && ebene.style && typeof ebene.style.setProperty === "function") {
+            ebene.style.setProperty("--up-bl-oben", obenPx + "px");
+        }
+    }
+
+    /* ---- Verlauf (Zurück-Taste) ---- */
+    function eintragAnlegen(eintrag) {
+        if (!mitVerlauf || eintrag.optionen.verlauf === false || !hatVerlauf()) {
+            return;
+        }
+        try {
+            const alt = (history.state && typeof history.state === "object") ? history.state : {};
+            const neu = Object.assign({}, alt, { upBlatt: stapel.length });
+            /* Gerade im selben Zug etwas geschlossen (Karte zu → Pfad/Profil auf): dessen Eintrag weiterverwenden.
+               Ein history.back() vor einem pushState nähme sonst den NEUEN Eintrag mit (am Browser gemessen). */
+            if (offen > 0) {
+                offen--;
+                history.replaceState(neu, "");
+            } else {
+                history.pushState(neu, "");
+            }
+            eintrag.verlauf = true;
+        } catch (fehler) {
+            /* file:// o. ä.: dann ohne Zurück-Taste */
+        }
+    }
+
+    /* Einträge still zurücknehmen — erst nach dem laufenden Zug (siehe oben), oder sofort mit `abgleichen()`. */
+    let offen = 0;
+    let geplant = false;
+
+    function abgleichen() {
+        geplant = false;
+        const n = offen;
+        offen = 0;
+        if (n <= 0 || !hatVerlauf()) {
+            return;
+        }
+        stille++;
+        try {
+            if (n === 1) {
+                history.back();
+            } else {
+                history.go(-n);
+            }
+        } catch (fehler) {
+            stille--;
+        }
+    }
+
+    function eintragZuruecknehmen(eintrag, wie) {
+        if (!eintrag.verlauf) {
+            return;
+        }
+        eintrag.verlauf = false;
+        if (wie === "verlauf" || wie === "alle" || !hatVerlauf()) {
+            return;
+        }
+        offen++;
+        if (!geplant) {
+            geplant = true;
+            setTimeout(abgleichen, 0);
+        }
+    }
+
+    /* Zurück-Taste: true = für den Baustein (still oder oberstes geschlossen); die App tut dann nichts. */
+    function beiZurueck(ereignis) {
+        if (ereignis && ereignis === letztesEreignis) {
+            return true;
+        }
+        if (stille > 0) {
+            stille--;
+            letztesEreignis = ereignis || null;
+            return true;
+        }
+        const oben = stapel[stapel.length - 1];
+        if (oben && oben.verlauf) {
+            oben.verlauf = false;
+            schliessenEintrag(oben, "verlauf");
+            letztesEreignis = ereignis || null;
+            return true;
+        }
+        return false;
+    }
+
+    /* Eigener Horcher (horchen: true): stehen gebliebene Einträge (nach „alle“) still überspringen. */
+    function aufPopstate(ereignis) {
+        if (beiZurueck(ereignis)) {
+            return;
+        }
+        const z = ereignis ? ereignis.state : null;
+        if (z && typeof z === "object" && typeof z.upBlatt === "number" && stapel.length === 0 && hatVerlauf()) {
+            try {
+                history.back();
+            } catch (fehler) {
+                /* nichts */
+            }
+        }
     }
 
     function rollen(y) {
@@ -146,6 +295,12 @@
         if (!horcht && typeof document !== "undefined" && document.addEventListener) {
             document.addEventListener("keydown", aufEsc);
             horcht = true;
+        }
+        mitVerlauf = o.verlauf === true;
+        if (mitVerlauf && o.horchen !== false && !horchtVerlauf && typeof window !== "undefined"
+                && typeof window.addEventListener === "function") {
+            window.addEventListener("popstate", aufPopstate);
+            horchtVerlauf = true;
         }
     }
 
@@ -205,6 +360,8 @@
 
         (ebenenEl || document.body).appendChild(ebene);
         hintenSetzen();
+        obenSetzen(ebene);
+        eintragAnlegen(eintrag);
         return eintrag;
     }
 
@@ -223,6 +380,7 @@
             eintrag.el.parentNode.removeChild(eintrag.el);
         }
         hintenSetzen();
+        eintragZuruecknehmen(eintrag, wie);
         if (typeof eintrag.optionen.beimSchliessen === "function") {
             eintrag.optionen.beimSchliessen(wie);
         }
@@ -252,7 +410,8 @@
         return stapel[stapel.length - 1] || null;
     }
 
-    const UPCREW_BLATT = { einrichten, oeffnen, schliessen, alleSchliessen, anzahl, blaetter, oben, _stapel: stapel };
+    const UPCREW_BLATT = { einrichten, oeffnen, schliessen, alleSchliessen, anzahl, blaetter, oben, beiZurueck,
+        verlaufAbgleichen: abgleichen, _stapel: stapel };
     if (typeof window !== "undefined") {
         window.UPCREW_BLATT = UPCREW_BLATT;
     }

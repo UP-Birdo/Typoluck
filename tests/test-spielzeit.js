@@ -155,7 +155,7 @@ function welt(ich) {
     pruefe("app.js startet das Zählen", /SPIELZEIT\.starten\(\)/.test(lesen("js/app.js")));
     pruefe("Nach „Spielstand sichern“ zieht der Gast-Stand um", /SPIELZEIT\.gastZumKonto\(ANMELDUNG\.ich\(\)\.id\)/.test(lesen("js/anmeldung.js")));
     const p = lesen("js/bildschirm-profil.js");
-    pruefe("Profil: Spielzeit und „dabei seit“", /_spielzeitBauen/.test(p) && /FORTSCHRITT\.spielzeitText/.test(p) && /dabei seit/.test(p));
+    pruefe("Profil: Spielzeit und „dabei seit“", /spielzeitZeilen/.test(p) && /FORTSCHRITT\.spielzeitText/.test(p) && /dabei seit/.test(p));
     pruefe("Einstellungen: Haken am Konto", /SPIELZEIT\.oeffentlichSetzen\(wert\)/.test(lesen("js/bildschirm-einstellungen.js")));
     const v = lesen("js/bildschirm-verwaltung.js");
     pruefe("Verwaltung: Spielzeit je Spieler", /spielzeitSumme\(spieler\.fortschritt\)/.test(v) && /spielzeitText\(daten, zeile\.uid\)/.test(v));

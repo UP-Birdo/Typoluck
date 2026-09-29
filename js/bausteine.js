@@ -350,8 +350,8 @@ const BAUSTEINE = {
            (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md). Seit 0.9.0 kein
            eigener Tab mehr, nur noch die Zeile in den Einstellungen. */
         anpassen: "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19",
-        /* „Standard-Schrift" in den Einstellungen (seit 0.8.0): ein grosses
-           A mit Grundlinie. */
+        /* Ein grosses A mit Grundlinie (bis 0.25.0 „Standard-Schrift" in
+           den Einstellungen). */
         schrift: "M5 19 L12 4 L19 19 M8 13 H16 M3 21 H21",
         /* Hell/dunkel in den Einstellungen (seit 0.6.0): ein Kreis, halb
            geteilt, mit Strichen in der dunklen Hälfte. */

@@ -107,6 +107,11 @@ const APP = {
         /* Der Fortschritt am Konto (seit 0.15.1, Regel §11b eingespielt):
            dieselben Leute wie beim Aussehen — nur echte Konten. */
         FORTSCHRITT_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
+        /* Die Status-Lampe der Einstellungen (seit 0.26.0) folgt jedem
+           Speicher-Ereignis: Konten-Abgleich, Fortschritt, Netz an/aus. */
+        FORTSCHRITT_ABGLEICH.beiZustand = () => APP._lampeAuffrischen();
+        window.addEventListener("online", () => APP._lampeAuffrischen());
+        window.addEventListener("offline", () => APP._lampeAuffrischen());
 
         /* Spielzeit und „dabei seit" (seit 0.24.0, wie Blunderluck v0.155.0):
            gezählt, solange die Seite sichtbar ist — auch als Gast. */
@@ -128,12 +133,12 @@ const APP = {
         }
 
         /* 3. Bildschirme. Die Leiste unten führt ihre Einträge selbst
-           (NAVIGATION.LEISTE); Profil, Freunde, Einstellungen und
-           Verwaltung öffnen seit 0.25.0 als Blatt (das Menü hinter den drei
-           Balken ist weg). */
+           (NAVIGATION.LEISTE); Profil, Einstellungen und Verwaltung öffnen
+           seit 0.25.0 als Blatt (das Menü hinter den drei Balken ist weg).
+           Die Freunde sind seit 0.26.0 ein Reiter der Rangliste (keine
+           eigene Seite mehr, js/bildschirm-freunde.js baut nur den Inhalt). */
         START.anmelden();
         PROFIL_BILDSCHIRM.anmelden();
-        FREUNDE_BILDSCHIRM.anmelden();
         SHOP_BILDSCHIRM.anmelden();
         VERWALTUNG_BILDSCHIRM.anmelden();
         EINSTELLUNGEN_BILDSCHIRM.anmelden();
@@ -260,7 +265,13 @@ const APP = {
         });
     },
 
+    /* Der letzte Zustand des Konten-Abgleichs (laedt | schreibt | bereit |
+       fehler) — für die Status-Lampe (seit 0.26.0). */
+    _status: "",
+
     _beiStatus(status, text) {
+        APP._status = status;
+        APP._lampeAuffrischen();
         if (status === "fehler") {
             APP.hinweisZeigen(text);
         } else if (status === "bereit") {
@@ -290,6 +301,8 @@ const APP = {
         await AUSSEHEN_ABGLEICH.holen();
         /* Der Fortschritt vom Konto (seit 0.15.1). */
         await APP._fortschrittHolen();
+        /* Danach einmal alte Flammen-Schilde erstatten (seit 0.26.0). */
+        APP.schildeErstatten();
 
         const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);
         if (nachgereicht.gesendet > 0) {
@@ -300,6 +313,58 @@ const APP = {
 
         /* Ein Gast wird hin und wieder gefragt, ob er sichern will (v0.2.0). */
         await ANMELDUNG.gastErinnern();
+    },
+
+    /*
+     * Was die Status-Lampe braucht (seit 0.26.0, Nutzer 29.09.2026: „bei
+     * speicher mache eine status lampe rein"): der ECHTE Zustand von Netz,
+     * Konten-Abgleich, Fortschritt am Konto und wartenden Ergebnissen.
+     * Welche Farbe daraus wird, sagt EINSTELLUNGEN_BILDSCHIRM.lampeZustand.
+     */
+    speicherLage() {
+        let ausstehend = 0;
+        try {
+            ausstehend = ICH.ausstehend().length;
+        } catch (fehler) {
+            ausstehend = 0;
+        }
+        return {
+            online: typeof navigator === "undefined" || navigator.onLine !== false,
+            status: APP._status,
+            fortschritt: FORTSCHRITT_ABGLEICH.zustand || "",
+            ausstehend: ausstehend
+        };
+    },
+
+    _lampeAuffrischen() {
+        if (typeof EINSTELLUNGEN_BILDSCHIRM !== "undefined") {
+            EINSTELLUNGEN_BILDSCHIRM.lampeAuffrischen();
+        }
+    },
+
+    /*
+     * ALTE FLAMMEN-SCHILDE ERSTATTEN (seit 0.26.0; Schild und Serien-Schutz
+     * sind weg): Wer noch unbenutzte Schilde hat, bekommt EINMAL den
+     * Kaufpreis (50 je Stück) in Münzen — gerechnet in
+     * `FORTSCHRITT.schildeErstatten`, gemerkt im Zähler `schildErstattet`.
+     * Nach der Anmeldung, wenn der Konto-Stand da ist. Liefert die Münzen.
+     */
+    SCHILD_PREIS: 50,
+
+    schildeErstatten() {
+        const probe = FORTSCHRITT.schildeErstatten(APP.fortschritt(), FORTSCHRITT.APP, APP.SCHILD_PREIS, Date.now());
+        if (probe.stueck <= 0) {
+            return 0;
+        }
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) =>
+            FORTSCHRITT.schildeErstatten(FORTSCHRITT_ABGLEICH.mitKonto(stand), FORTSCHRITT.APP,
+                APP.SCHILD_PREIS, Date.now()));
+        if (ergebnis.stueck > 0) {
+            FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+            DIALOG.kurzmeldung("Schilde erstattet · +" + ergebnis.muenzen + " "
+                + (typeof UPCREW_MUENZEN !== "undefined" ? UPCREW_MUENZEN.WAEHRUNG.name : "Münzen"), 3000);
+        }
+        return ergebnis.muenzen || 0;
     },
 
     async _eigenenVerlaufLaden() {
@@ -807,16 +872,15 @@ const APP = {
     rundeGestartet() {
         const datum = WORDLE.datumText(APP.jetzt());
         const probe = APP.fortschritt();
-        const schutzProbe = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(probe).level);
-        if (!FORTSCHRITT.rundeGestartet(probe, datum, Date.now(), undefined, schutzProbe).neu) {
+        /* Seit 0.26.0 ohne Serien-Schutz (Schutz 0, js/fortschritt.js). */
+        if (!FORTSCHRITT.rundeGestartet(probe, datum, Date.now(), undefined, 0).neu) {
             return null;
         }
         const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), (stand) => {
             const vorher = FORTSCHRITT_ABGLEICH.mitKonto(stand);
-            const schutz = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(vorher).level);
-            const r = FORTSCHRITT.rundeGestartet(vorher, datum, Date.now(), undefined, schutz);
+            const r = FORTSCHRITT.rundeGestartet(vorher, datum, Date.now(), undefined, 0);
             let muenzen = 0;
-            const bisher = FORTSCHRITT.serie(vorher, datum, schutz);
+            const bisher = FORTSCHRITT.serie(vorher, datum, 0);
             if (r.neu && typeof UPCREW_MUENZEN !== "undefined" && r.serie > 0 && r.serie % 7 === 0
                     && !(bisher.heute && bisher.tage === r.serie)) {
                 muenzen = UPCREW_MUENZEN.VERDIENST.serieWoche;

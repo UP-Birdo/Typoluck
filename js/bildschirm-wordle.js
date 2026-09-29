@@ -119,25 +119,24 @@ const WORDLE_BILDSCHIRM = {
         const heute = WORDLE.datumText(APP.jetzt());
         const schluessel = "wordle-" + modus;
         const gemerkt = WORDLE.normalisieren(ICH.spielstand(schluessel));
-        const schwer = WORDLE_BILDSCHIRM.schwerGewaehlt();
 
         if (modus === "tag") {
             if (gemerkt && gemerkt.modus === "tag" && gemerkt.datum === heute) {
-                return WORDLE_BILDSCHIRM._schwerVorDemErstenVersuch(gemerkt, schwer);
+                return WORDLE_BILDSCHIRM.ohneSchwer(gemerkt);
             }
             const tag = WORDLE.tageswort(heute);
             return WORDLE.neueRunde({
                 modus: "tag", datum: heute, nummer: tag.nummer,
-                loesung: tag.wort, zeitpunkt: APP.jetzt().getTime(), schwer: schwer
+                loesung: tag.wort, zeitpunkt: APP.jetzt().getTime()
             });
         }
 
         if (gemerkt && gemerkt.modus === "uebung" && gemerkt.zustand === "laeuft" && !neueUebung) {
-            return WORDLE_BILDSCHIRM._schwerVorDemErstenVersuch(gemerkt, schwer);
+            return WORDLE_BILDSCHIRM.ohneSchwer(gemerkt);
         }
         return WORDLE.neueRunde({
             modus: "uebung", loesung: WORDLE.uebungswort(Math.random()),
-            zeitpunkt: APP.jetzt().getTime(), schwer: schwer
+            zeitpunkt: APP.jetzt().getTime()
         });
     },
 
@@ -173,32 +172,21 @@ const WORDLE_BILDSCHIRM = {
     },
 
     /*
-     * Der Schwer-Modus (seit 0.6.0) ist eine Einstellung dieses Geräts; die
-     * Runde merkt sich beim Anlegen, ob sie schwer ist (js\wordle.js). Eine
-     * gemerkte Runde OHNE Versuch übernimmt noch die aktuelle Wahl — wer
-     * das Tageswort geöffnet, aber nicht angefangen hat, soll umschalten
-     * können. Ab dem ersten Versuch bleibt es, wie es war.
+     * Den Schwer-Modus als Einstellung gibt es seit 0.26.0 nicht mehr
+     * (Nutzer 29.09.2026: „mach den schweren modus raus braucht es nicht
+     * mehr"; von 0.6.0 bis 0.25.0 ein Schalter in den Einstellungen). Eine
+     * gemerkte Tageswort- oder Übungsrunde, die noch schwer angelegt wurde,
+     * spielt ab jetzt ohne — eine Regel weniger nimmt niemandem etwas. Nur
+     * die Bibliothek kennt ihn weiter als Regel `hart` einer Station
+     * (Elite „Bücherwurm", Bosse; `runde.regeln`, js\wordle.js).
      */
-    schwerGewaehlt() {
-        return ICH.einstellung("schwer", false) === true;
-    },
-
-    schwerSetzen(wert) {
-        ICH.einstellungSetzen("schwer", wert === true);
-    },
-
-    _schwerVorDemErstenVersuch(runde, schwer) {
-        /* Eine Runde mit eigenen Regeln (seit 0.19.0) folgt nur ihrer Regel
-           `hart`, nicht der Einstellung. */
-        if (runde.regeln) {
+    ohneSchwer(runde) {
+        if (!runde || runde.regeln || runde.schwer !== true) {
             return runde;
         }
-        if (runde.versuche.length === 0 && runde.schwer !== schwer) {
-            const neu = JSON.parse(JSON.stringify(runde));
-            neu.schwer = schwer;
-            return neu;
-        }
-        return runde;
+        const neu = JSON.parse(JSON.stringify(runde));
+        neu.schwer = false;
+        return neu;
     },
 
     _merken() {
@@ -233,14 +221,9 @@ const WORDLE_BILDSCHIRM = {
                 beiKlick: () => WORDLE_BILDSCHIRM._anleitungZeigen()
             })
         });
-        /* „schwer" klein unter dem Titel, solange die Runde im Schwer-Modus
-           läuft (seit 0.6.0) — damit man weiss, warum ein Wort abgewiesen
-           wird. Als eigene Zeile, weil „… · schwer" im Titel auf schmalen
-           Handys umbrach. */
-        if (runde.schwer) {
-            kopf.querySelector(".kopfzeile-titel")
-                .appendChild(BAUSTEINE.el("span", "kopfzeile-zusatz", "schwer"));
-        }
+        /* „schwer" unter dem Titel (0.6.0 bis 0.25.0) ist weg: den harten
+           Modus gibt es nur noch als Regel einer Bibliothek-Station, und die
+           zeigt ihre Chips. */
         /* Der Boss eines Buchs (seit 0.18.0): rote Kopfzeile mit „BOSS". */
         if (runde.modus === "bibliothek" && BIBLIOTHEK.istBoss(runde.buch, runde.station)) {
             kopf.classList.add("kopfzeile-boss");

@@ -31,6 +31,9 @@
  *                                                                 // Marke „UP“) + alle angemeldeten Spiele
  *     UPCREW_ABZEICHEN.ausgeruestet(alle, konto.abzeichen, 3, umdeuten)   // die gewählten, nur verdiente
  *     UPCREW_ABZEICHEN.kachel(eintrag, beiKlick)   // mit `pfad` eigenes Zeichen, mit `marke` kleines Schild oben
+ *     UPCREW_ABZEICHEN.symbol(eintrag, beiKlick)   // KOMPAKT: nur das Zeichen im Kreis (Name als title/aria-label)
+ *     UPCREW_ABZEICHEN.fremdAusgeruestet(alle, gewaehlt, 3, umdeuten, pruefen)   // FREMDE: Spiel-Abzeichen gelten
+ *                                                  // als verdient (seit 29.09.2026 in beiden Apps gleich)
  */
 (function () {
     "use strict";
@@ -213,6 +216,26 @@
         return aus;
     }
 
+    /* FREMDE PROFILE (Nutzer 29.09.2026: „die 3 ausgerüsteten werden überall gezeigt, egal aus welchem Spiel — auch
+       bei Fremden“): Abzeichen EINES Spiels stehen nicht im öffentlichen Auszug. Die Auswahl nimmt nur Verdientes an
+       (UPCREW_PROFIL.abzeichenWahl), also gilt jedes gewählte Spiel-Abzeichen als verdient (mindestens Stufe 1) —
+       ausser `pruefen(eintrag)` sagt ausdrücklich false (z. B. Blunderluck prüft bl-… an der Chronik). Die gemeinsamen
+       (up-…) rechnet der Auszug selbst. Setzt `erreicht` in `eintraege` mit (auch „Abzeichen“ im Profil) und liefert
+       die ausgerüsteten wie `ausgeruestet`. */
+    function fremdAusgeruestet(eintraege, gewaehlt, max, umdeuten, pruefen) {
+        const vorrat = Array.isArray(eintraege) ? eintraege : [];
+        const kennungen = (Array.isArray(gewaehlt) ? gewaehlt : [])
+            .map((roh) => (typeof umdeuten === "function") ? umdeuten(roh) : roh);
+        for (const kennung of kennungen) {
+            const e = vorrat.find((x) => (x.kennung || x.id) === kennung);
+            if (e && String(e.kennung || "").indexOf("up-") !== 0
+                    && !(typeof pruefen === "function" && pruefen(e) === false)) {
+                e.erreicht = Math.max(1, Number(e.erreicht) || 0);
+            }
+        }
+        return ausgeruestet(vorrat, kennungen, max);
+    }
+
     /* ---- Aussehen (1:1 Typoluck, Klassen up-az-…) ---- */
 
     function el(tag, klasse, text) {
@@ -293,6 +316,32 @@
         return inhalt;
     }
 
+    /* KOMPAKT (Start-Kopf, Vorschau-Karte, „Ausgerüstet“ im Profil; Koordination 29.09.2026 „Start ohne Scrollen“):
+       nur das Zeichen im Kreis, kein Wort — der Name steht in title/aria-label bzw. beim Antippen. Ohne Eintrag ein
+       leerer Kreis. Mit `beiKlick` ein Knopf, sonst ein span. */
+    function symbol(eintrag, beiKlick) {
+        const knopf = typeof beiKlick === "function";
+        const s = el(knopf ? "button" : "span", "up-az-symbol" + (eintrag ? (eintrag.erreicht > 0 ? " up-az-an" : "")
+            : " up-az-symbol-leer"));
+        if (knopf) {
+            s.type = "button";
+            s.addEventListener("click", beiKlick);
+        }
+        if (eintrag) {
+            const name = String(eintrag.titel || eintrag.kurz || "")
+                + (eintrag.spielName ? " · " + eintrag.spielName : "");
+            s.setAttribute(knopf ? "aria-label" : "title", name);
+            if (knopf) {
+                s.title = name;
+            } else {
+                s.setAttribute("role", "img");
+                s.setAttribute("aria-label", name);
+            }
+            s.appendChild(zeichen(eintrag.zeichen, eintrag.pfad));
+        }
+        return s;
+    }
+
     /* Alle fünf im Raster; `beiKlick(eintrag)` je Abzeichen. */
     function raster(eintraege, beiKlick) {
         const r = el("div", "up-az-raster");
@@ -303,8 +352,9 @@
     }
 
     const UPCREW_ABZEICHEN = { ABZEICHEN: ABZEICHEN, ZEICHEN: ZEICHEN, werte: werte, liste: liste,
-        kachel: kachel, blatt: blatt, raster: raster,
-        SPIELE: SPIELE, registrieren: registrieren, spielListe: spielListe, alle: alle, ausgeruestet: ausgeruestet };
+        kachel: kachel, symbol: symbol, blatt: blatt, raster: raster,
+        SPIELE: SPIELE, registrieren: registrieren, spielListe: spielListe, alle: alle, ausgeruestet: ausgeruestet,
+        fremdAusgeruestet: fremdAusgeruestet };
     globalThis.UPCREW_ABZEICHEN = UPCREW_ABZEICHEN;
     if (typeof module !== "undefined" && module.exports) {
         module.exports = UPCREW_ABZEICHEN;

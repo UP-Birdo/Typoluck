@@ -1,49 +1,42 @@
 /*
- * upcrew-serie.js — die Serien-Kapsel im Kopf: Flammen-Kreis, dahinter die Woche und die beiden Schilde; ein Tipp
- * öffnet die Karte mit Erklärung und „Schild kaufen“. Gleich in allen UPCrew-Spielen (gehört zu css/upcrew-serie.css,
- * braucht js/upcrew-flamme.js). Entstanden in Blunderluck v0.156.0 als Vorschlag für Design\3D-Schrift\final
- * (Entwurf Oberfläche Runde 7, vom Nutzer abgenommen 28.09.2026).
+ * upcrew-serie.js — die Serien-Kapsel im Kopf: Flammen-Kreis, dahinter die Woche; ein Tipp öffnet die Karte (große
+ * Flamme, Woche, Schließen). Gleich in allen UPCrew-Spielen (gehört zu css/upcrew-serie.css, braucht
+ * js/upcrew-flamme.js). Entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7, abgenommen 28.09.2026).
  *
- * Nutzer, 28.09.2026 (Entwurf): Serie „oben hinter der Flamme“ mit den Schilden (Flammen-Schild aus dem Shop,
- * Serien-Schutz vom Level); die Flamme fällt in den Herausforderungen weg.
+ * OHNE SCHILDE (Nutzer 29.09.2026: „serien schild raus wenn du eine sieges serie hast soll nach einem lose nicht
+ * aufhaltbar sein“): Flammen-Schild (Shop) und Serien-Schutz (Level) sind KOMPLETT weg — keine Schild-Zeichen in der
+ * Kapsel, keine Schild-Reihen und kein „Schild kaufen“ in der Karte. Die Serie reißt ohne Rettung.
+ * Rückwärts verträglich: alte Werte `schild`, `schildMax`, `schutz`, `schutzAlle` und eine alte Option `beiKauf`
+ * werden still übergangen; nichts stürzt ab.
  *
  *     const k = UPCREW_SERIE.kapsel(halter, { beiKlick: () => … });   // hängt die Kapsel an `halter`
  *     k.setzen(werte);                                                // jederzeit, wenn der Stand kommt
- *     UPCREW_SERIE.karteFuellen(el, werte, { beiKauf: () => …, beiZu: () => … });   // Inhalt der Karte
+ *     UPCREW_SERIE.karteFuellen(el, werte, { beiZu: () => … });       // Inhalt der Karte
  *
  *     werte = {
  *         serie: 12,             // Tage am Stück
  *         heute: true,           // heute schon geschafft
  *         woche: [false, …, true],   // die letzten 7 Tage, heute zuletzt
- *         tage: ["Mo", …],       // wahlfrei: Namen der 7 Tage (sonst leer)
- *         schild: 1, schildMax: 2,   // Flammen-Schild aus dem Shop (Vorrat, Höchstmenge)
- *         schutz: 1, schutzAlle: 1   // Serien-Schutz vom Level (frei, verdient)
+ *         tage: ["Mo", …]        // wahlfrei: Namen der 7 Tage (sonst leer)
  *     }
  *
- * Texte (wahlfrei `texte` bei karteFuellen): { zaehlt, schild, schildText, schutz, schutzText, zu, kaufen }.
- * Kein Spiel-Eigenes: Zahlen und Ziel des Kaufknopfs liefert die App. Alles über textContent; Farben aus der
- * Farbwelt (--haupt, --karte, --karte-leise, --rahmen, --schrift, --schrift-leise).
+ * Texte (wahlfrei `texte` bei karteFuellen): { zaehlt, heuteJa, heuteNein, zu }.
+ * Kein Spiel-Eigenes. Alles über textContent; Farben aus der Farbwelt (--haupt, --karte, --karte-leise, --rahmen,
+ * --schrift, --schrift-leise).
  */
 (function () {
     "use strict";
 
     const RAUM = "http://www.w3.org/2000/svg";
     const PFADE = {
-        flamme: "M12 3 C15 7 18 9 18 14 A6 6 0 0 1 6 14 C6 11 8 9 9 7 C10 10 11 11 12 11 C12 8 11 6 12 3 Z",
-        schild: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z",
-        schildLevel: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z M9 12 L11 14 L15 10"
+        flamme: "M12 3 C15 7 18 9 18 14 A6 6 0 0 1 6 14 C6 11 8 9 9 7 C10 10 11 11 12 11 C12 8 11 6 12 3 Z"
     };
 
     const TEXTE = {
-        zaehlt: "zählt in allen Spielen",
+        zaehlt: "alle Spiele",
         heuteJa: "Heute geschafft",
-        heuteNein: "Heute noch offen",
-        schild: "Flammen-Schild",
-        schildText: "Aus dem Shop. Rettet die Serie einmal, dann ist er weg.",
-        schutz: "Serien-Schutz",
-        schutzText: "Vom Level. Überbrückt je Serie einen Tag; neue Serie = wieder voll.",
-        zu: "Schließen",
-        kaufen: "Schild kaufen"
+        heuteNein: "Heute offen",
+        zu: "Schließen"
     };
 
     function el(tag, klasse, text) {
@@ -71,7 +64,7 @@
 
     const zahl = (w) => Math.max(0, Math.floor(Number(w) || 0));
 
-    /* Reine Logik (getestet): die Werte sauber, die Woche immer 7 lang. */
+    /* Reine Logik (getestet): die Werte sauber, die Woche immer 7 lang. Alte Schild-Felder fallen weg. */
     function sauber(werte) {
         const w = werte || {};
         const woche = (Array.isArray(w.woche) ? w.woche : []).slice(-7).map((a) => a === true);
@@ -86,24 +79,12 @@
             serie: zahl(w.serie),
             heute: w.heute === true,
             woche: woche,
-            tage: tage,
-            schild: zahl(w.schild),
-            schildMax: zahl(w.schildMax),
-            schutz: zahl(w.schutz),
-            schutzAlle: zahl(w.schutzAlle)
+            tage: tage
         };
     }
 
     function beschriftung(w) {
-        return "Serie " + w.serie + (w.serie === 1 ? " Tag" : " Tage")
-            + " · Flammen-Schild " + w.schild + " · Serien-Schutz " + w.schutz;
-    }
-
-    function schildZeichen(art, anzahl) {
-        const s = el("span", "up-se-schild up-se-" + art + (anzahl > 0 ? "" : " up-se-leer"));
-        s.appendChild(zeichen(art === "kauf" ? "schild" : "schildLevel"));
-        s.appendChild(document.createTextNode(String(anzahl)));
-        return s;
+        return "Serie " + w.serie + (w.serie === 1 ? " Tag" : " Tage") + " · " + (w.heute ? "heute geschafft" : "heute offen");
     }
 
     function kapsel(halter, optionen) {
@@ -123,9 +104,7 @@
         const hinten = el("span", "up-se-hinten");
         hinten.setAttribute("aria-hidden", "true");
         const woche = el("span", "up-se-woche");
-        const schilde = el("span", "up-se-schilde");
         hinten.appendChild(woche);
-        hinten.appendChild(schilde);
         knopf.appendChild(hinten);
 
         const tippen = () => {
@@ -146,7 +125,7 @@
         function setzen(werte) {
             const w = sauber(werte);
             if (flamme) {
-                flamme.setzen({ serie: w.serie, heuteGeschafft: w.heute, schutz: w.schild + w.schutz });
+                flamme.setzen({ serie: w.serie, heuteGeschafft: w.heute });
             }
             woche.innerHTML = "";
             w.woche.forEach((an, i) => {
@@ -154,9 +133,6 @@
                 tag.appendChild(zeichen("flamme"));
                 woche.appendChild(tag);
             });
-            schilde.innerHTML = "";
-            schilde.appendChild(schildZeichen("kauf", w.schild));
-            schilde.appendChild(schildZeichen("level", w.schutz));
             knopf.setAttribute("aria-label", beschriftung(w));
             return w;
         }
@@ -164,17 +140,6 @@
         halter.appendChild(knopf);
         setzen(o.werte || {});
         return { el: knopf, flamme: flamme, setzen: setzen };
-    }
-
-    function reihe(art, titel, text, zahlText) {
-        const r = el("div", "up-se-reihe up-se-reihe-" + art);
-        r.appendChild(zeichen(art === "kauf" ? "schild" : "schildLevel", "up-se-reihe-zeichen"));
-        const mitte = el("div", "up-se-reihe-text");
-        mitte.appendChild(el("b", "", titel));
-        mitte.appendChild(el("small", "", text));
-        r.appendChild(mitte);
-        r.appendChild(el("span", "up-se-zahl", zahlText));
-        return r;
     }
 
     function knopf(klasse, text, beiKlick) {
@@ -198,7 +163,7 @@
         gross.appendChild(flammeOrt);
         if (typeof UPCREW_FLAMME !== "undefined") {
             const f = UPCREW_FLAMME.bauen(flammeOrt);
-            f.setzen({ serie: w.serie, heuteGeschafft: w.heute, schutz: 0 });
+            f.setzen({ serie: w.serie, heuteGeschafft: w.heute });
             if (f.el) {
                 f.el.tabIndex = -1;
             }
@@ -218,24 +183,12 @@
         });
         ort.appendChild(woche);
 
-        ort.appendChild(reihe("kauf", t.schild, t.schildText, w.schild + (w.schildMax > 0 ? " / " + w.schildMax : "")));
-        ort.appendChild(reihe("level", t.schutz, t.schutzText, w.schutz + " / " + w.schutzAlle));
-
         const knoepfe = el("div", "up-se-knoepfe");
         knoepfe.appendChild(knopf("up-zweit", t.zu, () => {
             if (typeof o.beiZu === "function") {
                 o.beiZu();
             }
         }));
-        const kauf = knopf("up-haupt", t.kaufen, () => {
-            if (typeof o.beiKauf === "function") {
-                o.beiKauf();
-            }
-        });
-        if (w.schildMax > 0 && w.schild >= w.schildMax) {
-            kauf.disabled = true;
-        }
-        knoepfe.appendChild(kauf);
         ort.appendChild(knoepfe);
         return w;
     }

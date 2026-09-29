@@ -25,15 +25,16 @@ const STUFEN = fenster.UPCREW_ANPASSEN.STUFEN;
 
 const modi = SAMMLUNG.GRUPPEN.find((g) => g.id === "modi");
 pruefe("Es gibt die Gruppe Modi", !!modi);
-gleich("Modi: die fünf Stücke in der Reihenfolge des Auftrags", modi.stuecke.map((s) => s.id),
-    ["tag", "uebung", "schwer", "blitzwort", "duell"]);
+/* Seit 0.26.0 ohne „Schwer" (Nutzer 29.09.2026: Schwer-Modus raus). */
+gleich("Modi: die vier Stücke in der Reihenfolge des Auftrags", modi.stuecke.map((s) => s.id),
+    ["tag", "uebung", "blitzwort", "duell"]);
 gleich("Modi: da sind die, die es heute gibt", modi.stuecke.filter((s) => s.da).map((s) => s.id),
-    ["tag", "uebung", "schwer"]);
+    ["tag", "uebung"]);
 pruefe("Was noch nicht da ist, sagt „Kommt“",
     modi.stuecke.filter((s) => !s.da).every((s) => /^Kommt: /.test(s.text)));
 pruefe("Jedes Stück hat eine Zeile, keinen Satz mit Punkt",
     modi.stuecke.every((s) => s.text && s.text.length <= 60 && !/\.$/.test(s.text)));
-gleich("Modi zählen 3/5", SAMMLUNG.gruppeZaehlen(modi), { hat: 3, alle: 5 });
+gleich("Modi zählen 2/4", SAMMLUNG.gruppeZaehlen(modi), { hat: 2, alle: 4 });
 
 /* Anteil: bei Stufe 0 je Aussehen-Regal nur die Stücke mit Stufe 0. */
 /* Kachel-Sets über Taten (seit 0.13.0) */
@@ -43,7 +44,7 @@ gleich("Kachel-Sets: die fünf aus dem Entwurf zuerst, dann fünf Vorschläge (s
     ["Papier", "Leder", "Blei", "Holz", "Neon", "Kreide", "Sand", "Mitternacht", "Kupfer", "Glas"]);
 pruefe("Kachel-Sets sind anziehbar", sets.stuecke.every((s) => s.anziehbar === true));
 gleich("Werkstatt: alle Sets da, Modi unverändert", SAMMLUNG.gruppen([], true).map((g) => SAMMLUNG.gruppeZaehlen(g)),
-    [{ hat: 3, alle: 5 }, { hat: 10, alle: 10 }]);
+    [{ hat: 2, alle: 4 }, { hat: 10, alle: 10 }]);
 gleich("Ohne Taten: nur Papier da", SAMMLUNG.gruppeZaehlen(SAMMLUNG.gruppen([]).find((g) => g.id === "kachelsets")),
     { hat: 1, alle: 10 });
 gleich("Mit Tat: das Stück ist da", SAMMLUNG.gruppen(new Set(["serie-7"])).find((g) => g.id === "kachelsets")
@@ -63,7 +64,7 @@ pruefe("Jedes Set kommt über genau einen Weg (frei, Tat oder Level)",
     sets.stuecke.every((s) => [s.da === true, !!s.tat, typeof s.ab === "number"].filter(Boolean).length === 1));
 pruefe("Keine Level-Stufe fällt auf einen Rahmen (10, 15, 20 …)",
     Object.values(SAMMLUNG.kachelsetStufen()).every((l) => l < 10 || l % 5 !== 0));
-gleich("Anteil zählt Sets über das Level", SAMMLUNG.anteil(null, 12, false).hat, 3 + 1 + 4);
+gleich("Anteil zählt Sets über das Level", SAMMLUNG.anteil(null, 12, false).hat, 2 + 1 + 4);
 gleich("Stücke zu Taten (für die Kurzmeldung)", SAMMLUNG.stueckeZuTaten(["koennen-90"]).map((s) => s.name), ["Neon"]);
 pruefe("Die Gruppen-Vorlage bleibt unverändert", !sets.stuecke[1].da);
 
@@ -72,15 +73,15 @@ const aussehenFrei0 = ["farbwelt", "schrift", "knoepfe"]
     .reduce((n, t) => n + Object.values(STUFEN[t]).filter((s) => s <= 0).length, 0);
 const null0 = SAMMLUNG.anteil(STUFEN, 0, false);
 gleich("Anteil Stufe 0: gezählt über Aussehen + Modi + Kachel-Sets", [null0.hat, null0.alle],
-    [aussehenFrei0 + 3 + 1, aussehenAlle + 5 + 10]);
+    [aussehenFrei0 + 2 + 1, aussehenAlle + 4 + 10]);
 gleich("Anteil Stufe 0: Prozent gerundet", null0.prozent,
-    Math.round((aussehenFrei0 + 4) / (aussehenAlle + 15) * 100));
+    Math.round((aussehenFrei0 + 3) / (aussehenAlle + 14) * 100));
 const werkstatt = SAMMLUNG.anteil(STUFEN, 0, true);
-gleich("Werkstatt: alles Aussehen frei, Modi 3/5, Sets nach Taten", werkstatt.hat, aussehenAlle + 4);
+gleich("Werkstatt: alles Aussehen frei, Modi 2/4, Sets nach Taten", werkstatt.hat, aussehenAlle + 3);
 pruefe("Höhere Stufe gibt nie weniger", SAMMLUNG.anteil(STUFEN, 5, false).hat >= null0.hat);
 gleich("Taten zählen im Anteil mit", SAMMLUNG.anteil(STUFEN, 0, false, ["serie-7", "koennen-90"]).hat, null0.hat + 2);
 pruefe("Darstellung zählt nicht mit (immer frei, kein Sammelstück)",
     SAMMLUNG.AUSSEHEN_TEILE.indexOf("darstellung") === -1);
-gleich("Ohne Stufen-Tabelle: nur die Gruppen", SAMMLUNG.anteil(null, 0, false), { hat: 4, alle: 15, prozent: 27 });
+gleich("Ohne Stufen-Tabelle: nur die Gruppen", SAMMLUNG.anteil(null, 0, false), { hat: 3, alle: 14, prozent: 21 });
 
 fazit();

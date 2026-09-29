@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.25.0";
+const SPEICHER_NAME = "typoluck-v0.26.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -54,6 +54,7 @@ const DATEIEN = [
     "./css/upcrew-leiste.css",
     "./css/upcrew-blatt.css",
     "./css/upcrew-serie.css",
+    "./css/upcrew-levelpfad.css",
     "./css/upcrew-profil.css",
     "./css/upcrew-einstellungen.css",
     "./css/stil-blatt.css",
@@ -96,6 +97,7 @@ const DATEIEN = [
     "./js/upcrew-shop.js",
     "./js/upcrew-blatt.js",
     "./js/upcrew-serie.js",
+    "./js/upcrew-levelpfad.js",
     "./js/upcrew-profil.js",
     "./js/upcrew-einstellungen.js",
     "./js/speicher.js",

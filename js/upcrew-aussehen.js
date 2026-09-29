@@ -23,7 +23,9 @@
  *     farbwelt     "werkstatt" | "studio" | "feld" | "tiefsee" | "gold"
  *     schrift      "S1" … "S6"   (Crew-Schnitte, docs\SCHRIFT-KNOEPFE.md)
  *     knoepfe      "K1" … "K6"
- *     leseschrift  true = immer die Standard-Schrift, egal was gewählt ist
+ *     (leseschrift — seit 29.09.2026 WEG, Nutzer: „was macht standart schrift? brauchen wir eigentlich nicht“. Ein
+ *      alter Wert im Gerät oder am Konto wird still übergangen und beim nächsten Speichern nicht mehr geschrieben;
+ *      es gilt immer die gewählte `schrift`. Die Apps nehmen ihren Schalter „Standard-Schrift“ samt Hilfe heraus.)
  *     stand        Zeitpunkt der letzten Änderung (ms) — die neuere Wahl gewinnt
  *
  * WIE DIE ANDEREN APPS MITZIEHEN
@@ -69,7 +71,7 @@
     knoepfe: ["K1", "K2", "K3", "K4", "K5", "K6"],
   };
   // Standard = frei für alle. Schrift und Knöpfe: Sieger der Bewertung, bis dahin S1/K1.
-  const STANDARD = { darstellung: "geraet", farbwelt: "werkstatt", schrift: "S1", knoepfe: "K1", leseschrift: false, stand: 0 };
+  const STANDARD = { darstellung: "geraet", farbwelt: "werkstatt", schrift: "S1", knoepfe: "K1", stand: 0 };
 
   // Wo die Crew-Schriften liegen (relativ zur Seite). Die App setzt es, falls anders: UPCREW_AUSSEHEN.schriftPfad = "…/".
   let schriftPfad = "schrift/";
@@ -95,7 +97,6 @@
     const a = Object.assign({}, STANDARD);
     if (roh && typeof roh === "object") {
       for (const k of Object.keys(WAHL)) if (WAHL[k].indexOf(roh[k]) !== -1) a[k] = roh[k];
-      a.leseschrift = roh.leseschrift === true;
       a.stand = Number(roh.stand) > 0 ? Number(roh.stand) : 0;
     }
     return a;
@@ -162,8 +163,7 @@
   }
 
   function schriftFamilie(a) {
-    const s = a.leseschrift ? STANDARD.schrift : a.schrift;
-    return `"Crew ${s}", ${RUECKFALL}`;
+    return `"Crew ${a.schrift}", ${RUECKFALL}`;
   }
 
   /* Schreibt alles an <html>: data-darstellung (fehlt = Gerät), data-farbwelt, data-schrift, data-knoepfe
@@ -174,10 +174,10 @@
     if (!el || !el.dataset) return;
     const a = lesen();
     if (a.darstellung === "geraet") delete el.dataset.darstellung; else el.dataset.darstellung = a.darstellung;
-    el.dataset.schrift = a.leseschrift ? STANDARD.schrift : a.schrift;
+    el.dataset.schrift = a.schrift;
     el.dataset.knoepfe = a.knoepfe;
     if (el.style) {
-      schriftLaden(a.leseschrift ? STANDARD.schrift : a.schrift);
+      schriftLaden(a.schrift);
       el.style.setProperty("--schrift-familie", schriftFamilie(a));
       if (window.UPCREW_FARBWELTEN) window.UPCREW_FARBWELTEN.anwenden(a.farbwelt, modus(), el);
     }

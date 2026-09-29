@@ -14,8 +14,8 @@
  *      Modell (FORTSCHRITT.tlAbzeichenFelder), Zähler nur höher.
  *   3. SPIELER.abzeichenSetzen — höchstens drei, keine doppelt, nur der
  *      eigene Eintrag.
- *   4. Serien-Kapsel und Karte: „Schild kaufen" bei voller Höchstmenge
- *      gesperrt.
+ *   4. Serien-Kapsel und Karte: seit 0.26.0 ohne Schild und ohne Kauf
+ *      (alte Werte stürzen nicht ab).
  *   5. Einstellungen im gemeinsamen Aufbau: feste Reihenfolge, „Nur in
  *      Typoluck".
  *   6. Einbindung: index.html, sw.js (offline), Kopien byte-gleich mit
@@ -215,6 +215,7 @@ function navWelt() {
     gleich("Einstellungen und Verwaltung stapeln sich", B.anzahl(), 3);
     N.zeigen("einstellungen", null);
     gleich("Schon im Stapel: nur die darüber gehen zu (Verwaltung beenden)", B.anzahl(), 2);
+    B.verlaufAbgleichen();   // sonst erst nach dem laufenden Zug (setTimeout 0)
     w._zurueckAnkommen();
     gleich("… und ihr Verlaufseintrag wird still zurückgenommen", [N.aktuell, B.anzahl()], ["start", 2]);
 
@@ -232,6 +233,7 @@ function navWelt() {
     N.zeigen("freunde", null);
     const eintrag = B.oben();
     eintrag.schliessen();
+    B.verlaufAbgleichen();
     const zurueckVorher = w._verlauf.zurueck;
     gleich("Schliessen per Kreuz nimmt den eigenen Verlaufseintrag zurück", [B.anzahl(), zurueckVorher], [0, 1]);
     w._zurueckAnkommen();
@@ -240,6 +242,13 @@ function navWelt() {
 
     N.zeigen("profil", null, true);
     gleich("Mit ersetzen (Werkstatt): Blatt ohne Verlaufseintrag", B.anzahl(), 1);
+
+    /* Seit 0.26.0: auch Karten (Level-Pfad, Vorschau, Serie, Abzeichen-Wahl) legen einen Eintrag an. */
+    const stelleVorher = w._verlauf.stelle;
+    B.oeffnen({ art: "karte", titel: "Serie" });
+    gleich("Eine Karte legt einen Verlaufseintrag an", w._verlauf.stelle, stelleVorher + 1);
+    w._zurueckTaste();
+    gleich("Zurück-Taste schliesst die Karte, Blatt und Seite bleiben", [N.aktuell, B.anzahl()], ["rangliste", 1]);
 }
 
 /* Ohne Baustein (oder ohne Halter): wie früher eine Seite mit Kopfzeile. */
@@ -274,7 +283,7 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
 
 {
     const liste = SPIELE.typoluck.abzeichen;
-    gleich("Sechs Typoluck-Abzeichen", liste.length, 6);
+    gleich("Fünf Typoluck-Abzeichen (seit 0.26.0 ohne „Schwer-Profi“)", liste.length, 5);
     pruefe("Kennung tl-…, Zähler nur Buchstaben, einmalig",
         liste.every((e) => /^tl-[a-z-]+$/.test(e.kennung) && /^[a-zA-Z]{1,32}$/.test(e.feld)
             && e.weiter === 0 && e.stufen.length === 1));
@@ -287,36 +296,40 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
 
     let stand = FORTSCHRITT.normalisieren(leer);
     stand.spiele.typoluck = FORTSCHRITT.zweigLeer();
-    stand.spiele.typoluck.taten = ["zweiter-versuch", "schwer-geloest"];
+    stand.spiele.typoluck.taten = ["zweiter-versuch", "koennen-90"];
     stand.spiele.typoluck.zaehler.koennenBeste = 100;
     gleich("Taten, 100 % und das erste Buch",
         FORTSCHRITT.tlAbzeichenFelder(stand, { erreicht: 2, alle: 6 }),
-        { azZweiVersuche: 1, azSchwer: 1, azPerfekt: 1, azErstesBuch: 1 });
+        { azZweiVersuche: 1, azKoennen: 1, azPerfekt: 1, azErstesBuch: 1 });
+    gleich("Seit 0.26.0 kein „Schwer-Profi“ mehr (fünf Typoluck-Abzeichen)",
+        [liste.length, liste.some((e) => e.kennung === "tl-schwer"), "azSchwer" in FORTSCHRITT.TL_ABZEICHEN],
+        [5, false, false]);
     gleich("Alle Bücher: Bücherwurm",
         FORTSCHRITT.tlAbzeichenFelder(stand, { erreicht: 7, alle: 6 }).azBuecherwurm, 1);
 
-    const r = FORTSCHRITT.zaehlerHeben(stand, { azSchwer: 1, azPerfekt: 1 });
+    const r = FORTSCHRITT.zaehlerHeben(stand, { azKoennen: 1, azPerfekt: 1 });
     gleich("zaehlerHeben: zwei neu", r.neu, 2);
-    gleich("… stehen im eigenen Zweig", [r.stand.spiele.typoluck.zaehler.azSchwer, r.stand.spiele.typoluck.zaehler.azPerfekt], [1, 1]);
-    gleich("Nochmal: nichts neu (nur höher)", FORTSCHRITT.zaehlerHeben(r.stand, { azSchwer: 1 }).neu, 0);
-    const tiefer = FORTSCHRITT.zaehlerHeben(r.stand, { azSchwer: 0 });
-    gleich("Nie tiefer", [tiefer.neu, tiefer.stand.spiele.typoluck.zaehler.azSchwer], [0, 1]);
+    gleich("… stehen im eigenen Zweig", [r.stand.spiele.typoluck.zaehler.azKoennen, r.stand.spiele.typoluck.zaehler.azPerfekt], [1, 1]);
+    gleich("Nochmal: nichts neu (nur höher)", FORTSCHRITT.zaehlerHeben(r.stand, { azKoennen: 1 }).neu, 0);
+    const tiefer = FORTSCHRITT.zaehlerHeben(r.stand, { azKoennen: 0 });
+    gleich("Nie tiefer", [tiefer.neu, tiefer.stand.spiele.typoluck.zaehler.azKoennen], [0, 1]);
     gleich("Falsche Namen bleiben draussen", FORTSCHRITT.zaehlerHeben(r.stand, { "az-x": 1, "a b": 1 }).neu, 0);
     const mitBl = FORTSCHRITT.normalisieren(r.stand);
     mitBl.spiele.blunderluck = { zaehler: { azErsterSieg: 1 } };
     gleich("Fremde Zweige wandern unverändert durch",
-        FORTSCHRITT.zaehlerHeben(mitBl, { azKoennen: 1 }).stand.spiele.blunderluck, { zaehler: { azErsterSieg: 1 } });
+        FORTSCHRITT.zaehlerHeben(mitBl, { azErstesBuch: 1 }).stand.spiele.blunderluck, { zaehler: { azErsterSieg: 1 } });
     pruefe("Die Zähler gehen ans Konto (fuerKonto lässt az… durch)",
-        FORTSCHRITT.fuerKonto(r.stand).spiele.typoluck.zaehler.azSchwer === 1);
+        FORTSCHRITT.fuerKonto(r.stand).spiele.typoluck.zaehler.azKoennen === 1);
 
     const alle = A.alle(r.stand, 0);
     const tl = alle.filter((e) => e.spiel === "typoluck");
     gleich("Im gemeinsamen Baustein: verdient wird aus dem Zähler",
-        tl.filter((e) => e.erreicht > 0).map((e) => e.kennung).sort(), ["tl-perfekt", "tl-schwer"]);
+        tl.filter((e) => e.erreicht > 0).map((e) => e.kennung).sort(), ["tl-koennen", "tl-perfekt"]);
     gleich("Marke TL", tl[0].marke, "TL");
     gleich("Ausrüsten: nur verdiente, höchstens drei",
-        A.ausgeruestet(alle, ["tl-schwer", "tl-koennen", "tl-perfekt", "tl-schwer"], 3).map((e) => e.kennung),
-        ["tl-schwer", "tl-perfekt"]);
+        A.ausgeruestet(alle, ["tl-schwer", "tl-koennen", "tl-zwei-versuche", "tl-perfekt", "tl-koennen"], 3)
+            .map((e) => e.kennung),
+        ["tl-koennen", "tl-perfekt"]);
 }
 
 /* ------------------------------------------------------------------ *
@@ -342,22 +355,37 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
     const w = neueWelt();
     vm.runInContext(lesen("js/upcrew-serie.js") + "\n;" + lesen("js/upcrew-einstellungen.js"), w);
     const ort = neuesElement("div");
-    w.UPCREW_SERIE.karteFuellen(ort, { serie: 3, schild: 2, schildMax: 2, schutz: 1, schutzAlle: 1 }, {});
-    const kauf = ort.querySelectorAll(".up-haupt")[0];
-    pruefe("Schild kaufen bei 2/2 gesperrt (Nutzer 29.09.2026)", !!kauf && kauf.disabled === true);
-    const ort2 = neuesElement("div");
-    w.UPCREW_SERIE.karteFuellen(ort2, { serie: 3, schild: 1, schildMax: 2 }, {});
-    pruefe("… bei 1/2 frei", ort2.querySelectorAll(".up-haupt")[0].disabled !== true);
+    let kaufGerufen = false;
+    w.UPCREW_SERIE.karteFuellen(ort, { serie: 3, schild: 2, schildMax: 2, schutz: 1, schutzAlle: 1 },
+        { beiKauf: () => { kaufGerufen = true; } });
+    pruefe("Serien-Karte: alte Schild-Werte stürzen nicht ab, kein Schild, kein Kauf (seit 0.26.0)",
+        !/Schild|Schutz/.test(ort.textContent || "") && !kaufGerufen);
 
     const es = neuesElement("div");
     const reihe = w.UPCREW_EINSTELLUNGEN.bauen(es, "einstellungen", [
         { art: "gefahr", zeilen: [{ titel: "x", gefahr: true, beiKlick() { } }] },
-        { art: "spiel", zeilen: [{ titel: "Schwer-Modus" }] },
+        { art: "spiel", zeilen: [{ titel: "Beispiel" }] },
         { art: "konto", zeilen: [{ titel: "Name" }] },
         { art: "admin", zeilen: [] }
     ], { spiel: "Typoluck" });
     gleich("Feste Reihenfolge, leere Abschnitte fallen weg", reihe, ["konto", "spiel", "gefahr"]);
     gleich("„Nur in Typoluck“", es.kinder[1].kinder[0].textContent, "Nur in Typoluck");
+}
+
+/* Seit 0.26.0: die Status-Lampe der Einstellungen aus dem echten Zustand
+   (EINSTELLUNGEN_BILDSCHIRM.lampeZustand, rein). */
+{
+    const E = vm.runInNewContext(lesen("js/bildschirm-einstellungen.js") + "\n;EINSTELLUNGEN_BILDSCHIRM", {});
+    const z = (lage) => E.lampeZustand(lage);
+    gleich("Lampe: alles ruhig = grün", z({ online: true, status: "bereit", fortschritt: "gespeichert", ausstehend: 0 }),
+        "gespeichert");
+    gleich("Lampe: noch nie gesendet = grün", z({ online: true, status: "", fortschritt: "", ausstehend: 0 }), "gespeichert");
+    gleich("Lampe: schreibt / lädt / Fortschritt unterwegs / Ergebnis wartet = gelb",
+        [z({ status: "schreibt" }), z({ status: "laedt" }), z({ fortschritt: "wartet" }), z({ ausstehend: 2 })],
+        ["wartet", "wartet", "wartet", "wartet"]);
+    gleich("Lampe: offline / Fehler = rot",
+        [z({ online: false }), z({ status: "fehler" }), z({ fortschritt: "fehler", ausstehend: 1 })],
+        ["offline", "offline", "offline"]);
 }
 
 /* ------------------------------------------------------------------ *
@@ -369,7 +397,9 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
     const sw = lesen("sw.js");
     const neu = ["js/upcrew-blatt.js", "js/upcrew-serie.js", "js/upcrew-profil.js", "js/upcrew-einstellungen.js",
         "js/upcrew-abzeichen-spiele.js", "css/upcrew-blatt.css", "css/upcrew-serie.css", "css/upcrew-profil.css",
-        "css/upcrew-einstellungen.css", "css/stil-blatt.css"];
+        "css/upcrew-einstellungen.css", "css/stil-blatt.css",
+        /* seit 0.26.0 (Einbau-Notiz 29.09.2026 b) */
+        "js/upcrew-levelpfad.js", "css/upcrew-levelpfad.css"];
     for (const datei of neu) {
         pruefe("Geladen und offline: " + datei, index.indexOf("\"" + datei + "\"") !== -1 && sw.indexOf("\"./" + datei + "\"") !== -1);
     }
@@ -390,7 +420,10 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
     const FINAL = pfad.join(wurzel, "..", "..", "Design", "3D-Schrift", "final");
     if (fs.existsSync(FINAL)) {
         for (const datei of neu.filter((d) => /upcrew-/.test(d) && !/abzeichen-spiele/.test(d))
-            .concat(["js/upcrew-abzeichen.js", "css/upcrew-abzeichen.css", "js/upcrew-sammlung.js", "css/upcrew-sammlung.css"])) {
+            .concat(["js/upcrew-abzeichen.js", "css/upcrew-abzeichen.css", "js/upcrew-sammlung.js", "css/upcrew-sammlung.css",
+                /* seit 0.26.0 geändert in final */
+                "js/upcrew-flamme.js", "css/upcrew-flamme.css", "js/upcrew-muenzen.js", "js/upcrew-shop.js",
+                "js/upcrew-aussehen.js"])) {
             const quelle = pfad.join(FINAL, pfad.basename(datei));
             pruefe("Byte-gleich mit final: " + datei,
                 fs.existsSync(quelle) && fs.readFileSync(quelle).equals(fs.readFileSync(pfad.join(wurzel, datei))));

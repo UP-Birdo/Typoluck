@@ -767,7 +767,7 @@ const WORDLE = {
             "vorbei": "Runde vorbei",
             "zu-kurz": "Zu kurz",
             "unbekannt": "Unbekanntes Wort",
-            "schwer": "Schwer-Modus",
+            "schwer": "Harter Modus",
             "zeit": "Zeit um"
         }[fehler] || "";
     },

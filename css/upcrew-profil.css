@@ -1,4 +1,5 @@
-/* upcrew-profil.css — das eigene Profil als Blatt (gehört zu js/upcrew-profil.js). Vorschlag für
+/* upcrew-profil.css — Profil zweistufig: Vorschau-Karte + ausführliches Profil (Blatt), Level-Kachel ganz unten
+   (seit 29.09.2026; gehört zu js/upcrew-profil.js, dazu css/upcrew-levelpfad.css). Vorschlag für
    Design\3D-Schrift\final, entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7). Farben aus der Farbwelt,
    Rundungen nur über die Variablen, harte Schatten. */
 
@@ -58,4 +59,71 @@
 .up-pf-ort-balken { width: 64px; height: 8px; border-radius: var(--rund-voll); background: var(--karte-leise); overflow: hidden; flex: none; }
 .up-pf-ort-balken i { display: block; height: 100%; background: var(--haupt); }
 
-@media (max-width: 359px) { .up-pf-fakten { grid-template-columns: 1fr; } }
+.up-pf-gefuellt, .up-bl-kopf-knopf svg.up-pf-gefuellt { fill: currentColor; stroke: none; }
+.up-pf-klein-zeichen { width: 16px; height: 16px; stroke-width: 2.4; }
+.up-pf-titel { font-size: .8rem; font-weight: 800; color: var(--haupt); margin-top: 1px; }
+.up-pf-abschnitt > h3 { display: flex; align-items: center; gap: 8px; }
+.up-pf-h3-knopf { margin-left: auto; padding: 3px 10px; border: 1px solid var(--rahmen); border-radius: var(--rund-voll); background: var(--karte);
+  color: var(--schrift); font: inherit; font-size: .72rem; font-weight: 800; letter-spacing: 0; text-transform: none; cursor: pointer; }
+.up-pf-leer-fremd { cursor: default; opacity: .5; }
+
+/* ---- Stufe 1: die Vorschau-Karte (ganze Karte = ein Knopf, Level-Knopf liegt darüber) ---- */
+.up-pf-karte { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px 12px;
+  padding: 12px; background: var(--karte); border: 1px solid var(--rahmen); border-radius: var(--rund-mittel);
+  box-shadow: 0 3px 0 var(--rahmen); color: var(--schrift); }
+.up-pf-karte-auf { position: absolute; inset: 0; z-index: 1; width: 100%; margin: 0; padding: 0; border: 0; border-radius: inherit;
+  background: none; box-shadow: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.up-pf-karte-auf:focus-visible { outline: 2px solid var(--haupt); outline-offset: 2px; }
+.up-pf-karte-auf:active { background: color-mix(in srgb, var(--schrift) 5%, transparent); }
+.up-pf-karte-mitte { min-width: 0; }
+.up-pf-name-klein { font-size: 1.08rem; line-height: 1.2; }
+.up-pf-karte-zeile { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.up-pf-lv { position: relative; z-index: 2; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; margin: 0;
+  border: 1px solid var(--rahmen); border-radius: var(--rund-voll); background: var(--karte-leise); color: var(--schrift);
+  font: inherit; font-size: .76rem; font-weight: 900; box-shadow: none; }
+.up-pf-lv-balken { width: 36px; height: 6px; border-radius: var(--rund-voll); background: color-mix(in srgb, var(--schrift-leise) 25%, transparent); overflow: hidden; }
+.up-pf-lv-balken i { display: block; height: 100%; background: var(--haupt); }
+.up-pf-serie { display: inline-flex; align-items: center; gap: 3px; font-size: .82rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.up-pf-serie .up-pf-zeichen { width: 17px; height: 17px; }
+.up-pf-serie-voll { color: var(--haupt); }
+.up-pf-serie-offen .up-pf-zeichen { color: color-mix(in srgb, var(--haupt) 55%, var(--schrift-leise)); }
+.up-pf-serie-aus { color: var(--schrift-leise); }
+.up-pf-karte-pfeil { width: 18px; height: 18px; color: var(--schrift-leise); }
+/* Die drei ausgerüsteten KOMPAKT als Zeichen (29.09.2026, „Start ohne Scrollen“; Name nur als title/beim Antippen). */
+.up-pf-symbole { display: inline-flex; align-items: center; gap: 6px; }
+.up-pf-karte-abzeichen { grid-column: 1 / -1; --up-az-symbol: 34px; padding-left: 58px; }
+.up-pf-karte-abzeichen .up-az-symbol { pointer-events: none; }
+.up-pf-plaetze-kompakt { display: flex; gap: 10px; }
+.up-pf-plaetze-kompakt .up-pf-platz { flex: none; --up-az-symbol: 52px; }
+.up-pf-plaetze-kompakt .up-pf-leer { width: var(--up-az-symbol); height: var(--up-az-symbol); min-height: 0; padding: 0; gap: 0;
+  border-radius: var(--rund-voll); }
+
+/* ---- Der Kopf des Starts: eine kompakte Zeile (Kreis mit Level-Ring · Name + Zeichen · Flamme) ---- */
+.up-pf-kopfzeile { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.up-pf-kz-auf { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; margin: 0; padding: 0;
+  border: 0; background: none; box-shadow: none; color: var(--schrift); font: inherit; text-align: left; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; }
+.up-pf-kz-auf:focus-visible { outline: 2px solid var(--haupt); outline-offset: 3px; border-radius: var(--rund-voll); }
+.up-pf-ring-kopf { width: 52px; height: 52px; }
+.up-pf-ring-kopf .up-pf-kreis { width: 44px; height: 44px; font-size: 1.3rem; }
+.up-pf-ring-kopf .up-pf-level { right: auto; left: -4px; bottom: -3px; min-width: 18px; height: 18px; padding: 0 4px; font-size: .62rem; }
+.up-pf-kz-mitte { min-width: 0; display: grid; gap: 4px; }
+.up-pf-kz-name { font-size: 1.02rem; font-weight: 900; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up-pf-kz-abzeichen { --up-az-symbol: 24px; gap: 5px; }
+.up-pf-kopfzeile > .up-fl { margin-left: auto; }
+
+/* ---- Level-Kachel ganz unten im ausführlichen Profil ---- */
+.up-pf-level-abschnitt { margin-top: 18px; }
+.up-pf-levelkachel { display: flex; align-items: center; gap: 12px; width: 100%; margin: 0; padding: 12px; text-align: left;
+  background: var(--karte); border: 1px solid var(--rahmen); border-radius: var(--rund-mittel); box-shadow: 0 3px 0 var(--rahmen);
+  color: var(--schrift); font: inherit; }
+.up-pf-levelkachel:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--rahmen); }
+.up-pf-lk-zahl { display: grid; justify-items: center; line-height: 1; min-width: 54px; padding: 7px 8px; border-radius: var(--rund-klein);
+  background: var(--haupt); color: var(--haupt-schrift); }
+.up-pf-lk-zahl small { font-size: .6rem; font-weight: 900; text-transform: uppercase; letter-spacing: .06em; }
+.up-pf-lk-zahl b { font-size: 1.5rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.up-pf-lk-mitte { flex: 1; min-width: 0; display: grid; }
+.up-pf-lk-mitte .up-pf-xp { margin: 0 0 4px; }
+.up-pf-lk-pfad { display: inline-flex; align-items: center; gap: 2px; font-size: .74rem; font-weight: 800; color: var(--haupt); white-space: nowrap; }
+
+@media (max-width: 359px) { .up-pf-fakten { grid-template-columns: 1fr; } .up-pf-lk-pfad { font-size: 0; } }

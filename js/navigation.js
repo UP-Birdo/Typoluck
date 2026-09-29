@@ -89,12 +89,9 @@ const NAVIGATION = {
     _leisteEl: null,
 
     /* Die offenen Blätter dieser Navigation, unten zuerst:
-       { id, parameter, eintrag (UPCREW_BLATT), verlauf (Eintrag im Verlauf) }. */
+       { id, parameter, eintrag (UPCREW_BLATT) } — den Verlaufseintrag führt der Baustein. */
     _blaetter: [],
     _ebenenEl: null,
-    /* Wie viele popstate-Ereignisse gleich kommen, weil ein Blatt selbst
-       zurückgegangen ist (Kreuz, Grund, Esc) — die werden überhört. */
-    _stilleZurueck: 0,
 
     anmelden(bildschirm) {
         NAVIGATION._bildschirme[bildschirm.id] = bildschirm;
@@ -109,10 +106,12 @@ const NAVIGATION = {
         }
         if (ebenenEl && typeof UPCREW_BLATT !== "undefined") {
             NAVIGATION._ebenenEl = ebenenEl;
-            UPCREW_BLATT.einrichten({ ebenen: ebenenEl, haupt: inhaltEl });
+            /* Zurück-Taste: Blätter UND Karten legen seit 0.26.0 im Baustein je einen Verlaufseintrag an; der
+               Horcher hier fragt ihn zuerst (UPCREW_BLATT.beiZurueck). */
+            UPCREW_BLATT.einrichten({ ebenen: ebenenEl, haupt: inhaltEl, verlauf: true, horchen: false });
         }
 
-        window.addEventListener("popstate", (ereignis) => NAVIGATION._beiZurueck(ereignis.state, startId));
+        window.addEventListener("popstate", (ereignis) => NAVIGATION._beiZurueck(ereignis.state, startId, ereignis));
 
         try {
             history.replaceState({ id: startId, parameter: null }, "");
@@ -123,18 +122,11 @@ const NAVIGATION = {
         NAVIGATION._wechseln(startId, null);
     },
 
-    _beiZurueck(zustand, startId) {
-        if (NAVIGATION._stilleZurueck > 0) {
-            NAVIGATION._stilleZurueck--;
-            return;
-        }
-        /* Erst das oberste Blatt (samt Karten darüber) schliessen. */
-        const oben = NAVIGATION._blaetter[NAVIGATION._blaetter.length - 1];
-        if (oben && oben.verlauf) {
-            oben.verlauf = false;
-            while (UPCREW_BLATT.anzahl() > 0 && NAVIGATION._blaetter.indexOf(oben) !== -1) {
-                UPCREW_BLATT.schliessen("verlauf");
-            }
+    _beiZurueck(zustand, startId, ereignis) {
+        /* Erst das oberste Blatt bzw. die oberste Karte (seit 0.26.0 im Baustein, auch Level-Pfad, Vorschau-,
+           Serien-Karte und Abzeichen-Wahl); ein still zurückgenommener Eintrag wird dort überhört. */
+        if (typeof UPCREW_BLATT !== "undefined" && typeof UPCREW_BLATT.beiZurueck === "function"
+                && UPCREW_BLATT.beiZurueck(ereignis || { state: zustand })) {
             return;
         }
         if (zustand && NAVIGATION._bildschirme[zustand.id]) {
@@ -251,16 +243,9 @@ const NAVIGATION = {
             NAVIGATION._blattBauen(blatt);
             return blatt.eintrag;
         }
-        const blatt = { id: id, parameter: parameter, eintrag: null, verlauf: false };
-        if (!ohneVerlauf) {
-            try {
-                history.pushState({ id: NAVIGATION.aktuell, parameter: NAVIGATION._parameter, blatt: id }, "");
-                blatt.verlauf = true;
-            } catch (fehler) {
-                /* wie oben */
-            }
-        }
+        const blatt = { id: id, parameter: parameter, eintrag: null };
         blatt.eintrag = UPCREW_BLATT.oeffnen({
+            verlauf: !ohneVerlauf,
             titel: bildschirm.blattTitel ? bildschirm.blattTitel(parameter) : bildschirm.titel,
             klasse: "blatt-" + id,
             rechts: bildschirm.blattRechts ? bildschirm.blattRechts(parameter) : [],
@@ -289,17 +274,7 @@ const NAVIGATION = {
         if (bildschirm && bildschirm.verlassen && !NAVIGATION.blattOffen(blatt.id)) {
             bildschirm.verlassen();
         }
-        /* Mit Kreuz, Grund, Esc oder im Code geschlossen: den eigenen
-           Verlaufseintrag zurücknehmen (das popstate dazu wird überhört). */
-        if (blatt.verlauf && wie !== "verlauf" && wie !== "alle") {
-            blatt.verlauf = false;
-            NAVIGATION._stilleZurueck++;
-            try {
-                history.back();
-            } catch (fehler) {
-                NAVIGATION._stilleZurueck--;
-            }
-        }
+        /* Den Verlaufseintrag nimmt seit 0.26.0 der Baustein selbst zurück. */
     },
 
     /* Alle Blätter und Karten zu — beim Wechsel der Seite. */

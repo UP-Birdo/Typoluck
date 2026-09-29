@@ -104,8 +104,9 @@ gleich("Lücke ohne Schutz: Serie reisst", FORTSCHRITT.serie(
 gleich("Lücke mit Schutz: überbrückt", FORTSCHRITT.serie(
     { spiele: { typoluck: { tage: ["2026-09-21", "2026-09-23"] } } }, "2026-09-23", 1),
     { tage: 2, heute: true, schutzGenutzt: 1 });
-gleich("Schutz verdient: bis 10 keiner, 11–14 je einer, 15 nicht", [10, 14, 15, 16].map(FORTSCHRITT.schutzVerdient),
-    [0, 4, 4, 5]);
+/* Seit 0.26.0 (Nutzer 29.09.2026: „serien schild raus"): kein Schutz mehr. */
+gleich("Schutz verdient: seit 0.26.0 immer 0", [10, 14, 15, 16, 80].map(FORTSCHRITT.schutzVerdient),
+    [0, 0, 0, 0, 0]);
 gleich("Serien-XP höchstens 35", FORTSCHRITT.partie({ spiele: { typoluck: { tage:
     ["2026-09-18", "2026-09-19", "2026-09-20", "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24",
         "2026-09-25", "2026-09-26"] } } }, { datum: HEUTE, tagesaufgabe: true, figuren: 1 }).xp, 10 + 10 + 20 + 35);
@@ -137,8 +138,8 @@ gleich("Umzug: Serie wird zu Tagen bis zuletzt, dazu heute",
 gleich("Umzug: Serie ist heute 5 (4 bis gestern + heute)", FORTSCHRITT.serieHeute(umgezogen, HEUTE).tage, 5);
 gleich("Umzug: Serie ohne heute bliebe 4", FORTSCHRITT.serieHeute(FORTSCHRITT.normalisieren(
     Object.assign({}, flach, { heute: { datum: HEUTE, brett: 0, wort: 0, xp: 0 } })), HEUTE).tage, 4);
-pruefe("Umzug: Schutz geht nicht verloren (gerechnet ≥ gespeichert)",
-    FORTSCHRITT.serieHeute(umgezogen, HEUTE).schutz >= flach.serie.schutz);
+gleich("Umzug: ein alter Schutz rettet nichts mehr (seit 0.26.0)",
+    FORTSCHRITT.serieHeute(umgezogen, HEUTE).schutz, 0);
 gleich("Umzug: Stand-Zeitpunkt bleibt", uz.stand, 1759000000000);
 pruefe("Umzug: der alte Stand steht NICHT im Zweig (nur Gerät, seit 0.14.0)", !("umzug" in uz));
 gleich("Umzug: fremde Felder oben bleiben", umgezogen.fremdOben, { a: 1 });
@@ -265,21 +266,21 @@ gleich("Kaputte fremde XP zählen 0", FORTSCHRITT.gesamtXp(kaputt), 0);
  * Belohnungen, Rahmen, Titel — seit 0.14.0 EINE Regel mit Blunderluck:
  * Rahmen ab Level 10, dann alle 5
  * ------------------------------------------------------------------ */
-gleich("Level 11: Serien-Schutz", FORTSCHRITT.belohnungen(11, STUFEN), [{ art: "schutz", name: "Serien-Schutz" }]);
+gleich("Level 11: kein Serien-Schutz mehr (seit 0.26.0)", FORTSCHRITT.belohnungen(11, STUFEN), []);
 /* Seit 0.15.0: Kachel-Sets über das Level (Tabelle wie in js\sammlung.js) */
 const mitSets = Object.assign({}, STUFEN, { kachelset: { kreide: 3, kupfer: 12 } });
 pruefe("Level 3 bringt das Kachel-Set Kreide",
     FORTSCHRITT.belohnungen(3, mitSets, { kachelset: { kreide: "Kreide" } })
         .some((b) => b.art === "kachelset" && b.name === "Kreide"));
-gleich("Level 12: Kachel-Set und Serien-Schutz", FORTSCHRITT.belohnungen(12, mitSets).map((b) => b.art),
-    ["kachelset", "schutz"]);
+gleich("Level 12: Kachel-Set", FORTSCHRITT.belohnungen(12, mitSets).map((b) => b.art),
+    ["kachelset"]);
 gleich("Level 10: Rahmen Silber + Titel Stammgast", FORTSCHRITT.belohnungen(10, STUFEN),
     [{ art: "rahmen", name: "Silber" }, { art: "titel", name: "Stammgast" }]);
 gleich("Level 15 Gold, 20 Platin, 25 Glanz 25 + Kenner", [15, 20, 25].map((l) => FORTSCHRITT.belohnungen(l, STUFEN)),
     [[{ art: "rahmen", name: "Gold" }], [{ art: "rahmen", name: "Platin" }],
         [{ art: "rahmen", name: "Glanz 25" }, { art: "titel", name: "Kenner" }]]);
-pruefe("Level 1 bis 10: kein Schutz",
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].every((l) => FORTSCHRITT.belohnungen(l, STUFEN).every((b) => b.art !== "schutz")));
+pruefe("Kein Level bringt Schutz",
+    Array.from({ length: 100 }, (_, i) => i + 1).every((l) => FORTSCHRITT.belohnungen(l, STUFEN).every((b) => b.art !== "schutz")));
 pruefe("Unter Level 10 kein Rahmen (Kupfer ab 5, Silber ab 8 sind weg)",
     [1, 2, 3, 4, 5, 6, 7, 8, 9].every((l) => FORTSCHRITT.belohnungen(l, STUFEN).every((b) => b.art !== "rahmen")));
 pruefe("Rahmen genau bei 10, 15, 20 … bis 100",
@@ -293,7 +294,6 @@ gleich("Rahmen: 10 Silber, 17 Gold, 22 Platin, 31 Glanz",
 gleich("Rahmen 31 heisst Glanz 30", FORTSCHRITT.rahmenVon(31).name, "Glanz 30");
 gleich("Titel: 1 Neuling, 12 Stammgast, 30 Kenner, 50 Legende",
     [1, 12, 30, 50].map(FORTSCHRITT.titelVon), ["Neuling", "Stammgast", "Kenner", "Legende"]);
-gleich("Schutz verdient passt dazu (11–14 je einer, 15 Rahmen)", FORTSCHRITT.schutzVerdient(16), 5);
 
 /* Grund-XP der Tagesaufgabe nach Schwierigkeit (seit 0.14.0) */
 gleich("Grund-XP: leicht 15, mittel 20, schwer 30, unbekannt 20",
@@ -306,8 +306,8 @@ const kurzVor11 = { spiele: { typoluck: { xp: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     .reduce((s, l) => s + FORTSCHRITT.kosten(l), 0) - 5 } } };
 const aufstieg = FORTSCHRITT.partie(kurzVor11, { datum: HEUTE, tagesaufgabe: false }, STUFEN);
 gleich("Aufstieg auf 11", [aufstieg.levelVorher, aufstieg.levelNachher], [10, 11]);
-pruefe("Aufstieg meldet den Schutz", aufstieg.neu.some((b) => b.art === "schutz"));
-gleich("Schutz nach dem Aufstieg gerechnet: 1", FORTSCHRITT.serieHeute(aufstieg.stand, HEUTE).schutz, 1);
+pruefe("Aufstieg meldet keinen Schutz", !aufstieg.neu.some((b) => b.art === "schutz"));
+gleich("Schutz nach dem Aufstieg: 0", FORTSCHRITT.serieHeute(aufstieg.stand, HEUTE).schutz, 0);
 const vonBlunderluck = { spiele: { typoluck: { xp: 90 }, blunderluck: blunderZweig({ xp: 5 }) } };
 gleich("Aufstieg zählt Blunderlucks XP mit", FORTSCHRITT.partie(vonBlunderluck, { datum: HEUTE }).levelNachher, 2);
 
@@ -394,7 +394,7 @@ const zweiterNochmal = FORTSCHRITT.partie(zweiter.stand, { datum: HEUTE, geloest
     tagesaufgabe: false });
 gleich("Übung im 1. Versuch zählt nicht als Tageswort, 95 % Können schon", zweiterNochmal.taten, ["koennen-90"]);
 gleich("Taten stehen nicht doppelt", tl(zweiterNochmal.stand).taten, ["zweiter-versuch", "koennen-90"]);
-gleich("Schwer-Modus gelöst", FORTSCHRITT.partie(leer, { datum: HEUTE, geloest: true, versuche: 5, schwer: true })
+gleich("Harter Modus (Bibliothek) gelöst", FORTSCHRITT.partie(leer, { datum: HEUTE, geloest: true, versuche: 5, schwer: true })
     .taten, ["schwer-geloest"]);
 gleich("Nicht gelöst: keine Tat", FORTSCHRITT.partie(leer, { datum: HEUTE, tagesaufgabe: true, geloest: false,
     versuche: 2, schwer: true, koennen: 99 }).taten, []);

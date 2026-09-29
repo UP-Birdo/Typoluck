@@ -154,6 +154,40 @@
     font-size: 0.86rem;
 }
 
+/* ---- KOMPAKT: nur das Zeichen im Kreis (Start-Kopf, Vorschau-Karte, „Ausgerüstet“; 29.09.2026) ---- */
+.up-az-symbol {
+    width: var(--up-az-symbol, 30px);
+    height: var(--up-az-symbol, 30px);
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    margin: 0;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll, 999px);
+    background: var(--karte-leise);
+    color: var(--schrift);
+    font: inherit;
+}
+
+button.up-az-symbol {
+    cursor: pointer;
+}
+
+.up-az-symbol .up-az-zeichen {
+    width: 60%;
+    height: 60%;
+}
+
+.up-az-symbol-leer {
+    border: 2px dashed var(--rahmen);
+    background: none;
+}
+
+.up-az-symbol:not(.up-az-an):not(.up-az-symbol-leer) {
+    opacity: 0.5;
+}
+
 .up-az-herkunft {
     margin: 4px 0 0;
     font-size: 0.74rem;

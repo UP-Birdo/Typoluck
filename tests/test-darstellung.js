@@ -51,13 +51,10 @@ AUSSEHEN = aussehenLaden();
 gleich("Liest die Wahl der anderen App", DARSTELLUNG.thema(), "hell");
 gleich("Unbekannte Schrift fällt auf den Standard des Bausteins", AUSSEHEN.lesen().schrift, AUSSEHEN.STANDARD.schrift);
 
-/* Standard-Schrift (seit 0.8.0). */
+/* Standard-Schrift (0.8.0 bis 0.25.0) ist weg (Nutzer 29.09.2026). */
 AUSSEHEN = neuesGeraet();
-gleich("Standard-Schrift ab Werk aus", DARSTELLUNG.leseschrift(), false);
-DARSTELLUNG.leseschriftSetzen(true);
-gleich("Standard-Schrift an", DARSTELLUNG.leseschrift(), true);
-DARSTELLUNG.leseschriftSetzen("ja");
-gleich("Nur true schaltet an", DARSTELLUNG.leseschrift(), false);
+pruefe("Keine Standard-Schrift mehr", typeof DARSTELLUNG.leseschrift === "undefined"
+    && typeof DARSTELLUNG.leseschriftSetzen === "undefined");
 
 /* ------------------------------------------------------------------ *
  * Der Umzug der alten Wahl (bis 0.7.0 in ICH.einstellung "thema")
@@ -112,10 +109,10 @@ gleich("Umschalten auf dunkel", html.dataset.darstellung, "dunkel");
 AUSSEHEN.setzen({ schrift: "S6", knoepfe: "K3" });
 DARSTELLUNG.anwenden(html);
 gleich("Gewählte Schrift und Knöpfe kommen an", [html.dataset.schrift, html.dataset.knoepfe], ["S6", "K3"]);
-DARSTELLUNG.leseschriftSetzen(true);
+AUSSEHEN.setzen({ leseschrift: true });
 DARSTELLUNG.anwenden(html);
-gleich("Standard-Schrift an: Standard steht am <html>, die Wahl bleibt gespeichert",
-    [html.dataset.schrift, AUSSEHEN.lesen().schrift], [AUSSEHEN.STANDARD.schrift, "S6"]);
+gleich("Alte Leseschrift wird übergangen: die gewählte Schrift bleibt am <html>",
+    [html.dataset.schrift, AUSSEHEN.lesen().schrift], ["S6", "S6"]);
 
 let geworfen = false;
 try {

@@ -10,7 +10,7 @@
  * Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md, Block „Typoluck".
  *
  * WAS „DA" HEISST: In dieser Runde ist alles da, was es heute gibt
- * (Tageswort, Übung, Schwer-Modus). Was noch nicht gebaut ist (Blitzwort,
+ * (Tageswort, Übung; der Schwer-Modus seit 0.26.0 nicht mehr). Was noch nicht gebaut ist (Blitzwort,
  * Wort-Duell), steht als „?" mit einer Zeile, was es wird. Freischalten
  * über Taten kommt seit 0.13.0 — nur für NEUE Stücke (Gruppe
  * „Kachel-Sets"); nichts wird gesperrt, was vorher frei war (Auftrag:
@@ -36,7 +36,6 @@ const SAMMLUNG = {
             stuecke: [
                 { id: "tag", name: "Tageswort", da: true, text: "Ein Wort am Tag, für alle gleich" },
                 { id: "uebung", name: "Übung", da: true, text: "Beliebig viele Runden, jedes Mal ein neues Wort" },
-                { id: "schwer", name: "Schwer", da: true, text: "Gefundene Buchstaben müssen bleiben" },
                 { id: "blitzwort", name: "Blitzwort", da: false, text: "Kommt: raten gegen die Uhr" },
                 { id: "duell", name: "Wort-Duell", da: false, text: "Kommt: zwei Spieler, ein Wort" }
             ]

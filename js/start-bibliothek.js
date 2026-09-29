@@ -789,7 +789,7 @@ Object.assign(START, {
                             : (r.grund === "voll" ? "Vorrat voll" : "Zu wenig " + UPCREW_MUENZEN.WAEHRUNG.name));
                     } });
                 k.classList.add("bib-ware");
-                k.appendChild(BAUSTEINE.zeichen({ tipp: "gluehbirne", leben: "stern", schild: "schutz" }[ware]));
+                k.appendChild(BAUSTEINE.zeichen({ tipp: "gluehbirne", leben: "stern" }[ware]));
                 k.appendChild(BAUSTEINE.el("span", "bib-ware-name", name));
                 const p = BAUSTEINE.el("span", "bib-preis");
                 p.appendChild(BAUSTEINE.el("s", null, String(w.preis)));

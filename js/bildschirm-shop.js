@@ -12,7 +12,7 @@
  *     Kauf gebucht wird (APP.kaufen: nur im eigenen Zweig);
  *   - was die Waren IN Typoluck tun (die Texte des Bausteins beschreiben
  *     Blunderluck): Extra-Leben = ein 7. Versuch, Tipp = ein richtiger
- *     Buchstabe an seiner Stelle, Schild = rettet die Flamme.
+ *     Buchstabe an seiner Stelle (das Schild ist seit 0.26.0 weg).
  *     Seit 0.17.1 über die Baustein-Option `texte` (UPCREW_SHOP.bauen /
  *     UPCREW_SHOP.text) — UPCREW_MUENZEN.WAREN bleibt unverändert.
  */
@@ -23,7 +23,6 @@ const SHOP_BILDSCHIRM = {
 
     /* Was die Waren in Typoluck tun (spieleigen; Option `texte` des Bausteins). */
     TEXTE: {
-        schild: { text: "Rettet die Flamme über einen verpassten Tag" },
         leben: { text: "Ein 7. Versuch, wenn der 6. danebengeht" },
         tipp: { text: "Deckt einen richtigen Buchstaben an seiner Stelle auf" }
     },

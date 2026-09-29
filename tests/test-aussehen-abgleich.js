@@ -84,12 +84,13 @@ spaeter("Abgleich", (async () => {
     gleich("Am Konto steht das Aussehen des Geräts unter aussehenJe/typoluck",
         konto.aussehenJe.typoluck, aussehen.fuerKonto());
     gleich("§11c: aussehenJe besteht die Regel", regel11c(konto.aussehenJe), []);
-    gleich("§11c: genau die sechs Felder", Object.keys(konto.aussehenJe.typoluck).sort(),
-        ["darstellung", "farbwelt", "knoepfe", "leseschrift", "schrift", "stand"]);
+    /* Seit 0.26.0 ohne `leseschrift` (die Regel erlaubt es, verlangt es nicht). */
+    gleich("§11c: genau die fünf Felder", Object.keys(konto.aussehenJe.typoluck).sort(),
+        ["darstellung", "farbwelt", "knoepfe", "schrift", "stand"]);
     pruefe("§11c: die Prüffunktion lehnt Fremdes ab",
         regel11c({ typoluck: { farbwelt: "pink", extra: 1 }, trainer: {} }).length === 3);
-    gleich("Nur die sechs Felder", Object.keys(konto.aussehenJe.typoluck).sort(),
-        ["darstellung", "farbwelt", "knoepfe", "leseschrift", "schrift", "stand"]);
+    gleich("Nur die fünf Felder", Object.keys(konto.aussehenJe.typoluck).sort(),
+        ["darstellung", "farbwelt", "knoepfe", "schrift", "stand"]);
     gleich("Blunderlucks Zweig, das alte Feld, Name und Freunde bleiben unberührt",
         [konto.aussehenJe.blunderluck, konto.aussehen, konto.name, konto.freunde],
         [{ farbwelt: "gold", stand: 7 }, { farbwelt: "feld", stand: 3 }, "Anna", { x: true }]);

@@ -5,9 +5,15 @@
  * SEIT 0.25.0 EIN BLATT im gemeinsamen Aufbau js\upcrew-einstellungen.js
  * (gemeinsame Runde 7; Nutzer 28.09.2026: „verwalten und die einstellungen
  * sollen in beiden spielen gleich aussehen"). Die Reihenfolge der Abschnitte
- * legt der Baustein fest; hier steht nur, was Typoluck hat. Spiel-Eigenes
- * (Schwer-Modus) steht im Abschnitt „Nur in Typoluck". Erreichbar über das
- * Zahnrad im Profil (bis 0.24.0 im Menü hinter den drei Balken).
+ * legt der Baustein fest; hier steht nur, was Typoluck hat. Erreichbar über
+ * das Zahnrad im Profil (bis 0.24.0 im Menü hinter den drei Balken).
+ *
+ * SEIT 0.26.0 (Nutzer 29.09.2026: „mach den schweren modus raus · bei
+ * speicher mache eine status lampe rein · was macht standart schrift?
+ * brauchen wir eigentlich nicht · zu viele texte sätze"): kein Abschnitt
+ * „Nur in Typoluck" mehr (der Schwer-Modus ist weg), kein Schalter
+ * „Standard-Schrift", der Speicher mit Status-Lampe (`lampeZustand`), alle
+ * Unterzeilen höchstens drei Wörter.
  *
  * Die Verwaltung (nur Admins) hat EINEN Weg: die Zeile im Abschnitt Admin
  * (seit 0.17.1, Nutzer 27.09.2026: „nur in den einstellungen … und nicht
@@ -15,8 +21,6 @@
  */
 
 const EINSTELLUNGEN_BILDSCHIRM = {
-
-    STERN: "M12 3 L14.6 8.6 L20.5 9.3 L16 13.3 L17.3 19.2 L12 16.2 L6.7 19.2 L8 13.3 L3.5 9.3 L9.4 8.6 Z",
 
     anmelden() {
         NAVIGATION.anmelden({
@@ -29,6 +33,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     },
 
     zeigen(behaelter) {
+        EINSTELLUNGEN_BILDSCHIRM._lampe = null;
         if (!NAVIGATION.imBlatt(behaelter)) {
             behaelter.appendChild(BAUSTEINE.kopfzeile("Einstellungen", {
                 zurueck: () => NAVIGATION.zurueck()
@@ -45,9 +50,8 @@ const EINSTELLUNGEN_BILDSCHIRM = {
             EINSTELLUNGEN_BILDSCHIRM._kontoAbschnitt(),
             EINSTELLUNGEN_BILDSCHIRM._aussehenAbschnitt(),
             EINSTELLUNGEN_BILDSCHIRM._privatAbschnitt(),
-            EINSTELLUNGEN_BILDSCHIRM._spielAbschnitt(),
             { art: "hilfe", zeilen: [
-                { zeichen: "hilfe", titel: "Wunsch oder Fehler melden", rechts: "pfeil",
+                { zeichen: "hilfe", titel: "Wunsch oder Fehler", rechts: "pfeil",
                     beiKlick: () => WUNSCH.oeffnen() }
             ] },
             EINSTELLUNGEN_BILDSCHIRM._adminAbschnitt(),
@@ -70,11 +74,11 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         const mitNummer = KONTO.aktiv() && ich.gast !== true && !!ich.tag;
         const zeilen = [{
             zeichen: "person", titel: ich.name, tag: mitNummer ? "#" + ich.tag : "",
-            unter: gast ? "Gast · nur dieses Gerät" : "Angemeldet · gilt in allen Spielen",
+            unter: gast ? "Gast · nur Gerät" : "Alle Spiele",
             klasse: "einstellungen-ich"
         }];
         if (gast) {
-            zeilen.push({ zeichen: "hoch", titel: "Spielstand sichern", unter: "Konto anlegen · alle Geräte",
+            zeilen.push({ zeichen: "hoch", titel: "Spielstand sichern", unter: "Konto anlegen",
                 rechts: "pfeil", beiKlick: () => ANMELDUNG.gastSichernOeffnen() });
         }
         zeilen.push({ zeichen: "person", titel: "Name ändern", rechts: "pfeil",
@@ -102,10 +106,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                     { wert: "hell", text: "Hell" },
                     { wert: "dunkel", text: "Dunkel" }
                 ], DARSTELLUNG.thema(), (wert) => DARSTELLUNG.themaSetzen(wert), "Darstellung") },
-            { zeichen: "schrift", titel: "Standard-Schrift", unter: "immer die Leseschrift",
-                rechts: UPCREW_EINSTELLUNGEN.schalter(DARSTELLUNG.leseschrift(),
-                    (an) => DARSTELLUNG.leseschriftSetzen(an), "Standard-Schrift") },
-            { zeichen: "sammlung", titel: "Anpassen", unter: "Farbwelt, Schrift, Knöpfe · Sammlung",
+            { zeichen: "sammlung", titel: "Anpassen", unter: "Farbe · Schrift · Knöpfe",
                 rechts: "pfeil", beiKlick: () => NAVIGATION.zeigen("sammlung", null) }
         ] };
     },
@@ -120,7 +121,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
             return { art: "privatsphaere", zeilen: [] };
         }
         return { art: "privatsphaere", zeilen: [
-            { zeichen: "uhr", titel: "Spielzeit", unter: "Standard privat · sonst nur du und Admins",
+            { zeichen: "uhr", titel: "Spielzeit",
                 rechts: UPCREW_EINSTELLUNGEN.segment([
                     { wert: false, text: "Privat" },
                     { wert: true, text: "Öffentlich" }
@@ -132,43 +133,63 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                         NAVIGATION.auffrischen();
                     });
                 }, "Spielzeit") }
-        ], hinweis: "Unter 1 h „N min“, danach „1h+“ · gezählt nur, solange die App sichtbar ist" };
+        ], hinweis: "Nur sichtbar gezählt" };
     },
 
-    /*
-     * 4. Nur in Typoluck — der Schwer-Modus (seit 0.6.0). Gilt ab der
-     * nächsten Runde — eine angefangene bleibt, wie sie war (js\wordle.js,
-     * „Der Schwer-Modus"). Gespeichert je Gerät.
-     */
-    _spielAbschnitt() {
-        return { art: "spiel", zeilen: [
-            { zeichen: EINSTELLUNGEN_BILDSCHIRM.STERN, titel: "Schwer-Modus",
-                unter: WORDLE.NAME + " · ab der nächsten Runde",
-                rechts: UPCREW_EINSTELLUNGEN.schalter(WORDLE_BILDSCHIRM.schwerGewaehlt(), (an) => {
-                    WORDLE_BILDSCHIRM.schwerSetzen(an);
-                    NAVIGATION.auffrischen();
-                }, "Schwer-Modus") }
-        ] };
-    },
-
-    /* 5. Admin — die Verwaltung, nur für Admins. */
+    /* 4. Admin — die Verwaltung, nur für Admins. */
     _adminAbschnitt() {
         if (typeof VERWALTUNG_BILDSCHIRM === "undefined" || !VERWALTUNG_BILDSCHIRM.erlaubt()) {
             return { art: "admin", zeilen: [] };
         }
         return { art: "admin", zeilen: [
-            { zeichen: "werkzeug", titel: "Verwaltung", unter: "nur Rolle Admin", rechts: "pfeil",
+            { zeichen: "werkzeug", titel: "Verwaltung", rechts: "pfeil",
                 beiKlick: () => NAVIGATION.zeigen("verwaltung", null) }
         ] };
     },
 
-    /* 6. Über Typoluck — Version, Speicher, nicht gesendete Ergebnisse. */
+    /*
+     * 5. Über Typoluck — Version, Speicher mit Status-Lampe (seit 0.26.0),
+     * nicht gesendete Ergebnisse.
+     *
+     * DIE LAMPE rechnet `lampeZustand` (rein) aus dem ECHTEN Zustand:
+     *   rot „Keine Verbindung"  offline (navigator.onLine false) oder der
+     *                           letzte Abgleich der Konten bzw. des
+     *                           Fortschritts ist gescheitert
+     *   gelb „Wartet"           es wird gerade geladen/geschrieben, oder
+     *                           Ergebnisse warten noch auf dem Gerät
+     *   grün „Gespeichert"      sonst
+     * Die Zeile stellt sich bei jedem Speicher-Ereignis um
+     * (`lampeAuffrischen`, gerufen aus js\app.js).
+     */
+    _lampe: null,
+
+    lampeZustand(lage) {
+        const l = lage || {};
+        if (l.online === false || l.status === "fehler" || l.fortschritt === "fehler") {
+            return "offline";
+        }
+        if (l.status === "laedt" || l.status === "schreibt" || l.fortschritt === "wartet" || l.ausstehend > 0) {
+            return "wartet";
+        }
+        return "gespeichert";
+    },
+
+    lampeAuffrischen() {
+        const lampe = EINSTELLUNGEN_BILDSCHIRM._lampe;
+        if (lampe && lampe.isConnected !== false && typeof lampe.setzen === "function") {
+            return lampe.setzen(EINSTELLUNGEN_BILDSCHIRM.lampeZustand(APP.speicherLage()));
+        }
+        return null;
+    },
+
     _ueberAbschnitt() {
+        const speicher = UPCREW_EINSTELLUNGEN.speicherZeile(
+            EINSTELLUNGEN_BILDSCHIRM.lampeZustand(APP.speicherLage()));
+        EINSTELLUNGEN_BILDSCHIRM._lampe = speicher.lampe;
         const zeilen = [
-            { zeichen: "info", titel: "Über Typoluck", unter: "Ein Spiel von UPCrew",
+            { zeichen: "info", titel: "Typoluck", unter: "von UPCrew",
                 rechts: UPCREW_EINSTELLUNGEN.wert(KONFIG.APP_VERSION) },
-            { zeichen: "datenbank", titel: "Speicher",
-                rechts: UPCREW_EINSTELLUNGEN.wert(APP.spielSpeicher ? APP.spielSpeicher.beschreibung : "") }
+            speicher
         ];
         const offen = ICH.ausstehend().length;
         if (offen > 0) {
@@ -178,7 +199,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         return { art: "ueber", zeilen: zeilen };
     },
 
-    /* 7. Ganz unten, rot: das Konto selbst löschen (seit v0.2.0) — gilt für
+    /* 6. Ganz unten, rot: das Konto selbst löschen (seit v0.2.0) — gilt für
        alle Spiele von UPCrew, die Rückfrage stellt die Anmeldung. */
     _gefahrAbschnitt() {
         if (!KONTO.aktiv() || !ANMELDUNG.ich()) {

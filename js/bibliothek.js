@@ -164,7 +164,7 @@ const BIBLIOTHEK = {
     TRUHE: [[15, 30], [15, 30], [15, 30], [15, 30], [25, 45], [25, 45]],
     /* Händler: so viel billiger als im Shop. */
     RABATT: 0.3,
-    WAREN: ["tipp", "leben", "schild"],
+    WAREN: ["tipp", "leben"],
     ZULETZT_MAX: 30,
     RUECKFALL_ANZAHL: 8,
 

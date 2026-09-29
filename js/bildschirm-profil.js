@@ -3,20 +3,32 @@
  *
  * Parameter `id`: wessen Profil. Ohne Parameter das eigene.
  *
- * SEIT 0.25.0 EIN BLATT (gemeinsame Runde 7, wie Blunderluck v0.156.0,
- * `alsBlatt` in js\navigation.js): über der Seite, von der man kam — vom
- * Start (Kurzprofil), aus der Rangliste oder den Freunden. Das EIGENE Profil
- * baut der gemeinsame Baustein js\upcrew-profil.js: Ring, Name + #Tag, XP,
- * drei ausgerüstete Abzeichen aus ALLEN Spielen (ein Tipp öffnet die Auswahl
- * als Blatt darüber), Über dich (Spielzeit, dabei seit), Wo du stehst;
- * darunter Typolucks Statistik und die nächsten Level. Das Zahnrad oben
- * rechts öffnet die Einstellungen als Blatt darüber (sie standen bis 0.24.0
- * im Menü hinter den drei Balken). Ein fremdes Profil zeigt weiter Kreis,
- * Name, Freundschaft und die Wordguesser-Statistik.
+ * SEIT 0.26.0 ZWEISTUFIG (Nutzer 29.09.2026: „generell soll es nur ein
+ * vorschau profil geben karte die oben ist mit den ausgerüsteten abzeichen
+ * titel und level und flammen mit natürlich dem namen -> und halt das
+ * ausführliche wenn man draufklickt mit mehr inhalten statistiken und so";
+ * Einbau-Notiz Design\3D-Schrift\final\EINBAU-2026-09-29b.md):
+ *   Stufe 1  die VORSCHAU-KARTE des Bausteins (UPCREW_PROFIL.vorschau):
+ *            Name + #Tag, Titel, Level, Flamme/Serie, 3 ausgerüstete
+ *            Abzeichen aus ALLEN Spielen. Die eigene steht oben auf dem
+ *            Start (js/bildschirm-start.js), fremde (und die eigene) öffnen
+ *            aus Rangliste und Freunden als Karte (`vorschauOeffnen`).
+ *            Zahlen: `vorschauDaten` — eigene aus dem Fortschritt, fremde aus
+ *            dem ÖFFENTLICHEN AUSZUG (Regel §12, `FORTSCHRITT.auszugVon`,
+ *            wie Blunderluck `RANGLISTE.abzeichenListe`).
+ *   Stufe 2  dieses Blatt „Profil" (`alsBlatt` in js\navigation.js): das
+ *            ausführliche Profil aus UPCREW_PROFIL.zeichnen — Kopf,
+ *            Ausgerüstet (+ Wählen), Statistik und Partien (von hier),
+ *            Stand, alle Abzeichen, Über, bei Fremden die Freundschaft,
+ *            ganz unten die Level-Kachel. Das Zahnrad (nur eigen) oben
+ *            rechts → Einstellungen.
+ * Jede Level-Anzeige öffnet den LEVEL-PFAD (js/upcrew-levelpfad.js,
+ * `levelPfadOeffnen`).
  *
- * Die Statistik rechnet js\rangliste.js aus dem Verlauf des Spielers
- * (`typoluck/wordle/verlauf/<id>`). Beim eigenen Profil zählen Ergebnisse,
- * die noch auf dem Gerät warten, schon mit.
+ * Die Statistik rechnet js\rangliste.js aus dem Tageswort-Verlauf des
+ * Spielers (`typoluck/wordle/verlauf/<id>`); beim eigenen Profil zählen
+ * Ergebnisse, die noch auf dem Gerät warten, schon mit. „gelöst" heisst
+ * seit 0.26.0 „Tageswort gelöst" (siehe `_statistikFuellen`).
  */
 
 const PROFIL_BILDSCHIRM = {
@@ -43,11 +55,13 @@ const PROFIL_BILDSCHIRM = {
         return !!ich && (!parameter || !parameter.id || parameter.id === ich.id);
     },
 
-    /* Das Zahnrad → Einstellungen (als Blatt darüber). */
+    /* Das Zahnrad → Einstellungen (als Blatt darüber). Seit 0.26.0 das
+       echte Zahnrad des Bausteins (Nutzer: „das einstellungs symbol ist
+       kein zahnrad"). */
     _zahnrad() {
         const beiKlick = () => NAVIGATION.zeigen("einstellungen", null);
-        if (typeof UPCREW_PROFIL !== "undefined") {
-            return UPCREW_PROFIL.zahnrad(beiKlick);
+        if (typeof UPCREW_EINSTELLUNGEN !== "undefined" && typeof UPCREW_EINSTELLUNGEN.zahnradKnopf === "function") {
+            return UPCREW_EINSTELLUNGEN.zahnradKnopf(beiKlick, "Einstellungen", "up-bl-kopf-knopf");
         }
         return BAUSTEINE.knopf({ art: "flach", zeichen: "zahnrad", titel: "Einstellungen", beiKlick: beiKlick });
     },
@@ -83,49 +97,37 @@ const PROFIL_BILDSCHIRM = {
             return;
         }
 
-        const statistik = BAUSTEINE.karte(eigenes ? "Statistik · " + WORDLE.NAME : WORDLE.NAME, "profil-statistik");
+        const statistik = BAUSTEINE.el("div", "profil-statistik");
         statistik.id = "profil-statistik";
+        const verlauf = BAUSTEINE.el("div", "profil-verlauf");
+        verlauf.id = "profil-verlauf";
         PROFIL_BILDSCHIRM._statistikFuellen(statistik, id, eigenes);
+        PROFIL_BILDSCHIRM._verlaufFuellen(verlauf, id, eigenes);
 
-        if (eigenes && PROFIL_BILDSCHIRM._mitBaustein()) {
-            APP.abzeichenBuchen();
+        if (PROFIL_BILDSCHIRM._mitBaustein()) {
+            if (eigenes) {
+                APP.abzeichenBuchen();
+            }
             const ort = BAUSTEINE.el("div", "profil-blatt");
-            UPCREW_PROFIL.zeichnen(ort, PROFIL_BILDSCHIRM.daten(spieler), {
-                beiAbzeichen: () => PROFIL_BILDSCHIRM.abzeichenWahlOeffnen(),
-                zusatz: [statistik, PROFIL_BILDSCHIRM._levelBauen(false)]
+            const zusatz = [];
+            if (!eigenes && ich && !SPIELER.istVerteiler(ich) && !SPIELER.istVerteiler(spieler)) {
+                const abschnitt = UPCREW_PROFIL.abschnitt("Freundschaft");
+                abschnitt.appendChild(PROFIL_BILDSCHIRM._freundschaftBauen(ich, spieler));
+                zusatz.push(abschnitt);
+            }
+            UPCREW_PROFIL.zeichnen(ort, PROFIL_BILDSCHIRM.daten(spieler, eigenes), {
+                eigen: eigenes,
+                beiAbzeichen: eigenes ? () => PROFIL_BILDSCHIRM.abzeichenWahlOeffnen() : undefined,
+                beiAbzeichenTipp: (eintrag) => DIALOG.hinweis(eintrag.titel, "", UPCREW_ABZEICHEN.blatt(eintrag)),
+                beiLevel: () => PROFIL_BILDSCHIRM.levelPfadOeffnen(spieler, eigenes),
+                statistik: statistik,
+                verlauf: verlauf,
+                zusatz: zusatz
             });
             behaelter.appendChild(ort);
-        } else if (eigenes) {
-            behaelter.appendChild(PROFIL_BILDSCHIRM._kopfEigenBauen(spieler));
-            behaelter.appendChild(PROFIL_BILDSCHIRM._levelBauen(true));
-            behaelter.appendChild(statistik);
-            behaelter.appendChild(PROFIL_BILDSCHIRM._abzeichenBauen());
         } else {
-            /* Ein fremdes Profil: Kreis, Name, Freundschaft und die
-               Wordguesser-Statistik — sein Fortschritt liegt nur auf SEINEM
-               Gerät. */
-            const kopf = BAUSTEINE.karte(null, "profil-kopf");
-            kopf.appendChild(BAUSTEINE.kreis(spieler.name, "namens-kreis-gross"));
-            const name = BAUSTEINE.el("h2", "profil-name", ANMELDUNG.anzeigeName(spieler));
-            /* Die Nummer nur leise und nur bei gleichen Namen (seit 0.15.6). */
-            const nummer = SPIELER.nummerZusatz(ANMELDUNG.abgleich.daten, spieler);
-            if (nummer) {
-                name.appendChild(BAUSTEINE.el("span", "name-nummer", " " + nummer));
-            }
-            kopf.appendChild(name);
-            if (ich) {
-                kopf.appendChild(PROFIL_BILDSCHIRM._freundschaftBauen(ich, spieler));
-            }
-            behaelter.appendChild(kopf);
             behaelter.appendChild(statistik);
-        }
-        /* Spielzeit (seit 0.24.0): im eigenen Profil steht sie seit 0.25.0
-           im Baustein („Über dich"); fremd nur veröffentlicht. */
-        if (!(eigenes && PROFIL_BILDSCHIRM._mitBaustein())) {
-            const spielzeit = PROFIL_BILDSCHIRM._spielzeitBauen(spieler, eigenes);
-            if (spielzeit) {
-                behaelter.appendChild(spielzeit);
-            }
+            behaelter.appendChild(verlauf);
         }
 
         if (PROFIL_BILDSCHIRM._verlauf === null && !PROFIL_BILDSCHIRM._fehler) {
@@ -134,7 +136,7 @@ const PROFIL_BILDSCHIRM = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Das eigene Profil aus dem Baustein (seit 0.25.0)
+     * Die Daten für den Baustein (seit 0.25.0; seit 0.26.0 auch fremd)
      * ---------------------------------------------------------------- */
 
     _mitBaustein() {
@@ -163,24 +165,74 @@ const PROFIL_BILDSCHIRM = {
             .map((k) => PROFIL_BILDSCHIRM.umdeuten(k));
     },
 
-    /* Die Zahlen für den Baustein. */
-    daten(spieler) {
-        const stufe = APP.level();
-        const fortschritt = APP.fortschritt();
-        const alle = PROFIL_BILDSCHIRM.alleAbzeichen();
-        const daten = {
+    /*
+     * Die Zahlen der VORSCHAU-KARTE (Stufe 1) — eigen oder fremd:
+     *   eigen  Level, Serie und Abzeichen aus dem eigenen Fortschritt
+     *          (Gerät + Konto, alle Zweige);
+     *   fremd  aus dem öffentlichen Auszug (§12): Level aus `xp`, Serie aus
+     *          `serie`/`serieBis`, Abzeichen = die gemeinsamen fünf aus
+     *          `werte`; gewählte Abzeichen eines Spiels (bl-/tl-) gelten als
+     *          verdient, weil die Auswahl nur Verdientes annimmt (Nutzer
+     *          29.09.2026: „überall gezeigt, auch bei Fremden") — wie
+     *          Blunderluck, im Baustein `UPCREW_ABZEICHEN.fremdAusgeruestet`.
+     * `alle` (alle Abzeichen) wird für das ausführliche Profil mitgegeben.
+     */
+    vorschauDaten(spieler, eigenes) {
+        const heute = WORDLE.datumText(APP.jetzt());
+        let stufe;
+        let serie;
+        let heuteDa;
+        let alle;
+        if (eigenes) {
+            const stand = APP.fortschritt();
+            const l = FORTSCHRITT.level(stand);
+            stufe = { level: l.level, imLevel: l.hat, kosten: l.kosten };
+            const s = FORTSCHRITT.serieHeute(stand, heute);
+            serie = s.tage;
+            heuteDa = s.heute === true;
+            alle = PROFIL_BILDSCHIRM.alleAbzeichen();
+        } else {
+            const auszug = FORTSCHRITT.auszugVon(spieler, heute);
+            stufe = FORTSCHRITT.auszugLevel(auszug);
+            serie = FORTSCHRITT.auszugSerie(auszug, heute);
+            heuteDa = serie > 0 && !!auszug && auszug.serieBis === FORTSCHRITT._datumZahl(heute);
+            alle = UPCREW_ABZEICHEN.alle(FORTSCHRITT.auszugAlsStand(auszug), serie);
+        }
+        const gewaehlt = PROFIL_BILDSCHIRM._gewaehlt(spieler);
+        return {
             name: spieler.name,
             tag: KONTO.tagZusatz(spieler),
+            titel: FORTSCHRITT.titelVon(stufe.level) || "",
             level: stufe.level,
-            anteil: stufe.kosten > 0 ? stufe.hat / stufe.kosten : 0,
-            xpText: stufe.hat + " / " + stufe.kosten + " XP bis Level " + (stufe.level + 1),
-            abzeichen: UPCREW_ABZEICHEN.ausgeruestet(alle, PROFIL_BILDSCHIRM._gewaehlt(spieler),
-                SPIELER.ABZEICHEN_PLAETZE),
+            imLevel: stufe.imLevel,
+            kosten: stufe.kosten,
+            anteil: stufe.kosten > 0 ? stufe.imLevel / stufe.kosten : 0,
+            serie: serie,
+            heute: heuteDa,
+            abzeichen: eigenes
+                ? UPCREW_ABZEICHEN.ausgeruestet(alle, gewaehlt, SPIELER.ABZEICHEN_PLAETZE)
+                : UPCREW_ABZEICHEN.fremdAusgeruestet(alle, gewaehlt, SPIELER.ABZEICHEN_PLAETZE),
             plaetze: SPIELER.ABZEICHEN_PLAETZE,
-            spielzeit: null,
-            seit: "",
-            orte: PROFIL_BILDSCHIRM.orte(fortschritt)
+            alle: alle
         };
+    },
+
+    /* Die Zahlen für das ausführliche Profil: die der Karte, dazu Spielzeit,
+       „dabei seit" und „Wo du stehst" (nur eigen; fremd nur die
+       veröffentlichte Spielzeit). */
+    daten(spieler, eigenes) {
+        const daten = PROFIL_BILDSCHIRM.vorschauDaten(spieler, eigenes !== false);
+        daten.spielzeit = null;
+        daten.seit = "";
+        daten.orte = [];
+        if (eigenes === false) {
+            const zeilen = typeof SPIELZEIT !== "undefined" ? PROFIL_BILDSCHIRM.spielzeitZeilen(spieler, false) : [];
+            if (zeilen.length) {
+                daten.spielzeit = { wert: zeilen[0].replace("Gesamt · ", ""), zeilen: [], oeffentlich: true };
+            }
+            return daten;
+        }
+        daten.orte = PROFIL_BILDSCHIRM.orte(APP.fortschritt());
         if (typeof SPIELZEIT !== "undefined") {
             const zeit = SPIELZEIT.spielzeit();
             daten.spielzeit = {
@@ -193,6 +245,41 @@ const PROFIL_BILDSCHIRM = {
             daten.seit = zeit.seit ? SPIELZEIT.datumText(zeit.seit) : "";
         }
         return daten;
+    },
+
+    /* Der Level-Pfad (seit 0.26.0, Nutzer: „ich will auf level klicken
+       können um den level pfad zu sehen") als Blatt darüber. */
+    levelPfadOeffnen(spieler, eigenes) {
+        if (typeof UPCREW_LEVELPFAD === "undefined") {
+            return null;
+        }
+        const d = PROFIL_BILDSCHIRM.vorschauDaten(spieler, eigenes);
+        return UPCREW_LEVELPFAD.oeffnen({ level: d.level, imLevel: d.imLevel, kosten: d.kosten });
+    },
+
+    /* Die Vorschau-Karte eines Spielers als Karte über allem (aus Rangliste
+       und Freunden). Ein Tipp auf die Karte → das ausführliche Profil. */
+    vorschauOeffnen(id) {
+        const ich = ANMELDUNG.ich();
+        const spieler = SPIELER.spielerFinden(ANMELDUNG.abgleich.daten, id);
+        const eigenes = !!ich && id === ich.id;
+        if (!spieler || !PROFIL_BILDSCHIRM._mitBaustein() || typeof UPCREW_BLATT === "undefined"
+                || typeof UPCREW_PROFIL.vorschau !== "function") {
+            NAVIGATION.zeigen("profil", { id: id });
+            return null;
+        }
+        return UPCREW_BLATT.oeffnen({
+            art: "karte",
+            titel: "Profil",
+            klasse: "karte-vorschau",
+            inhalt: (ort) => UPCREW_PROFIL.vorschau(ort, PROFIL_BILDSCHIRM.vorschauDaten(spieler, eigenes), {
+                beiOeffnen: () => {
+                    UPCREW_BLATT.schliessen("knopf");
+                    NAVIGATION.zeigen("profil", { id: id });
+                },
+                beiLevel: () => PROFIL_BILDSCHIRM.levelPfadOeffnen(spieler, eigenes)
+            })
+        });
     },
 
     /* Wo du stehst — je Spiel eine Zeile: Typoluck in der Bibliothek,
@@ -278,178 +365,23 @@ const PROFIL_BILDSCHIRM = {
             ? ["Gesamt · " + FORTSCHRITT.spielzeitText(auszug.spielzeit)] : [];
     },
 
-    _spielzeitBauen(spieler, eigenes) {
-        if (typeof SPIELZEIT === "undefined") {
-            return null;
-        }
-        const zeilen = PROFIL_BILDSCHIRM.spielzeitZeilen(spieler, eigenes);
-        if (!zeilen.length) {
-            return null;
-        }
-        const karte = BAUSTEINE.karte(eigenes ? "Spielzeit · nur du" : "Spielzeit", "profil-spielzeit");
-        for (const zeile of zeilen) {
-            karte.appendChild(BAUSTEINE.el("p", "profil-spielzeit-zeile", zeile));
-        }
-        if (eigenes && SPIELZEIT._eigener()) {
-            karte.appendChild(BAUSTEINE.el("p", "profil-spielzeit-haken",
-                SPIELZEIT.oeffentlich() ? "Öffentlich · Einstellungen" : "Privat · Einstellungen"));
-        }
-        return karte;
-    },
-
-    /* Der Kopf des eigenen Profils (seit 0.12.0): Ring mit Rahmen, Name,
-       Titel, darunter Level und XP-Balken. */
-    _kopfEigenBauen(spieler) {
-        const stufe = APP.level();
-        const rahmen = FORTSCHRITT.rahmenVon(stufe.level);
-        const titel = FORTSCHRITT.titelVon(stufe.level);
-        const kopf = BAUSTEINE.karte(null, "profil-kopf profil-kopf-eigen");
-        kopf.appendChild(BAUSTEINE.levelRing(spieler.name, stufe.hat / stufe.kosten, stufe.level, true, rahmen));
-
-        const texte = BAUSTEINE.el("div", "level-texte");
-        texte.appendChild(BAUSTEINE.el("h2", "profil-name", ANMELDUNG.anzeigeName(spieler)));
-        const zeile = BAUSTEINE.el("div", "profil-titelzeile");
-        if (titel) {
-            zeile.appendChild(BAUSTEINE.el("span", "profil-titel", titel));
-        }
-        if (rahmen) {
-            zeile.appendChild(BAUSTEINE.el("span", "profil-rahmen profil-rahmen-" + rahmen.stufe, rahmen.name));
-        }
-        if (zeile.children.length) {
-            texte.appendChild(zeile);
-        }
-        const xp = BAUSTEINE.el("div", "level-xp-zeile");
-        xp.appendChild(BAUSTEINE.el("strong", "level-titel", "Level " + stufe.level));
-        const balken = BAUSTEINE.el("span", "level-balken");
-        balken.style.setProperty("--anteil", String(stufe.hat / stufe.kosten));
-        balken.setAttribute("aria-hidden", "true");
-        xp.appendChild(balken);
-        xp.appendChild(BAUSTEINE.el("span", "level-xp", stufe.hat + " / " + stufe.kosten + " XP"));
-        texte.appendChild(xp);
-        kopf.appendChild(texte);
-        return kopf;
-    },
-
     /*
-     * Die Level-Karte (seit 0.10.0, seit 0.12.0 wie im Entwurf): woher XP
-     * kommen, die nächsten drei Level mit ihren Belohnungen und je Spiel
-     * Ort und Figuren. Alle Zahlen aus js\fortschritt.js. Seit 0.25.0 ohne
-     * „Spiele", wenn das Profil aus dem Baustein kommt (dort „Wo du stehst").
+     * DIE STATISTIK (Abschnitt „Statistik" des Bausteins).
+     *
+     * „GELÖST 100 %" (Nutzer 29.09.2026: „gelöst 100% steht bei mir kann
+     * aber garnicht sein"): Die Quote kommt aus RANGLISTE.statistik und
+     * zählt NUR Tageswort-Tage mit gemeldetem Ergebnis — nicht Übung, nicht
+     * Bibliothek und keinen Tag, an dem das Tageswort angefangen, aber nie
+     * zu Ende gespielt wurde (dafür gibt es kein Ergebnis). Die Rechnung
+     * stimmt also; falsch war die Beschriftung: „gelöst" stand bis 0.25.0
+     * neben „Partien", die ALLE Runden zählen (auch Übung und Bibliothek),
+     * und las sich wie „alle Partien gelöst". Eine Quote über alle Runden
+     * lässt sich nicht nachrechnen (der Fortschritt zählt Partien, aber keine
+     * gelösten), also steht seit 0.26.0 klar „Tageswort gelöst" mit „N/M
+     * Tage" daneben, und die Tageswort-Zahlen stehen beieinander.
      */
-    _levelBauen(mitSpielen) {
-        const fortschritt = APP.fortschritt();
-        const stufe = FORTSCHRITT.level(fortschritt);
-        const karte = BAUSTEINE.karte(mitSpielen ? null : "Level", "profil-level");
-
-        const quellen = BAUSTEINE.el("div", "level-quellen");
-        for (const quelle of FORTSCHRITT.quellen()) {
-            const feld = BAUSTEINE.el("span", "level-quelle");
-            feld.title = quelle.titel;
-            feld.appendChild(BAUSTEINE.zeichen(quelle.zeichen));
-            feld.appendChild(BAUSTEINE.el("strong", null, quelle.wert));
-            feld.appendChild(BAUSTEINE.el("span", "level-quelle-name", quelle.titel));
-            quellen.appendChild(feld);
-        }
-        karte.appendChild(quellen);
-
-        karte.appendChild(BAUSTEINE.el("h3", "level-zwischen", "Nächste Level"));
-        const stufen = APP._stufen();
-        for (let level = stufe.level + 1; level <= stufe.level + 3; level++) {
-            const zeile = BAUSTEINE.el("div", "level-naechstes");
-            zeile.appendChild(BAUSTEINE.el("span", "level-nummer", String(level)));
-            const belohnungen = FORTSCHRITT.belohnungen(level, stufen, PROFIL_BILDSCHIRM._belohnungsNamen(stufen));
-            const liste = BAUSTEINE.el("span", "level-belohnungen");
-            for (const belohnung of belohnungen) {
-                /* Die Art nur davor, wo der Name sie nicht schon sagt
-                   („Serien-Schutz", „Rahmen 20"). */
-                const art = PROFIL_BILDSCHIRM.BELOHNUNG_ARTEN[belohnung.art];
-                const sagtEsSchon = belohnung.art === "schutz" || belohnung.name.indexOf(art) === 0;
-                liste.appendChild(BAUSTEINE.el("span", "level-belohnung level-belohnung-" + belohnung.art,
-                    sagtEsSchon ? belohnung.name : art + " · " + belohnung.name));
-            }
-            if (!belohnungen.length) {
-                liste.appendChild(BAUSTEINE.el("span", "level-belohnung-leer", "—"));
-            }
-            zeile.appendChild(liste);
-            karte.appendChild(zeile);
-        }
-
-        /* Spiele (seit 0.12.0): je Spiel der Ort im Turm und die Figuren.
-           Blunderluck aus dessen Zweig; Typoluck seit 0.18.0 das erreichte
-           Buch der Bibliothek (bis 0.17: „Turm bald"). */
-        if (!mitSpielen) {
-            return karte;
-        }
-        karte.appendChild(BAUSTEINE.el("h3", "level-zwischen", "Spiele"));
-        const andere = KONFIG.andereSpiele.blunderluck;
-        const namen = { typoluck: "Typoluck", blunderluck: andere.name };
-        for (const spiel of FORTSCHRITT.spiele(fortschritt, ["blunderluck", "typoluck"])) {
-            const zeile = BAUSTEINE.el("div", "profil-spiel");
-            zeile.appendChild(BAUSTEINE.el("strong", "profil-spiel-name", namen[spiel.app]));
-            let ortName = spiel.app === "blunderluck" && spiel.ort > 0
-                ? (andere.orte[spiel.ort - 1] || "Ort " + spiel.ort) : "";
-            if (spiel.app === "typoluck" && typeof BIBLIOTHEK !== "undefined") {
-                const buch = Math.min(BIBLIOTHEK.erreicht(FORTSCHRITT.turmStand(fortschritt)),
-                    BIBLIOTHEK.anzahlBuecher());
-                ortName = BIBLIOTHEK.NAME + " · Buch " + buch;
-            }
-            zeile.appendChild(BAUSTEINE.el("span", "profil-ort" + (ortName ? "" : " profil-ort-leer"),
-                ortName || "—"));
-            const figuren = BAUSTEINE.el("span", "profil-figuren");
-            figuren.appendChild(BAUSTEINE.zeichen("koenig"));
-            figuren.appendChild(BAUSTEINE.el("strong", null, String(spiel.figuren)));
-            figuren.setAttribute("aria-label", spiel.figuren + " Figuren");
-            zeile.appendChild(figuren);
-            karte.appendChild(zeile);
-        }
-        return karte;
-    },
-
-    /* Die Abzeichen (seit 0.10.0; seit 0.12.0 eigene Karte wie im
-       Entwurf; seit 0.15.9 aus dem gemeinsamen Baustein
-       js\upcrew-abzeichen.js, gleich in Blunderluck und in der Sammlung):
-       Zeichen und je Stufe ein Punkt; antippen zeigt Wert und Stufen. */
-    _abzeichenBauen() {
-        const karte = BAUSTEINE.karte("Abzeichen", "profil-abzeichen");
-        const datum = WORDLE.datumText(APP.jetzt());
-        karte.appendChild(UPCREW_ABZEICHEN.raster(FORTSCHRITT.abzeichen(APP.fortschritt(), datum),
-            (eintrag) => DIALOG.hinweis(eintrag.titel, "", UPCREW_ABZEICHEN.blatt(eintrag))));
-        return karte;
-    },
-
-    /* Wie eine Belohnung heisst (kurz). */
-    BELOHNUNG_ARTEN: {
-        farbwelt: "Farbwelt",
-        schrift: "Schrift",
-        knoepfe: "Knöpfe",
-        kachelset: "Kachel-Set",
-        titel: "Titel",
-        rahmen: "Rahmen",
-        schutz: "Schutz"
-    },
-
-    /* Anzeigenamen der Aussehen-Stücke — aus den Bausteinen gelesen, nie
-       hier festgeschrieben: Farbwelten aus UPCREW_INTRO.WELTEN, Schriften
-       als „Crew n" wie im Anpassen-Regal. Knopf-Familien zeigen ihre
-       Kennung (die Namen stecken im Baustein und sind nicht nach aussen
-       gereicht). */
-    _belohnungsNamen(stufen) {
-        /* Kachel-Sets (seit 0.15.0) heissen, wie die Sammlung sie nennt. */
-        const namen = { farbwelt: {}, schrift: {}, knoepfe: {}, kachelset: SAMMLUNG.kachelsetNamen() };
-        const welten = (typeof UPCREW_INTRO !== "undefined" && UPCREW_INTRO.WELTEN) || {};
-        for (const wert of Object.keys((stufen && stufen.farbwelt) || {})) {
-            namen.farbwelt[wert] = (welten[wert] && welten[wert].name) || wert;
-        }
-        for (const wert of Object.keys((stufen && stufen.schrift) || {})) {
-            namen.schrift[wert] = "Crew " + wert.slice(1);
-        }
-        return namen;
-    },
-
     _statistikFuellen(karte, id, eigenes) {
-        while (karte.children.length > 1) {
-            karte.removeChild(karte.lastChild);
-        }
+        karte.textContent = "";
         const nochmal = () => {
             PROFIL_BILDSCHIRM._verlauf = null;
             PROFIL_BILDSCHIRM._fehler = "";
@@ -465,36 +397,38 @@ const PROFIL_BILDSCHIRM = {
             return;
         }
 
-        const verlauf = eigenes
-            ? ERGEBNISSE.verlaufMitAusstehendem(PROFIL_BILDSCHIRM._verlauf, id)
-            : PROFIL_BILDSCHIRM._verlauf;
+        const verlauf = PROFIL_BILDSCHIRM._verlaufVon(id, eigenes);
         const datum = WORDLE.datumText(APP.jetzt());
         const werte = RANGLISTE.statistik(verlauf, datum);
 
-        const kachel = (zahl, text) => {
+        const kachel = (zahl, text, unter) => {
             const feld = BAUSTEINE.el("div", "statistik-feld");
             feld.appendChild(BAUSTEINE.el("span", "statistik-zahl", String(zahl)));
             feld.appendChild(BAUSTEINE.el("span", "statistik-text", text));
+            if (unter) {
+                feld.appendChild(BAUSTEINE.el("span", "statistik-unter", unter));
+            }
             return feld;
         };
+        const tage = werte.geloest + "/" + werte.gespielt + " Tage";
         if (eigenes) {
-            /* Seit 0.12.0 wie im Entwurf: sechs Kacheln — Partien und
-               Können aus dem Fortschritt (auch Übung), Quote und Ø aus dem
-               Tageswort-Verlauf, die längste Serie über alle Spiele. */
+            /* Sechs Kacheln: oben alle Runden (Partien, Können — aus dem
+               Fortschritt, auch Übung und Bibliothek), darunter nur das
+               Tageswort (gelöst, Ø Versuche, längste Serie). */
             const eigen = FORTSCHRITT.statistik(APP.fortschritt(), datum);
             const raster = BAUSTEINE.el("div", "statistik-raster statistik-raster-sechs");
             raster.appendChild(kachel(eigen.partien, "Partien"));
-            raster.appendChild(kachel(werte.quote + " %", "gelöst"));
             raster.appendChild(kachel(eigen.koennen === null ? "—" : eigen.koennen + " %", "Ø Können"));
             raster.appendChild(kachel(eigen.bestesKoennen === null ? "—" : eigen.bestesKoennen + " %", "Bestes"));
-            raster.appendChild(kachel(eigen.besteSerie, "Längste Serie"));
+            raster.appendChild(kachel(werte.quote + " %", "Tageswort gelöst", tage));
             raster.appendChild(kachel(werte.durchschnitt === null ? "—"
                 : String(werte.durchschnitt).replace(".", ","), "Tageswort Ø"));
+            raster.appendChild(kachel(eigen.besteSerie, "Längste Serie"));
             karte.appendChild(raster);
         } else {
             const raster = BAUSTEINE.el("div", "statistik-raster");
-            raster.appendChild(kachel(werte.gespielt, "gespielt"));
-            raster.appendChild(kachel(werte.quote + " %", "gelöst"));
+            raster.appendChild(kachel(werte.gespielt, "Tageswörter"));
+            raster.appendChild(kachel(werte.quote + " %", "Tageswort gelöst", tage));
             raster.appendChild(kachel(werte.serie, "Serie"));
             raster.appendChild(kachel(werte.besteSerie, "beste Serie"));
             karte.appendChild(raster);
@@ -502,14 +436,14 @@ const PROFIL_BILDSCHIRM = {
 
         if (werte.gespielt === 0) {
             karte.appendChild(ZUSTAND.leer({
-                zeichen: "wordle", text: "Noch nicht gespielt",
+                zeichen: "wordle", text: "Noch kein Tageswort",
                 aktion: eigenes ? { text: "Spielen", zeichen: "weiter",
                     beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "tag" }) } : null
             }));
             return;
         }
 
-        karte.appendChild(BAUSTEINE.el("h3", "unterkopf", "Gelöst im Versuch"));
+        karte.appendChild(BAUSTEINE.el("h3", "unterkopf", "Tageswort · Versuche"));
         const hoechster = Math.max(1, ...werte.verteilung);
         werte.verteilung.forEach((anzahl, i) => {
             const zeile = BAUSTEINE.el("div", "verteilung-zeile");
@@ -519,6 +453,41 @@ const PROFIL_BILDSCHIRM = {
             zeile.appendChild(balken);
             karte.appendChild(zeile);
         });
+    },
+
+    _verlaufVon(id, eigenes) {
+        return eigenes
+            ? ERGEBNISSE.verlaufMitAusstehendem(PROFIL_BILDSCHIRM._verlauf || {}, id)
+            : (PROFIL_BILDSCHIRM._verlauf || {});
+    },
+
+    /* Die Partien (Abschnitt „Partien"): die letzten Tageswörter, neueste
+       zuerst — Datum, Versuche, Punkte. */
+    VERLAUF_ZEILEN: 7,
+
+    _verlaufFuellen(ort, id, eigenes) {
+        ort.textContent = "";
+        if (PROFIL_BILDSCHIRM._verlauf === null || PROFIL_BILDSCHIRM._fehler) {
+            return;
+        }
+        const verlauf = PROFIL_BILDSCHIRM._verlaufVon(id, eigenes);
+        const tage = Object.keys(verlauf).sort().reverse().slice(0, PROFIL_BILDSCHIRM.VERLAUF_ZEILEN);
+        if (!tage.length) {
+            ort.appendChild(BAUSTEINE.el("p", "profil-verlauf-leer", "—"));
+            return;
+        }
+        const liste = BAUSTEINE.el("ol", "profil-verlauf-liste");
+        for (const tag of tage) {
+            const e = verlauf[tag];
+            const zeile = BAUSTEINE.el("li", "profil-verlauf-zeile" + (e.geloest ? "" : " profil-verlauf-verloren"));
+            zeile.appendChild(BAUSTEINE.el("span", "profil-verlauf-datum", tag.slice(8, 10) + "." + tag.slice(5, 7) + "."));
+            zeile.appendChild(BAUSTEINE.el("span", "profil-verlauf-art", "Tageswort"));
+            zeile.appendChild(BAUSTEINE.el("span", "profil-verlauf-versuche",
+                (e.geloest ? e.versuche : "X") + "/" + WORDLE.VERSUCHE));
+            zeile.appendChild(BAUSTEINE.el("strong", "profil-verlauf-punkte", String(RANGLISTE.punkte(e))));
+            liste.appendChild(zeile);
+        }
+        ort.appendChild(liste);
     },
 
     _freundschaftBauen(ich, spieler) {
@@ -565,6 +534,10 @@ const PROFIL_BILDSCHIRM = {
         const karte = document.getElementById("profil-statistik");
         if (karte && NAVIGATION.sichtbar("profil") && PROFIL_BILDSCHIRM._fuerId === id) {
             PROFIL_BILDSCHIRM._statistikFuellen(karte, id, eigenes);
+            const verlauf = document.getElementById("profil-verlauf");
+            if (verlauf) {
+                PROFIL_BILDSCHIRM._verlaufFuellen(verlauf, id, eigenes);
+            }
         }
     }
 };

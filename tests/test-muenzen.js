@@ -43,6 +43,8 @@ function funktion(text, name) {
     const tl = lesen("js/fortschritt.js");
     const namen = ["zusammenfuehren", "_zaehlerZusammen", "serie", "_datumZahl", "_zahlDatum", "_tageZwischen",
         "_zaehlerSumme", "schildVorrat", "serieStand", "rundeGestartet", "_zaehlerAnlegen",
+        /* Seit 0.26.0 (Schild und Schutz weg): Schutz 0, Erstattung. */
+        "schutzVerdient", "schildeErstatten",
         /* Seit 0.22.0 (Regel §12): der öffentliche Auszug. */
         "datumVon", "auszug", "auszugPruefen", "auszugVon", "auszugLevel", "auszugSerie", "auszugAlsStand"];
     if (fs.existsSync(bl)) {
@@ -78,14 +80,33 @@ function funktion(text, name) {
     gleich("Serie über 60 Tage (Zähler): 400", F.serie(lang, tag(399), 0).tage, 400);
     pruefe("Die Tagesliste bleibt kurz", lang.spiele.typoluck.tage.length <= 60);
 
+    /* Seit 0.26.0 (Nutzer 29.09.2026: „serien schild raus"): Die Ware ist
+       weg; ein altes, gekauftes Schild rettet nichts mehr und wird EINMAL
+       mit 50 Münzen erstattet. */
+    gleich("Schild ist keine Ware mehr", M.kaufen(M.verdienen({}, "typoluck", 200, 2), "typoluck", "schild", 3).grund,
+        "unbekannt");
     let gekauft = F.rundeGestartet({}, tag(0), 1, "typoluck", 0).stand;
-    gekauft = M.verdienen(gekauft, "typoluck", 200, 2);
-    gekauft = M.kaufen(gekauft, "typoluck", "schild", 3).stand;
-    gleich("Ein Schild im Vorrat", F.schildVorrat(gekauft), 1);
-    gleich("Gestern verpasst: lebt noch dank Schild", F.serie(gekauft, tag(2), 0).tage, 1);
-    gleich("Die Flamme zählt den Schild als Schutz", F.serieHeute(gekauft, tag(2)).schutz >= 1, true);
-    gekauft = F.rundeGestartet(gekauft, tag(2), 4, "typoluck", 0).stand;
-    gleich("Überbrückt, Schild verbraucht", [F.serie(gekauft, tag(2), 0).tage, F.schildVorrat(gekauft)], [2, 0]);
+    gekauft.spiele.typoluck.zaehler.schildGekauft = 2;
+    gekauft.spiele.typoluck.zaehler.schildGenutzt = 1;
+    gleich("Kein Schild im Vorrat", F.schildVorrat(gekauft), 0);
+    gleich("Gestern verpasst: Serie ist vorbei", F.serie(gekauft, tag(2), 0).tage, 0);
+    gleich("Die Flamme kennt keinen Schutz", F.serieHeute(gekauft, tag(2)).schutz, 0);
+    const vorher = M.anzeige(gekauft);
+    const erst = F.schildeErstatten(gekauft, "typoluck", 50, 9);
+    gleich("Erstattung: ein offenes Schild = 50 Münzen", [erst.stueck, erst.muenzen, M.anzeige(erst.stand) - vorher],
+        [1, 50, 50]);
+    gleich("… gemerkt im Zähler", erst.stand.spiele.typoluck.zaehler.schildErstattet, 1);
+    gleich("… nur einmal", F.schildeErstatten(erst.stand, "typoluck", 50, 10).stueck, 0);
+    const zweiGeraete = F.zusammenfuehren(erst.stand, gekauft);
+    gleich("… auch nicht nach dem Zusammenführen mit einem Gerät ohne Merker",
+        F.schildeErstatten(zweiGeraete, "typoluck", 50, 11).stueck, 0);
+    const beide = JSON.parse(JSON.stringify(gekauft));
+    beide.spiele.blunderluck = { xp: 0, stand: 1, zaehler: { schildGekauft: 1, schildErstattet: 1 } };
+    gleich("Blunderluck hat sein Schild schon erstattet: Typoluck zahlt für sein eigenes",
+        F.schildeErstatten(beide, "typoluck", 50, 12).stueck, 1);
+    beide.spiele.typoluck.zaehler.schildGenutzt = 2;
+    gleich("Alles verbraucht: nichts zu erstatten", F.schildeErstatten(beide, "typoluck", 50, 13).stueck, 0);
+    gleich("Nie gekauft: nichts", F.schildeErstatten({}, "typoluck", 50, 14).stueck, 0);
 
     const alt = { spiele: { blunderluck: { tage: ["2026-09-24", "2026-09-26"] },
         typoluck: { tage: ["2026-09-25", "2026-09-22"] } } };

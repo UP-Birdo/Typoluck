@@ -16,7 +16,7 @@
  *
  *   GETEILT = false (Standard):
  *     spieler/konten/<uid>/aussehenJe/typoluck
- *         { darstellung, farbwelt, schrift, knoepfe, leseschrift, stand }
+ *         { darstellung, farbwelt, schrift, knoepfe, stand }   (`leseschrift` seit 0.26.0 weg)
  *     Geschrieben wird dorthin, wenn `AUSSEHEN_JE_AM_KONTO` true ist — seit
  *     0.18.4 (Regel §11c, Apps\Blunderluck\SICHERHEIT.md, vom Nutzer am
  *     28.09.2026 eingespielt); bis 0.18.3 blieb das Aussehen auf dem Gerät.

@@ -3,8 +3,8 @@
  * Quelle künftig Design\3D-Schrift\final — KOPIEREN, nie abwandeln.
  *
  * MARKUP (baut upcrew-flamme.js):
- *   <button class="up-fl up-fl-voll up-fl-schutz" aria-label="Serie 12 Tage · heute geschafft · Schutz 1">
- *     <svg class="up-fl-flamme">…</svg><span class="up-fl-zahl">12</span><svg class="up-fl-schild">…</svg>
+ *   <button class="up-fl up-fl-voll" aria-label="Serie 12 Tage · heute geschafft">
+ *     <svg class="up-fl-flamme">…</svg><span class="up-fl-zahl">12</span>
  *   </button>
  * Ein Kreis, 44 px, immer gleich groß (die Zahl hat höchstens drei Zeichen: 0–999, „1k+“ …).
  * Farben nur aus der Farbwelt: --haupt, --haupt-schrift, --karte, --karte-leise, --rahmen, --schrift-leise.
@@ -80,28 +80,6 @@
 @keyframes up-fl-puls {
     0%, 100% { opacity: 0.75; }
     50% { opacity: 1; }
-}
-
-/* Serien-Schutz: kleines Schild unten rechts am Kreis. */
-.up-fl-schild {
-    display: none;
-    position: absolute;
-    right: -3px;
-    bottom: -3px;
-    width: 16px;
-    height: 16px;
-    padding: 2px;
-    box-sizing: border-box;
-    border-radius: var(--rund-voll, 999px);
-    background: var(--karte);
-    fill: var(--haupt);
-    stroke: var(--karte);
-    stroke-width: 1.5;
-    box-shadow: 0 0 0 1px var(--rahmen);
-}
-
-.up-fl-schutz .up-fl-schild {
-    display: block;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -3,6 +3,39 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.26.0 — 29.09.2026
+
+**Profil in zwei Stufen, Level-Weg, Serie ohne Schild, Freunde in der Rangliste.**
+
+- Oben auf dem Start steht eine schmale Zeile: dein Bild mit dem Level als
+  Ring, Name und deine drei Abzeichen als Zeichen, rechts die Flamme mit
+  deiner Serie (antippen zeigt die Woche). Der Start passt ohne Rollen auf
+  den Bildschirm. Bild antippen zeigt deine Profil-Karte, die Karte
+  antippen das ganze Profil mit Statistik, letzten Tageswörtern, allen
+  Abzeichen und ganz unten deinem Level. Andere Spieler öffnest du aus der
+  Rangliste genauso — mit ihren drei Abzeichen aus jedem Spiel, auch aus
+  Blunderluck.
+- Die Zurück-Taste bzw. Wischen zurück schliesst jetzt auch Karten (Profil,
+  Level-Weg, Serie, Abzeichen-Wahl), statt die App zu verlassen. Fenster
+  beginnen genau unter der Kopfzeile.
+- Tipp auf dein Level (Karte oder unten im Profil) zeigt den Level-Weg:
+  was du schon hast, wo du stehst und was noch kommt.
+- Das Zahnrad für die Einstellungen ist jetzt ein echtes Zahnrad.
+- Die Serie hat keinen Schutz und kein Flammen-Schild mehr: Wer einen Tag
+  auslässt, fängt neu an. Schilde, die du gekauft und nicht gebraucht
+  hast, bekommst du einmal als Münzen zurück (50 je Stück).
+- Den Schwer-Modus gibt es nicht mehr, und mit ihm das Abzeichen
+  „Schwer-Profi". Der harte Modus bleibt nur bei manchen Gegnern der
+  Bibliothek.
+- Statistik: „gelöst" heisst jetzt „Tageswort gelöst" und zeigt die Tage
+  dazu (z. B. 5/6 Tage). Es zählt nur das Tageswort — Übung und
+  Bibliothek nicht.
+- Einstellungen kürzer: kein Schalter „Standard-Schrift" mehr, beim
+  Speicher eine Lampe (grün gespeichert, gelb wartet, rot keine
+  Verbindung).
+- Freunde sind ein eigener Reiter in der Rangliste (mit der Zahl offener
+  Anfragen); die eigene Freunde-Seite ist weg.
+
 ## 0.25.0 — 29.09.2026
 
 **Neue Oberfläche wie in Blunderluck: Seiten, Blätter, Serie oben, Profil neu.**

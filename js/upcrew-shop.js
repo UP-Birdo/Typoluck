@@ -3,7 +3,7 @@
  * Quelle künftig Design\3D-Schrift\final — in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer, 27.09.2026: „Shop auf dem Platz von Bald soll der kommen“ — Münzen (js\upcrew-muenzen.js) gegen
- * Flammen-Schild, Extra-Leben und Tipp.
+ * Extra-Leben und Tipp. Der Flammen-Schild ist seit 29.09.2026 raus (Nutzer: „serien schild raus“).
  *
  * VERTRAG (die App liefert Stand und Kauf, der Baustein zeichnet):
  *     const shop = UPCREW_SHOP.bauen(behaelter, {
@@ -26,7 +26,7 @@
  *       <span class="up-shop-saldo"><svg class="up-mz-zeichen"/>120</span></div>
  *     <div class="up-shop-liste">
  *       <article class="up-shop-karte [up-shop-zu]"><span class="up-shop-bild"><svg/></span>
- *         <div class="up-shop-text"><h3>Flammen-Schild</h3><p>…</p><p class="up-shop-hast">Du hast: 1</p></div>
+ *         <div class="up-shop-text"><h3>Tipp</h3><p>…</p><p class="up-shop-hast">Du hast: 1</p></div>
  *         <div class="up-shop-kauf"><span class="up-shop-preis"><svg/>50</span>
  *           <button class="up-kn up-haupt up-shop-kaufen">Kaufen</button></div></article> …
  *     </div>
@@ -39,11 +39,10 @@
     const RAUM = "http://www.w3.org/2000/svg";
     /* Die Bilder der Waren (24er-Raster, Strich 2, runde Enden). */
     const BILDER = {
-        schild: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z M12 8.5 C13.5 10 15 11 15 13 A3 3 0 0 1 9 13 C9 11.5 10 10.5 10.7 9.8 C11 11 11.5 11.5 12 11.5 C12 10.3 11.7 9.4 12 8.5 Z",
         leben: "M12 20 C7 16.5 3.5 13.5 3.5 9.5 A4.5 4.5 0 0 1 12 7 A4.5 4.5 0 0 1 20.5 9.5 C20.5 13.5 17 16.5 12 20 Z",
         tipp: "M9 18 H15 M10 21 H14 M12 3 A6 6 0 0 1 16 13.5 C15.2 14.3 15 15 15 16 H9 C9 15 8.8 14.3 8 13.5 A6 6 0 0 1 12 3 Z"
     };
-    const REIHENFOLGE = ["schild", "leben", "tipp"];
+    const REIHENFOLGE = ["leben", "tipp"];
     const GRUENDE = { zuWenig: "Zu wenig", voll: "Vorrat voll" };
 
     function el(tag, klasse, text) {

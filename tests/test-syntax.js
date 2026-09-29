@@ -49,7 +49,9 @@ const KOPIEN = [
        Typoluck seine Liste ein — Vorschlag an final) */
     "js/upcrew-blatt.js", "css/upcrew-blatt.css", "js/upcrew-serie.js", "css/upcrew-serie.css",
     "js/upcrew-profil.js", "css/upcrew-profil.css", "js/upcrew-einstellungen.js", "css/upcrew-einstellungen.css",
-    "js/upcrew-abzeichen-spiele.js"
+    "js/upcrew-abzeichen-spiele.js",
+    /* seit 0.26.0: der Level-Pfad (Blatt) */
+    "js/upcrew-levelpfad.js", "css/upcrew-levelpfad.css"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -390,9 +392,20 @@ pruefe("Keine Freischalt-Stufen oder Standard-Werte in der App festgeschrieben",
                der Datenbank-Regel §11a, keine Freischalt-Stufen). */
             lesen(d).replace(/\nclass SpeicherKonten [\s\S]*?\n\}\n/, "\n")
                 .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
-pruefe("Einstellungen: Standard-Schrift und die Zeile „Anpassen“ springt in die Sammlung",
-    /"Standard-Schrift"/.test(lesen("js/bildschirm-einstellungen.js"))
+/* Seit 0.26.0 (Nutzer 29.09.2026): kein Schalter „Standard-Schrift", kein
+   Schwer-Modus, der Speicher mit Status-Lampe. */
+pruefe("Einstellungen: ohne Standard-Schrift und Schwer-Modus, „Anpassen“ springt in die Sammlung",
+    !/Standard-Schrift|leseschrift|Schwer-Modus|schwerGewaehlt/.test(lesen("js/bildschirm-einstellungen.js").replace(/\/\*[\s\S]*?\*\//g, ""))
         && /"Anpassen"[\s\S]*?NAVIGATION\.zeigen\("sammlung"/.test(lesen("js/bildschirm-einstellungen.js")));
+pruefe("Einstellungen: Speicher mit Status-Lampe aus dem echten Zustand",
+    /UPCREW_EINSTELLUNGEN\.speicherZeile\(/.test(lesen("js/bildschirm-einstellungen.js"))
+        && /APP\.speicherLage\(\)/.test(lesen("js/bildschirm-einstellungen.js"))
+        && /FORTSCHRITT_ABGLEICH\.beiZustand = /.test(lesen("js/app.js")));
+pruefe("Kein Schwer-Modus mehr als Einstellung (nur noch Regel `hart` der Bibliothek)",
+    liste("js").filter((d) => d.endsWith(".js")).every((d) => !/schwerGewaehlt|schwerSetzen|einstellungSetzen\("schwer"/.test(lesen(d))));
+pruefe("Keine Leseschrift mehr in der App (ausser SpeicherKonten, Blunderlucks)",
+    ["js/darstellung.js", "js/bildschirm-einstellungen.js", "js/werkstatt.js"]
+        .every((d) => !/leseschrift\s*[:(=]|\.leseschrift/.test(lesen(d))));
 gleich("Das Aufgaben-Zeichen ist der gemeinsame Pfad mit Blunderluck",
     (lesen("js/bausteine.js").match(/aufgaben: "([^"]+)"/) || [])[1], "M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14");
 /* Seit 0.10.0 (UPCrew-Runde 5) zeigen die Herausforderungen „Heute" statt
@@ -411,9 +424,10 @@ pruefe("Serien-Kapsel: Serie aus dem Modell, Kapsel und Karte aus dem Baustein",
     /FORTSCHRITT\.serieHeute\(/.test(lesen("js/bildschirm-start.js"))
         && /UPCREW_SERIE\.kapsel\(/.test(lesen("js/bildschirm-start.js"))
         && /UPCREW_SERIE\.karteFuellen\(/.test(lesen("js/bildschirm-start.js")));
-pruefe("Serien-Karte: „Schild kaufen“ führt auf die Shop-SEITE",
-    /beiKauf: \(\) => \{\s*UPCREW_BLATT\.schliessen\("knopf"\);\s*NAVIGATION\.zeigen\("shop", null\);/
-        .test(lesen("js/bildschirm-start.js")));
+/* Seit 0.26.0 (Nutzer 29.09.2026: „serien schild raus"): ohne Schild,
+   Schutz und „Schild kaufen". */
+pruefe("Serien-Karte: kein Schild, kein Schutz, kein Kauf",
+    !/beiKauf|schildVorrat|schutzVerdient|schildMax|schutzAlle/.test(lesen("js/bildschirm-start.js")));
 /* Seit 0.11.0 (Runde 6 Teil A): Tageswort und Tagesbrett aus den Zweigen,
    der Link zu Blunderluck relativ (derselbe Ursprung live und auf 8093). */
 pruefe("Heute: Tagesbrett aus dem Blunderluck-Zweig, Tageswort aus dem eigenen",
@@ -442,23 +456,32 @@ pruefe("Start: Kurzprofil mit Level-Ring und Rahmen",
     /BAUSTEINE\.levelRing\([\s\S]*?FORTSCHRITT\.rahmenVon\(/.test(lesen("js/bildschirm-start.js")));
 /* Seit 0.12.0: das Profil-Blatt wie im Entwurf — nur im eigenen Profil. */
 const profilText = lesen("js/bildschirm-profil.js");
-pruefe("Profil: Kopf und Level-Karte nur im eigenen Profil",
-    /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._kopfEigenBauen\(spieler\)\);\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._levelBauen/
+/* Seit 0.26.0 zweistufig (Nutzer 29.09.2026): Vorschau-Karte, dann das
+   ausführliche Profil aus dem Baustein — eigen UND fremd; Statistik und
+   Partien gibt Typoluck hinein; jede Level-Anzeige → Level-Pfad. */
+pruefe("Profil: ausführlich aus dem Baustein, eigen und fremd, mit Statistik und Partien",
+    /UPCREW_PROFIL\.zeichnen\(ort, PROFIL_BILDSCHIRM\.daten\(spieler, eigenes\), \{\s*eigen: eigenes,[\s\S]*?statistik: statistik,\s*verlauf: verlauf,/
         .test(profilText));
-/* Seit 0.25.0: das eigene Profil aus dem Baustein js/upcrew-profil.js
-   (gemeinsame Runde 7), Typolucks Statistik und Level als Zusatz. */
-pruefe("Profil: eigenes aus dem Baustein, mit Abzeichen-Auswahl und Zusatz",
-    /if \(eigenes && PROFIL_BILDSCHIRM\._mitBaustein\(\)\) \{[\s\S]*?UPCREW_PROFIL\.zeichnen\(ort, PROFIL_BILDSCHIRM\.daten\(spieler\), \{\s*beiAbzeichen:[\s\S]*?zusatz: \[statistik, PROFIL_BILDSCHIRM\._levelBauen\(false\)\]/
-        .test(profilText));
+pruefe("Profil: Vorschau-Karte aus dem Baustein (Rangliste), Start mit der kompakten Kopfzeile (seit 0.26.0 abends)",
+    /UPCREW_PROFIL\.vorschau\(ort, PROFIL_BILDSCHIRM\.vorschauDaten\(spieler, eigenes\)/.test(profilText)
+        && /UPCREW_PROFIL\.kopfzeile\(ort, PROFIL_BILDSCHIRM\.vorschauDaten\(spieler, true\)/.test(lesen("js/bildschirm-start.js"))
+        && /beiOeffnen: \(\) => PROFIL_BILDSCHIRM\.vorschauOeffnen\(ich\.id\)/.test(lesen("js/bildschirm-start.js"))
+        && /UPCREW_ABZEICHEN\.fremdAusgeruestet\(/.test(profilText)
+        && /PROFIL_BILDSCHIRM\.vorschauOeffnen\(zeile\.id\)/.test(lesen("js/bildschirm-rangliste.js")));
+pruefe("Profil: Fremde aus dem öffentlichen Auszug (§12)",
+    ["FORTSCHRITT.auszugVon(", "FORTSCHRITT.auszugLevel(", "FORTSCHRITT.auszugSerie(", "FORTSCHRITT.auszugAlsStand("]
+        .every((t) => profilText.indexOf(t) !== -1));
+pruefe("Level antippbar → Level-Pfad", /UPCREW_LEVELPFAD\.oeffnen\(/.test(profilText)
+    && /beiLevel: \(\) => PROFIL_BILDSCHIRM\.levelPfadOeffnen\(/.test(profilText));
+pruefe("Statistik: „Tageswort gelöst“ statt „gelöst“ (seit 0.26.0)",
+    profilText.indexOf("\"Tageswort gelöst\"") !== -1 && !/, "gelöst"\)/.test(profilText));
 pruefe("Profil: Abzeichen-Wahl schreibt über SPIELER.abzeichenSetzen",
     /SPIELER\.abzeichenSetzen\(ANMELDUNG\.abgleich\.daten, ich\.id, liste\)/.test(profilText));
-pruefe("Profil: Nächste Level, Spiele, Statistik, Abzeichen wie im Entwurf",
-    ["\"Nächste Level\"", "\"Spiele\"", "\"Statistik · \"", "\"Abzeichen\""].every((t) => profilText.indexOf(t) !== -1));
-pruefe("Profil: Werte aus dem Modell (Spiele, Statistik, Abzeichen, Rahmen, Titel)",
-    ["FORTSCHRITT.spiele(", "FORTSCHRITT.statistik(", "FORTSCHRITT.abzeichen(", "FORTSCHRITT.rahmenVon(",
-        "FORTSCHRITT.titelVon("].every((t) => profilText.indexOf(t) !== -1));
-pruefe("Profil: Abzeichen aus dem gemeinsamen Baustein (seit 0.15.9), keine eigene Kopie",
-    /UPCREW_ABZEICHEN\.raster\(FORTSCHRITT\.abzeichen\(/.test(profilText) && /UPCREW_ABZEICHEN\.blatt\(/.test(profilText)
+pruefe("Profil: Werte aus dem Modell (Spiele, Statistik, Level, Titel)",
+    ["FORTSCHRITT.spiele(", "FORTSCHRITT.statistik(", "FORTSCHRITT.level(", "FORTSCHRITT.titelVon("]
+        .every((t) => profilText.indexOf(t) !== -1));
+pruefe("Profil: Abzeichen aus dem gemeinsamen Baustein, keine eigene Kopie",
+    /UPCREW_ABZEICHEN\.alle\(/.test(profilText) && /UPCREW_ABZEICHEN\.blatt\(/.test(profilText)
         && profilText.indexOf("\"button\"") === -1 && !/abzeichen\(eintrag, beiKlick\)/.test(lesen("js/bausteine.js")));
 pruefe("Profil: Orte von Blunderluck aus KONFIG",
     /KONFIG\.andereSpiele\.blunderluck/.test(profilText)
@@ -472,9 +495,9 @@ pruefe("Herausforderungen stehen nicht im Menü",
 /* Kopfzeile auf dem Start (seit 0.7.0, wie Blunderluck): kein Schriftzug
    mehr, links das Kurzprofil, rechts das Menü. */
 pruefe("Start: kein Schriftzug „Typoluck“ mehr oben", lesen("js/bildschirm-start.js").indexOf("start-logo") === -1);
-pruefe("Start: Kurzprofil mit Quote, die Serie zeigt nur die Flamme (seit 0.16.2)",
-    /_kurzprofilBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
-        && /werte\.quote \+ " % gelöst"/.test(lesen("js/bildschirm-start.js"))
+pruefe("Start: Vorschau-Karte oben, Rückfall Kurzprofil mit Tageswort-Quote",
+    /_profilKarteBauen\(ich, name\)/.test(lesen("js/bildschirm-start.js"))
+        && /werte\.quote \+ " % Tageswort"/.test(lesen("js/bildschirm-start.js"))
         && !/"Serie " \+ werte\.serie/.test(lesen("js/bildschirm-start.js")));
 /* „Freunde heute" auf dem Start ist seit 0.23.1 gelöscht (Laden, Uhr,
    Karte) — Freunde zeigt die Rangliste. */
@@ -512,7 +535,7 @@ const navText = lesen("js/navigation.js");
 const indexStileAlle = (index.match(/<link rel="stylesheet" href="([^"]+)"/g) || [])
     .map((z) => z.match(/href="([^"]+)"/)[1]);
 for (const [datei, id] of [["js/bildschirm-profil.js", "profil"], ["js/bildschirm-einstellungen.js", "einstellungen"],
-    ["js/bildschirm-verwaltung.js", "verwaltung"], ["js/bildschirm-freunde.js", "freunde"]]) {
+    ["js/bildschirm-verwaltung.js", "verwaltung"]]) {
     pruefe("Als Blatt: " + id, new RegExp("id: \"" + id + "\"[\\s\\S]*?alsBlatt: true").test(lesen(datei)));
 }
 for (const datei of ["js/bildschirm-shop.js", "js/bildschirm-sammlung.js", "js/bildschirm-start.js",
@@ -525,15 +548,22 @@ pruefe("Ein Seitenwechsel schliesst alle Blätter",
     /_wechseln\(id, parameter\) \{\s*\/\*[^*]*\*\/\s*NAVIGATION\._alleSchliessen\(\);/.test(navText)
         && /UPCREW_BLATT\.alleSchliessen\(\)/.test(navText));
 pruefe("Blätter über den Baustein, eingerichtet mit Halter und Seite",
-    /UPCREW_BLATT\.einrichten\(\{ ebenen: ebenenEl, haupt: inhaltEl \}\)/.test(navText)
+    /UPCREW_BLATT\.einrichten\(\{ ebenen: ebenenEl, haupt: inhaltEl, verlauf: true, horchen: false \}\)/.test(navText)
         && /document\.getElementById\("ebenen"\)/.test(lesen("js/app.js")));
 pruefe("Zurück-Taste schliesst zuerst das oberste Blatt",
-    /_beiZurueck\(zustand, startId\) \{[\s\S]*?UPCREW_BLATT\.schliessen\("verlauf"\)/.test(navText));
-pruefe("Zahnrad im Profil → Einstellungen", /blattRechts:[\s\S]*?_zahnrad\(\)/.test(lesen("js/bildschirm-profil.js"))
-    && /UPCREW_PROFIL\.zahnrad\(beiKlick\)/.test(lesen("js/bildschirm-profil.js")));
-pruefe("Freunde aus der Rangliste (mit der Zahl offener Anfragen)",
-    /NAVIGATION\.zeigen\("freunde", null\)/.test(lesen("js/bildschirm-rangliste.js"))
-        && /NAVIGATION\.markeAnbringen\(freunde, "freunde"\)/.test(lesen("js/bildschirm-rangliste.js")));
+    /_beiZurueck\(zustand, startId, ereignis\) \{[\s\S]{0,400}UPCREW_BLATT\.beiZurueck\(/.test(navText));
+pruefe("Zahnrad im Profil → Einstellungen (echtes Zahnrad des Bausteins)",
+    /blattRechts:[\s\S]*?_zahnrad\(\)/.test(lesen("js/bildschirm-profil.js"))
+    && /UPCREW_EINSTELLUNGEN\.zahnradKnopf\(beiKlick/.test(lesen("js/bildschirm-profil.js")));
+/* Seit 0.26.0 (wie Blunderluck v0.156.1): Freunde als REITER der Rangliste,
+   keine eigene Seite und kein Knopf mehr. */
+pruefe("Freunde: Reiter der Rangliste mit der Zahl offener Anfragen",
+    /\{ wert: "freunde", text: "Freunde" \}/.test(lesen("js/bildschirm-rangliste.js"))
+        && /NAVIGATION\.markeAnbringen\(freunde, "freunde"\)/.test(lesen("js/bildschirm-rangliste.js"))
+        && /FREUNDE_BILDSCHIRM\.zeigen\(ort\)/.test(lesen("js/bildschirm-rangliste.js")));
+pruefe("Freunde: keine eigene Seite mehr",
+    !/id: "freunde"|NAVIGATION\.zeigen\("freunde"|FREUNDE_BILDSCHIRM\.anmelden/
+        .test(liste("js").filter((d) => d.endsWith(".js")).map(lesen).join("")));
 pruefe("Einstellungen und Verwaltung im gemeinsamen Aufbau, als Typoluck",
     /UPCREW_EINSTELLUNGEN\.bauen\(inhalt, "einstellungen", [\s\S]*?\{ spiel: "Typoluck" \}\)/.test(lesen("js/bildschirm-einstellungen.js"))
         && /UPCREW_EINSTELLUNGEN\.bauen\(inhalt, "verwaltung", [\s\S]*?\{ spiel: "Typoluck" \}\)/.test(lesen("js/bildschirm-verwaltung.js")));
