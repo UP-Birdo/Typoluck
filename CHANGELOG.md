@@ -3,6 +3,33 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.25.0 — 29.09.2026
+
+**Neue Oberfläche wie in Blunderluck: Seiten, Blätter, Serie oben, Profil neu.**
+
+- Leiste unten in beiden Spielen gleich: Shop · Sammlung · Start ·
+  Aufgaben · Rangliste. Jeder Tab ist eine normale Seite.
+- Das Menü mit den drei Balken ist weg. Profil: Tipp auf dein Bild oben
+  links. Einstellungen: Zahnrad im Profil. Freunde: Knopf oben in der
+  Rangliste (mit der Zahl offener Anfragen).
+- Profil, Einstellungen, Verwaltung und Freunde öffnen als Blatt über der
+  Seite. Die Seite dahinter bleibt stehen, auch wenn du im Blatt rollst.
+  Die Zurück-Taste schliesst das oberste Blatt.
+- Die Serie steht oben neben deinem Profil: Flamme, die letzten sieben
+  Tage und beide Schilde. Tippen öffnet die Erklärung; „Schild kaufen"
+  führt in den Shop (bei 2/2 gesperrt). In den Aufgaben steht sie nicht
+  mehr.
+- Profil neu: Level, XP, drei Abzeichen-Plätze (aus allen UPCrew-Spielen,
+  antippen zum Tauschen), Spielzeit, „Wo du stehst", dazu Statistik und
+  nächste Level.
+- Sechs Typoluck-Abzeichen: Blitzmerker, Schwer-Profi, Wortkönner,
+  Perfekt, Erstes Buch, Bücherwurm. Einmal verdient, bleiben sie im Profil
+  — auch in Blunderluck.
+- Einstellungen und Verwaltung sehen aus wie in Blunderluck; der
+  Schwer-Modus steht unter „Nur in Typoluck".
+- Sammlung: der Würfel „Zufall" sitzt jetzt unten neben Zurück ·
+  Übernehmen.
+
 ## 0.24.0 — 29.09.2026
 
 **Spielzeit und „dabei seit" — wie in Blunderluck.**

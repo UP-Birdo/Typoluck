@@ -1,0 +1,89 @@
+/*
+ * stil-blatt.css — wie Typoluck die gemeinsamen Blätter einbettet (seit 0.25.0, gemeinsame Runde 7, Vorbild
+ * Blunderluck css\stil-blatt.css). Die Bausteine (css\upcrew-blatt.css, upcrew-serie.css, upcrew-profil.css,
+ * upcrew-einstellungen.css) bleiben unangetastet; hier stehen nur die Werte und Anpassungen dieser App. Lädt NACH
+ * allen upcrew-*.css.
+ */
+
+:root {
+    /* Das Blatt beginnt unter der Kopfzeile des Starts (8 px Rand + 64 px Kopf + 8 px Abstand) und endet über
+       der Leiste. Die Leiste (--ebene-leiste 15) liegt über den Blättern (14) und bleibt bedienbar; Hinweise,
+       Kurzmeldungen und Dialoge liegen darüber, die Karten (14 + 20) über der Leiste. */
+    --up-bl-oben: calc(var(--oben-frei, 0px) + 80px);
+    --up-bl-unten: calc(var(--leiste-hoehe) + env(safe-area-inset-bottom, 0px));
+    --up-bl-ebene: 14;
+    --up-seite-kopf-ebene: 12;
+}
+
+/* Kein Seitwärts-Ruck am Rechner, wenn die Sperre (html.up-bl-offen) den Rollbalken nimmt (Einbau-Notiz
+   29.09.2026). */
+html {
+    scrollbar-gutter: stable;
+}
+
+/* In einem Blatt gibt es keinen iPhone-Balken über dem Inhalt: Klebendes klebt bündig an der Oberkante. */
+.up-bl-inhalt {
+    --oben-frei: 0px;
+}
+
+/* Die Seite dahinter: der Rand bleibt sichtbar, damit das Zurückrücken als Karte lesbar ist. */
+.inhalt.up-bl-dahinter {
+    border-radius: var(--rund-mittel);
+    overflow: hidden;
+}
+
+/* ---- Kopf des Starts: Kurzprofil + Serien-Kapsel ---- */
+
+.start-kopf .up-se-kapsel {
+    flex: none;
+}
+
+/* Unter 380 px nur der Ring (Entwurf Runde 7: „Name im Kopf unter 380 px aus"). */
+@media (max-width: 379px) {
+    .start-profil-texte {
+        display: none;
+    }
+
+    .start-profil {
+        padding-right: 4px;
+    }
+}
+
+/* ---- Profil ---- */
+
+/* Typolucks eigene Karten unter dem Baustein (Statistik, Level). */
+.up-pf > .karte {
+    margin: 14px 0 0;
+}
+
+/* ---- Einstellungen / Verwaltung im Blatt ---- */
+
+.up-es .angaben {
+    margin: 0;
+}
+
+.up-es-abschnitt .verwaltung-ort > .karte,
+.up-es-abschnitt > .karte {
+    margin: 0 0 10px;
+}
+
+/* ---- Rangliste: der Knopf „Freunde" mit offenen Anfragen ---- */
+
+.inhalt[data-bildschirm="rangliste"] > .kopfzeile {
+    grid-template-columns: 96px 1fr 96px;
+}
+
+.rangliste-kopf-knoepfe {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.rangliste-freunde {
+    position: relative;
+}
+
+.rangliste-freunde > .menue-marke {
+    position: absolute;
+    top: 0;
+    right: 0;
+}

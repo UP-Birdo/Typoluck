@@ -11,7 +11,11 @@
  *     //  g.ort      Platz für UPCREW_ANPASSEN.zeigen(g.ort, …) — Umschalter der Spiele, klebende Vorschau,
  *     //             Regale, Balken „Zurück · Übernehmen“ (der Baustein upcrew-anpassen.js)
  *     g.anteilSetzen(hat, alle);          // „NN %“, gerundet; Titel „hat von alle“
- *     g.restEinsetzen(rest);              // die reine Sammlung VOR den Balken (fehlt er: ans Ende)
+ *     g.restEinsetzen(rest);              // die reine Sammlung VOR den Balken (fehlt er: ans Ende); legt dabei
+ *                                         // auch den Würfel „Zufall“ in den Balken (g.wuerfelUnten())
+ *     g.wuerfelUnten();                   // Würfel neben Zurück · Übernehmen (Vorschlag Blunderluck v0.156.0,
+ *                                         // Nutzer 28.09.2026: „der würfel fürs zufall soll in die leiste wo
+ *                                         // zurück und übernehmen kommen“) — nach jedem UPCREW_ANPASSEN.zeigen
  *     g.obenSetzen();                     // Vorschau klebt bündig unter der Kopfzeile (nach jedem Zeichnen)
  *
  * Die reine Sammlung (Dinge, die man nicht „anzieht“), aus denselben Teilen in beiden Apps:
@@ -77,6 +81,22 @@
                 } else {
                     ort.appendChild(rest);
                 }
+                this.wuerfelUnten();
+            },
+
+            /* Der Würfel „Zufall“ wandert aus der Leiste über der Vorschau vorn in den Balken; sein Klick bleibt
+               beim Anpassen-Baustein (der hört am ganzen Ort). */
+            wuerfelUnten() {
+                if (typeof ort.querySelector !== "function") {
+                    return false;
+                }
+                const wuerfel = ort.querySelector(".upa-zufall");
+                const balken = ort.querySelector(".upa-aktion");
+                if (!wuerfel || !balken || wuerfel.parentNode === balken) {
+                    return !!wuerfel && !!balken;
+                }
+                balken.insertBefore(wuerfel, balken.firstChild);
+                return true;
             },
 
             obenSetzen() {

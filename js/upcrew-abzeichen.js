@@ -16,8 +16,21 @@
  *     DIALOG.hinweis(eintrag.titel, "", UPCREW_ABZEICHEN.blatt(eintrag));   // Wert + Stufen (antippen)
  *     UPCREW_ABZEICHEN.raster(liste, beiKlick)                     // alle fünf im Raster (Profil, Sammlung)
  *
- * Stufen: erst die festen, danach in festen Schritten (`weiter`) ohne Ende („nach oben offen“).
+ * Stufen: erst die festen, danach in festen Schritten (`weiter`) ohne Ende („nach oben offen“); `weiter: 0` = keine
+ * weiteren Stufen (einmalige Abzeichen der Spiele).
  * Alle Texte über textContent; Zeichen als SVG-Pfade (24er-Raster, Strich 2, runde Enden).
+ *
+ * EINE LISTE FÜR ALLE SPIELE (Vorschlag Blunderluck v0.156.0, Nutzer 28.09.2026: „wenn ich in dem einen Spiel ein
+ * Abzeichen bekomme, soll es fix im Profil liegen; man soll 3 ausrüsten können, egal aus welchem Spiel“):
+ *     UPCREW_ABZEICHEN.registrieren("blunderluck", eintraege, { marke: "BL", name: "Blunderluck" });
+ *         // eintraege: [{ kennung: "bl-…", titel, kurz, pfad, text, feld, stufen, weiter, einheit }]
+ *         // Wert = spiele.<spiel>.zaehler[feld] im GEMEINSAMEN Stand — so sieht jedes Spiel die Abzeichen der
+ *         // anderen, ohne ihre Rechnung zu kennen. Die Listen stehen in js\upcrew-abzeichen-spiele.js (Daten,
+ *         // in alle Apps kopiert); jedes Spiel schreibt seine verdienten Zähler selbst in den eigenen Zweig.
+ *     const alle = UPCREW_ABZEICHEN.alle(stand, laufendeSerie);   // die fünf gemeinsamen (Kennung „up-<id>“,
+ *                                                                 // Marke „UP“) + alle angemeldeten Spiele
+ *     UPCREW_ABZEICHEN.ausgeruestet(alle, konto.abzeichen, 3, umdeuten)   // die gewählten, nur verdiente
+ *     UPCREW_ABZEICHEN.kachel(eintrag, beiKlick)   // mit `pfad` eigenes Zeichen, mit `marke` kleines Schild oben
  */
 (function () {
     "use strict";
@@ -112,7 +125,9 @@
             const wert = w[abzeichen.id] || 0;
             let erreicht = abzeichen.stufen.filter((stufe) => wert >= stufe).length;
             let naechste = abzeichen.stufen[erreicht];
-            if (naechste === undefined) {
+            if (naechste === undefined && !(abzeichen.weiter > 0)) {
+                naechste = null;
+            } else if (naechste === undefined) {
                 const letzte = abzeichen.stufen[abzeichen.stufen.length - 1];
                 const dazu = Math.floor((wert - letzte) / abzeichen.weiter);
                 erreicht += dazu;
@@ -121,6 +136,81 @@
             return Object.assign({}, abzeichen, { stufen: abzeichen.stufen.slice(), wert: wert,
                 erreicht: erreicht, naechste: naechste });
         });
+    }
+
+    /* ---- Eine Liste für alle Spiele (seit dem Vorschlag Blunderluck v0.156.0) ---- */
+
+    const SPIELE = [];
+    const GEMEINSAM = { spiel: "upcrew", marke: "UP", name: "UPCrew" };
+
+    /* Die Abzeichen EINES Spiels anmelden (ersetzt eine frühere Anmeldung desselben Spiels). */
+    function registrieren(spiel, eintraege, info) {
+        const i = info || {};
+        const sauber = (Array.isArray(eintraege) ? eintraege : []).filter((e) => istObjekt(e)
+            && typeof e.kennung === "string" && e.kennung !== "" && typeof e.feld === "string"
+            && /^[a-zA-Z]{1,32}$/.test(e.feld) && Array.isArray(e.stufen) && e.stufen.length > 0);
+        const alt = SPIELE.findIndex((s) => s.spiel === spiel);
+        const eintrag = { spiel: String(spiel), marke: String(i.marke || ""), name: String(i.name || spiel),
+            abzeichen: sauber };
+        if (alt === -1) {
+            SPIELE.push(eintrag);
+        } else {
+            SPIELE[alt] = eintrag;
+        }
+        return sauber.length;
+    }
+
+    /* Die Abzeichen eines angemeldeten Spiels aus dem gemeinsamen Stand. */
+    function spielListe(stand, spiel) {
+        const s = SPIELE.find((x) => x.spiel === spiel);
+        if (!s) {
+            return [];
+        }
+        const spiele = (istObjekt(stand) && istObjekt(stand.spiele)) ? stand.spiele : {};
+        const zweig = istObjekt(spiele[spiel]) ? spiele[spiel] : null;
+        return s.abzeichen.map((a) => {
+            const wert = zaehlerVon(zweig, a.feld);
+            const stufen = a.stufen.slice();
+            const weiter = (typeof a.weiter === "number" && a.weiter > 0) ? a.weiter : 0;
+            let erreicht = stufen.filter((stufe) => wert >= stufe).length;
+            let naechste = stufen[erreicht];
+            if (naechste === undefined && weiter > 0) {
+                const letzte = stufen[stufen.length - 1];
+                const dazu = Math.floor((wert - letzte) / weiter);
+                erreicht += dazu;
+                naechste = letzte + (dazu + 1) * weiter;
+            }
+            return Object.assign({}, a, { id: a.kennung, stufen: stufen, weiter: weiter, wert: wert,
+                erreicht: erreicht, naechste: naechste === undefined ? null : naechste,
+                spiel: s.spiel, marke: s.marke, spielName: s.name, einheit: a.einheit || "" });
+        });
+    }
+
+    /* Alle Abzeichen: die fünf gemeinsamen, dann jedes angemeldete Spiel. Kennung = das, was im Konto-Feld
+       `abzeichen` steht (gemeinsame: „up-<id>“). */
+    function alle(stand, laufend) {
+        const gemeinsam = liste(stand, laufend).map((e) => Object.assign(e, { kennung: "up-" + e.id,
+            spiel: GEMEINSAM.spiel, marke: GEMEINSAM.marke, spielName: GEMEINSAM.name }));
+        return SPIELE.reduce((summe, s) => summe.concat(spielListe(stand, s.spiel)), gemeinsam);
+    }
+
+    /* Die ausgerüsteten (höchstens `max`, Vorgabe 3) in der gewählten Reihenfolge — nur verdiente, keine doppelt.
+       `umdeuten(kennung)` (wahlfrei) übersetzt alte Kennungen einer App. */
+    function ausgeruestet(eintraege, gewaehlt, max, umdeuten) {
+        const grenze = (typeof max === "number" && max > 0) ? max : 3;
+        const vorrat = Array.isArray(eintraege) ? eintraege : [];
+        const aus = [];
+        for (const roh of (Array.isArray(gewaehlt) ? gewaehlt : [])) {
+            const kennung = (typeof umdeuten === "function") ? umdeuten(roh) : roh;
+            const e = vorrat.find((x) => (x.kennung || x.id) === kennung);
+            if (e && e.erreicht > 0 && aus.indexOf(e) === -1) {
+                aus.push(e);
+            }
+            if (aus.length >= grenze) {
+                break;
+            }
+        }
+        return aus;
     }
 
     /* ---- Aussehen (1:1 Typoluck, Klassen up-az-…) ---- */
@@ -136,7 +226,7 @@
         return e;
     }
 
-    function zeichen(name) {
+    function zeichen(name, eigenerPfad) {
         const ns = "http://www.w3.org/2000/svg";
         const svg = document.createElementNS(ns, "svg");
         svg.setAttribute("viewBox", "0 0 24 24");
@@ -144,7 +234,8 @@
         svg.setAttribute("aria-hidden", "true");
         svg.setAttribute("focusable", "false");
         const pfad = document.createElementNS(ns, "path");
-        pfad.setAttribute("d", ZEICHEN[name] || "");
+        pfad.setAttribute("d", (typeof eigenerPfad === "string" && eigenerPfad !== "") ? eigenerPfad
+            : (ZEICHEN[name] || ""));
         svg.appendChild(pfad);
         return svg;
     }
@@ -155,7 +246,12 @@
         const feld = el("button", "up-az" + (eintrag.erreicht > 0 ? " up-az-an" : ""));
         feld.type = "button";
         feld.setAttribute("aria-label", eintrag.titel + ": " + eintrag.wert + ", Stufe " + eintrag.erreicht);
-        feld.appendChild(zeichen(eintrag.zeichen));
+        feld.appendChild(zeichen(eintrag.zeichen, eintrag.pfad));
+        if (eintrag.marke) {
+            const marke = el("span", "up-az-marke", eintrag.marke);
+            marke.setAttribute("aria-hidden", "true");
+            feld.appendChild(marke);
+        }
         const punkte = el("span", "up-az-punkte");
         punkte.setAttribute("aria-hidden", "true");
         eintrag.stufen.forEach((stufe, i) => {
@@ -184,8 +280,16 @@
         for (const stufe of eintrag.stufen) {
             stufen.appendChild(el("span", eintrag.wert >= stufe ? "an" : null, String(stufe)));
         }
-        stufen.appendChild(el("span", "leise", "+" + eintrag.weiter + " …"));
+        if (eintrag.weiter > 0) {
+            stufen.appendChild(el("span", "leise", "+" + eintrag.weiter + " …"));
+        }
         inhalt.appendChild(stufen);
+        if (eintrag.text) {
+            inhalt.appendChild(el("p", "up-az-text", eintrag.text));
+        }
+        if (eintrag.spielName) {
+            inhalt.appendChild(el("p", "up-az-herkunft", eintrag.spielName));
+        }
         return inhalt;
     }
 
@@ -199,7 +303,8 @@
     }
 
     const UPCREW_ABZEICHEN = { ABZEICHEN: ABZEICHEN, ZEICHEN: ZEICHEN, werte: werte, liste: liste,
-        kachel: kachel, blatt: blatt, raster: raster };
+        kachel: kachel, blatt: blatt, raster: raster,
+        SPIELE: SPIELE, registrieren: registrieren, spielListe: spielListe, alle: alle, ausgeruestet: ausgeruestet };
     globalThis.UPCREW_ABZEICHEN = UPCREW_ABZEICHEN;
     if (typeof module !== "undefined" && module.exports) {
         module.exports = UPCREW_ABZEICHEN;

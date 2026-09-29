@@ -89,22 +89,17 @@ const START = {
         const ich = ANMELDUNG.ich();
         const name = ich ? ich.name : (ICH.person() ? ICH.person().name : "");
 
-        /* DIE KOPFZEILE WIE IN BLUNDERLUCK (seit 0.7.0, UPCrew-Runde 2;
-           Vorbild dort `START._kurzprofilBauen` / `_menuebandBauen` in
-           js\start.js): links das Kurzprofil, rechts der Drei-Balken-Knopf
-           mit Profil, Freunde und Einstellungen. Der Schriftzug „Typoluck"
-           oben ist weg (Nutzer-Entscheidung 26.09.2026) — bis 0.6.x stand
-           er links, der Namens-Kreis rechts neben den Balken. */
+        /* DIE KOPFZEILE WIE IN BLUNDERLUCK (seit 0.7.0, UPCrew-Runde 2):
+           links das Kurzprofil (Tipp → Profil-Blatt), daneben seit 0.25.0
+           die Serien-Kapsel (gemeinsame Runde 7). Den Drei-Balken-Knopf
+           rechts gab es von 0.3.0 bis 0.24.0 — seine Punkte liegen jetzt im
+           Profil (Zahnrad → Einstellungen) und in der Rangliste (Freunde).
+           Der Schriftzug „Typoluck" oben ist seit 26.09.2026 weg. */
         const kopf = BAUSTEINE.el("header", "start-kopf");
         if (name) {
             kopf.appendChild(START._kurzprofilBauen(ich, name));
-            /* Die Serien-Flamme gleich daneben (seit 0.16.1, wie Blunderluck
-               v0.151.18). */
             START._flammeBauen(kopf);
         }
-        const rechts = BAUSTEINE.el("div", "start-kopf-rechts");
-        rechts.appendChild(NAVIGATION.menueBauen());
-        kopf.appendChild(rechts);
         behaelter.appendChild(kopf);
 
         /*
@@ -145,25 +140,96 @@ const START = {
      * sync mit deinem Profil"). Die Zahlen kommen aus dem gemeinsamen
      * Fortschritt (APP.fortschritt(): Gerät und Konto, je Zweig der neuere;
      * FORTSCHRITT.serieHeute: Serie über ALLE Zweige, heute geschafft,
-     * freier Schutz) — an der Serien-Rechnung ändert sich nichts. Ein Tipp
-     * führt zum Tab Aufgaben (dort Woche, Schutz, Tagesaufgaben).
+     * freier Schutz) — an der Serien-Rechnung ändert sich nichts.
+     *
+     * SEIT 0.25.0 DIE SERIEN-KAPSEL (gemeinsamer Baustein js/upcrew-serie.js,
+     * gemeinsame Runde 7, wie Blunderluck v0.156.0): hinter dem Flammen-Kreis
+     * die sieben Tage und die beiden Schilde (Flammen-Schild aus dem Shop,
+     * Serien-Schutz vom Level). Ein Tipp öffnet die Karte mit Erklärung und
+     * „Schild kaufen" (bei voller Höchstmenge gesperrt, Nutzer 29.09.2026)
+     * → Shop-SEITE. Die Serie steht nicht mehr in den Aufgaben. Ohne den
+     * Baustein wie bis 0.24.0 nur der Kreis, ein Tipp führt dann zu den
+     * Aufgaben.
      */
     _flamme: null,
+    _kapsel: null,
 
     _flammeBauen(halter) {
+        START._flamme = null;
+        START._kapsel = null;
         if (typeof UPCREW_FLAMME === "undefined") {
-            START._flamme = null;
             return;
         }
-        START._flamme = UPCREW_FLAMME.bauen(halter, {
-            beiKlick: () => NAVIGATION.zeigen("herausforderungen", null)
-        });
+        if (typeof UPCREW_SERIE !== "undefined") {
+            START._kapsel = UPCREW_SERIE.kapsel(halter, { beiKlick: () => START.serieOeffnen() });
+        } else {
+            START._flamme = UPCREW_FLAMME.bauen(halter, {
+                beiKlick: () => NAVIGATION.zeigen("herausforderungen", null)
+            });
+        }
         START.flammeAktualisieren();
+    },
+
+    /* Die Werte der Kapsel und der Karte: die letzten sieben Tage (heute
+       zuletzt, über alle Spiele), gekaufte Schilde mit ihrer Höchstmenge
+       und der Serien-Schutz des Levels (frei / verdient). */
+    TAGE_KURZ: ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"],
+
+    serieWerte() {
+        const stand = APP.fortschritt();
+        const datum = WORDLE.datumText(APP.jetzt());
+        const heute = FORTSCHRITT.serieHeute(stand, datum);
+        const alleTage = FORTSCHRITT.alleTage(stand);
+        const tage = [];
+        let tag = datum;
+        for (let i = 0; i < 7; i++) {
+            tage.unshift(tag);
+            tag = FORTSCHRITT._vortag(tag);
+        }
+        const schilde = FORTSCHRITT.schildVorrat(stand);
+        const ware = (typeof UPCREW_MUENZEN !== "undefined" && UPCREW_MUENZEN.WAREN)
+            ? UPCREW_MUENZEN.WAREN.schild : null;
+        return {
+            serie: heute.tage,
+            heute: heute.heute === true,
+            woche: tage.map((d) => alleTage.has(d)),
+            tage: tage.map((d) => START.TAGE_KURZ[new Date(d + "T12:00:00").getDay()] || ""),
+            schild: schilde,
+            schildMax: ware ? ware.hoechstens : 0,
+            schutz: Math.max(0, heute.schutz - schilde),
+            schutzAlle: FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(stand).level)
+        };
+    },
+
+    /* Die Karte zur Serie (über allem, auch über Blättern). */
+    serieOeffnen() {
+        if (typeof UPCREW_BLATT === "undefined" || typeof UPCREW_SERIE === "undefined") {
+            NAVIGATION.zeigen("herausforderungen", null);
+            return null;
+        }
+        const werte = START.serieWerte();
+        return UPCREW_BLATT.oeffnen({
+            art: "karte",
+            titel: "Serie",
+            klasse: "karte-serie",
+            inhalt: (ort) => UPCREW_SERIE.karteFuellen(ort, werte, {
+                beiZu: () => UPCREW_BLATT.schliessen("knopf"),
+                beiKauf: () => {
+                    UPCREW_BLATT.schliessen("knopf");
+                    NAVIGATION.zeigen("shop", null);
+                }
+            })
+        });
     },
 
     /* Auch ohne Neuzeichnen: nach jeder Runde und wenn der Konto-Stand
        eintrifft (js/app.js). Liefert die gesetzten Werte (für Tests). */
     flammeAktualisieren() {
+        if (START._kapsel) {
+            const werte = START.serieWerte();
+            START._kapsel.setzen(werte);
+            return werte;
+        }
         if (!START._flamme) {
             return null;
         }
@@ -171,6 +237,11 @@ const START = {
         const werte = { serie: heute.tage, heuteGeschafft: heute.heute, schutz: heute.schutz };
         START._flamme.setzen(werte);
         return werte;
+    },
+
+    /* Das eigene Profil (seit 0.25.0 ein Blatt über dem Start). */
+    profilOeffnen() {
+        NAVIGATION.zeigen("profil", null);
     },
 
     /*
@@ -186,7 +257,7 @@ const START = {
     _kurzprofilBauen(ich, name) {
         const knopf = BAUSTEINE.knopf({
             art: "flach", titel: "Dein Profil",
-            beiKlick: () => NAVIGATION.zeigen("profil", null)
+            beiKlick: () => START.profilOeffnen()
         });
         knopf.classList.add("start-profil");
         /* Seit 0.10.0 (UPCrew-Runde 5): der Kreis trägt den Level-Ring —

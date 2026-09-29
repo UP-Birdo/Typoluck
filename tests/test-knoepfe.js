@@ -150,8 +150,12 @@ pruefe("Die alten Regeln .knopf-haupt/-still/-gefahr sind weg",
 /* Der Baustein ist da und lädt NACH dem eigenen Stil (sonst verlöre er). */
 const index = fs.readFileSync(path.join(wurzel, "index.html"), "utf8");
 const stile = (index.match(/<link rel="stylesheet" href="([^"]+)"/g) || []).map((z) => z.match(/href="([^"]+)"/)[1]);
-pruefe("upcrew-knoepfe.css lädt nach allen eigenen Stilen",
-    stile.indexOf("css/upcrew-knoepfe.css") > Math.max(...eigeneStile.map((d) => stile.indexOf("css/" + d))));
+/* Ausnahme seit 0.25.0: stil-blatt.css (nur die Werte der Blätter, keine
+   Knopf-Regel — die Prüfung oben deckt auch sie ab) lädt nach allen
+   Bausteinen, wie in Blunderluck. */
+pruefe("upcrew-knoepfe.css lädt nach allen eigenen Stilen (ausser stil-blatt.css)",
+    stile.indexOf("css/upcrew-knoepfe.css") > Math.max(...eigeneStile.filter((d) => d !== "stil-blatt.css")
+        .map((d) => stile.indexOf("css/" + d))));
 
 /* Gefahr braucht Kante und Schrift — hell und dunkel (drei Blöcke). */
 const stil = fs.readFileSync(path.join(wurzel, "css", "stil.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");

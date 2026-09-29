@@ -1,0 +1,61 @@
+/* upcrew-profil.css — das eigene Profil als Blatt (gehört zu js/upcrew-profil.js). Vorschlag für
+   Design\3D-Schrift\final, entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7). Farben aus der Farbwelt,
+   Rundungen nur über die Variablen, harte Schatten. */
+
+.up-pf-zeichen { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Ring = XP im Level, Zahl = Level (FORTSCHRITT.md). */
+.up-pf-ring { position: relative; width: 46px; height: 46px; border-radius: var(--rund-voll); display: grid; place-items: center; flex: none;
+  background: conic-gradient(var(--haupt) calc(var(--up-pf-anteil, 0) * 360deg), var(--karte-leise) 0); }
+.up-pf-kreis { width: 38px; height: 38px; border-radius: var(--rund-voll); display: grid; place-items: center; background: var(--haupt);
+  color: var(--haupt-schrift); font-weight: 900; font-size: 1.15rem; border: 3px solid var(--karte); }
+.up-pf-level { position: absolute; right: -4px; bottom: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: var(--rund-voll);
+  display: grid; place-items: center; background: var(--haupt); color: var(--haupt-schrift); font-size: .66rem; font-weight: 900;
+  border: 2px solid var(--karte); }
+.up-pf-ring-gross { width: 76px; height: 76px; }
+.up-pf-ring-gross .up-pf-kreis { width: 64px; height: 64px; font-size: 1.8rem; border-width: 4px; }
+.up-pf-ring-gross .up-pf-level { min-width: 28px; height: 26px; font-size: .82rem; right: -6px; bottom: -4px; }
+
+.up-pf-kopf { display: flex; align-items: center; gap: 14px; padding: 4px 4px 0; }
+.up-pf-mitte { flex: 1; min-width: 0; }
+.up-pf-name { font-size: 1.35rem; font-weight: 900; overflow-wrap: anywhere; }
+.up-pf-tag { margin-left: 3px; font-size: .8rem; font-weight: 700; color: var(--schrift-leise); }
+.up-pf-xp { height: 10px; border-radius: var(--rund-voll); background: var(--karte-leise); overflow: hidden; margin: 6px 0 3px; }
+.up-pf-xp i { display: block; height: 100%; background: var(--haupt); }
+.up-pf-xp-text { font-size: .76rem; color: var(--schrift-leise); font-weight: 700; }
+
+.up-pf-abschnitt { margin-top: 14px; }
+.up-pf-abschnitt > h3 { font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--schrift-leise); margin: 0 4px 6px; }
+.up-pf-hinweis { font-size: .74rem; color: var(--schrift-leise); margin: 6px 6px 0; line-height: 1.35; }
+
+.up-pf-plaetze, .up-pf-alle { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.up-pf-platz, .up-pf-wahl-zelle { position: relative; min-width: 0; }
+.up-pf-platz .up-az, .up-pf-wahl-zelle .up-az { width: 100%; min-height: 72px; }
+.up-pf-leer { width: 100%; min-height: 72px; display: grid; place-items: center; align-content: center; gap: 2px; padding: 8px 2px;
+  border: 2px dashed var(--rahmen); border-radius: var(--rund-klein); background: none; color: var(--schrift-leise);
+  font: inherit; font-size: .74rem; font-weight: 700; cursor: pointer; }
+.up-pf-leer .up-pf-zeichen { width: 18px; height: 18px; }
+.up-pf-gesperrt .up-az { opacity: .4; }
+.up-pf-an .up-az { outline: 2px solid var(--haupt); outline-offset: -2px; }
+.up-pf-haken { position: absolute; left: 6px; top: 6px; width: 20px; height: 20px; border-radius: var(--rund-voll); display: grid; place-items: center;
+  background: var(--haupt); color: var(--haupt-schrift); pointer-events: none; }
+.up-pf-haken .up-pf-zeichen { width: 13px; height: 13px; stroke-width: 3; }
+.up-pf-wahl > .up-pf-hinweis { margin: 0 4px 10px; }
+
+.up-pf-fakten { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.up-pf-fakt { background: var(--karte); border: 1px solid var(--rahmen); border-radius: var(--rund-mittel); padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.up-pf-fakt small { font-size: .7rem; font-weight: 800; color: var(--schrift-leise); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.up-pf-fakt small .up-pf-zeichen { width: 13px; height: 13px; }
+.up-pf-fakt b { font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.up-pf-klein { font-size: .72rem; color: var(--schrift-leise); }
+
+.up-pf-orte { display: grid; gap: 8px; }
+.up-pf-ort { display: flex; align-items: center; gap: 10px; background: var(--karte); border: 1px solid var(--rahmen); border-radius: var(--rund-mittel); padding: 10px 12px; }
+.up-pf-ort-bild { width: 38px; height: 38px; border-radius: var(--rund-klein); display: grid; place-items: center; background: var(--karte-leise); color: var(--haupt); flex: none; }
+.up-pf-ort-text { flex: 1; min-width: 0; display: grid; }
+.up-pf-ort-text small { color: var(--schrift-leise); font-size: .72rem; font-weight: 700; }
+.up-pf-ort-text b { font-size: .92rem; }
+.up-pf-ort-balken { width: 64px; height: 8px; border-radius: var(--rund-voll); background: var(--karte-leise); overflow: hidden; flex: none; }
+.up-pf-ort-balken i { display: block; height: 100%; background: var(--haupt); }
+
+@media (max-width: 359px) { .up-pf-fakten { grid-template-columns: 1fr; } }

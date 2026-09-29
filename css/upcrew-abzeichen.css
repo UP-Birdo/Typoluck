@@ -127,3 +127,36 @@
 .up-sm-teil > .up-az-raster {
     padding: 2px 14px 8px;
 }
+
+/* ---- Eine Liste für alle Spiele (Vorschlag Blunderluck v0.156.0) ----
+   Die Marke oben rechts sagt, woher ein Abzeichen kommt (UP = über alle Spiele, sonst das Kürzel des Spiels). */
+.up-az {
+    position: relative;
+}
+
+.up-az-marke {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 20px;
+    padding: 1px 4px;
+    border-radius: var(--rund-voll, 999px);
+    background: var(--karte);
+    color: var(--schrift-leise);
+    font-size: 0.56rem;
+    font-weight: 900;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+}
+
+.up-az-text {
+    margin: 10px 0 0;
+    font-size: 0.86rem;
+}
+
+.up-az-herkunft {
+    margin: 4px 0 0;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--schrift-leise);
+}

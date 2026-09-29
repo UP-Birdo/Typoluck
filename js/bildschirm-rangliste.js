@@ -44,12 +44,21 @@ const RANGLISTE_BILDSCHIRM = {
 
         /* Kein „Zurück" (seit 0.5.0): Die Rangliste ist ein Ziel der Leiste
            unten, wie der Start — zurück geht es über die Leiste. */
-        behaelter.appendChild(BAUSTEINE.kopfzeile("Rangliste", {
-            rechts: BAUSTEINE.knopf({
-                art: "flach", zeichen: "info", titel: "Punkte",
-                beiKlick: () => DIALOG.hinweis("Punkte", "", RANGLISTE_BILDSCHIRM.punkteTafelBauen())
-            })
+        /* Seit 0.25.0 rechts auch „Freunde" (bis 0.24.0 im Menü hinter den
+           drei Balken, wie in Blunderluck verteilt): öffnet das Blatt der
+           Freunde, die Zahl zeigt offene Anfragen. */
+        const rechts = BAUSTEINE.el("div", "rangliste-kopf-knoepfe");
+        const freunde = BAUSTEINE.knopf({
+            art: "flach", zeichen: "freunde", titel: "Freunde",
+            beiKlick: () => NAVIGATION.zeigen("freunde", null)
+        });
+        freunde.classList.add("rangliste-freunde");
+        rechts.appendChild(NAVIGATION.markeAnbringen(freunde, "freunde"));
+        rechts.appendChild(BAUSTEINE.knopf({
+            art: "flach", zeichen: "info", titel: "Punkte",
+            beiKlick: () => DIALOG.hinweis("Punkte", "", RANGLISTE_BILDSCHIRM.punkteTafelBauen())
         }));
+        behaelter.appendChild(BAUSTEINE.kopfzeile("Rangliste", { rechts: rechts }));
 
         const auswahl = BAUSTEINE.el("div", "rangliste-auswahl");
         auswahl.appendChild(BAUSTEINE.segment(

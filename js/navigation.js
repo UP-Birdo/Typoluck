@@ -1,16 +1,16 @@
 /*
- * navigation.js — welcher Bildschirm gerade zu sehen ist, und das Menü
- * hinter den drei Balken.
+ * navigation.js — welcher Bildschirm gerade zu sehen ist: als SEITE im
+ * Hauptelement oder als BLATT darüber.
  *
  * Jeder Bildschirm meldet sich mit `NAVIGATION.anmelden({...})` an:
  *
  *     {
  *         id:        "rangliste",
- *         titel:     "Rangliste",        // Beschriftung im Menü
+ *         titel:     "Rangliste",        // Titel (im Blatt oben)
  *         zeichen:   "rangliste",        // Name aus BAUSTEINE.ZEICHEN
- *         imMenue:   true,               // steht er im Menü hinter den Balken?
- *                                        // (seit 0.16.3 auch eine Frage: () => true/false,
- *                                        // z. B. nur für Admins)
+ *         alsBlatt:  true,               // wahlfrei: öffnet als Blatt (seit 0.25.0)
+ *         blattTitel(parameter),         // wahlfrei: Titel des Blatts je Parameter
+ *         blattRechts(parameter),        // wahlfrei: Knöpfe rechts im Blatt-Kopf (Zahnrad)
  *         zeigen(behaelter, parameter),  // baut seinen Inhalt in den Behälter
  *         verlassen()                    // optional: aufräumen (Tastatur usw.)
  *     }
@@ -18,39 +18,38 @@
  * Neue Spiele und neue Bildschirme kommen so dazu, ohne dass diese Datei
  * sich ändert: anmelden, fertig.
  *
- * DAS MENÜ HINTER DEN DREI BALKEN (seit 0.3.0, Nutzer 25.09.2026: „so wie
- * bei Blunderluck Freunde und Profil in drei Balken Menü"). Auf dem Start
- * oben rechts steht EIN Knopf mit drei Balken (`menueBauen`); ein Tipp
- * klappt die Einträge auf, ein Tipp daneben (oder Esc) klappt sie zu. Die
- * Bildschirme hinter dem Menü haben links oben „Zurück". Vorbild ist
- * Blunderlucks Menüband (dort `START._menuebandBauen` in js\start.js) —
- * nachgebaut, nicht geteilt: Typoluck baut jeden Knopf in BAUSTEINE.knopf.
- * Im Menü seit 0.5.0: Profil, Freunde, Einstellungen.
+ * SEITE ODER BLATT (seit 0.25.0, gemeinsame Runde 7 mit Blunderluck; Nutzer
+ * 29.09.2026: „tabs werden auch als popup gezeigt das soll nicht" und „wenn
+ * man scrollt kommt oben wieder die menüs sichtbar"). Was IN DER LEISTE steht
+ * (Shop · Sammlung · Start · Aufgaben · Rangliste), ist eine normale SEITE
+ * im Hauptelement. Blätter (gemeinsamer Baustein js\upcrew-blatt.js) NUR für
+ * Bereiche ohne Leisten-Knopf: Profil, Einstellungen, Verwaltung, Freunde
+ * (`alsBlatt: true`). Blätter stapeln sich (Profil → Einstellungen →
+ * Verwaltung); ist ein Bildschirm schon im Stapel, gehen nur die darüber zu.
+ * Ein Wechsel der SEITE (Leiste, Wischen, Zurück) schliesst alle Blätter
+ * (`UPCREW_BLATT.alleSchliessen()`). Die Seite dahinter hält der Baustein
+ * fest (`html.up-bl-offen`), solange etwas offen ist — so scheint beim
+ * Rollen nichts von ihr durch. Ohne den Baustein (Tests) ist ein Blatt eine
+ * Seite wie früher, mit „Zurück" (`imBlatt` sagt es dem Bildschirm).
  *
- * DIE LEISTE UNTEN (seit 0.5.0, Nutzer 25.09.2026: „unten das Tab-Menü
- * sollte nie weg, rechts soll weiterhin die Rangliste, links ein
- * Platzhalter, wird noch kommen"). 0.3.0 hatte die alte Leiste zugunsten
- * des Menüs entfernt; jetzt gibt es beides. Die Leiste wird EINMAL gebaut
- * (`leisteBauen`, aus `starten`) und steht fest am unteren Rand — auf JEDEM
- * Bildschirm, auch im Spiel. Beim Wechsel wird nur neu markiert, welcher
- * Eintrag gerade gilt (`_leisteMarkieren`), sie selbst bleibt stehen.
- * Welche Einträge sie trägt, steht in `LEISTE` — links seit 0.7.0
- * „Aufgaben" (bis 0.6.x ein abgeschalteter Platzhalter „Bald"), seit 0.8.0
- * fünf Plätze mit „Anpassen" ganz rechts.
+ * DAS MENÜ HINTER DEN DREI BALKEN gab es von 0.3.0 bis 0.24.0. Seit 0.25.0
+ * ist es weg, seine Punkte sind verteilt wie in Blunderluck: Profil = das
+ * Kurzprofil oben links, Einstellungen = das Zahnrad im Profil, Freunde =
+ * der Knopf in der Rangliste (samt Zahl offener Anfragen, `markeSetzen`).
  *
- * SEIT 0.9.0 (UPCrew-Runde 4, Nutzer 27.09.2026: „keine Schrift bis auf
- * den Tab, wo man derzeit ist, und das Symbol nach vorne gehoben") ist die
- * Leiste der gemeinsame Baustein css\upcrew-leiste.css, gleich in
- * Blunderluck: nur Zeichen, der aktive Tab hebt sich auf einer Kachel in
- * der Hauptfarbe heraus und zeigt als einziger seinen Namen. Die Tabs baut
- * `BAUSTEINE.tab`; „aktiv" ist allein aria-current="page". Reihenfolge in
- * beiden Spielen: Aufgaben · Sammlung · Start · Rangliste · Bald.
+ * DIE LEISTE UNTEN (seit 0.5.0) wird EINMAL gebaut (`leisteBauen`) und steht
+ * fest am unteren Rand — auf JEDEM Bildschirm ausser in der Runde. Beim
+ * Wechsel wird nur neu markiert (`_leisteMarkieren`). Seit 0.9.0 der
+ * gemeinsame Baustein css\upcrew-leiste.css; die Tabs baut `BAUSTEINE.tab`,
+ * „aktiv" ist allein aria-current="page". Reihenfolge seit 0.25.0 in beiden
+ * Spielen (Nutzer 28.09.2026): Shop · Sammlung · Start · Aufgaben ·
+ * Rangliste.
  *
  * DIE ZURÜCK-TASTE DES HANDYS gehört dazu: Jeder Wechsel legt einen Eintrag
- * in den Browser-Verlauf (history.pushState). Drückt man Zurück, kommt der
- * vorige Bildschirm — nicht die Seite, von der man kam. Wer einen Eintrag
- * ersetzen statt stapeln will (z. B. vom Ende einer Runde zur Rangliste),
- * ruft `zeigen(id, parameter, true)`.
+ * in den Browser-Verlauf (history.pushState), jedes Blatt auch. Drückt man
+ * Zurück, geht das oberste Blatt zu, sonst kommt der vorige Bildschirm. Wer
+ * einen Eintrag ersetzen statt stapeln will, ruft `zeigen(id, parameter,
+ * true)`.
  */
 
 const NAVIGATION = {
@@ -61,14 +60,9 @@ const NAVIGATION = {
     aktuell: null,
     _parameter: null,
 
-    /* Die Zahlen am Menü (z. B. offene Freundesanfragen), je Bildschirm-Id.
-       Sie werden gemerkt, weil das Menü bei jedem Zeichnen neu entsteht. */
+    /* Zahlen an Knöpfen (z. B. offene Freundesanfragen), je Bildschirm-Id.
+       Gezeigt werden sie dort, wo der Knopf steht (`marke(id)`). */
     _marken: {},
-
-    /* Das gerade sichtbare Menü: der Halter, und ob es offen ist. */
-    _menueHalter: null,
-    _menueOffen: false,
-    _aussenHoerer: null,
 
     /*
      * Die Einträge der Leiste unten, von links nach rechts.
@@ -79,46 +73,46 @@ const NAVIGATION = {
      *   auchAktivBei weitere Bildschirme, bei denen der Eintrag als
      *                „hier bin ich" markiert ist (ein Spiel gehört zum Start)
      *   platzhalter  true = abgeschaltet, hält nur den Platz frei
-     * Wer den Platzhalter mit Leben füllt, gibt ihm eine `id` und nimmt
-     * `platzhalter` weg — sonst ändert sich nichts.
      */
     LEISTE: [
-        /* Seit 0.7.0 (UPCrew-Runde 2): Aufgaben = die Herausforderungen.
-           Seit 0.9.0 (UPCrew-Runde 4) in BEIDEN Spielen gleich:
-           Aufgaben · Sammlung · Start · Rangliste · Bald — Start in der
-           Mitte, die Sammlung (Album + Anpassen) ersetzt den Tab
-           „Anpassen" von 0.8.0, Platz 5 bleibt vorerst still. */
-        { id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben" },
+        /* Seit 0.25.0 (Nutzer 28.09.2026: „in beiden spielen shop nach ganz
+           links dann sammlung start herausforderung und dann ganz rechts
+           rangliste"). Bis 0.24.0: Aufgaben · Sammlung · Start · Rangliste ·
+           Shop. */
+        { id: "shop", text: "Shop", zeichen: "shop" },
         { id: "sammlung", text: "Sammlung", zeichen: "sammlung" },
         { id: "start", text: "Start", zeichen: "start", auchAktivBei: ["wordle"] },
-        { id: "rangliste", text: "Rangliste", zeichen: "rangliste" },
-        /* Seit 0.17.0 der Shop statt „Bald" (Nutzer 27.09.2026: „Shop auf
-           dem Platz von Bald soll der kommen"; wie Blunderluck v0.152.0). */
-        { id: "shop", text: "Shop", zeichen: "shop" }
+        { id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben" },
+        { id: "rangliste", text: "Rangliste", zeichen: "rangliste" }
     ],
 
     _leisteEl: null,
+
+    /* Die offenen Blätter dieser Navigation, unten zuerst:
+       { id, parameter, eintrag (UPCREW_BLATT), verlauf (Eintrag im Verlauf) }. */
+    _blaetter: [],
+    _ebenenEl: null,
+    /* Wie viele popstate-Ereignisse gleich kommen, weil ein Blatt selbst
+       zurückgegangen ist (Kreuz, Grund, Esc) — die werden überhört. */
+    _stilleZurueck: 0,
 
     anmelden(bildschirm) {
         NAVIGATION._bildschirme[bildschirm.id] = bildschirm;
         NAVIGATION._reihenfolge.push(bildschirm.id);
     },
 
-    starten(inhaltEl, startId, leisteEl) {
+    starten(inhaltEl, startId, leisteEl, ebenenEl) {
         NAVIGATION._inhaltEl = inhaltEl;
         if (leisteEl) {
             NAVIGATION.leisteBauen(leisteEl);
             NAVIGATION.wischenEinrichten(inhaltEl);
         }
+        if (ebenenEl && typeof UPCREW_BLATT !== "undefined") {
+            NAVIGATION._ebenenEl = ebenenEl;
+            UPCREW_BLATT.einrichten({ ebenen: ebenenEl, haupt: inhaltEl });
+        }
 
-        window.addEventListener("popstate", (ereignis) => {
-            const zustand = ereignis.state;
-            if (zustand && NAVIGATION._bildschirme[zustand.id]) {
-                NAVIGATION._wechseln(zustand.id, zustand.parameter || null);
-            } else {
-                NAVIGATION._wechseln(startId, null);
-            }
-        });
+        window.addEventListener("popstate", (ereignis) => NAVIGATION._beiZurueck(ereignis.state, startId));
 
         try {
             history.replaceState({ id: startId, parameter: null }, "");
@@ -129,9 +123,35 @@ const NAVIGATION = {
         NAVIGATION._wechseln(startId, null);
     },
 
+    _beiZurueck(zustand, startId) {
+        if (NAVIGATION._stilleZurueck > 0) {
+            NAVIGATION._stilleZurueck--;
+            return;
+        }
+        /* Erst das oberste Blatt (samt Karten darüber) schliessen. */
+        const oben = NAVIGATION._blaetter[NAVIGATION._blaetter.length - 1];
+        if (oben && oben.verlauf) {
+            oben.verlauf = false;
+            while (UPCREW_BLATT.anzahl() > 0 && NAVIGATION._blaetter.indexOf(oben) !== -1) {
+                UPCREW_BLATT.schliessen("verlauf");
+            }
+            return;
+        }
+        if (zustand && NAVIGATION._bildschirme[zustand.id]) {
+            NAVIGATION._wechseln(zustand.id, zustand.parameter || null);
+        } else {
+            NAVIGATION._wechseln(startId, null);
+        }
+    },
+
     /* Einen Bildschirm zeigen. `ersetzen` = kein neuer Verlaufseintrag. */
     zeigen(id, parameter, ersetzen) {
-        if (!NAVIGATION._bildschirme[id]) {
+        const bildschirm = NAVIGATION._bildschirme[id];
+        if (!bildschirm) {
+            return;
+        }
+        if (bildschirm.alsBlatt && NAVIGATION.blattMoeglich()) {
+            NAVIGATION._blattOeffnen(id, parameter || null, ersetzen);
             return;
         }
         const zustand = { id: id, parameter: parameter || null };
@@ -155,164 +175,139 @@ const NAVIGATION = {
         }
     },
 
-    /* Den gerade sichtbaren Bildschirm neu bauen — nach neuen Daten. Ein
-       offenes Menü bleibt dabei offen: Neue Daten kommen jederzeit, und
-       ein Menü, das einem unter dem Finger zuklappt, wäre ein Fehler. */
+    /* Den gerade sichtbaren Bildschirm neu bauen — nach neuen Daten; offene
+       Blätter bauen sich mit neu (ihre Rollposition bleibt). */
     auffrischen() {
         if (NAVIGATION.aktuell) {
-            const warOffen = NAVIGATION._menueOffen;
             NAVIGATION._bauen(NAVIGATION.aktuell, NAVIGATION._parameter);
-            if (warOffen) {
-                NAVIGATION._menueOeffnen();
-            }
+        }
+        for (const blatt of NAVIGATION._blaetter.slice()) {
+            NAVIGATION._blattBauen(blatt);
         }
     },
 
-    /* Merkt eine Zahl für einen Menü-Eintrag (z. B. offene Freundesanfragen)
-       und zeigt sie sofort, falls das Menü gerade zu sehen ist — offen
-       bleibt offen (wie beim Auffrischen). */
+    /* Merkt eine Zahl für einen Knopf (z. B. offene Freundesanfragen) und
+       zeigt sie sofort an jedem sichtbaren Knopf mit `data-marke="<id>"`. */
     markeSetzen(id, zahl) {
         NAVIGATION._marken[id] = zahl || 0;
-        const alt = NAVIGATION._menueHalter;
-        if (alt && alt.isConnected) {
-            const warOffen = NAVIGATION._menueOffen;
-            const neu = NAVIGATION.menueBauen();
-            alt.replaceWith(neu);
-            if (warOffen) {
-                NAVIGATION._menueOeffnen();
-            }
+        if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") {
+            return;
         }
+        for (const knopf of document.querySelectorAll("[data-marke=\"" + id + "\"]")) {
+            NAVIGATION.markeAnbringen(knopf, id);
+        }
+    },
+
+    marke(id) {
+        return NAVIGATION._marken[id] || 0;
+    },
+
+    /* Hängt die Zahl an einen Knopf (oder nimmt sie weg). */
+    markeAnbringen(knopf, id) {
+        knopf.dataset.marke = id;
+        const alt = knopf.querySelector(".menue-marke");
+        if (alt) {
+            alt.remove();
+        }
+        if (NAVIGATION.marke(id) > 0) {
+            knopf.appendChild(BAUSTEINE.el("span", "menue-marke", String(NAVIGATION.marke(id))));
+        }
+        return knopf;
     },
 
     /* ---------------------------------------------------------------- *
-     * Das Menü hinter den drei Balken
+     * Blätter (seit 0.25.0, gemeinsamer Baustein js\upcrew-blatt.js)
      * ---------------------------------------------------------------- */
 
-    /*
-     * Baut den Halter: den Balken-Knopf und darunter das (zunächst
-     * verborgene) Feld mit einem Eintrag je Bildschirm mit `imMenue`.
-     * Wer ihn einhängt (heute der Start), braucht sonst nichts zu tun.
-     */
-    menueBauen() {
-        NAVIGATION._menueSchliessen();
-
-        const halter = BAUSTEINE.el("div", "menue-halter");
-        const summe = NAVIGATION._reihenfolge.reduce((zahl, id) =>
-            zahl + (NAVIGATION._imMenue(NAVIGATION._bildschirme[id]) ? (NAVIGATION._marken[id] || 0) : 0), 0);
-
-        const balken = BAUSTEINE.knopf({
-            art: "flach", zeichen: "menue", titel: "Menü",
-            beiKlick: () => NAVIGATION._menueUmschalten()
-        });
-        balken.setAttribute("aria-expanded", "false");
-        balken.setAttribute("aria-haspopup", "menu");
-        if (summe > 0) {
-            balken.appendChild(BAUSTEINE.el("span", "menue-marke", String(summe)));
-        }
-        halter.appendChild(balken);
-
-        const liste = BAUSTEINE.el("div", "menue");
-        liste.setAttribute("role", "menu");
-        liste.hidden = true;
-        for (const id of NAVIGATION._reihenfolge) {
-            const bildschirm = NAVIGATION._bildschirme[id];
-            if (!NAVIGATION._imMenue(bildschirm)) {
-                continue;
-            }
-            const eintrag = BAUSTEINE.knopf({
-                art: "menue", zeichen: bildschirm.zeichen, text: bildschirm.titel,
-                beiKlick: () => {
-                    NAVIGATION._menueSchliessen();
-                    NAVIGATION.zeigen(id, null);
-                }
-            });
-            eintrag.setAttribute("role", "menuitem");
-            eintrag.dataset.bildschirm = id;
-            if (NAVIGATION._marken[id]) {
-                eintrag.appendChild(BAUSTEINE.el("span", "menue-marke", String(NAVIGATION._marken[id])));
-            }
-            liste.appendChild(eintrag);
-        }
-        halter.appendChild(liste);
-
-        NAVIGATION._menueHalter = halter;
-        return halter;
+    blattMoeglich() {
+        return typeof UPCREW_BLATT !== "undefined" && !!NAVIGATION._ebenenEl;
     },
 
-    /* Steht der Bildschirm im Menü? `imMenue` darf eine Frage sein (seit
-       0.16.3, Verwaltung nur für Admins). */
-    _imMenue(bildschirm) {
-        if (typeof bildschirm.imMenue === "function") {
+    /* Steht der Behälter in einem Blatt? (Dann trägt das Blatt Titel und
+       Schliessen — der Bildschirm baut keine eigene Kopfzeile.) */
+    imBlatt(behaelter) {
+        return !!(behaelter && behaelter.classList && behaelter.classList.contains("up-bl-inhalt"));
+    },
+
+    blattOffen(id) {
+        return NAVIGATION._blaetter.some((blatt) => blatt.id === id);
+    },
+
+    /* Ist der Bildschirm zu sehen — als Seite oder als Blatt? */
+    sichtbar(id) {
+        return NAVIGATION.aktuell === id || NAVIGATION.blattOffen(id);
+    },
+
+    _blattOeffnen(id, parameter, ohneVerlauf) {
+        const bildschirm = NAVIGATION._bildschirme[id];
+        /* Schon im Stapel: nur die darüber schliessen, neu zeichnen. */
+        const stelle = NAVIGATION._blaetter.findIndex((blatt) => blatt.id === id);
+        if (stelle !== -1) {
+            while (NAVIGATION._blaetter.length > stelle + 1) {
+                NAVIGATION._blaetter[NAVIGATION._blaetter.length - 1].eintrag.schliessen();
+            }
+            const blatt = NAVIGATION._blaetter[stelle];
+            blatt.parameter = parameter;
+            NAVIGATION._blattBauen(blatt);
+            return blatt.eintrag;
+        }
+        const blatt = { id: id, parameter: parameter, eintrag: null, verlauf: false };
+        if (!ohneVerlauf) {
             try {
-                return bildschirm.imMenue() === true;
+                history.pushState({ id: NAVIGATION.aktuell, parameter: NAVIGATION._parameter, blatt: id }, "");
+                blatt.verlauf = true;
             } catch (fehler) {
-                return false;
+                /* wie oben */
             }
         }
-        return bildschirm.imMenue === true;
+        blatt.eintrag = UPCREW_BLATT.oeffnen({
+            titel: bildschirm.blattTitel ? bildschirm.blattTitel(parameter) : bildschirm.titel,
+            klasse: "blatt-" + id,
+            rechts: bildschirm.blattRechts ? bildschirm.blattRechts(parameter) : [],
+            beimSchliessen: (wie) => NAVIGATION._blattZu(blatt, wie)
+        });
+        NAVIGATION._blaetter.push(blatt);
+        NAVIGATION._blattBauen(blatt);
+        return blatt.eintrag;
     },
 
-    _menueUmschalten() {
-        if (NAVIGATION._menueOffen) {
-            NAVIGATION._menueSchliessen();
-        } else {
-            NAVIGATION._menueOeffnen();
+    _blattBauen(blatt) {
+        const inhalt = blatt.eintrag.inhalt;
+        const y = inhalt.scrollTop;
+        inhalt.innerHTML = "";
+        inhalt.dataset.bildschirm = blatt.id;
+        NAVIGATION._bildschirme[blatt.id].zeigen(inhalt, blatt.parameter);
+        inhalt.scrollTop = y;
+    },
+
+    _blattZu(blatt, wie) {
+        const stelle = NAVIGATION._blaetter.indexOf(blatt);
+        if (stelle !== -1) {
+            NAVIGATION._blaetter.splice(stelle, 1);
+        }
+        const bildschirm = NAVIGATION._bildschirme[blatt.id];
+        if (bildschirm && bildschirm.verlassen && !NAVIGATION.blattOffen(blatt.id)) {
+            bildschirm.verlassen();
+        }
+        /* Mit Kreuz, Grund, Esc oder im Code geschlossen: den eigenen
+           Verlaufseintrag zurücknehmen (das popstate dazu wird überhört). */
+        if (blatt.verlauf && wie !== "verlauf" && wie !== "alle") {
+            blatt.verlauf = false;
+            NAVIGATION._stilleZurueck++;
+            try {
+                history.back();
+            } catch (fehler) {
+                NAVIGATION._stilleZurueck--;
+            }
         }
     },
 
-    /*
-     * Öffnen: Feld zeigen und EINEN Horcher am Dokument anmelden, der bei
-     * einem Tipp ausserhalb des Halters oder bei Esc zuklappt. Er wird beim
-     * Schliessen wieder abgemeldet — ein verwaister Horcher bliebe sonst
-     * hängen (dieselbe Vorsicht wie in Blunderluck).
-     */
-    _menueOeffnen() {
-        const halter = NAVIGATION._menueHalter;
-        if (!halter) {
-            return;
+    /* Alle Blätter und Karten zu — beim Wechsel der Seite. */
+    _alleSchliessen() {
+        if (typeof UPCREW_BLATT !== "undefined" && UPCREW_BLATT.anzahl() > 0) {
+            UPCREW_BLATT.alleSchliessen();
         }
-        halter.querySelector(".menue").hidden = false;
-        halter.firstChild.setAttribute("aria-expanded", "true");
-        NAVIGATION._menueOffen = true;
-
-        NAVIGATION._aussenHoerer = (ereignis) => {
-            if (ereignis.type === "keydown") {
-                if (ereignis.key === "Escape") {
-                    NAVIGATION._menueSchliessen();
-                }
-                return;
-            }
-            if (!halter.contains(ereignis.target)) {
-                NAVIGATION._menueSchliessen();
-            }
-        };
-        /* Erst nach diesem Tipp anmelden — sonst fängt der Horcher genau
-           den Klick, der das Menü eben geöffnet hat. */
-        setTimeout(() => {
-            if (NAVIGATION._menueOffen && NAVIGATION._aussenHoerer) {
-                document.addEventListener("click", NAVIGATION._aussenHoerer);
-                document.addEventListener("keydown", NAVIGATION._aussenHoerer);
-            }
-        }, 0);
-    },
-
-    _menueSchliessen() {
-        if (NAVIGATION._aussenHoerer) {
-            document.removeEventListener("click", NAVIGATION._aussenHoerer);
-            document.removeEventListener("keydown", NAVIGATION._aussenHoerer);
-            NAVIGATION._aussenHoerer = null;
-        }
-        NAVIGATION._menueOffen = false;
-        const halter = NAVIGATION._menueHalter;
-        if (halter) {
-            const liste = halter.querySelector(".menue");
-            if (liste) {
-                liste.hidden = true;
-            }
-            if (halter.firstChild) {
-                halter.firstChild.setAttribute("aria-expanded", "false");
-            }
-        }
+        NAVIGATION._blaetter = [];
     },
 
     /* ---------------------------------------------------------------- *
@@ -329,9 +324,12 @@ const NAVIGATION = {
                 name: eintrag.text, zeichen: eintrag.zeichen, still: !!eintrag.platzhalter,
                 beiKlick: () => {
                     /* Ein Tipp auf den Eintrag, auf dem man schon steht,
-                       legt keinen neuen Verlaufseintrag an. */
+                       legt keinen neuen Verlaufseintrag an — offene Blätter
+                       gehen aber zu (die Seite ist dann wieder zu sehen). */
                     if (NAVIGATION.aktuell !== eintrag.id) {
                         NAVIGATION.zeigen(eintrag.id, null);
+                    } else {
+                        NAVIGATION._alleSchliessen();
                     }
                 }
             });
@@ -342,32 +340,24 @@ const NAVIGATION = {
         }
         leisteEl.hidden = false;
         NAVIGATION._leisteMarkieren();
-        /* Seit 0.15.12 („C · Gleiten + Hüpfen", Nutzer 27.09.2026: „die
-           Animation beim Tab-Wechseln unten muss besser werden"): EINE
-           Kapsel fährt zum neuen Tab, das Symbol hüpft — der gemeinsame
-           Baustein js/upcrew-leiste.js beobachtet `aria-current` selbst,
-           am Tab-Wechsel ändert sich hier nichts. */
+        /* Seit 0.15.12 („C · Gleiten + Hüpfen"): EINE Kapsel fährt zum neuen
+           Tab — der gemeinsame Baustein js/upcrew-leiste.js beobachtet
+           `aria-current` selbst, am Tab-Wechsel ändert sich hier nichts. */
         if (typeof UPCREW_LEISTE !== "undefined") {
             UPCREW_LEISTE.an(leisteEl);
         }
     },
 
     /*
-     * WISCHEN (seit 0.15.10, Nutzer 27.09.2026: „mache, dass man in den
-     * Menüs swipen kann, um die Tabs zu wechseln" — in beiden Spielen
-     * gleich): der gemeinsame Baustein js\upcrew-wischen.js aus
-     * Design\3D-Schrift\final. Wischbar sind die Tabs der Leiste in ihrer
-     * Reihenfolge (Aufgaben · Sammlung · Start · Rangliste), „Bald" ist
-     * still. Gewechselt wird über denselben Weg wie ein Tipp auf die Leiste.
-     * Nicht gewischt wird während einer Runde (`body.im-spiel`, dort hat
-     * die Fläche wieder `touch-action: auto`, css\stil.css), in der
-     * Anmeldung, im Intro und bei offenen Dialogen; nie auf dem Spielfeld,
-     * der Tastatur und Umschaltern (`WISCHEN_SPERREN`, dazu die Sperren des
-     * Bausteins: Felder, Regal-Reihen, alles, was selbst waagrecht rollt).
+     * WISCHEN (seit 0.15.10, gemeinsamer Baustein js\upcrew-wischen.js):
+     * wischbar sind die Tabs der Leiste in ihrer Reihenfolge. Gewechselt
+     * wird über denselben Weg wie ein Tipp auf die Leiste. Nicht gewischt
+     * wird während einer Runde (`body.im-spiel`), in der Anmeldung, im Intro
+     * und bei offenen Dialogen; nie auf dem Spielfeld, der Tastatur und
+     * Umschaltern (`WISCHEN_SPERREN`, dazu die Sperren des Bausteins).
+     * Blätter liegen ausserhalb des Hauptelements — auf ihnen wird nicht
+     * gewischt.
      */
-    /* Seit 0.20.0 das Blatt von unten. Das Buch war es von 0.20.0 bis
-       0.22.0 auch; seit 0.23.0 blättert es senkrecht, waagrecht wechselt
-       auch dort der Tab. */
     WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl, .bib-blatt-grund",
 
     wischenTabs() {
@@ -424,6 +414,8 @@ const NAVIGATION = {
      * ---------------------------------------------------------------- */
 
     _wechseln(id, parameter) {
+        /* Eine neue Seite: alle Blätter zu (Einbau-Notiz 29.09.2026). */
+        NAVIGATION._alleSchliessen();
         const vorher = NAVIGATION._bildschirme[NAVIGATION.aktuell];
         if (vorher && vorher.verlassen && NAVIGATION.aktuell !== id) {
             vorher.verlassen();
@@ -436,9 +428,6 @@ const NAVIGATION = {
     },
 
     _bauen(id, parameter) {
-        NAVIGATION._menueSchliessen();
-        NAVIGATION._menueHalter = null;
-
         const bildschirm = NAVIGATION._bildschirme[id];
         const inhalt = NAVIGATION._inhaltEl;
         inhalt.innerHTML = "";

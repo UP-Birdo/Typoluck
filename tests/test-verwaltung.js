@@ -60,47 +60,42 @@ function welt(uid, ort, parameter) {
     return k;
 }
 
-/* Das Menü fragt über NAVIGATION._imMenue — die echte Funktion. */
+/* Das Menü hinter den drei Balken gibt es seit 0.25.0 nicht mehr (gemeinsame
+   Runde 7) — der einzige Weg ist die Zeile in den Einstellungen (1b). */
 const NAV_QUELLE = lesen("js/navigation.js");
-const imMenueQuelle = NAV_QUELLE.slice(NAV_QUELLE.indexOf("    _imMenue(bildschirm) {"),
-    NAV_QUELLE.indexOf("    _menueUmschalten() {"));
-const NAV = vm.runInNewContext("({" + imMenueQuelle + "})");
 
 /* 1. Nur Admins */
 {
     const spieler = welt("uid-spieler");
-    gleich("Nicht-Admin: kein Eintrag im Menü", NAV._imMenue(spieler.bildschirm), false);
     gleich("Nicht-Admin: nicht erlaubt (kein Knopf in den Einstellungen)", spieler.V.erlaubt(), false);
     const kasten = { kinder: [], appendChild(x) { this.kinder.push(x); } };
     spieler.V.zeigen(kasten);
     gleich("Nicht-Admin über die Adresse: nichts gebaut, zurück zum Start",
         [kasten.kinder.length, spieler.gezeigt], [0, [["start", true]]]);
-    gleich("Abgemeldet: kein Eintrag", NAV._imMenue(welt(null).bildschirm), false);
-    gleich("Gast: kein Eintrag", NAV._imMenue(welt("uid-gast").bildschirm), false);
+    gleich("Abgemeldet: nicht erlaubt", welt(null).V.erlaubt(), false);
+    gleich("Gast: nicht erlaubt", welt("uid-gast").V.erlaubt(), false);
     /* Seit 0.17.1 (Nutzer 27.09.2026: „nur in den einstellungen … nicht
        doppelt irgendwo"): auch für Admins NIE im Menü, nur erlaubt. */
-    gleich("Rolle „admin“: erlaubt, aber nicht im Menü",
-        [welt("uid-admin").V.erlaubt(), NAV._imMenue(welt("uid-admin").bildschirm)], [true, false]);
-    gleich("UP#Plus: erlaubt, aber nicht im Menü",
-        [welt("uid-ober").V.erlaubt(), NAV._imMenue(welt("uid-ober").bildschirm)], [true, false]);
+    gleich("Rolle „admin“: erlaubt", welt("uid-admin").V.erlaubt(), true);
+    gleich("UP#Plus: erlaubt", welt("uid-ober").V.erlaubt(), true);
+    gleich("Verwaltung öffnet als Blatt (seit 0.25.0)", welt("uid-admin").bildschirm.alsBlatt, true);
     gleich("Werkstatt &admin auf localhost: sichtbar", welt(null, "localhost", "werkstatt&admin").V.erlaubt(), true);
     gleich("Werkstatt &admin ausgeliefert (github.io): wirkt nicht",
         welt(null, "up-birdo.github.io", "werkstatt&admin").V.erlaubt(), false);
     gleich("Werkstatt ohne &admin: nicht sichtbar", welt(null, "localhost", "werkstatt").V.erlaubt(), false);
-    gleich("Ein Menü-Eintrag, der wirft, zählt als nicht sichtbar", NAV._imMenue({ imMenue: () => { throw new Error("x"); } }), false);
-    gleich("Feste Einträge wie bisher", [NAV._imMenue({ imMenue: true }), NAV._imMenue({})], [true, false]);
+    pruefe("Kein Menü mehr in der Navigation", !/menueBauen|_imMenue/.test(NAV_QUELLE));
 }
 
 /* 1b. Nur EIN Weg: der Knopf in den Einstellungen (seit 0.17.1) */
 {
     const einst = lesen("js/bildschirm-einstellungen.js");
-    pruefe("Einstellungen: Knopf „Verwaltung“ nur mit VERWALTUNG_BILDSCHIRM.erlaubt()",
-        /VERWALTUNG_BILDSCHIRM\.erlaubt\(\)\) \{\s*reihe\.appendChild\(BAUSTEINE\.knopf\(\{ text: "Verwaltung"/.test(einst)
+    pruefe("Einstellungen: Zeile „Verwaltung“ (Abschnitt Admin) nur mit VERWALTUNG_BILDSCHIRM.erlaubt()",
+        /!VERWALTUNG_BILDSCHIRM\.erlaubt\(\)\) \{\s*return \{ art: "admin", zeilen: \[\] \};\s*\}\s*return \{ art: "admin", zeilen: \[\s*\{ zeichen: "werkzeug", titel: "Verwaltung"/.test(einst)
             && /NAVIGATION\.zeigen\("verwaltung"/.test(einst));
     pruefe("Verwaltung meldet sich mit imMenue: false an", /imMenue: false,/.test(lesen("js/bildschirm-verwaltung.js")));
     pruefe("Verwaltung nicht in der Leiste (und damit nicht wischbar)", !/id: "verwaltung"/.test(lesen("js/navigation.js")));
     const wege = fs.readdirSync(pfad.join(wurzel, "js")).filter((d) => d.endsWith(".js") && d !== "bildschirm-verwaltung.js")
-        .filter((d) => /["']verwaltung["']/.test(lesen("js/" + d)));
+        .filter((d) => !d.startsWith("upcrew-") && /["']verwaltung["']/.test(lesen("js/" + d)));
     gleich("Kein zweiter Weg: nur die Einstellungen nennen den Bildschirm", wege, ["bildschirm-einstellungen.js"]);
 }
 

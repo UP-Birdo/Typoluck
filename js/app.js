@@ -127,10 +127,10 @@ const APP = {
                 () => APP.fortschrittId(), () => APP._echtesKonto());
         }
 
-        /* 3. Bildschirme — die Reihenfolge ist die im Menü hinter den drei
-           Balken (seit 0.3.0; wie Blunderluck: Profil zuerst; seit 0.5.0
-           Einstellungen als letzter Eintrag). Die Leiste unten führt ihre
-           Einträge selbst (NAVIGATION.LEISTE). */
+        /* 3. Bildschirme. Die Leiste unten führt ihre Einträge selbst
+           (NAVIGATION.LEISTE); Profil, Freunde, Einstellungen und
+           Verwaltung öffnen seit 0.25.0 als Blatt (das Menü hinter den drei
+           Balken ist weg). */
         START.anmelden();
         PROFIL_BILDSCHIRM.anmelden();
         FREUNDE_BILDSCHIRM.anmelden();
@@ -141,7 +141,9 @@ const APP = {
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
         SAMMLUNG_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
-        NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"));
+        /* Seit 0.25.0 mit dem Halter der Blätter (js/upcrew-blatt.js). */
+        NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"),
+            document.getElementById("ebenen"));
 
         /* 4. Spielerliste */
         APP._gestartet = true;
@@ -486,10 +488,39 @@ const APP = {
         } else if (bibliothek && bibliothek.verlust > 0) {
             meldung.push("−" + bibliothek.verlust + (bibliothek.verlust === 1 ? " Herz" : " Herzen"));
         }
+        /* Typoluck-Abzeichen (seit 0.25.0) — verdiente fest in den Zweig. */
+        if (APP.abzeichenBuchen() > 0) {
+            meldung.push("Neues Abzeichen");
+        }
         if (meldung.length) {
             DIALOG.kurzmeldung(meldung.join(" · "), 2500);
         }
         return { wertung: wertung, ergebnis: ergebnis, bibliothek: bibliothek };
+    },
+
+    /*
+     * DIE TYPOLUCK-ABZEICHEN BUCHEN (seit 0.25.0, gemeinsame Runde 7): was
+     * FORTSCHRITT.tlAbzeichenFelder als verdient meldet, als Zähler in den
+     * eigenen Zweig (nur höher) und ans Konto. Nach jeder Runde und beim
+     * Öffnen des Profils. Liefert, wie viele neu dazukamen.
+     */
+    _buecher(stand) {
+        if (typeof BIBLIOTHEK === "undefined") {
+            return { erreicht: 0, alle: 0 };
+        }
+        return { erreicht: BIBLIOTHEK.erreicht(FORTSCHRITT.turmStand(stand)), alle: BIBLIOTHEK.anzahlBuecher() };
+    },
+
+    abzeichenBuchen() {
+        const probe = APP.fortschritt();
+        const felder = FORTSCHRITT.tlAbzeichenFelder(probe, APP._buecher(probe));
+        if (FORTSCHRITT.zaehlerHeben(probe, felder).neu === 0) {
+            return 0;
+        }
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(),
+            (stand) => FORTSCHRITT.zaehlerHeben(FORTSCHRITT_ABGLEICH.mitKonto(stand), felder));
+        FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        return ergebnis.neu;
     },
 
     /* ---------------------------------------------------------------- *

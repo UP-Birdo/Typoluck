@@ -2,6 +2,20 @@
 
 Je Eintrag: was entschieden ist, und warum. Neueste oben.
 
+## historie.md wird nicht mehr ausgeliefert (29.09.2026, Werkzeug)
+
+Nutzer 29.09.2026 beim Ausliefern von 0.24.0 auf die Frage, ob
+`docs\entscheidungen\historie.md` mit soll: „nein lieber nicht".
+- **Warum:** Seit 0.24.0 steht in `historie.md` die ganze alte STATUS.md,
+  und die STATUS.md ist im Deploy-Skript gesperrt. Das Repository ist
+  öffentlich; über die Historie wäre der gesperrte Text doch online gegangen.
+- **Wie:** `historie.md` steht in `$gesperrteDateien` in
+  `tools\Deploy-Typoluck.ps1`. Die Sperre wirkt nach dem Dateinamen, gilt
+  also für jede Datei dieses Namens.
+- **Folge:** Die vor dem 29.09.2026 hochgeladene Fassung liegt weiter auf
+  GitHub. Das Skript bietet sie bei jedem Lauf zum Löschen an; mit „j"
+  verschwindet sie, mit „n" bleibt sie. Das entscheidet der Nutzer.
+
 ## Die Bibliothek als Doppelseite (28.09.2026, 0.20.0)
 
 Nutzer 28.09.2026 zum Entwurf `Design\3D-Schrift\entwuerfe\

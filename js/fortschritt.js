@@ -1191,6 +1191,59 @@ const FORTSCHRITT = {
         return tat ? tat.titel : "";
     },
 
+    /*
+     * DIE TYPOLUCK-ABZEICHEN (seit 0.25.0, gemeinsame Runde 7; Nutzer
+     * 28.09.2026: „wenn ich in dem einen Spiel ein Abzeichen bekomme, soll es
+     * fix im Profil liegen"). Die Liste (Kennung „tl-…", Zähler „az…") steht
+     * im gemeinsamen Baustein js\upcrew-abzeichen-spiele.js; WANN eines
+     * verdient ist, steht nur hier. Verdiente werden als Zähler = 1 in den
+     * eigenen Zweig geschrieben (`zaehlerHeben`, nur höher) — so sieht auch
+     * Blunderluck sie. `buecher` = { erreicht, alle } aus der Bibliothek
+     * (die Rechnung dort kennt das Modell hier nicht).
+     */
+    TL_ABZEICHEN: {
+        azZweiVersuche: (zweig) => zweig.taten.indexOf("zweiter-versuch") !== -1,
+        azSchwer: (zweig) => zweig.taten.indexOf("schwer-geloest") !== -1,
+        azKoennen: (zweig) => zweig.taten.indexOf("koennen-90") !== -1,
+        azPerfekt: (zweig) => FORTSCHRITT._zaehlerVon(zweig, "koennenBeste") >= 100,
+        azErstesBuch: (zweig, b) => b.erreicht >= 2,
+        azBuecherwurm: (zweig, b) => b.alle > 0 && b.erreicht > b.alle
+    },
+
+    /* Die verdienten Typoluck-Abzeichen als { feld: 1 }. Rein. */
+    tlAbzeichenFelder(stand, buecher) {
+        const zweig = FORTSCHRITT.zweig(stand);
+        const b = { erreicht: FORTSCHRITT._zahl(buecher && buecher.erreicht),
+            alle: FORTSCHRITT._zahl(buecher && buecher.alle) };
+        const felder = {};
+        for (const feld of Object.keys(FORTSCHRITT.TL_ABZEICHEN)) {
+            if (FORTSCHRITT.TL_ABZEICHEN[feld](zweig, b)) {
+                felder[feld] = 1;
+            }
+        }
+        return felder;
+    },
+
+    /* Zähler im EIGENEN Zweig anheben — nur höher, nie tiefer (wie
+       Blunderluck `FORTSCHRITT_KONTO.zaehlerHeben`). Liefert { stand, neu }
+       (neu = wie viele sich geändert haben). Nur Namen aus Buchstaben. */
+    zaehlerHeben(stand, felder) {
+        const sauber = FORTSCHRITT.normalisieren(stand);
+        const zweig = FORTSCHRITT.zweig(sauber);
+        let neu = 0;
+        for (const feld of Object.keys(felder || {})) {
+            const wert = FORTSCHRITT._zahl(felder[feld], 1000000000);
+            if (/^[a-zA-Z]{1,32}$/.test(feld) && wert > FORTSCHRITT._zaehlerVon(zweig, feld)) {
+                zweig.zaehler[feld] = wert;
+                neu++;
+            }
+        }
+        if (neu > 0) {
+            sauber.spiele[FORTSCHRITT.APP] = zweig;
+        }
+        return { stand: sauber, neu: neu };
+    },
+
     /* ---------------------------------------------------------------- *
      * Profil: Abzeichen, Statistik, Spiele (seit 0.12.0)
      * ---------------------------------------------------------------- */

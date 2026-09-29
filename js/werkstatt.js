@@ -25,8 +25,14 @@
  *     &dunkel / &hell                  Darstellung festlegen (sonst wie
  *                                      das Gerät)
  *     &schwer                          Schwer-Modus an (seit 0.6.0)
- *     &menue                           das Menü hinter den drei Balken
- *                                      offen zeigen (seit 0.3.0, Start)
+ *     &seriekarte                      die Serien-Karte offen zeigen (seit
+ *                                      0.25.0; bis 0.24.0 &menue = das Menü
+ *                                      hinter den drei Balken, das es nicht
+ *                                      mehr gibt). Profil, Einstellungen,
+ *                                      Freunde, Verwaltung über
+ *                                      &bildschirm=… öffnen als Blatt über
+ *                                      dem Start; &auch=einstellungen legt
+ *                                      ein zweites Blatt darüber
  *     &felder=.a..e&stelle=2           beim Bildschirm wordle: die Zeile,
  *                                      in die getippt wird, vorbelegt
  *                                      („." = leer) und Feld 3 markiert
@@ -457,8 +463,12 @@ const WERKSTATT = {
        erreicht (offenes Menü, vorgetippte Felder). Geht über dieselben
        Wege wie ein echter Tipp — Modell und Navigation. */
     nachDemZeigen() {
-        if (WERKSTATT._parameter().has("menue")) {
-            NAVIGATION._menueOeffnen();
+        const auch = WERKSTATT.wert("auch");
+        if (auch) {
+            NAVIGATION.zeigen(auch, null, true);
+        }
+        if (WERKSTATT._parameter().has("seriekarte") && typeof START.serieOeffnen === "function") {
+            START.serieOeffnen();
         }
         /* Das Blatt von unten (seit 0.20.0): wartende Station, Gabelung
            oder der Boss des angesehenen Buchs. */

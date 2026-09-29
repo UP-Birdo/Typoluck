@@ -105,6 +105,13 @@
     padding-bottom: 8px;
 }
 
+/* Der Würfel „Zufall“ vorn im Balken (upcrew-sammlung.js `wuerfelUnten`, Vorschlag Blunderluck v0.156.0):
+   rund, fest breit, ohne den Abstand, den er oben in der Leiste hatte. */
+.up-sm .upa-aktion .upa-zufall {
+    flex: none;
+    margin: 0;
+}
+
 /* Luft unten: Der rollende Inhalt hält unter dem Tab genau die Leiste frei — kein Streifen unter dem Balken,
    durch den Inhalt rollt. */
 :where(*):has(> .up-sm:not([hidden])) {

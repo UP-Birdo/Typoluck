@@ -20,13 +20,17 @@ const FREUNDE_BILDSCHIRM = {
             id: "freunde",
             titel: "Freunde",
             zeichen: "freunde",
-            imMenue: true,
+            /* Seit 0.25.0 ein Blatt, geöffnet aus der Rangliste (Knopf
+               „Freunde" im Kopf); bis 0.24.0 im Menü hinter den drei Balken. */
+            alsBlatt: true,
             zeigen: (behaelter) => FREUNDE_BILDSCHIRM.zeigen(behaelter)
         });
     },
 
     zeigen(behaelter) {
-        behaelter.appendChild(BAUSTEINE.kopfzeile("Freunde", { zurueck: () => NAVIGATION.zurueck() }));
+        if (!NAVIGATION.imBlatt(behaelter)) {
+            behaelter.appendChild(BAUSTEINE.kopfzeile("Freunde", { zurueck: () => NAVIGATION.zurueck() }));
+        }
 
         const ich = ANMELDUNG.ich();
         if (!ich) {

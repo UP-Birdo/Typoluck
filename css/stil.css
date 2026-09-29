@@ -391,50 +391,12 @@ body.im-spiel .inhalt {
 }
 
 /* ------------------------------------------------------------------ *
- * DAS MENÜ HINTER DEN DREI BALKEN (seit 0.3.0)
- *
- * Nutzer 25.09.2026: „so wie bei Blunderluck Freunde und Profil in drei
- * Balken Menü". Nachgebaut nach Blunderlucks Menüband (dort
- * `.start-menue…` in css\stil-start.css): ein Knopf mit drei Balken oben
- * rechts auf dem Start, darunter klappt ein abgerundetes Feld auf (seit
- * 0.4.0 mit harter Kante statt weichem Schatten), je Eintrag Zeichen links
- * und Wort rechts. Gebaut in
- * `NAVIGATION.menueBauen` (js\navigation.js).
- *
- * Der Halter ist der Bezugspunkt: Das Feld hängt absolut darunter, damit
- * es den Inhalt darunter nicht wegschiebt.
+ * DAS MENÜ HINTER DEN DREI BALKEN gab es von 0.3.0 bis 0.24.0. Seit
+ * 0.25.0 ist es weg (gemeinsame Runde 7): Profil, Einstellungen und
+ * Freunde öffnen als Blatt (css\stil-blatt.css). Geblieben sind die
+ * Knopf-Art `menue` (BAUSTEINE.knopf) und die Zahl `.menue-marke`, die
+ * seit 0.25.0 am Knopf „Freunde" der Rangliste steht.
  * ------------------------------------------------------------------ */
-
-.menue-halter {
-    position: relative;
-}
-
-.menue-halter > .knopf {
-    position: relative;
-}
-
-.menue {
-    position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    z-index: var(--ebene-menue);
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 210px;
-    padding: 6px;
-    background: var(--karte);
-    border: 1px solid var(--rahmen);
-    border-radius: var(--rund-mittel);
-
-    /* Bis 0.3.0 zwei weiche Schatten wie in Blunderluck; seit 0.4.0 die
-       harte Kante des UPCrew-Standards wie bei jeder Karte. */
-    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
-}
-
-.menue[hidden] {
-    display: none;
-}
 
 /* Doppelte Klasse, weil `.knopf` weiter unten steht und sonst gewönne. */
 .knopf.knopf-menue {
@@ -474,8 +436,8 @@ body.im-spiel .inhalt {
     background: var(--rahmen);
 }
 
-/* Die Zahl offener Freundesanfragen — am Balken-Knopf (Summe) und am
-   Eintrag „Freunde". */
+/* Die Zahl offener Freundesanfragen (seit 0.25.0 am Knopf „Freunde" der
+   Rangliste, js\navigation.js `markeAnbringen`). */
 .menue-marke {
     min-width: 18px;
     height: 18px;
@@ -489,28 +451,8 @@ body.im-spiel .inhalt {
     text-align: center;
 }
 
-.menue-halter > .knopf > .menue-marke {
-    position: absolute;
-    top: 0;
-    right: 0;
-}
-
 .knopf-menue .menue-marke {
     margin-left: auto;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .menue:not([hidden]) {
-        transform-origin: top right;
-        animation: menue-auf 0.16s ease-out;
-    }
-
-    @keyframes menue-auf {
-        from {
-            opacity: 0;
-            transform: translateY(-6px) scale(0.97);
-        }
-    }
 }
 
 /* ------------------------------------------------------------------ *

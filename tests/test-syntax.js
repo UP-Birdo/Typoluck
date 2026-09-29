@@ -43,7 +43,13 @@ const KOPIEN = [
        ab dort wie jede Kopie behandelt (nie abwandeln) */
     "js/upcrew-spielerliste.js", "css/upcrew-spielerliste.css",
     /* seit 0.17.0: Münzen und Shop über beide Spiele */
-    "js/upcrew-muenzen.js", "js/upcrew-shop.js", "css/upcrew-shop.css"
+    "js/upcrew-muenzen.js", "js/upcrew-shop.js", "css/upcrew-shop.css",
+    /* seit 0.25.0 (gemeinsame Runde 7): Blätter, Serien-Kapsel, Profil,
+       Einstellungen/Verwaltung und die Abzeichen aller Spiele (dort trägt
+       Typoluck seine Liste ein — Vorschlag an final) */
+    "js/upcrew-blatt.js", "css/upcrew-blatt.css", "js/upcrew-serie.js", "css/upcrew-serie.css",
+    "js/upcrew-profil.js", "css/upcrew-profil.css", "js/upcrew-einstellungen.js", "css/upcrew-einstellungen.css",
+    "js/upcrew-abzeichen-spiele.js"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -286,21 +292,24 @@ gleich("Manifest: Name", JSON.parse(lesen("manifest.webmanifest")).name, "Typolu
  * ------------------------------------------------------------------ */
 
 pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts, als Baustein up-leiste",
-    /<\/main>\s*(<!--[\s\S]*?-->\s*)?<nav class="leiste up-leiste" id="leiste"/.test(index));
+    /<\/main>\s*(<div id="ebenen"><\/div>\s*)?(<!--[\s\S]*?-->\s*)?<nav class="leiste up-leiste" id="leiste"/.test(index));
+/* Seit 0.25.0: der Halter der Blätter direkt nach der Seite, ausserhalb von ihr. */
+pruefe("Der Halter der Blätter steht neben der Seite (nicht darin)",
+    /<main class="inhalt" id="inhalt"><\/main>\s*<div id="ebenen"><\/div>/.test(index));
 const leisteText = (lesen("js/navigation.js").match(/LEISTE: \[([\s\S]*?)\],/) || ["", ""])[1];
 const leisteEintraege = leisteText.split("\n").filter((z) => z.indexOf("{") !== -1);
 /* Seit 0.9.0 (UPCrew-Runde 4) in BEIDEN Spielen gleich:
    Aufgaben · Sammlung · Start · Rangliste · Bald — Start in der Mitte,
    Platz 5 still. (0.8.0: Aufgaben · Bald · Start · Rangliste · Anpassen.) */
 gleich("Die Leiste hat fünf Einträge", leisteEintraege.length, 5);
-/* Links seit 0.7.0 „Aufgaben" (UPCrew-Runde 2, gleich wie Blunderluck);
-   bis 0.6.x der Platzhalter „Bald". */
-pruefe("Links in der Leiste: Aufgaben",
-    /id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben"/.test(leisteEintraege[0] || ""));
+/* Seit 0.25.0 in beiden Spielen (Nutzer 28.09.2026): Shop · Sammlung ·
+   Start · Aufgaben · Rangliste. Bis 0.24.0 Aufgaben links, Shop rechts. */
+pruefe("Links in der Leiste: der Shop",
+    /id: "shop", text: "Shop", zeichen: "shop"/.test(leisteEintraege[0] || ""));
 pruefe("Platz 2: Sammlung",
     /id: "sammlung", text: "Sammlung", zeichen: "sammlung"/.test(leisteEintraege[1] || ""));
-pruefe("Platz 5: der Shop (seit 0.17.0, statt „Bald“)",
-    /id: "shop", text: "Shop", zeichen: "shop"/.test(leisteEintraege[4] || ""));
+pruefe("Platz 4: Aufgaben",
+    /id: "herausforderungen", text: "Aufgaben", zeichen: "aufgaben"/.test(leisteEintraege[3] || ""));
 gleich("Das Sammlung-Zeichen ist der gemeinsame Pfad mit Blunderluck",
     (lesen("js/bausteine.js").match(/sammlung: "([^"]+)"/) || [])[1],
     "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z");
@@ -391,11 +400,20 @@ gleich("Das Aufgaben-Zeichen ist der gemeinsame Pfad mit Blunderluck",
 const heuteText = lesen("js/bildschirm-herausforderungen.js");
 pruefe("Herausforderungen: Titel wie abgesprochen, kein Platzhalter mehr",
     heuteText.indexOf('TITEL: "Herausforderungen"') !== -1 && heuteText.indexOf("Kommt bald") === -1);
-pruefe("Heute: Tageswort, Tagesbrett, ×1,5 und Serie",
-    ["_tageswortBauen", "_tagesbrettBauen", "\"×1,5\"", "_serieBauen"].every((t) => heuteText.indexOf(t) !== -1));
+/* Seit 0.25.0 (gemeinsame Runde 7) steht die Serie nicht mehr hier, sondern
+   als Kapsel im Kopf des Starts (js/upcrew-serie.js). */
+pruefe("Heute: Tageswort, Tagesbrett und ×1,5 — die Serie nicht mehr",
+    ["_tageswortBauen", "_tagesbrettBauen", "\"×1,5\""].every((t) => heuteText.indexOf(t) !== -1)
+        && heuteText.indexOf("_serieBauen") === -1);
 pruefe("Heute: die andere App aus KONFIG, nicht festgeschrieben",
     /KONFIG\.andereSpiele\.blunderluck/.test(heuteText) && !/github\.io/.test(heuteText));
-pruefe("Heute: Serie aus dem Modell", /FORTSCHRITT\.serieHeute\(/.test(heuteText));
+pruefe("Serien-Kapsel: Serie aus dem Modell, Kapsel und Karte aus dem Baustein",
+    /FORTSCHRITT\.serieHeute\(/.test(lesen("js/bildschirm-start.js"))
+        && /UPCREW_SERIE\.kapsel\(/.test(lesen("js/bildschirm-start.js"))
+        && /UPCREW_SERIE\.karteFuellen\(/.test(lesen("js/bildschirm-start.js")));
+pruefe("Serien-Karte: „Schild kaufen“ führt auf die Shop-SEITE",
+    /beiKauf: \(\) => \{\s*UPCREW_BLATT\.schliessen\("knopf"\);\s*NAVIGATION\.zeigen\("shop", null\);/
+        .test(lesen("js/bildschirm-start.js")));
 /* Seit 0.11.0 (Runde 6 Teil A): Tageswort und Tagesbrett aus den Zweigen,
    der Link zu Blunderluck relativ (derselbe Ursprung live und auf 8093). */
 pruefe("Heute: Tagesbrett aus dem Blunderluck-Zweig, Tageswort aus dem eigenen",
@@ -427,10 +445,15 @@ const profilText = lesen("js/bildschirm-profil.js");
 pruefe("Profil: Kopf und Level-Karte nur im eigenen Profil",
     /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._kopfEigenBauen\(spieler\)\);\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._levelBauen/
         .test(profilText));
-pruefe("Profil: Abzeichen nur im eigenen Profil",
-    /if \(eigenes\) \{\s*behaelter\.appendChild\(PROFIL_BILDSCHIRM\._abzeichenBauen\(\)\)/.test(profilText));
+/* Seit 0.25.0: das eigene Profil aus dem Baustein js/upcrew-profil.js
+   (gemeinsame Runde 7), Typolucks Statistik und Level als Zusatz. */
+pruefe("Profil: eigenes aus dem Baustein, mit Abzeichen-Auswahl und Zusatz",
+    /if \(eigenes && PROFIL_BILDSCHIRM\._mitBaustein\(\)\) \{[\s\S]*?UPCREW_PROFIL\.zeichnen\(ort, PROFIL_BILDSCHIRM\.daten\(spieler\), \{\s*beiAbzeichen:[\s\S]*?zusatz: \[statistik, PROFIL_BILDSCHIRM\._levelBauen\(false\)\]/
+        .test(profilText));
+pruefe("Profil: Abzeichen-Wahl schreibt über SPIELER.abzeichenSetzen",
+    /SPIELER\.abzeichenSetzen\(ANMELDUNG\.abgleich\.daten, ich\.id, liste\)/.test(profilText));
 pruefe("Profil: Nächste Level, Spiele, Statistik, Abzeichen wie im Entwurf",
-    ["\"Nächste Level\"", "\"Spiele\"", "\"Statistik\"", "\"Abzeichen\""].every((t) => profilText.indexOf(t) !== -1));
+    ["\"Nächste Level\"", "\"Spiele\"", "\"Statistik · \"", "\"Abzeichen\""].every((t) => profilText.indexOf(t) !== -1));
 pruefe("Profil: Werte aus dem Modell (Spiele, Statistik, Abzeichen, Rahmen, Titel)",
     ["FORTSCHRITT.spiele(", "FORTSCHRITT.statistik(", "FORTSCHRITT.abzeichen(", "FORTSCHRITT.rahmenVon(",
         "FORTSCHRITT.titelVon("].every((t) => profilText.indexOf(t) !== -1));
@@ -480,9 +503,43 @@ pruefe("Stil: im Spiel keine Leiste, unten nur der iPhone-Streifen",
     /body\.im-spiel \.leiste\.up-leiste \{\s*display: none;/.test(lesen("css/stil.css"))
         && /body\.im-spiel \.inhalt \{\s*padding-bottom: calc\(16px \+ env\(safe-area-inset-bottom\)\);/.test(lesen("css/stil.css")));
 pruefe("Der Zurück-Pfeil bleibt der Weg hinaus", /zurueck: \(\) => NAVIGATION\.zurueck\(\)/.test(wordleQuelle));
-pruefe("Platz 4 in der Leiste: die Rangliste", /id: "rangliste"/.test(leisteEintraege[3] || ""));
-pruefe("Einstellungen stehen im Menü",
-    /id: "einstellungen"[\s\S]*?imMenue: true/.test(lesen("js/bildschirm-einstellungen.js")));
+pruefe("Rechts in der Leiste: die Rangliste (seit 0.25.0)", /id: "rangliste"/.test(leisteEintraege[4] || ""));
+
+/* Seit 0.25.0 (gemeinsame Runde 7, Einbau-Notiz 29.09.2026): Leisten-Tabs
+   sind SEITEN, Blätter nur für Bereiche ohne Leisten-Knopf; kein Menü hinter
+   den drei Balken mehr. */
+const navText = lesen("js/navigation.js");
+const indexStileAlle = (index.match(/<link rel="stylesheet" href="([^"]+)"/g) || [])
+    .map((z) => z.match(/href="([^"]+)"/)[1]);
+for (const [datei, id] of [["js/bildschirm-profil.js", "profil"], ["js/bildschirm-einstellungen.js", "einstellungen"],
+    ["js/bildschirm-verwaltung.js", "verwaltung"], ["js/bildschirm-freunde.js", "freunde"]]) {
+    pruefe("Als Blatt: " + id, new RegExp("id: \"" + id + "\"[\\s\\S]*?alsBlatt: true").test(lesen(datei)));
+}
+for (const datei of ["js/bildschirm-shop.js", "js/bildschirm-sammlung.js", "js/bildschirm-start.js",
+    "js/bildschirm-herausforderungen.js", "js/bildschirm-rangliste.js", "js/bildschirm-wordle.js"]) {
+    pruefe("Seite, kein Blatt: " + datei, !/alsBlatt/.test(lesen(datei)));
+}
+pruefe("Kein Menü hinter den drei Balken mehr",
+    !/menueBauen|_menueOeffnen/.test(liste("js").filter((d) => d.endsWith(".js")).map(lesen).join("")));
+pruefe("Ein Seitenwechsel schliesst alle Blätter",
+    /_wechseln\(id, parameter\) \{\s*\/\*[^*]*\*\/\s*NAVIGATION\._alleSchliessen\(\);/.test(navText)
+        && /UPCREW_BLATT\.alleSchliessen\(\)/.test(navText));
+pruefe("Blätter über den Baustein, eingerichtet mit Halter und Seite",
+    /UPCREW_BLATT\.einrichten\(\{ ebenen: ebenenEl, haupt: inhaltEl \}\)/.test(navText)
+        && /document\.getElementById\("ebenen"\)/.test(lesen("js/app.js")));
+pruefe("Zurück-Taste schliesst zuerst das oberste Blatt",
+    /_beiZurueck\(zustand, startId\) \{[\s\S]*?UPCREW_BLATT\.schliessen\("verlauf"\)/.test(navText));
+pruefe("Zahnrad im Profil → Einstellungen", /blattRechts:[\s\S]*?_zahnrad\(\)/.test(lesen("js/bildschirm-profil.js"))
+    && /UPCREW_PROFIL\.zahnrad\(beiKlick\)/.test(lesen("js/bildschirm-profil.js")));
+pruefe("Freunde aus der Rangliste (mit der Zahl offener Anfragen)",
+    /NAVIGATION\.zeigen\("freunde", null\)/.test(lesen("js/bildschirm-rangliste.js"))
+        && /NAVIGATION\.markeAnbringen\(freunde, "freunde"\)/.test(lesen("js/bildschirm-rangliste.js")));
+pruefe("Einstellungen und Verwaltung im gemeinsamen Aufbau, als Typoluck",
+    /UPCREW_EINSTELLUNGEN\.bauen\(inhalt, "einstellungen", [\s\S]*?\{ spiel: "Typoluck" \}\)/.test(lesen("js/bildschirm-einstellungen.js"))
+        && /UPCREW_EINSTELLUNGEN\.bauen\(inhalt, "verwaltung", [\s\S]*?\{ spiel: "Typoluck" \}\)/.test(lesen("js/bildschirm-verwaltung.js")));
+pruefe("Die Seite hinter Blättern steht still (Regel im Baustein, stil-blatt.css zuletzt)",
+    /html\.up-bl-offen,\s*html\.up-bl-offen body \{\s*overflow: hidden;/.test(lesen("css/upcrew-blatt.css"))
+        && indexStileAlle[indexStileAlle.length - 1] === "css/stil-blatt.css");
 pruefe("Die Rangliste steht nicht doppelt (nicht auch im Menü)",
     /id: "rangliste"[\s\S]*?imMenue: false/.test(lesen("js/bildschirm-rangliste.js")));
 

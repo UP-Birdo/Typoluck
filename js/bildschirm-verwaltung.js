@@ -26,7 +26,9 @@
  * samt Bewertung liegt öffentlich im Repository. Wer technisch nachsieht,
  * kommt an die Daten (siehe STATUS.md, Vorschlag zu den Regeln).
  *
- * Zwei Teile (Umschalter oben):
+ * Zwei Teile (bis 0.24.0 mit Umschalter oben; seit 0.25.0 untereinander im
+ * gemeinsamen Aufbau js\upcrew-einstellungen.js, als Blatt über den
+ * Einstellungen):
  *   Lexikon  alle Wörter — Lösungen (bewertet) und Zusatzwörter getrennt.
  *            SEIT 0.18.1 (Nutzer 28.09.2026: „soll nicht öffentlich sein")
  *            wird die volle Bewertung NICHT mehr ausgeliefert (bis 0.18.0
@@ -59,8 +61,10 @@ const VERWALTUNG_BILDSCHIRM = {
             id: "verwaltung",
             titel: VERWALTUNG_BILDSCHIRM.TITEL,
             zeichen: "schild",
-            /* Seit 0.17.1 nie im Menü — nur der Knopf in den Einstellungen. */
+            /* Seit 0.17.1 nie im Menü — nur die Zeile in den Einstellungen;
+               seit 0.25.0 als Blatt über ihnen. */
             imMenue: false,
+            alsBlatt: true,
             zeigen: (behaelter) => VERWALTUNG_BILDSCHIRM.zeigen(behaelter)
         });
     },
@@ -91,27 +95,36 @@ const VERWALTUNG_BILDSCHIRM = {
             setTimeout(() => NAVIGATION.zeigen("start", null, true), 0);
             return;
         }
-        behaelter.appendChild(BAUSTEINE.kopfzeile(VERWALTUNG_BILDSCHIRM.TITEL, {
-            zurueck: () => NAVIGATION.zurueck()
-        }));
-        behaelter.appendChild(BAUSTEINE.segment([
-            { wert: "lexikon", text: "Lexikon" },
-            { wert: "spieler", text: "Spieler" }
-        ], VERWALTUNG_BILDSCHIRM._teil, (wert) => {
-            VERWALTUNG_BILDSCHIRM._teil = wert;
-            NAVIGATION.auffrischen();
-        }, "Teil der Verwaltung"));
+        const imBlatt = NAVIGATION.imBlatt(behaelter);
+        if (!imBlatt) {
+            behaelter.appendChild(BAUSTEINE.kopfzeile(VERWALTUNG_BILDSCHIRM.TITEL, {
+                zurueck: () => NAVIGATION.zurueck()
+            }));
+        }
 
         /* Seit 0.23.1: Lexikon aus der Datenbank (nur §12), automatisch rechnen/aufräumen. */
         VERWALTUNG_BILDSCHIRM._quelleSetzen();
         VERWALTUNG_BILDSCHIRM._automatisch();
-        const ort = BAUSTEINE.el("div", "verwaltung-ort");
-        behaelter.appendChild(ort);
-        if (VERWALTUNG_BILDSCHIRM._teil === "spieler") {
-            VERWALTUNG_BILDSCHIRM._spielerZeigen(ort);
-        } else {
-            VERWALTUNG_BILDSCHIRM._lexikonZeigen(ort);
-        }
+
+        /* SEIT 0.25.0 im gemeinsamen Aufbau js\upcrew-einstellungen.js
+           (gleich in Blunderluck): Spieler · alle Spiele, Datenbank, „Nur in
+           Typoluck" (das Lexikon), Verwaltung beenden. Bis 0.24.0 ein
+           Umschalter Lexikon · Spieler. */
+        const spieler = BAUSTEINE.el("div", "verwaltung-ort verwaltung-spieler-ort");
+        VERWALTUNG_BILDSCHIRM._spielerZeigen(spieler);
+        const lexikon = BAUSTEINE.el("div", "verwaltung-ort verwaltung-lexikon-ort");
+        VERWALTUNG_BILDSCHIRM._lexikonZeigen(lexikon);
+        const daten = VERWALTUNG_BILDSCHIRM._datenKarteBauen();
+        const inhalt = BAUSTEINE.el("div", "verwaltung-inhalt");
+        behaelter.appendChild(inhalt);
+        UPCREW_EINSTELLUNGEN.bauen(inhalt, "verwaltung", [
+            { art: "spieler", inhalt: spieler },
+            { art: "datenbank", inhalt: daten || null },
+            { art: "spiel", inhalt: lexikon },
+            { art: "ende", zeilen: imBlatt ? [
+                { zeichen: "verlassen", titel: "Verwaltung beenden", beiKlick: () => UPCREW_BLATT.schliessen("knopf") }
+            ] : [] }
+        ], { spiel: "Typoluck" });
     },
 
     /* ---------------------------------------------------------------- *

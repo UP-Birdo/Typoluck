@@ -4,8 +4,8 @@
  *
  * Nutzer 27.09.2026 (Apps\UPCrew\docs\FORTSCHRITT.md, „GÜLTIGER STAND"):
  * Der Aufgaben-Tab zeigt nur HEUTE — je Spiel eine Tagesaufgabe mit
- * Figuren-Wertung, beide geschafft = ×1,5 XP, darunter die Serie (sieben
- * Flammen) mit dem Serien-Schutz. Die jeweils andere App steht als Karte
+ * Figuren-Wertung, beide geschafft = ×1,5 XP (die Serie steht seit 0.25.0
+ * als Kapsel im Kopf des Starts). Die jeweils andere App steht als Karte
  * mit „Zu …" darunter. Auftrag: Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md.
  *
  *   1. Tageswort (Typoluck) — offen: „Raten"; gespielt: Figuren.
@@ -13,8 +13,6 @@
  *      eingetragen hat (seit 0.11.0 sein Zweig: `spiele.blunderluck.heute`
  *      mit `figuren > 0` und `datum` = heute), sonst „Zu Blunderluck".
  *   3. ×1,5 — leuchtet, wenn beide geschafft sind.
- *   4. Serie — sieben Flammen, rechts die Zahl der Schutz-Schilde (über
- *      alle Spiele gerechnet, der Schutz aus dem Level).
  *
  * Gerechnet wird nichts hier: Figuren und Serie kommen aus
  * js\fortschritt.js, der Stand des Tagesworts aus START.SPIELE.
@@ -61,7 +59,8 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
         faktor.setAttribute("aria-label", beide ? "Beide geschafft: ×1,5 XP" : "Beide schaffen: ×1,5 XP");
         behaelter.appendChild(faktor);
 
-        behaelter.appendChild(HERAUSFORDERUNGEN_BILDSCHIRM._serieBauen(fortschritt, datum));
+        /* Die Serie (bis 0.24.0 hier als sieben Flammen) steht seit 0.25.0
+           oben im Kopf des Starts (Serien-Kapsel, gemeinsame Runde 7). */
     },
 
     /* Eine Karte je Tagesaufgabe: links das Bild, rechts Spiel, Name,
@@ -137,27 +136,5 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
             bild: bild, spiel: andere.name, name: "Tagesbrett", zusatz: "für alle gleich",
             unten: unten, erledigt: figuren > 0
         });
-    },
-
-    /* Sieben Flammen: so viele leuchten, wie die Serie Tage hat (ab sieben
-       alle). Daneben die Zahl — und rechts die Schutz-Schilde. */
-    _serieBauen(fortschritt, datum) {
-        const serie = FORTSCHRITT.serieHeute(fortschritt, datum);
-        const tage = serie.tage;
-        const reihe = BAUSTEINE.el("section", "heute-serie");
-        reihe.setAttribute("aria-label", "Serie " + tage + " Tage, Serien-Schutz " + serie.schutz);
-        const flammen = BAUSTEINE.el("span", "heute-flammen");
-        for (let i = 0; i < 7; i++) {
-            const flamme = BAUSTEINE.el("span", "heute-flamme" + (i < tage ? " heute-flamme-an" : ""));
-            flamme.appendChild(BAUSTEINE.zeichen("serie"));
-            flammen.appendChild(flamme);
-        }
-        reihe.appendChild(flammen);
-        reihe.appendChild(BAUSTEINE.el("strong", "heute-serie-zahl", String(tage)));
-        const schutz = BAUSTEINE.el("span", "heute-schutz");
-        schutz.appendChild(BAUSTEINE.zeichen("schutz"));
-        schutz.appendChild(BAUSTEINE.el("span", null, String(serie.schutz)));
-        reihe.appendChild(schutz);
-        return reihe;
     }
 };

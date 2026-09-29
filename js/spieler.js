@@ -530,6 +530,25 @@ const SPIELER = {
     },
 
     /* ---------------------------------------------------------------- *
+     * Die ausgerüsteten Abzeichen (seit 0.25.0, wie Blunderluck
+     * `SPIELER.abzeichenSetzen`, gemeinsame Runde 7): das gemeinsame
+     * Konto-Feld `abzeichen` — Kennungen aller Spiele („up-…", „bl-…",
+     * „tl-…"), höchstens drei, keine doppelt. Nur der eigene Eintrag.
+     * ---------------------------------------------------------------- */
+
+    ABZEICHEN_PLAETZE: 3,
+
+    abzeichenSetzen(daten, id, liste, zeitpunkt) {
+        const sauber = (Array.isArray(liste) ? liste : [])
+            .filter((eintrag, stelle, alle) => typeof eintrag === "string"
+                && eintrag !== "" && alle.indexOf(eintrag) === stelle)
+            .slice(0, SPIELER.ABZEICHEN_PLAETZE);
+        return SPIELER._eigenenAendern(daten, id, zeitpunkt, (spieler) => {
+            spieler.abzeichen = sauber;
+        });
+    },
+
+    /* ---------------------------------------------------------------- *
      * Innereien
      * ---------------------------------------------------------------- */
 

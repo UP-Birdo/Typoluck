@@ -72,20 +72,6 @@
     white-space: nowrap;
 }
 
-/* Rechts oben: der Drei-Balken-Knopf (seit 0.3.0). Steht auch ohne
-   Kurzprofil rechts. */
-.start-kopf-rechts {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: auto;
-}
-
-.start-kopf-rechts .menue-halter > .knopf .zeichen {
-    width: 26px;
-    height: 26px;
-}
-
 .spiel-kachel-kopf {
     display: flex;
     align-items: center;
@@ -574,62 +560,7 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     color: var(--haupt);
 }
 
-.heute-serie {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    border: 1px solid var(--rahmen);
-    border-radius: var(--rund-mittel);
-    background: var(--karte);
-}
-
-.heute-flammen {
-    display: flex;
-    flex: 1;
-    justify-content: space-between;
-}
-
-.heute-flamme {
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    border-radius: var(--rund-voll);
-    background: var(--karte-leise);
-    color: var(--schrift-leise);
-}
-
-.heute-flamme .zeichen {
-    width: 17px;
-    height: 17px;
-}
-
-.heute-flamme-an {
-    background: var(--kachel-richtig);
-    color: var(--kachel-schrift);
-}
-
-.heute-serie-zahl {
-    min-width: 20px;
-    font-size: 1.1rem;
-    text-align: right;
-}
-
-.heute-schutz {
-    display: inline-flex;
-    align-items: center;
-    gap: 3px;
-    padding-left: 10px;
-    border-left: 1px solid var(--rahmen);
-    color: var(--kachel-vorhanden);
-    font-weight: 800;
-}
-
-.heute-schutz .zeichen {
-    width: 18px;
-    height: 18px;
-}
+/* Die Serie (.heute-serie …) stand hier bis 0.24.0 — seit 0.25.0 die Serien-Kapsel im Kopf des Starts. */
 
 /* ------------------------------------------------------------------ *
  * Level im Profil (seit 0.10.0)
