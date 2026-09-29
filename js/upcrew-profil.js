@@ -9,11 +9,16 @@
  * kein zahnrad“ · „zu viele texte sätze im profil“. Gilt für das EIGENE und FREMDE Profile, beide Spiele.
  *
  * START-KOPF (seit 29.09.2026 abends, Koordination „Start ohne Scrollen“): KEINE Vorschau-Karte auf dem Start,
- * sondern `UPCREW_PROFIL.kopfzeile(ort, daten, { beiOeffnen, beiSerie })` — Kreis mit Level-Ring, Name #Tag, die drei
- * Abzeichen als Zeichen, rechts EINE Flamme im Kreis. Tipp auf den Kreis → Vorschau-Karte (Stufe 1) → ausführlich.
+ * sondern `UPCREW_PROFIL.kopfzeile(ort, daten, { beiOeffnen, beiSerie, beiLevel, menue })` — Kreis mit Level-Ring,
+ * Name #Tag, die drei Abzeichen als Zeichen. Seit 29.09.2026 spät (BL v0.157.1 / TL 0.26.1): am Kreis OBEN LINKS eine
+ * kleine Flamme mit Serie (→ Serien-Karte), UNTEN RECHTS die Level-Zahl (→ Level-Pfad), Mitte → Profil; rechts das
+ * ☰-Menü (`UPCREW_PROFIL.menue`: Freunde · Verlauf · Einstellungen, springt dorthin), kein Flammen-Kreis rechts mehr. Tipp auf Kreis/Namen → DIREKT das ausführliche Profil (Stufe 2).
+ * Seit 29.09.2026 nachts (Nutzer: „nicht erst eine vorschau vom profil … das was hinter dem pfeil steht soll direkt
+ * kommen“, BL v0.157.1 / TL 0.26.1): auch fremde Namen (Rangliste, Freunde, Partie) öffnen direkt `oeffnen(…)`.
  * Die ausgerüsteten Abzeichen stehen überall KOMPAKT als Zeichen (UPCREW_ABZEICHEN.symbol), auch in Karte und Profil.
  *
- * STUFE 1 — die VORSCHAU-KARTE (eine Karte, sonst kein Kurzprofil):
+ * STUFE 1 — die VORSCHAU-KARTE — UNGENUTZT/OPTIONAL seit 29.09.2026 nachts (kein Zwischenschritt mehr; bleibt nur
+ * als Baustein-Teil stehen, keine App ruft sie auf):
  *     UPCREW_PROFIL.vorschau(ort, {
  *         name: "Jonas", tag: "#4821", titel: "Stammgast",           // titel wahlfrei
  *         level: 14, imLevel: 264, kosten: 425, anteil: 0.62,         // gemeinsames Level (FORTSCHRITT.levelAus)
@@ -75,7 +80,9 @@
         plus: "M12 6 V18 M6 12 H18",
         haken: "M5 12.5 L10 17 L19 7",
         flamme: "M12 3 C15 7 18 9 18 14 A6 6 0 0 1 6 14 C6 11 8 9 9 7 C10 10 11 11 12 11 C12 8 11 6 12 3 Z",
-        rechts: "M9 5 L16 12 L9 19"
+        rechts: "M9 5 L16 12 L9 19",
+        menue: "M4 7 H20 M4 12 H20 M4 17 H20",
+        freunde: "M9 11 A3.5 3.5 0 1 0 9 4 A3.5 3.5 0 1 0 9 11 Z M2.5 20 C3 15.5 15 15.5 15.5 20 M16 4.4 A3.3 3.3 0 0 1 16 10.6 M18 14.5 C20.3 15.3 21.3 17 21.5 20"
     };
     const GEFUELLT = { zahnrad: true, flamme: true };
 
@@ -99,7 +106,11 @@
         serie: "Serie",
         wahlHinweis: "Bis zu 3",
         nochNicht: "Gesperrt",
-        zahnrad: "Einstellungen"
+        zahnrad: "Einstellungen",
+        menue: "Menü",
+        freunde: "Freunde",
+        verlaufMenue: "Verlauf",
+        einstellungen: "Einstellungen"
     };
 
     function el(tag, klasse, text) {
@@ -291,30 +302,93 @@
     }
 
     /* ---------- Der Kopf des Starts: EINE kompakte Zeile (Koordination 29.09.2026 „Start ohne Scrollen“) ----------
-       Links der Profil-Kreis mit dem Level als Ring (Zahl klein unten links), daneben Name + #Tag und die drei
-       ausgerüsteten Abzeichen als Zeichen; rechts EINE Flamme mit der Serie im Kreis (upcrew-flamme.js).
-           const kopf = UPCREW_PROFIL.kopfzeile(ort, daten, { beiOeffnen, beiSerie });
-           kopf.flamme.setzen({ serie, heuteGeschafft })     // null ohne upcrew-flamme.js oder ohne beiSerie
-       Ein Tipp auf Kreis/Name → beiOeffnen (die Vorschau-Karte), auf die Flamme → beiSerie (die Serien-Karte). */
+       Seit 29.09.2026 spät (Nutzer: „die flamme … soll oben links ins eck von dem profil kreis und das level soll in die
+       rechte ecke … die zwei kleinen kreise im profil kreis sollen andrückbar gemacht werden mitte der große kreis
+       profil öffnen oben in der ecke die flamme das flammen menü und unten das level menü“ — BL v0.157.1 / TL 0.26.1):
+       Links der Profil-Kreis mit dem Level-Ring; OBEN LINKS am Kreis ein kleiner Kreis mit Flamme + Serie (→ beiSerie),
+       UNTEN RECHTS ein kleiner Kreis mit der Level-Zahl (→ beiLevel, Vorgabe Level-Pfad), die MITTE (und Name/Zeichen
+       daneben) → beiOeffnen. Drei getrennte Knöpfe, je mind. 32 px Trefferfläche, eigene aria-labels. Kein eigener
+       Flammen-Kreis rechts mehr; rechts wahlfrei das ☰-Menü (`menue`, siehe UPCREW_PROFIL.menue).
+           const kopf = UPCREW_PROFIL.kopfzeile(ort, daten, {
+               beiOeffnen, beiSerie, beiLevel,                 // beiLevel wahlfrei
+               menue: [{ text: "Freunde", zeichen: "freunde", beiKlick }, …]   // wahlfrei: ☰ rechts
+           });
+           kopf.flamme.setzen({ serie, heuteGeschafft })     // die Ecke oben links; null ohne beiSerie
+           kopf.menue                                        // der ☰-Griff (oder null)                          */
+    function serieText(serie, heute) {
+        const n = ganz(serie);
+        return TEXTE.serie + " " + n + (n === 1 ? " Tag" : " Tage")
+            + (n === 0 ? "" : (heute ? " · heute geschafft" : " · heute noch offen"));
+    }
+
     function kopfzeile(ort, daten, optionen) {
         const d = daten || {};
         const o = optionen || {};
         const t = Object.assign({}, TEXTE, o.texte || {});
         ort.textContent = "";
         const zeile = el("div", "up-pf-kopfzeile");
-        const auf = el("button", "up-pf-kz-auf");
-        auf.type = "button";
-        auf.setAttribute("aria-label", t.oeffnen + ": " + (d.name || "")
-            + (typeof d.level === "number" ? " · " + t.level + " " + d.level : ""));
-        auf.addEventListener("click", () => {
+        const beiOeffnen = () => {
             if (typeof o.beiOeffnen === "function") {
                 o.beiOeffnen();
             }
-        });
-        const r = ring(d, false);
+        };
+        /* Der Kreis mit seinen zwei Ecken: drei Geschwister-Knöpfe (nie ineinander). */
+        const feld = el("span", "up-pf-kz-feld");
+        const auf = el("button", "up-pf-kz-auf");
+        auf.type = "button";
+        auf.setAttribute("aria-label", t.oeffnen + ": " + (d.name || ""));
+        auf.addEventListener("click", beiOeffnen);
+        const r = ring(Object.assign({}, d, { level: null }), false);
         r.classList.add("up-pf-ring-kopf");
         auf.appendChild(r);
+        feld.appendChild(auf);
+
+        let flamme = null;
+        if (typeof o.beiSerie === "function") {
+            const ecke = el("button", "up-pf-kz-ecke up-pf-kz-serie up-pf-kz-serie-aus");
+            ecke.type = "button";
+            const punkt = el("span", "up-pf-kz-punkt");
+            punkt.appendChild(zeichen("flamme", "up-pf-kz-flamme"));
+            const zahl = el("span", "up-pf-kz-zahl", "0");
+            punkt.appendChild(zahl);
+            ecke.appendChild(punkt);
+            ecke.addEventListener("click", (e) => {
+                if (e && e.stopPropagation) {
+                    e.stopPropagation();
+                }
+                o.beiSerie();
+            });
+            flamme = {
+                el: ecke,
+                setzen(stand) {
+                    const s = stand || {};
+                    const n = ganz(s.serie);
+                    const zustand = n === 0 ? "aus" : (s.heuteGeschafft ? "voll" : "offen");
+                    ecke.className = "up-pf-kz-ecke up-pf-kz-serie up-pf-kz-serie-" + zustand;
+                    zahl.textContent = n < 1000 ? String(n) : Math.floor(n / 1000) + "k+";
+                    const text = serieText(n, s.heuteGeschafft === true);
+                    ecke.setAttribute("aria-label", text);
+                    ecke.title = text;
+                }
+            };
+            flamme.setzen({ serie: d.serie, heuteGeschafft: d.heute === true });
+            feld.appendChild(ecke);
+        }
+
+        if (typeof d.level === "number") {
+            const ecke = el("button", "up-pf-kz-ecke up-pf-kz-lv");
+            ecke.type = "button";
+            ecke.setAttribute("aria-label", t.level + " " + d.level + " · " + t.levelPfad);
+            ecke.title = t.levelPfad;
+            ecke.appendChild(el("span", "up-pf-kz-punkt", String(d.level)));
+            ecke.addEventListener("click", levelAuf(d, o));
+            feld.appendChild(ecke);
+        }
+        zeile.appendChild(feld);
+
+        /* Name und Zeichen daneben: dieselbe Tür wie die Mitte (für Finger; der Knopf trägt das Label). */
         const mitte = el("span", "up-pf-kz-mitte");
+        mitte.addEventListener("click", beiOeffnen);
         const name = el("span", "up-pf-kz-name", d.name || "");
         if (d.tag) {
             name.appendChild(el("small", "up-pf-tag", d.tag));
@@ -323,15 +397,147 @@
         const reihe = symbolReihe(d, "up-pf-kz-abzeichen");
         reihe.setAttribute("aria-hidden", "true");
         mitte.appendChild(reihe);
-        auf.appendChild(mitte);
-        zeile.appendChild(auf);
-        let flamme = null;
-        if (typeof o.beiSerie === "function" && typeof UPCREW_FLAMME !== "undefined") {
-            flamme = UPCREW_FLAMME.bauen(zeile, { beiKlick: o.beiSerie });
-            flamme.setzen({ serie: ganz(d.serie), heuteGeschafft: d.heute === true });
-        }
+        zeile.appendChild(mitte);
+
+        const menueGriff = Array.isArray(o.menue) && o.menue.length ? menue(zeile, o.menue, { texte: t }) : null;
         ort.appendChild(zeile);
-        return { el: zeile, flamme: flamme };
+        return { el: zeile, flamme: flamme, menue: menueGriff };
+    }
+
+    /* ---------- Das ☰-Menü (29.09.2026 spät, Nutzer: „dann sollen die drei striche wieder kommen welche Freunde
+       Verlauf Einstellungen drin hat und man dann dort hin springt“) ----------
+           const griff = UPCREW_PROFIL.menue(halter, [
+               { text: "Freunde", zeichen: "freunde", beiKlick: () => … },
+               { text: "Verlauf", zeichen: "uhr", beiKlick: () => … },
+               { text: "Einstellungen", zeichen: "zahnrad", beiKlick: () => … }
+           ]);                                  // → { el (der ☰-Knopf), oeffnen(), schliessen(), offen() }
+       Ein Tipp auf ☰ klappt eine kleine Karte unter dem Knopf auf (UPCREW_BLATT art „karte“, Klasse up-pf-menue-karte,
+       rechts oben angeheftet). Sie schliesst bei Tipp aussen, Esc und Zurück (Verlaufseintrag des Blatt-Bausteins);
+       ein Punkt schliesst sie und springt dann (beiKlick). Ohne UPCREW_BLATT: ein Aufklapp-Feld am Knopf, das bei Tipp
+       aussen und Esc schliesst. Die Punkte und was sie tun gibt die App. */
+    function menue(halter, punkte, optionen) {
+        const o = optionen || {};
+        const t = Object.assign({}, TEXTE, o.texte || {});
+        const liste = (punkte || []).filter((p) => p && p.text);
+        const knopf = el("button", "up-pf-menue-knopf");
+        knopf.type = "button";
+        knopf.setAttribute("aria-label", t.menue);
+        knopf.setAttribute("aria-haspopup", "menu");
+        knopf.setAttribute("aria-expanded", "false");
+        knopf.title = t.menue;
+        knopf.appendChild(zeichen("menue"));
+        let offenGriff = null;
+        let ersatz = null;
+
+        function listeBauen(beiWahl) {
+            const nav = el("div", "up-pf-menue");
+            nav.setAttribute("role", "menu");
+            for (const p of liste) {
+                const punkt = el("button", "up-pf-menue-punkt");
+                punkt.type = "button";
+                punkt.setAttribute("role", "menuitem");
+                if (p.zeichen) {
+                    punkt.appendChild(zeichen(p.zeichen));
+                }
+                punkt.appendChild(el("span", "", p.text));
+                punkt.addEventListener("click", (e) => {
+                    if (e && e.stopPropagation) {
+                        e.stopPropagation();
+                    }
+                    beiWahl();
+                    if (typeof p.beiKlick === "function") {
+                        p.beiKlick();
+                    }
+                });
+                nav.appendChild(punkt);
+            }
+            return nav;
+        }
+
+        function ersatzZu(e) {
+            if (!ersatz) {
+                return;
+            }
+            if (e && e.type === "keydown" && e.key !== "Escape") {
+                return;
+            }
+            if (e && e.type === "click" && ersatz.contains(e.target)) {
+                return;
+            }
+            if (ersatz.parentNode) {
+                ersatz.parentNode.removeChild(ersatz);
+            }
+            ersatz = null;
+            knopf.setAttribute("aria-expanded", "false");
+            document.removeEventListener("click", ersatzZu, true);
+            document.removeEventListener("keydown", ersatzZu);
+        }
+
+        const griff = {
+            el: knopf,
+            offen: () => !!offenGriff || !!ersatz,
+            schliessen() {
+                if (offenGriff) {
+                    const g = offenGriff;
+                    offenGriff = null;
+                    g.schliessen();
+                }
+                ersatzZu();
+            },
+            oeffnen() {
+                if (griff.offen()) {
+                    return;
+                }
+                knopf.setAttribute("aria-expanded", "true");
+                if (typeof UPCREW_BLATT !== "undefined" && typeof UPCREW_BLATT.oeffnen === "function") {
+                    const eintrag = UPCREW_BLATT.oeffnen({
+                        art: "karte",
+                        titel: t.menue,
+                        klasse: "up-pf-menue-karte",
+                        inhalt: listeBauen(() => griff.schliessen()),
+                        beimSchliessen: () => {
+                            offenGriff = null;
+                            knopf.setAttribute("aria-expanded", "false");
+                        }
+                    });
+                    offenGriff = eintrag;
+                    /* Unter dem Knopf rechts anheften (gemessen). */
+                    if (eintrag && eintrag.flaeche && eintrag.flaeche.style && typeof knopf.getBoundingClientRect === "function") {
+                        const k = knopf.getBoundingClientRect();
+                        const breit = (typeof window !== "undefined" && window.innerWidth) || 0;
+                        if (k && breit && k.bottom > 0) {
+                            eintrag.flaeche.style.setProperty("--up-pf-menue-oben", Math.round(k.bottom + 6) + "px");
+                            eintrag.flaeche.style.setProperty("--up-pf-menue-rechts",
+                                Math.max(8, Math.round(breit - k.right)) + "px");
+                        }
+                    }
+                    return;
+                }
+                ersatz = listeBauen(() => griff.schliessen());
+                ersatz.classList.add("up-pf-menue-ersatz");
+                (knopf.parentNode || halter).appendChild(ersatz);
+                setTimeout(() => {
+                    if (ersatz) {
+                        document.addEventListener("click", ersatzZu, true);
+                        document.addEventListener("keydown", ersatzZu);
+                    }
+                }, 0);
+            }
+        };
+        knopf.addEventListener("click", (e) => {
+            if (e && e.stopPropagation) {
+                e.stopPropagation();
+            }
+            if (griff.offen()) {
+                griff.schliessen();
+            } else {
+                griff.oeffnen();
+            }
+        });
+        if (halter) {
+            halter.appendChild(knopf);
+        }
+        return griff;
     }
 
     /* Die Level-Kachel (ganz unten im ausführlichen Profil): antippbar → Level-Pfad. */
@@ -604,7 +810,7 @@
         return { wahl: () => wahl.slice(), neu: fuellen };
     }
 
-    const UPCREW_PROFIL = { vorschau: vorschau, kopfzeile: kopfzeile, zeichnen: zeichnen, oeffnen: oeffnen, abzeichenWahl: abzeichenWahl,
+    const UPCREW_PROFIL = { vorschau: vorschau, kopfzeile: kopfzeile, menue: menue, zeichnen: zeichnen, oeffnen: oeffnen, abzeichenWahl: abzeichenWahl,
         ring: ring, abschnitt: abschnitt, levelKachel: levelKachel, levelStand: levelStand, zahnrad: zahnrad,
         TEXTE: TEXTE, PFADE: PFADE };
     if (typeof window !== "undefined") {

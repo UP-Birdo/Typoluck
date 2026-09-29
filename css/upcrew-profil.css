@@ -98,19 +98,50 @@
 .up-pf-plaetze-kompakt .up-pf-leer { width: var(--up-az-symbol); height: var(--up-az-symbol); min-height: 0; padding: 0; gap: 0;
   border-radius: var(--rund-voll); }
 
-/* ---- Der Kopf des Starts: eine kompakte Zeile (Kreis mit Level-Ring · Name + Zeichen · Flamme) ---- */
-.up-pf-kopfzeile { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.up-pf-kz-auf { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; margin: 0; padding: 0;
-  border: 0; background: none; box-shadow: none; color: var(--schrift); font: inherit; text-align: left; cursor: pointer;
-  -webkit-tap-highlight-color: transparent; }
-.up-pf-kz-auf:focus-visible { outline: 2px solid var(--haupt); outline-offset: 3px; border-radius: var(--rund-voll); }
+/* ---- Der Kopf des Starts: eine kompakte Zeile (Kreis mit Level-Ring und zwei Ecken · Name + Zeichen · ☰) ----
+   Seit 29.09.2026 spät (BL v0.157.1 / TL 0.26.1): Flamme + Serie oben links am Kreis, Level unten rechts, beide eigene
+   Knöpfe mit 32 px Trefferfläche (sichtbar kleiner Kreis darin); rechts das ☰-Menü statt des Flammen-Kreises. */
+.up-pf-kopfzeile { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 6px 0 4px 6px; }
+.up-pf-kz-feld { position: relative; flex: none; width: 52px; height: 52px; }
+.up-pf-kz-auf { display: block; width: 52px; height: 52px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none;
+  border-radius: var(--rund-voll); color: var(--schrift); font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.up-pf-kz-auf:focus-visible, .up-pf-kz-ecke:focus-visible, .up-pf-menue-knopf:focus-visible {
+  outline: 2px solid var(--haupt); outline-offset: 2px; border-radius: var(--rund-voll); }
 .up-pf-ring-kopf { width: 52px; height: 52px; }
 .up-pf-ring-kopf .up-pf-kreis { width: 44px; height: 44px; font-size: 1.3rem; }
-.up-pf-ring-kopf .up-pf-level { right: auto; left: -4px; bottom: -3px; min-width: 18px; height: 18px; padding: 0 4px; font-size: .62rem; }
-.up-pf-kz-mitte { min-width: 0; display: grid; gap: 4px; }
+.up-pf-kz-ecke { position: absolute; z-index: 1; min-width: 32px; height: 32px; margin: 0; padding: 0; border: 0; background: none;
+  box-shadow: none; display: grid; place-items: center; cursor: pointer; font: inherit; -webkit-tap-highlight-color: transparent; }
+.up-pf-kz-punkt { display: inline-flex; align-items: center; justify-content: center; gap: 1px; min-width: 22px; height: 22px;
+  padding: 0 5px; border-radius: var(--rund-voll); background: var(--haupt); color: var(--haupt-schrift); border: 2px solid var(--karte);
+  font-size: .64rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; box-sizing: border-box; pointer-events: none; }
+.up-pf-kz-serie { left: -13px; top: -13px; justify-items: start; padding-left: 4px; }
+.up-pf-kz-serie .up-pf-kz-punkt { background: var(--karte); color: var(--schrift); border-color: var(--rahmen); padding: 0 5px 0 3px; }
+.up-pf-kz-flamme { width: 12px; height: 12px; flex: none; fill: var(--haupt); stroke: none; }
+.up-pf-kz-serie-aus .up-pf-kz-flamme { fill: var(--karte-leise); stroke: var(--schrift-leise); stroke-width: 2; }
+.up-pf-kz-serie-aus .up-pf-kz-punkt { color: var(--schrift-leise); }
+.up-pf-kz-serie-offen .up-pf-kz-flamme { fill: color-mix(in srgb, var(--haupt) 55%, var(--karte)); }
+.up-pf-kz-lv { left: 31px; top: 31px; }
+.up-pf-kz-mitte { flex: 1 1 auto; min-width: 0; display: grid; gap: 4px; cursor: pointer; }
 .up-pf-kz-name { font-size: 1.02rem; font-weight: 900; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .up-pf-kz-abzeichen { --up-az-symbol: 24px; gap: 5px; }
-.up-pf-kopfzeile > .up-fl { margin-left: auto; }
+
+/* Das ☰-Menü: Knopf 44 px, die Karte klein rechts oben unter dem Knopf. */
+.up-pf-menue-knopf { flex: none; margin-left: auto; width: 44px; height: 44px; padding: 0; display: grid; place-items: center;
+  border: 1px solid var(--rahmen); border-radius: var(--rund-voll); background: var(--karte); color: var(--schrift);
+  cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.up-pf-menue-knopf .up-pf-zeichen { width: 22px; height: 22px; }
+.up-bl-karte.up-pf-menue-karte { left: auto; right: var(--up-pf-menue-rechts, 12px); top: var(--up-pf-menue-oben, 64px);
+  transform: none; width: auto; min-width: 190px; max-width: calc(100% - 24px); padding: 6px; animation: up-pf-menue-auf 160ms ease-out; }
+.up-pf-menue { display: grid; gap: 2px; }
+.up-pf-menue-punkt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; margin: 0; padding: 0 14px 0 12px;
+  border: 0; border-radius: var(--rund-klein); background: none; box-shadow: none; color: var(--schrift); font: inherit;
+  font-weight: 800; text-align: left; cursor: pointer; }
+.up-pf-menue-punkt:hover, .up-pf-menue-punkt:focus-visible { background: var(--karte-leise); outline: none; }
+.up-pf-menue-ersatz { position: absolute; right: 0; top: 100%; z-index: 30; min-width: 190px; padding: 6px; background: var(--karte);
+  border: 1px solid var(--rahmen); border-radius: var(--rund-mittel); box-shadow: 0 6px 0 var(--rahmen); }
+.up-pf-kopfzeile:has(.up-pf-menue-ersatz) { position: relative; }
+@keyframes up-pf-menue-auf { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .up-bl-karte.up-pf-menue-karte { animation: none; } }
 
 /* ---- Level-Kachel ganz unten im ausführlichen Profil ---- */
 .up-pf-level-abschnitt { margin-top: 18px; }

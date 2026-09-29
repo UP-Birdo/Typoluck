@@ -462,12 +462,20 @@ const profilText = lesen("js/bildschirm-profil.js");
 pruefe("Profil: ausführlich aus dem Baustein, eigen und fremd, mit Statistik und Partien",
     /UPCREW_PROFIL\.zeichnen\(ort, PROFIL_BILDSCHIRM\.daten\(spieler, eigenes\), \{\s*eigen: eigenes,[\s\S]*?statistik: statistik,\s*verlauf: verlauf,/
         .test(profilText));
-pruefe("Profil: Vorschau-Karte aus dem Baustein (Rangliste), Start mit der kompakten Kopfzeile (seit 0.26.0 abends)",
-    /UPCREW_PROFIL\.vorschau\(ort, PROFIL_BILDSCHIRM\.vorschauDaten\(spieler, eigenes\)/.test(profilText)
+pruefe("Profil: jeder Tipp direkt ins ausführliche Profil, keine Vorschau-Karte (seit 0.26.1), Start mit Kopfzeile",
+    !/UPCREW_PROFIL\.vorschau\(/.test(profilText) && profilText.indexOf("vorschauOeffnen") === -1
         && /UPCREW_PROFIL\.kopfzeile\(ort, PROFIL_BILDSCHIRM\.vorschauDaten\(spieler, true\)/.test(lesen("js/bildschirm-start.js"))
-        && /beiOeffnen: \(\) => PROFIL_BILDSCHIRM\.vorschauOeffnen\(ich\.id\)/.test(lesen("js/bildschirm-start.js"))
+        && /beiOeffnen: \(\) => START\.profilOeffnen\(\)/.test(lesen("js/bildschirm-start.js"))
         && /UPCREW_ABZEICHEN\.fremdAusgeruestet\(/.test(profilText)
-        && /PROFIL_BILDSCHIRM\.vorschauOeffnen\(zeile\.id\)/.test(lesen("js/bildschirm-rangliste.js")));
+        && /PROFIL_BILDSCHIRM\.profilOeffnen\(zeile\.id\)/.test(lesen("js/bildschirm-rangliste.js"))
+        && /PROFIL_BILDSCHIRM\.profilOeffnen\(spieler\.id\)/.test(lesen("js/bildschirm-freunde.js"))
+        && !/vorschauOeffnen/.test(lesen("js/bildschirm-start.js") + lesen("js/bildschirm-rangliste.js") + lesen("js/bildschirm-freunde.js")));
+pruefe("Start: Kopfzeile mit Flamme/Level am Kreis und Drei-Striche-Menü Freunde · Verlauf · Einstellungen (seit 0.26.1)",
+    /beiLevel: \(\) => PROFIL_BILDSCHIRM\.levelPfadOeffnen\(spieler, true\)/.test(lesen("js/bildschirm-start.js"))
+        && /menue: \[\s*\{ text: "Freunde"[^\n]*RANGLISTE_BILDSCHIRM\.freundeOeffnen\(\)[\s\S]{0,120}text: "Verlauf"[^\n]*START\.verlaufOeffnen\(\)[\s\S]{0,140}text: "Einstellungen"[^\n]*NAVIGATION\.zeigen\("einstellungen", null\)/
+            .test(lesen("js/bildschirm-start.js"))
+        && /function menue\(halter, punkte, optionen\)/.test(lesen("js/upcrew-profil.js"))
+        && /\.up-pf-kz-ecke \{[^}]*min-width: 32px;[^}]*height: 32px;/.test(lesen("css/upcrew-profil.css")));
 pruefe("Profil: Fremde aus dem öffentlichen Auszug (§12)",
     ["FORTSCHRITT.auszugVon(", "FORTSCHRITT.auszugLevel(", "FORTSCHRITT.auszugSerie(", "FORTSCHRITT.auszugAlsStand("]
         .every((t) => profilText.indexOf(t) !== -1));

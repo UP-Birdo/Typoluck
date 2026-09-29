@@ -3,6 +3,22 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.26.1 — 29.09.2026
+
+**Profil direkt, ohne Zwischen-Karte · Flamme und Level am Bild · Menü zurück.**
+
+- Dein Bild oben auf dem Start und jeder Name in Rangliste und Freunden
+  öffnen jetzt sofort das ganze Profil — die kleine Profil-Karte davor
+  entfällt. Die Zurück-Taste schliesst das Profil wieder.
+- **Dein Bild oben hat jetzt zwei kleine Knöpfe:** oben links die Flamme mit
+  deiner Serie (antippen zeigt die Serien-Karte), unten rechts dein Level
+  (antippen zeigt den Level-Weg). Das Bild selbst öffnet dein Profil. Der
+  eigene Flammen-Kreis rechts oben ist weg.
+- **Rechts oben sind die drei Striche zurück:** Freunde, Verlauf (deine
+  letzten Tageswörter im Profil) und Einstellungen — ein Tipp springt
+  direkt dorthin. Tipp daneben oder die Zurück-Taste schliesst das Menü
+  wieder.
+
 ## 0.26.0 — 29.09.2026
 
 **Profil in zwei Stufen, Level-Weg, Serie ohne Schild, Freunde in der Rangliste.**

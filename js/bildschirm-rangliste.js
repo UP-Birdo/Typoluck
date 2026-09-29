@@ -7,8 +7,8 @@
  * Rangliste"): „Wertung" (die Tabelle wie bisher) und „Freunde" (Anfragen,
  * Freundesliste, Suche — gebaut von js/bildschirm-freunde.js, das keine
  * eigene Seite mehr ist). Der Reiter trägt die Zahl offener Anfragen. Ein
- * Tipp auf einen Spieler öffnet seine Vorschau-Karte
- * (PROFIL_BILDSCHIRM.vorschauOeffnen), von dort das ausführliche Profil.
+ * Tipp auf einen Spieler öffnet direkt sein ausführliches Profil
+ * (PROFIL_BILDSCHIRM.profilOeffnen; seit 0.26.1 ohne Vorschau-Karte).
  *
  * Rechnet nichts selbst — Punkte und Plätze kommen aus js\rangliste.js.
  * Geladen wird bei jedem Öffnen und auf Knopfdruck; einen Dauer-Abgleich
@@ -161,8 +161,8 @@ const RANGLISTE_BILDSCHIRM = {
     },
 
     /*
-     * Die Tabelle selbst. Ein Tipp auf eine Zeile öffnet die Vorschau-Karte
-     * dieses Spielers (seit 0.26.0; bis 0.25.0 gleich das Profil).
+     * Die Tabelle selbst. Ein Tipp auf eine Zeile öffnet das Profil dieses
+     * Spielers (0.26.0 kurz erst eine Vorschau-Karte, seit 0.26.1 direkt).
      */
     tabelleBauen(zeilen, zeitraum, ichId) {
         const liste = BAUSTEINE.el("ol", "rangliste");
@@ -171,7 +171,7 @@ const RANGLISTE_BILDSCHIRM = {
             const knopf = document.createElement("button");
             knopf.type = "button";
             knopf.className = "rangliste-knopf";
-            knopf.addEventListener("click", () => PROFIL_BILDSCHIRM.vorschauOeffnen(zeile.id));
+            knopf.addEventListener("click", () => PROFIL_BILDSCHIRM.profilOeffnen(zeile.id));
 
             knopf.appendChild(BAUSTEINE.el("span", "rangliste-platz", zeile.platz + "."));
             knopf.appendChild(BAUSTEINE.kreis(zeile.name));

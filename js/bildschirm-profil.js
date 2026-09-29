@@ -8,11 +8,11 @@
  * titel und level und flammen mit natürlich dem namen -> und halt das
  * ausführliche wenn man draufklickt mit mehr inhalten statistiken und so";
  * Einbau-Notiz Design\3D-Schrift\final\EINBAU-2026-09-29b.md):
- *   Stufe 1  die VORSCHAU-KARTE des Bausteins (UPCREW_PROFIL.vorschau):
- *            Name + #Tag, Titel, Level, Flamme/Serie, 3 ausgerüstete
- *            Abzeichen aus ALLEN Spielen. Die eigene steht oben auf dem
- *            Start (js/bildschirm-start.js), fremde (und die eigene) öffnen
- *            aus Rangliste und Freunden als Karte (`vorschauOeffnen`).
+ *   Stufe 1  seit 0.26.1 KEINE Vorschau-Karte mehr (Nutzer 29.09.2026
+ *            nachts: „nicht erst eine vorschau vom profil … das was hinter
+ *            dem pfeil steht soll direkt kommen"): die Kopfzeile auf dem
+ *            Start (js/bildschirm-start.js) und jeder Name in Rangliste und
+ *            Freunden öffnen direkt dieses Blatt (`profilOeffnen`).
  *            Zahlen: `vorschauDaten` — eigene aus dem Fortschritt, fremde aus
  *            dem ÖFFENTLICHEN AUSZUG (Regel §12, `FORTSCHRITT.auszugVon`,
  *            wie Blunderluck `RANGLISTE.abzeichenListe`).
@@ -257,29 +257,11 @@ const PROFIL_BILDSCHIRM = {
         return UPCREW_LEVELPFAD.oeffnen({ level: d.level, imLevel: d.imLevel, kosten: d.kosten });
     },
 
-    /* Die Vorschau-Karte eines Spielers als Karte über allem (aus Rangliste
-       und Freunden). Ein Tipp auf die Karte → das ausführliche Profil. */
-    vorschauOeffnen(id) {
-        const ich = ANMELDUNG.ich();
-        const spieler = SPIELER.spielerFinden(ANMELDUNG.abgleich.daten, id);
-        const eigenes = !!ich && id === ich.id;
-        if (!spieler || !PROFIL_BILDSCHIRM._mitBaustein() || typeof UPCREW_BLATT === "undefined"
-                || typeof UPCREW_PROFIL.vorschau !== "function") {
-            NAVIGATION.zeigen("profil", { id: id });
-            return null;
-        }
-        return UPCREW_BLATT.oeffnen({
-            art: "karte",
-            titel: "Profil",
-            klasse: "karte-vorschau",
-            inhalt: (ort) => UPCREW_PROFIL.vorschau(ort, PROFIL_BILDSCHIRM.vorschauDaten(spieler, eigenes), {
-                beiOeffnen: () => {
-                    UPCREW_BLATT.schliessen("knopf");
-                    NAVIGATION.zeigen("profil", { id: id });
-                },
-                beiLevel: () => PROFIL_BILDSCHIRM.levelPfadOeffnen(spieler, eigenes)
-            })
-        });
+    /* Das ausführliche Profil eines Spielers (aus Rangliste und Freunden).
+       Seit 0.26.1 DIREKT, ohne Vorschau-Karte dazwischen (Nutzer 29.09.2026:
+       „das was hinter dem pfeil steht soll direkt kommen"). */
+    profilOeffnen(id) {
+        NAVIGATION.zeigen("profil", { id: id });
     },
 
     /* Wo du stehst — je Spiel eine Zeile: Typoluck in der Bibliothek,

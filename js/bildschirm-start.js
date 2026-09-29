@@ -242,8 +242,21 @@ const START = {
         NAVIGATION.zeigen("profil", null);
     },
 
-    /* Der Kopf oben (seit 0.26.0 die kompakte Kopfzeile, Tipp → Vorschau-
-       Karte → ausführliches Profil): Zahlen aus PROFIL_BILDSCHIRM.vorschauDaten
+    /* „Verlauf" aus dem Drei-Striche-Menü (seit 0.26.1): das eigene Profil, gerollt
+       bis zu den letzten Tageswörtern (Abschnitt „Partien"). */
+    verlaufOeffnen() {
+        START.profilOeffnen();
+        setTimeout(() => {
+            const ort = document.getElementById("profil-verlauf");
+            const abschnitt = ort && (ort.closest(".up-pf-abschnitt") || ort);
+            if (abschnitt && typeof abschnitt.scrollIntoView === "function") {
+                abschnitt.scrollIntoView({ block: "start" });
+            }
+        }, 0);
+    },
+
+    /* Der Kopf oben (seit 0.26.0 die kompakte Kopfzeile; seit 0.26.1 Tipp →
+       direkt das ausführliche Profil): Zahlen aus PROFIL_BILDSCHIRM.vorschauDaten
        — dieselben wie im Profil und in der Rangliste. Ohne Baustein oder Konto
        die Pille wie bis 0.25.0. */
     _profilKarteBauen(ich, name) {
@@ -252,9 +265,17 @@ const START = {
         }
         const spieler = SPIELER.spielerFinden(ANMELDUNG.abgleich.daten, ich.id) || ich;
         const ort = BAUSTEINE.el("div", "start-kopfzeile");
+        /* Seit 0.26.1: Flamme oben links / Level unten rechts am Kreis, rechts
+           das Drei-Striche-Menü (Freunde · Verlauf · Einstellungen) aus dem Baustein. */
         const kopf = UPCREW_PROFIL.kopfzeile(ort, PROFIL_BILDSCHIRM.vorschauDaten(spieler, true), {
-            beiOeffnen: () => PROFIL_BILDSCHIRM.vorschauOeffnen(ich.id),
-            beiSerie: () => START.serieOeffnen()
+            beiOeffnen: () => START.profilOeffnen(),
+            beiSerie: () => START.serieOeffnen(),
+            beiLevel: () => PROFIL_BILDSCHIRM.levelPfadOeffnen(spieler, true),
+            menue: [
+                { text: "Freunde", zeichen: "freunde", beiKlick: () => RANGLISTE_BILDSCHIRM.freundeOeffnen() },
+                { text: "Verlauf", zeichen: "uhr", beiKlick: () => START.verlaufOeffnen() },
+                { text: "Einstellungen", zeichen: "zahnrad", beiKlick: () => NAVIGATION.zeigen("einstellungen", null) }
+            ]
         });
         START._kopfFlamme = kopf.flamme;
         return ort;

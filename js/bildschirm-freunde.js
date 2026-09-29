@@ -207,7 +207,7 @@ const FREUNDE_BILDSCHIRM = {
             text.appendChild(BAUSTEINE.el("span", "name-nummer", " " + nummer));
         }
         name.appendChild(text);
-        name.addEventListener("click", () => PROFIL_BILDSCHIRM.vorschauOeffnen(spieler.id));
+        name.addEventListener("click", () => PROFIL_BILDSCHIRM.profilOeffnen(spieler.id));
         zeile.appendChild(name);
 
         const leiste = BAUSTEINE.el("span", "freunde-knoepfe");
