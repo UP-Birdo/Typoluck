@@ -41,6 +41,20 @@
  * js\spieler.js). Beim Zusammenführen des ganzen eigenen Eintrags gewinnt
  * je Spiel der neuere `stand` (SPIELER._neueresAussehenJe).
  *
+ * GRAU UND DIE EINMALIGE UMSTELLUNG (seit 0.27.0, Design\3D-Schrift\final\
+ * EINBAU-2026-09-29c.md): Der Baustein stellt jedes Aussehen ohne Merker
+ * `umstellung` einmal auf die Farbwelt „grau" um — auf dem Gerät und bei
+ * allem, was vom Konto kommt. Trägt das Konto-Objekt den Merker noch nicht
+ * (`UPCREW_AUSSEHEN.kontoBraucht`), schreibt `holen()` einmal
+ * `fuerKonto()` ans Konto — auch wenn `uebernehmen` nichts geändert hat.
+ * Dafür braucht die Datenbank die Regel-Ergänzung (`farbwelt` mit „grau",
+ * neues Feld `umstellung`; vorbereitet in Apps\UPCrew\Firebase-Regeln\
+ * „2026-09-29 NEUE Regel mit 13.txt"). Solange `SpeicherKonten.REGEL_GRAU_EINGESPIELT` false ist,
+ * gilt der Fall „Regel fehlt" der Einbau-Notiz: beides wird NICHT
+ * geschrieben (kein `umstellung`, „grau" fällt weg — ein fehlendes
+ * `farbwelt` am Konto ergibt ohnehin Grau), und das einmalige Nachziehen
+ * des Merkers entfällt. Das Gerät bleibt richtig.
+ *
  * STILL BEI FEHLER: Lehnt die Datenbank ab, bleibt das Aussehen auf dem
  * Gerät, ohne Meldung. Das Spiel läuft immer weiter.
  */
@@ -50,6 +64,18 @@ const AUSSEHEN_ABGLEICH = {
     /* Schreibt Typoluck sein Aussehen je Spiel ans Konto? Seit 0.18.4 an:
        Der Nutzer hat Regel §11c am 28.09.2026 eingespielt („ja ist drin"). */
     AUSSEHEN_JE_AM_KONTO: true,
+
+    /* Gilt die Regel mit Grau? Der EINE Schalter steht in der Klasse
+       SpeicherKonten (Blunderlucks, `REGEL_GRAU_EINGESPIELT`); dieses Feld
+       überstimmt ihn nur in Tests (true/false), sonst null. */
+    REGEL_GRAU: null,
+
+    _regelGrau() {
+        if (typeof AUSSEHEN_ABGLEICH.REGEL_GRAU === "boolean") {
+            return AUSSEHEN_ABGLEICH.REGEL_GRAU;
+        }
+        return typeof SpeicherKonten !== "undefined" && SpeicherKonten.REGEL_GRAU_EINGESPIELT === true;
+    },
 
     APP: "typoluck",
     FELD: "aussehen",
@@ -106,13 +132,37 @@ const AUSSEHEN_ABGLEICH = {
         }
         const aenderungen = { geaendertAm: Date.now() };
         aenderungen[geteilt ? AUSSEHEN_ABGLEICH.pfad(uid) : AUSSEHEN_ABGLEICH.pfadJe(uid)] =
-            UPCREW_AUSSEHEN.fuerKonto();
+            AUSSEHEN_ABGLEICH.fuerKonto();
         try {
             await AUSSEHEN_ABGLEICH._speicher.teilSchreiben(aenderungen);
             return true;
         } catch (fehler) {
             return false;
         }
+    },
+
+    /* Was ans Konto geht: `fuerKonto()` des Bausteins — ohne Regel mit Grau
+       ohne `umstellung` und ohne die Farbwelt „grau". */
+    fuerKonto() {
+        const wert = Object.assign({}, UPCREW_AUSSEHEN.fuerKonto());
+        if (!AUSSEHEN_ABGLEICH._regelGrau()) {
+            delete wert.umstellung;
+            if (wert.farbwelt === "grau") {
+                delete wert.farbwelt;
+            }
+        }
+        return wert;
+    },
+
+    /* Konto-Objekt übernehmen; trägt es den Merker der Umstellung noch
+       nicht, einmal das eigene Aussehen ans Konto (nur mit Regel). */
+    async _uebernehmen(vomKonto) {
+        const geaendert = vomKonto ? UPCREW_AUSSEHEN.uebernehmen(vomKonto) : false;
+        if (AUSSEHEN_ABGLEICH._regelGrau() && typeof UPCREW_AUSSEHEN.kontoBraucht === "function"
+                && UPCREW_AUSSEHEN.kontoBraucht(vomKonto)) {
+            await AUSSEHEN_ABGLEICH.senden();
+        }
+        return geaendert;
     },
 
     /* Einen Pfad laden: Objekt, null (leer) oder undefined (Fehler). */
@@ -135,14 +185,14 @@ const AUSSEHEN_ABGLEICH = {
         }
         if (AUSSEHEN_ABGLEICH._geteilt()) {
             const gemeinsam = await AUSSEHEN_ABGLEICH._laden(AUSSEHEN_ABGLEICH.pfad(uid));
-            return gemeinsam ? UPCREW_AUSSEHEN.uebernehmen(gemeinsam) : false;
+            return gemeinsam === undefined ? false : AUSSEHEN_ABGLEICH._uebernehmen(gemeinsam);
         }
         const eigenes = await AUSSEHEN_ABGLEICH._laden(AUSSEHEN_ABGLEICH.pfadJe(uid));
         if (eigenes === undefined) {
             return false;
         }
         if (eigenes) {
-            return UPCREW_AUSSEHEN.uebernehmen(eigenes);
+            return AUSSEHEN_ABGLEICH._uebernehmen(eigenes);
         }
         /* Kein eigener Zweig: das alte gemeinsame Feld EINMAL als Umzug. */
         if (AUSSEHEN_ABGLEICH._umzugGemacht()) {
@@ -153,7 +203,7 @@ const AUSSEHEN_ABGLEICH = {
             return false;
         }
         AUSSEHEN_ABGLEICH._umzugMerken();
-        return alt ? UPCREW_AUSSEHEN.uebernehmen(alt) : false;
+        return AUSSEHEN_ABGLEICH._uebernehmen(alt);
     },
 
     _umzugGemacht() {

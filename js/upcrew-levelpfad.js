@@ -18,6 +18,9 @@
  * („etwas Einmaliges“ — noch nicht festgelegt). Die Koordination/der Nutzer entscheidet; bis dahin ändert man nur
  * `TABELLE`/`stufe()` hier (oder die App gibt `optionen.stufe` mit, z. B. aus einem künftigen upcrew-katalog.js).
  * Die Tabelle ist nur ANZEIGE — was wirklich freigeschaltet ist, entscheidet weiter die App (UPCREW_ANPASSEN.STUFEN).
+ * Seit 29.09.2026c („alle auf Schwarz-Weiß"): Start-Farbwelt ist Grau (Level 1 „Grundausstattung"), die bisherige
+ * Standard-Farbwelt Werkstatt kommt mit Level 2 (PLATZHALTER, samt der 50 Münzen); STUFEN.farbwelt folgt dieser
+ * Tabelle (Studio 3, Feld 11, Tiefsee 21, Gold 40).
  *
  *     UPCREW_LEVELPFAD.oeffnen({ level: 14, imLevel: 264, kosten: 425 }, { titel?, bis?, texte?, stufe? });
  *         // öffnet ein Blatt (UPCREW_BLATT), rollt zur aktuellen Stufe; → das Blatt
@@ -61,7 +64,7 @@
     const P = "platzhalter";
     const TABELLE = {
         1: ["start", "Grundausstattung"],
-        2: ["muenzen", "50 Münzen"],
+        2: ["farbwelt", "Farbwelt Werkstatt + 50 Münzen", false, P],   // 29.09.2026c: Werkstatt nicht mehr Start
         3: ["farbwelt", "Farbwelt Studio"],
         4: ["knoepfe", "Knöpfe K5 Kapsel"],
         5: ["material", "Material Holz"],

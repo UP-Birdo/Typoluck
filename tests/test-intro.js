@@ -32,15 +32,23 @@ pruefe("Das Intro startet bei jedem Laden der Seite (DOMContentLoaded → APP.st
         && /INTRO\.zeigen\(document\.getElementById\("intro"\)\)/.test(lesen("js/app.js")));
 
 /* Die Farbwelt des Intros (seit 0.18.3) */
-const welten = ["werkstatt", "studio", "feld", "tiefsee", "gold"];
+/* Seit 0.27.0 (EINBAU-2026-09-29c): sechs Welten, Grau zuerst und Standard. */
+const welten = ["grau", "werkstatt", "studio", "feld", "tiefsee", "gold"];
+{
+    const quelle = (datei) => lesen("js/" + datei);
+    gleich("Intro-Baustein: sechs Welten, Grau zuerst",
+        (quelle("upcrew-intro.js").match(/^ {4}(\w+): \{ name: "/gm) || []).map((z) => z.trim().split(":")[0]), welten);
+    pruefe("Aussehen-Baustein: Standard-Farbwelt Grau",
+        /const STANDARD = \{[^}]*farbwelt: "grau"/.test(quelle("upcrew-aussehen.js")));
+}
 gleich("Normal: die gewählte Farbwelt dieses Spiels",
-    INTRO.weltWaehlen({ gewaehlt: "feld", standard: "werkstatt", welten: welten }), "feld");
+    INTRO.weltWaehlen({ gewaehlt: "feld", standard: "grau", welten: welten }), "feld");
 gleich("Werkstatt: &farbwelt (nicht der Stand des vorigen Aufrufs)",
-    INTRO.weltWaehlen({ werkstatt: true, werkstattWelt: "gold", gewaehlt: "feld", standard: "werkstatt", welten: welten }), "gold");
-gleich("Werkstatt ohne &farbwelt: der Standard (wie vorbereiten)",
-    INTRO.weltWaehlen({ werkstatt: true, gewaehlt: "feld", standard: "werkstatt", welten: welten }), "werkstatt");
-gleich("Unbekannte Welt (z. B. neues Paket, das der Intro-Baustein nicht kennt): Standard",
-    INTRO.weltWaehlen({ gewaehlt: "pink", standard: "werkstatt", welten: welten }), "werkstatt");
+    INTRO.weltWaehlen({ werkstatt: true, werkstattWelt: "gold", gewaehlt: "feld", standard: "grau", welten: welten }), "gold");
+gleich("Werkstatt ohne &farbwelt: der Standard Grau (wie vorbereiten)",
+    INTRO.weltWaehlen({ werkstatt: true, gewaehlt: "feld", standard: "grau", welten: welten }), "grau");
+gleich("Unbekannte Welt (z. B. neues Paket, das der Intro-Baustein nicht kennt): Standard Grau",
+    INTRO.weltWaehlen({ gewaehlt: "pink", standard: "grau", welten: welten }), "grau");
 pruefe("Das Intro bekommt die Welt aus INTRO.welt()", /welt: INTRO\.welt\(\)/.test(lesen("js/intro.js")));
 
 fazit();

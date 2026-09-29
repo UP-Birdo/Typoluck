@@ -200,6 +200,10 @@ const WORDLE = {
      *              "ersteZeileBlind" (Zeile 1 verdeckt, solange die Runde
      *              läuft)
      *   tastatur   "normal" | "ohneGrau" (keine grauen Tasten)
+     *   lieblingeBannen  (seit 0.28.0, Boss „Der Zensor") die Lieblings-
+     *              wörter des Spielers (js/lieblingswoerter.js) sind in
+     *              dieser Runde gesperrt — sie stehen in `runde.gebannt`
+     *              (höchstens 3, nie die Lösung); nur vorhanden, wenn an
      * Unsinn wird zum Standard. Die WERTUNG (js/wertung.js) rechnet immer mit
      * der echten Bewertung.
      * ---------------------------------------------------------------- */
@@ -215,7 +219,7 @@ const WORDLE = {
         const zahl = (w) => (typeof w === "number" && isFinite(w)) ? Math.round(w) : NaN;
         const versuche = zahl(r.versuche);
         const zeit = zahl(r.zeit);
-        return {
+        return Object.assign({
             versuche: versuche >= 4 && versuche <= 8 ? versuche : s.versuche,
             nurEchte: true,
             hart: r.hart === true,
@@ -224,7 +228,7 @@ const WORDLE = {
             ohneLeben: r.ohneLeben === true,
             farben: ["ohneGelb", "ersteZeileBlind"].indexOf(r.farben) !== -1 ? r.farben : "normal",
             tastatur: r.tastatur === "ohneGrau" ? "ohneGrau" : "normal"
-        };
+        }, r.lieblingeBannen === true ? { lieblingeBannen: true } : {});
     },
 
     /* Die Regeln einer Runde — ohne `regeln` der Standard. */
@@ -314,6 +318,11 @@ const WORDLE = {
             runde.regeln = WORDLE.regelnNormalisieren(angaben.regeln);
             if (runde.regeln.hart) {
                 runde.schwer = true;
+            }
+            /* Seit 0.28.0 (Zensor): die gebannten Lieblingswörter — nur mit
+               der Regel, nur echte Wörter, nie die Lösung, höchstens 3. */
+            if (runde.regeln.lieblingeBannen) {
+                runde.gebannt = WORDLE.bannSauber(angaben.gebannt, runde.loesung);
             }
         }
         return runde;
@@ -449,7 +458,7 @@ const WORDLE = {
             modus: roh.modus, datum: roh.datum, nummer: roh.nummer,
             loesung: roh.loesung, zeitpunkt: roh.begonnenAm, schwer: roh.schwer,
             buch: roh.buch, level: roh.level, grund: roh.grund, station: roh.station,
-            regeln: roh.regeln, mitnahme: roh.mitnahme
+            regeln: roh.regeln, mitnahme: roh.mitnahme, gebannt: roh.gebannt
         });
         /* Die Uhr (seit 0.19.0) bleibt, samt „Zeit um". */
         if (runde.regeln && typeof roh.uhrAb === "number" && roh.uhrAb > 0) {
@@ -476,6 +485,29 @@ const WORDLE = {
         return runde;
     },
 
+    /* Die Liste der gebannten Wörter (Zensor, seit 0.28.0): Kleinbuchstaben
+       in Spiel-Länge, ohne Doppelte, ohne die Lösung, höchstens 3. */
+    BANN_MAX: 3,
+
+    bannSauber(liste, loesung) {
+        const ziel = String(loesung || "").toLowerCase();
+        const aus = [];
+        for (const roh of (Array.isArray(liste) ? liste : [])) {
+            const wort = String(roh || "").toLowerCase();
+            if (Array.from(wort).length === WORDLE.LAENGE && WORDLE._nurBuchstaben(wort)
+                    && wort !== ziel && aus.indexOf(wort) === -1 && aus.length < WORDLE.BANN_MAX) {
+                aus.push(wort);
+            }
+        }
+        return aus;
+    },
+
+    /* Ist ein Wort in dieser Runde gebannt? */
+    istGebannt(runde, wort) {
+        return !!runde && Array.isArray(runde.gebannt)
+            && runde.gebannt.indexOf(String(wort || "").toLowerCase()) !== -1;
+    },
+
     /* Besteht eine Eingabe nur aus Buchstaben des Spiels? (Regel nurEchte:
        false — dann genügt das.) */
     _nurBuchstaben(eingabe) {
@@ -490,6 +522,8 @@ const WORDLE = {
      *   fehler "unbekannt"   kein Wort aus der Liste
      *   fehler "schwer"      Schwer-Modus: ein gefundener Buchstabe fehlt;
      *                        `hinweis` sagt welcher (seit 0.6.0)
+     *   fehler "zensiert"    Regel `lieblingeBannen` (seit 0.28.0): ein
+     *                        gebanntes Lieblingswort
      *   fehler "zeit"        Regel `zeit` (seit 0.19.0): die Zeit ist um —
      *                        `runde` ist dann die VERLORENE Runde
      * Bei einem anderen Fehler ist `runde` unverändert.
@@ -513,6 +547,9 @@ const WORDLE = {
         const nurEchte = WORDLE.regelnVon(runde).nurEchte;
         if (nurEchte ? !WORDLE.istErlaubt(eingabe) : !WORDLE._nurBuchstaben(eingabe)) {
             return { runde: runde, fehler: "unbekannt" };
+        }
+        if (WORDLE.istGebannt(runde, eingabe)) {
+            return { runde: runde, fehler: "zensiert" };
         }
         if (runde.schwer) {
             const hinweis = WORDLE.schwerPruefen(runde, eingabe);
@@ -768,6 +805,7 @@ const WORDLE = {
             "zu-kurz": "Zu kurz",
             "unbekannt": "Unbekanntes Wort",
             "schwer": "Harter Modus",
+            "zensiert": "Zensiert",
             "zeit": "Zeit um"
         }[fehler] || "";
     },

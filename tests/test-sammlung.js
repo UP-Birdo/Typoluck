@@ -80,6 +80,32 @@ const werkstatt = SAMMLUNG.anteil(STUFEN, 0, true);
 gleich("Werkstatt: alles Aussehen frei, Modi 2/4, Sets nach Taten", werkstatt.hat, aussehenAlle + 3);
 pruefe("Höhere Stufe gibt nie weniger", SAMMLUNG.anteil(STUFEN, 5, false).hat >= null0.hat);
 gleich("Taten zählen im Anteil mit", SAMMLUNG.anteil(STUFEN, 0, false, ["serie-7", "koennen-90"]).hat, null0.hat + 2);
+/* Seit 0.27.0 (EINBAU-2026-09-29c): Grau ist das sechste Stück im
+   Farbwelt-Regal, Farbwelten nach dem Level-Pfad, Besitz zählt. */
+gleich("Farbwelt-Stufen aus dem Baustein", STUFEN.farbwelt,
+    { grau: 0, werkstatt: 2, studio: 3, feld: 11, tiefsee: 21, gold: 40 });
+gleich("Aussehen: 18 Stücke (6 Farbwelten, 6 Schriften, 6 Knöpfe), frei ab Werk nur Grau/S1/K1",
+    [aussehenAlle, aussehenFrei0], [18, 3]);
+gleich("Anteil Stufe 0: 3 + 2 + 1 von 32", [null0.hat, null0.alle], [6, 32]);
+const farbweltenFrei = (stufe, besitz) => SAMMLUNG.anteil({ farbwelt: STUFEN.farbwelt }, stufe, false, [], besitz).hat
+    - SAMMLUNG.anteil(null, stufe, false, []).hat;
+gleich("Farbwelten frei bei Level 0/2/3/11/21/40", [0, 2, 3, 11, 21, 40].map((l) => farbweltenFrei(l)), [1, 2, 3, 4, 5, 6]);
+gleich("Besitz zählt, egal welches Level (Gold gekauft bei Level 0)",
+    farbweltenFrei(0, (art, wert) => art === "farbwelt" && wert === "gold"), 2);
+gleich("Besitz, der wirft: nur die Stufe", farbweltenFrei(0, () => { throw new Error("x"); }), 1);
+{
+    /* Mit geladenem Baustein rechnet UPCREW_ANPASSEN.frei — gleiches Ergebnis. */
+    global.UPCREW_ANPASSEN = fenster.UPCREW_ANPASSEN;
+    gleich("Mit Baustein: gleiches Ergebnis",
+        [SAMMLUNG.anteil(STUFEN, 11, false).hat, farbweltenFrei(0, (art, wert) => wert === "gold")],
+        [SAMMLUNG.anteil(STUFEN, 11, false).hat, 2]);
+    pruefe("Baustein: frei(farbwelt, grau, 0) ja, werkstatt erst ab 2",
+        fenster.UPCREW_ANPASSEN.frei("farbwelt", "grau", 0) && !fenster.UPCREW_ANPASSEN.frei("farbwelt", "werkstatt", 1)
+            && fenster.UPCREW_ANPASSEN.frei("farbwelt", "werkstatt", 2));
+    delete global.UPCREW_ANPASSEN;
+}
+pruefe("Die Sammlung gibt dem Baustein den Besitz mit",
+    /besitz: SAMMLUNG_BILDSCHIRM\.besitz/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "js", "bildschirm-sammlung.js"), "utf8")));
 pruefe("Darstellung zählt nicht mit (immer frei, kein Sammelstück)",
     SAMMLUNG.AUSSEHEN_TEILE.indexOf("darstellung") === -1);
 gleich("Ohne Stufen-Tabelle: nur die Gruppen", SAMMLUNG.anteil(null, 0, false), { hat: 3, alle: 14, prozent: 21 });

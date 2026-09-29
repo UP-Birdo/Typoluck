@@ -264,8 +264,9 @@ const loesungen = WOERTER.loesungen;
     pruefe("Schalter Üben · Bibliothek", /text: "Üben"/.test(start) && /BIBLIOTHEK\.NAME/.test(start));
     const wordle = lesen("js/bildschirm-wordle.js");
     pruefe("Runde der Bibliothek: Station, Wort gezogen, Regeln der Station",
-        /BIBLIOTHEK\.wortZiehen\(buch, station, Math\.random\(\), zuletzt, BIBLIOTHEK\.wortFilter\(mitnahme\)\)/.test(wordle)
-            && /regeln: BIBLIOTHEK\.rundeRegeln\(buch, station, mitnahme\)/.test(wordle)
+        /BIBLIOTHEK\.wortZiehen\(buch, station, Math\.random\(\), zuletzt, BIBLIOTHEK\.wortFilter\(mitnahme\),\s*gebannt\)/.test(wordle)
+            /* seit 0.28.0: Regeln einmal geholt, Zensor-Bann als letztes Argument */
+            && /const regeln = BIBLIOTHEK\.rundeRegeln\(buch, station, mitnahme\)/.test(wordle) && /regeln: regeln,/.test(wordle)
             && /APP\.bibliothekMitnahme\(buch, station\)/.test(wordle));
     const r = W.neueRunde({ modus: "bibliothek", buch: 1, station: 12, loesung: "abend", regeln: B.regeln(1, 12) });
     gleich("Runde trägt Buch und Station", [r.buch, r.station, W.normalisieren(JSON.parse(JSON.stringify(r))).station], [1, 12, 12]);
@@ -555,7 +556,7 @@ const loesungen = WOERTER.loesungen;
         /BIBLIOTHEK\.fundErklaerung\(f\.id\)/.test(q) && /BIBLIOTHEK\.fundGrund\(/.test(q));
     const bw = lesen("js/bildschirm-wordle.js");
     pruefe("Runde: Gegner-Chips mit „i“ auch während der Runde",
-        /_gegnerBauen\(\)/.test(bw) && /START\.gegnerErklaeren\(runde\.buch, runde\.station\)/.test(bw));
+        /_gegnerBauen\(\)/.test(bw) && /START\.gegnerErklaeren\(runde\.buch, runde\.station, gebannt\)/.test(bw));
 }
 
 /* 13. Vorschau halb, Kreuzung von selbst (seit 0.23.4) */

@@ -60,8 +60,16 @@ const SAMMLUNG_BILDSCHIRM = {
         return APP.level().level;
     },
 
+    /* Besessenes Aussehen (seit 0.27.0, Einbau 29.09.2026c): frei, egal
+       welches Level. Der Shop von Typoluck verkauft heute keine Farbwelt,
+       Schrift oder Knöpfe — die Naht ist nur vorbereitet. */
+    besitz(art, wert) {
+        return false;
+    },
+
     _alleFrei() {
-        return typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv();
+        return typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv()
+            && !WERKSTATT._parameter().has("gesperrt");
     },
 
     zeigen(behaelter) {
@@ -83,14 +91,15 @@ const SAMMLUNG_BILDSCHIRM = {
         SAMMLUNG_BILDSCHIRM._tab = UPCREW_ANPASSEN.zeigen(geruest.ort, {
             app: "typoluck",
             stufe: SAMMLUNG_BILDSCHIRM.stufe(),
-            alleFrei: SAMMLUNG_BILDSCHIRM._alleFrei()
+            alleFrei: SAMMLUNG_BILDSCHIRM._alleFrei(),
+            besitz: SAMMLUNG_BILDSCHIRM.besitz
         });
 
         /* Die reine Sammlung VOR den Balken (das Gerüst weiß, wohin), „NN %"
            in den Kopf, die Vorschau bündig darunter. */
         geruest.restEinsetzen(SAMMLUNG_BILDSCHIRM._restBauen());
         const anteil = SAMMLUNG.anteil(UPCREW_ANPASSEN.STUFEN, SAMMLUNG_BILDSCHIRM.stufe(),
-            SAMMLUNG_BILDSCHIRM._alleFrei(), SAMMLUNG_BILDSCHIRM._taten());
+            SAMMLUNG_BILDSCHIRM._alleFrei(), SAMMLUNG_BILDSCHIRM._taten(), SAMMLUNG_BILDSCHIRM.besitz);
         geruest.anteilSetzen(anteil.hat, anteil.alle);
         geruest.obenSetzen();
     },

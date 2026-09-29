@@ -195,6 +195,17 @@ for (const modus of ["dunkel", "hell"]) {
     gleich("Werkstatt " + modus + ": Kachel vorhanden wie im Stil", werte["--kachel-vorhanden"], "#3f8fe0");
 }
 
+/* Grau (seit 0.27.0, EINBAU-2026-09-29c): Start für neue Spieler, Kacheln
+   in hell und dunkel gleich — falsch fast schwarz, richtig helles Grau,
+   vorhanden gedämpftes Blau. */
+for (const modus of ["dunkel", "hell"]) {
+    const werte = UPCREW_FARBWELTEN.werte("grau", modus);
+    gleich("Grau " + modus + ": Kacheln falsch/vorhanden/richtig",
+        [werte["--kachel-falsch"], werte["--kachel-vorhanden"], werte["--kachel-richtig"]],
+        ["#333333", "#6f8fb8", "#8c8c8c"]);
+}
+pruefe("Grau ist eine der Welten (sechs)", Object.keys(UPCREW_INTRO.WELTEN).length === 6 && "grau" in UPCREW_INTRO.WELTEN);
+
 /* JEDE Welt, hell und dunkel — auch die, die man erst später freischaltet:
    Kacheln durch die Sperre, Lesbarkeit durch die Prüfung des Bausteins. */
 for (const welt of Object.keys(UPCREW_INTRO.WELTEN)) {
@@ -217,6 +228,7 @@ const gesetzt = {};
 html = { dataset: {}, style: { setProperty: (name, wert) => { gesetzt[name] = wert; } } };
 DARSTELLUNG.anwenden(html);
 const standardWelt = AUSSEHEN.STANDARD.farbwelt;
+gleich("Standard-Welt eines neuen Geräts ist Grau (seit 0.27.0)", [standardWelt, AUSSEHEN.lesen().farbwelt], ["grau", "grau"]);
 gleich("Anwenden setzt die helle Fläche der Standard-Welt",
     gesetzt["--flaeche"], UPCREW_INTRO.WELTEN[standardWelt].hell.bg);
 gleich("Anwenden merkt die Welt am <html>", html.dataset.farbwelt, standardWelt);

@@ -266,7 +266,15 @@ gleich("Kaputte fremde XP zählen 0", FORTSCHRITT.gesamtXp(kaputt), 0);
  * Belohnungen, Rahmen, Titel — seit 0.14.0 EINE Regel mit Blunderluck:
  * Rahmen ab Level 10, dann alle 5
  * ------------------------------------------------------------------ */
-gleich("Level 11: kein Serien-Schutz mehr (seit 0.26.0)", FORTSCHRITT.belohnungen(11, STUFEN), []);
+gleich("Level 11: kein Serien-Schutz mehr (seit 0.26.0), seit 0.27.0 die Farbwelt Feld",
+    FORTSCHRITT.belohnungen(11, STUFEN), [{ art: "farbwelt", name: "feld" }]);
+/* Seit 0.27.0 (EINBAU-2026-09-29c): Farbwelten nach dem Level-Pfad, Grau ist Stufe 0. */
+gleich("Farbwelten: Werkstatt Lv 2, Studio 3, Feld 11, Tiefsee 21, Gold 40",
+    [2, 3, 11, 21, 40].map((l) => FORTSCHRITT.belohnungen(l, STUFEN).filter((b) => b.art === "farbwelt").map((b) => b.name)),
+    [["werkstatt"], ["studio"], ["feld"], ["tiefsee"], ["gold"]]);
+pruefe("Grau ist keine Belohnung (Stufe 0, gleich da)",
+    Array.from({ length: 100 }, (_, i) => i + 1).every((l) =>
+        FORTSCHRITT.belohnungen(l, STUFEN).every((b) => !(b.art === "farbwelt" && b.name === "grau"))));
 /* Seit 0.15.0: Kachel-Sets über das Level (Tabelle wie in js\sammlung.js) */
 const mitSets = Object.assign({}, STUFEN, { kachelset: { kreide: 3, kupfer: 12 } });
 pruefe("Level 3 bringt das Kachel-Set Kreide",

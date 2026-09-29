@@ -159,13 +159,17 @@ const WORDLE_BILDSCHIRM = {
            Rast „Üben" mit (Regeln, Wort-Filter; gewertet am Ende). */
         const mitnahme = APP.bibliothekMitnahme(buch, station);
         const zuletzt = ICH.spielstand("bibliothek-zuletzt");
-        const wort = BIBLIOTHEK.wortZiehen(buch, station, Math.random(), zuletzt, BIBLIOTHEK.wortFilter(mitnahme))
-            || WORDLE.uebungswort(Math.random());
+        const regeln = BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {};
+        /* Der Zensor (seit 0.28.0) bannt die Lieblingswörter — sie werden
+           nie die Lösung (`wortZiehen`, letztes Argument). */
+        const gebannt = regeln.lieblingeBannen ? APP.lieblingswoerter() : [];
+        const wort = BIBLIOTHEK.wortZiehen(buch, station, Math.random(), zuletzt, BIBLIOTHEK.wortFilter(mitnahme),
+            gebannt) || WORDLE.uebungswort(Math.random());
         ICH.spielstandSetzen("bibliothek-zuletzt", BIBLIOTHEK.zuletztMerken(zuletzt, wort));
         const runde = WORDLE.neueRunde({
             modus: "bibliothek", buch: buch, station: station, loesung: wort,
-            zeitpunkt: APP.jetzt().getTime(), regeln: BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {},
-            mitnahme: mitnahme
+            zeitpunkt: APP.jetzt().getTime(), regeln: regeln,
+            mitnahme: mitnahme, gebannt: gebannt
         });
         ICH.spielstandSetzen("wordle-bibliothek", runde);
         return runde;
@@ -266,19 +270,26 @@ const WORDLE_BILDSCHIRM = {
         if (runde.modus !== "bibliothek" || typeof START === "undefined" || !START.gegnerErklaeren) {
             return null;
         }
-        const g = BIBLIOTHEK.gegner(runde.buch, runde.station);
+        /* Zensor (seit 0.28.0): gebannt ist, was in DIESER Runde steht. */
+        const gebannt = Array.isArray(runde.gebannt) ? runde.gebannt : [];
+        const g = BIBLIOTHEK.gegner(runde.buch, runde.station, gebannt);
         if (!g || !g.besonderheiten.length) {
             return null;
         }
         const knopf = BAUSTEINE.knopf({ art: "flach", titel: g.name + ": Besonderheit erklärt",
-            beiKlick: () => START.gegnerErklaeren(runde.buch, runde.station) });
+            beiKlick: () => START.gegnerErklaeren(runde.buch, runde.station, gebannt) });
         knopf.classList.add("wordle-gegner");
-        for (const x of g.besonderheiten) {
-            knopf.appendChild(BAUSTEINE.el("span", "bib-chip gegner", x.kurz));
-        }
+        /* Der letzte Chip und das „i" bleiben zusammen (30.09.2026): bricht
+           die Reihe um, wandert das „i" nie allein in die zweite Zeile. */
+        const ende = BAUSTEINE.el("span", "wordle-gegner-ende");
+        g.besonderheiten.forEach((x, i) => {
+            const chip = BAUSTEINE.el("span", "bib-chip gegner", x.kurz);
+            (i === g.besonderheiten.length - 1 ? ende : knopf).appendChild(chip);
+        });
         const info = BAUSTEINE.el("span", "wordle-gegner-info");
         info.appendChild(BAUSTEINE.zeichen("info"));
-        knopf.appendChild(info);
+        ende.appendChild(info);
+        knopf.appendChild(ende);
         return knopf;
     },
 
@@ -497,6 +508,7 @@ const WORDLE_BILDSCHIRM = {
             brett.appendChild(reihe);
             if (aktiv) {
                 WORDLE_BILDSCHIRM._markierungZeigen(reihe);
+                WORDLE_BILDSCHIRM._zensurZeigen(reihe);
             }
         }
         return brett;
@@ -943,10 +955,29 @@ const WORDLE_BILDSCHIRM = {
                 + (buchstabe ? ", " + buchstabe.toUpperCase() : ", leer"));
         });
         WORDLE_BILDSCHIRM._markierungZeigen(zeile);
+        WORDLE_BILDSCHIRM._zensurZeigen(zeile);
         if (Number.isInteger(getipptAn) && zeile.children[getipptAn]) {
             const kachel = zeile.children[getipptAn];
             void kachel.offsetWidth;
             kachel.classList.add("kachel-tipp");
+        }
+    },
+
+    /* DER ZENSOR (seit 0.28.0): Steht in der Zeile ein gebanntes
+       Lieblingswort (`WORDLE.istGebannt`), liegt ein Balken „Zensiert"
+       quer über den Feldern — schon beim Tippen, nicht erst beim Senden.
+       Senden meldet dazu kurz „Zensiert" (kurz, passt bei 360 px). */
+    _zensurZeigen(zeile) {
+        const an = WORDLE.istGebannt(WORDLE_BILDSCHIRM.runde, WORDLE.eingabeWort(WORDLE_BILDSCHIRM.eingabe));
+        /* Kein Kind-Element: die Zeile zählt ihre Kinder als Felder. Der
+           Balken ist `::after` mit dem Text aus `data-zensur`. */
+        zeile.classList.toggle("wordle-zeile-zensiert", an);
+        if (an) {
+            zeile.setAttribute("data-zensur", "Zensiert");
+            zeile.setAttribute("aria-description", "Zensiert");
+        } else {
+            zeile.removeAttribute("data-zensur");
+            zeile.removeAttribute("aria-description");
         }
     },
 

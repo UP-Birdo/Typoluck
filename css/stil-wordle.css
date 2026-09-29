@@ -590,9 +590,18 @@ body.im-spiel .wordle > .wordle-brett {
     background: none;
 }
 
+/* 3px 6px (bis 0.28.0 vor dem 30.09.: 8px): der Zensor mit vier Chips + „i"
+   passt so bei 360 px in eine Zeile. */
 .knopf.wordle-gegner .bib-chip {
-    padding: 3px 8px;
+    padding: 3px 6px;
     font-size: 0.72rem;
+}
+
+/* Letzter Chip + „i" als eine Einheit (bricht nur zusammen um). */
+.wordle-gegner-ende {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .wordle-gegner-info {
@@ -637,4 +646,34 @@ body.im-spiel .wordle > .wordle-gegner {
 @keyframes wordle-gleich {
     from { transform: scaleX(1); }
     to { transform: scaleX(0); }
+}
+
+/* DER ZENSOR (seit 0.28.0): Steht ein gebanntes Lieblingswort in der
+   Zeile, liegt ein Balken „Zensiert" quer über den Feldern (Text aus
+   `data-zensur`, js/bildschirm-wordle.js `_zensurZeigen`). */
+.wordle-zeile-zensiert {
+    position: relative;
+}
+
+.wordle-zeile-zensiert .kachel {
+    opacity: 0.55;
+}
+
+.wordle-zeile-zensiert::after {
+    content: attr(data-zensur);
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-2deg);
+    padding: 4px 0;
+    border-radius: var(--rund-klein);
+    background: var(--schrift);
+    color: var(--karte);
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: 0.3em;
+    text-align: center;
+    text-transform: uppercase;
+    pointer-events: none;
 }

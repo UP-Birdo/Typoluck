@@ -107,6 +107,11 @@ const APP = {
         /* Der Fortschritt am Konto (seit 0.15.1, Regel §11b eingespielt):
            dieselben Leute wie beim Aussehen — nur echte Konten. */
         FORTSCHRITT_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
+        /* Die Lieblingswörter (seit 0.28.0): gezählt auf dem Gerät, die
+           Top 3 ans Konto nur mit Regel §13 (js/lieblingswoerter.js). */
+        if (typeof LIEBLINGSWOERTER !== "undefined") {
+            LIEBLINGSWOERTER.einrichten(APP.spielerSpeicher, () => APP._aussehenUid());
+        }
         /* Die Status-Lampe der Einstellungen (seit 0.26.0) folgt jedem
            Speicher-Ereignis: Konten-Abgleich, Fortschritt, Netz an/aus. */
         FORTSCHRITT_ABGLEICH.beiZustand = () => APP._lampeAuffrischen();
@@ -301,6 +306,11 @@ const APP = {
         await AUSSEHEN_ABGLEICH.holen();
         /* Der Fortschritt vom Konto (seit 0.15.1). */
         await APP._fortschrittHolen();
+        /* Lieblingswörter nachreichen, falls ein Senden ausfiel (seit 0.28.0;
+           ohne Regel §13 tut das nichts). */
+        if (typeof LIEBLINGSWOERTER !== "undefined") {
+            LIEBLINGSWOERTER.senden(APP.fortschrittId());
+        }
         /* Danach einmal alte Flammen-Schilde erstatten (seit 0.26.0). */
         APP.schildeErstatten();
 
@@ -460,6 +470,25 @@ const APP = {
         return (ich && ich.id && !gast) ? ich.id : FORTSCHRITT.GAST;
     },
 
+    /* Die Lieblingswörter (seit 0.28.0, js/lieblingswoerter.js): die Top 3
+       des Spielers auf diesem Gerät — privat, nur für ihn selbst und den
+       Zensor. */
+    lieblingswoerter() {
+        return typeof LIEBLINGSWOERTER !== "undefined" ? LIEBLINGSWOERTER.woerter(APP.fortschrittId()) : [];
+    },
+
+    /* Eine beendete Runde zählen (aus fortschrittMelden, also genau einmal)
+       und die Top 3 ans Konto — das entscheidet LIEBLINGSWOERTER.senden
+       (Regel, echtes Konto, geändert). */
+    _lieblingeZaehlen(runde) {
+        if (typeof LIEBLINGSWOERTER === "undefined") {
+            return;
+        }
+        const id = APP.fortschrittId();
+        LIEBLINGSWOERTER.rundeZaehlen(id, runde);
+        LIEBLINGSWOERTER.senden(id);
+    },
+
     /* Das Level über alle Spiele: { level, hat, kosten }. */
     level() {
         return FORTSCHRITT.level(APP.fortschritt());
@@ -480,6 +509,7 @@ const APP = {
         const datum = WORDLE.datumText(APP.jetzt());
         const tagesaufgabe = runde.modus === "tag" && runde.datum === datum;
         APP._gastUmzug();
+        APP._lieblingeZaehlen(runde);
         /* Bibliothek (seit 0.21.0): die Sicht vor dem Schreiben (Front?)
            und die Belohnung der Mitnahme (Fund). */
         const imBuch = runde.modus === "bibliothek" && typeof BIBLIOTHEK !== "undefined";

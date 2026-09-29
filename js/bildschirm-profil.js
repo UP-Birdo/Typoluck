@@ -413,6 +413,10 @@ const PROFIL_BILDSCHIRM = {
                 : String(werte.durchschnitt).replace(".", ","), "Tageswort Ø"));
             raster.appendChild(kachel(eigen.besteSerie, "Längste Serie"));
             karte.appendChild(raster);
+            const lieblinge = PROFIL_BILDSCHIRM.lieblingeBauen();
+            if (lieblinge) {
+                karte.appendChild(lieblinge);
+            }
         } else {
             const raster = BAUSTEINE.el("div", "statistik-raster");
             raster.appendChild(kachel(werte.gespielt, "Tageswörter"));
@@ -441,6 +445,26 @@ const PROFIL_BILDSCHIRM = {
             zeile.appendChild(balken);
             karte.appendChild(zeile);
         });
+    },
+
+    /* DIE LIEBLINGSWÖRTER (seit 0.28.0, js/lieblingswoerter.js): klein
+       unter der eigenen Statistik, mit Schloss — nur man selbst sieht sie
+       (fremde Profile bauen das nie). Keine = nichts. */
+    lieblingeBauen() {
+        const woerter = (typeof APP !== "undefined" && APP.lieblingswoerter) ? APP.lieblingswoerter() : [];
+        if (!woerter.length) {
+            return null;
+        }
+        const zeile = BAUSTEINE.el("div", "profil-lieblinge");
+        zeile.setAttribute("title", "Nur für dich sichtbar");
+        const kopf = BAUSTEINE.el("span", "profil-lieblinge-kopf");
+        kopf.appendChild(BAUSTEINE.zeichen("schloss"));
+        kopf.appendChild(BAUSTEINE.el("span", null, "Lieblingswörter"));
+        zeile.appendChild(kopf);
+        for (const wort of woerter) {
+            zeile.appendChild(BAUSTEINE.el("span", "profil-liebling", wort.toUpperCase()));
+        }
+        return zeile;
     },
 
     _verlaufVon(id, eigenes) {

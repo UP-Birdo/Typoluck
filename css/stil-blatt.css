@@ -146,3 +146,36 @@ html {
     top: -6px;
     right: 6px;
 }
+
+/* Die Lieblingswörter (seit 0.28.0): klein unter der eigenen Statistik,
+   mit Schloss — nur für einen selbst. */
+.profil-lieblinge {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 0.75rem;
+}
+
+.profil-lieblinge-kopf {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--schrift-leise);
+    font-weight: 700;
+}
+
+.profil-lieblinge-kopf svg {
+    width: 14px;
+    height: 14px;
+}
+
+.profil-liebling {
+    padding: 2px 8px;
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+    background: var(--karte-leise);
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}

@@ -352,24 +352,44 @@ class SpeicherKonten extends SpeicherGemeinsam {
     static get REGEL_AUSSEHEN() {
         return {
             darstellung: ["geraet", "hell", "dunkel"],
-            farbwelt: ["werkstatt", "studio", "feld", "tiefsee", "gold"],
+            farbwelt: ["grau", "werkstatt", "studio", "feld", "tiefsee", "gold"],
             schrift: ["S1", "S2", "S3", "S4", "S5", "S6"],
             knoepfe: ["K1", "K2", "K3", "K4", "K5", "K6"]
         };
     }
 
-    /* Nur die sechs Felder mit erlaubten Werten — oder null, wenn nichts
-       Gültiges übrig bleibt. */
-    static aussehenFuerRegel(roh) {
+    /*
+     * DIE REGEL MIT GRAU (seit v0.159.0, Design\3D-Schrift\final\
+     * EINBAU-2026-09-29c.md, Regeltext SICHERHEIT.md Abschnitt 15 =
+     * `Apps\UPCrew\Firebase-Regeln\2026-09-29 NEUE Regel mit 13.txt`):
+     * Sie erlaubt `farbwelt: "grau"` und das Feld `umstellung` (Merker der
+     * einmaligen Umstellung, 0–9). EINGESPIELT am 30.09.2026 (Regel §13,
+     * Entscheid „REGEL §13 LIVE") — der Schalter steht deshalb AN. Aus
+     * (false) liesse die Schleuse beides weg; das war nur nötig, solange die
+     * alte Regel den GANZEN Konto-Eintrag abgelehnt hätte.
+     */
+    static get REGEL_GRAU_EINGESPIELT() {
+        return true;
+    }
+
+    /* Nur die sechs Felder mit erlaubten Werten (dazu `umstellung`, sobald
+       die Regel mit Grau gilt) — oder null, wenn nichts Gültiges übrig
+       bleibt. `grau` (Test) überstimmt den Schalter. */
+    static aussehenFuerRegel(roh, grau) {
         if (!roh || typeof roh !== "object" || Array.isArray(roh)) {
             return null;
         }
         const erlaubt = SpeicherKonten.REGEL_AUSSEHEN;
+        const mitGrau = typeof grau === "boolean" ? grau : SpeicherKonten.REGEL_GRAU_EINGESPIELT;
         const aus = {};
         for (const feld of Object.keys(erlaubt)) {
-            if (erlaubt[feld].indexOf(roh[feld]) !== -1) {
+            if (erlaubt[feld].indexOf(roh[feld]) !== -1
+                    && (mitGrau || feld !== "farbwelt" || roh[feld] !== "grau")) {
                 aus[feld] = roh[feld];
             }
+        }
+        if (mitGrau && Number.isInteger(roh.umstellung) && roh.umstellung >= 0 && roh.umstellung <= 9) {
+            aus.umstellung = roh.umstellung;
         }
         if (typeof roh.leseschrift === "boolean") {
             aus.leseschrift = roh.leseschrift;

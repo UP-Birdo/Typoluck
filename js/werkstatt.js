@@ -46,6 +46,9 @@
  *                                      der Werkstatt alles freigeschaltet;
  *                                      &bildschirm=sammlung zeigt ihn (bis
  *                                      0.8.1 hiess er „anpassen").
+ *     &gesperrt                        (seit 0.27.0) die Sammlung wie beim
+ *                                      Spieler: frei nur nach Level (&xp),
+ *                                      der Würfel nur mit Wahl
  *     &kachelset=neon                  das Kachel-Set (seit 0.14.0);
  *     &kachelwahl                      &kachelwahl = Leiste oben zum
  *                                      Durchschalten aller Sets + hell/dunkel
@@ -85,6 +88,10 @@
  *       zeit90,ohneTipp,                 0.19.0, js/wordle.js „DIE REGELN JE
  *       ohneLeben,ersteZeileBlind,      RUNDE"); mit &bildschirm=wordle
  *       ohneGrau                        &modus=uebung, dazu &versuche=…
+ *     &lieblinge=adler,raten,blume     (seit 0.28.0) diese Lieblingswörter
+ *                                      (gezählt, als wären sie oft der erste
+ *                                      Versuch); der Zensor (Buch 4,
+ *                                      &station=Boss) bannt sie
  *     &anmeldung&konto=neu             das Formular „Neues UPCrew-Konto"
  *                                      (seit 0.18.5); dazu &eingabe=Name,
  *                                      Passwort,Wiederholung (vorbelegt),
@@ -229,6 +236,7 @@ const WERKSTATT = {
            gemeinsamen Server (8093) liegt daneben Blunderlucks Stand. */
         WERKSTATT._fortschrittAnlegen(speicher, ids[0], heute);
         WERKSTATT._durchgangAnlegen(ids[0]);
+        WERKSTATT._lieblingeAnlegen(ids[0]);
 
         /* Art des Starts und angesehenes Buch (seit 0.18.0). */
         if (WERKSTATT.wert("art") && typeof START.ART_SCHLUESSEL === "string") {
@@ -263,9 +271,11 @@ const WERKSTATT = {
             const buch = parseInt(WERKSTATT.wert("buch"), 10) || 1;
             const station = parseInt(WERKSTATT.wert("station"), 10) || BIBLIOTHEK.NR_AB;
             const mitnahme = { effekt: WERKSTATT.wert("effekt") || "", ueben: WERKSTATT._parameter().has("ueben") ? 1 : 0 };
+            const regeln = BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {};
+            const gebannt = regeln.lieblingeBannen ? LIEBLINGSWOERTER.woerter(ids[0]) : [];
             let runde = WORDLE.neueRunde({ modus: "bibliothek", buch: buch, station: station,
-                loesung: BIBLIOTHEK.wortZiehen(buch, station, 0.5, []), zeitpunkt: 1,
-                regeln: BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {}, mitnahme: mitnahme });
+                loesung: BIBLIOTHEK.wortZiehen(buch, station, 0.5, [], null, gebannt), zeitpunkt: 1,
+                regeln: regeln, mitnahme: mitnahme, gebannt: gebannt });
             for (const wort of versuche.split(",")) {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }
@@ -279,6 +289,23 @@ const WERKSTATT = {
             }
             ICH.spielstandSetzen("wordle-tag", runde);
         }
+    },
+
+    /* `&lieblinge=a,b,c` (seit 0.28.0): jedes Wort mehrmals als erster
+       Versuch gezählt — das erste am öftesten, so bleibt die Reihenfolge. */
+    _lieblingeAnlegen(id) {
+        const roh = WERKSTATT.wert("lieblinge");
+        if (!roh || typeof LIEBLINGSWOERTER === "undefined") {
+            return;
+        }
+        const liste = roh.toLowerCase().split(",").filter((w) => w);
+        let stand = LIEBLINGSWOERTER.leer();
+        liste.forEach((wort, i) => {
+            for (let k = 0; k < liste.length - i + 1; k++) {
+                stand = LIEBLINGSWOERTER.zaehlen(stand, [wort]);
+            }
+        });
+        LIEBLINGSWOERTER._setzen(id, stand);
     },
 
     /*

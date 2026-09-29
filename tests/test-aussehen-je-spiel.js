@@ -54,7 +54,10 @@ pruefe("Der Schalter steht im Baustein auf false", /const GETEILT = false;/.test
     const speicher = { "upcrew.aussehen": ALT };
     const { A } = welt(speicher, "/Typoluck/", false);
     gleich("Typoluck aus dem Pfad erkannt, eigener Schlüssel", [A.app, A.SCHLUESSEL], ["typoluck", "typoluck.aussehen"]);
-    gleich("Umzug: die bisherige gemeinsame Wahl gilt", A.lesen().farbwelt, "feld");
+    /* Seit 0.27.0: die alte Wahl ist „von vorher" → einmal auf Grau, der Rest bleibt. */
+    gleich("Umzug: die bisherige gemeinsame Wahl gilt (Farbwelt einmal auf Grau)",
+        [A.lesen().farbwelt, A.lesen().schrift, A.lesen().knoepfe, A.lesen().umstellung, A.umgestelltJetzt],
+        ["grau", "S2", "K3", 1, true]);
     pruefe("… und liegt gleich als eigener Stand ab", "typoluck.aussehen" in speicher);
     gleich("… der gemeinsame Schlüssel bleibt unverändert", speicher["upcrew.aussehen"], ALT);
 }

@@ -943,25 +943,29 @@ Object.assign(START, {
     /* Die Besonderheit als Chips + „i" (Blatt, Regal; die Runde baut ihre
        eigene Reihe mit denselben Texten). */
     gegnerChips(b, nr) {
-        const g = BIBLIOTHEK.gegner(b, nr);
+        const g = BIBLIOTHEK.gegner(b, nr, START._lieblinge());
         const reihe = BAUSTEINE.el("div", "bib-chips bib-gegner-chips");
         if (!g) {
             return reihe;
         }
-        for (const x of g.besonderheiten) {
-            reihe.appendChild(BAUSTEINE.el("span", "bib-chip gegner", x.chip));
-        }
+        /* Letzter Chip + „i" zusammen (30.09.2026): das „i" bricht nie allein um. */
+        const ende = BAUSTEINE.el("span", "bib-chips-ende");
+        g.besonderheiten.forEach((x, i) => {
+            const chip = BAUSTEINE.el("span", "bib-chip gegner", x.chip);
+            (i === g.besonderheiten.length - 1 ? ende : reihe).appendChild(chip);
+        });
         const info = BAUSTEINE.knopf({ art: "flach", zeichen: "info", titel: "Besonderheit erklärt",
             beiKlick: () => START.gegnerErklaeren(b, nr) });
         info.classList.add("bib-info");
-        reihe.appendChild(info);
+        ende.appendChild(info);
+        reihe.appendChild(ende);
         return reihe;
     },
 
     /* Der Inhalt der Erklärung: je Besonderheit Chip + Was · Gesperrt ·
        So geht's; darunter, was ein Sieg bringt und ein Scheitern kostet. */
-    gegnerErklaerungBauen(b, nr) {
-        const g = BIBLIOTHEK.gegner(b, nr);
+    gegnerErklaerungBauen(b, nr, lieblinge) {
+        const g = BIBLIOTHEK.gegner(b, nr, Array.isArray(lieblinge) ? lieblinge : START._lieblinge());
         const inhalt = BAUSTEINE.el("div", "bib-erklaerung");
         if (!g) {
             return inhalt;
@@ -1002,12 +1006,14 @@ Object.assign(START, {
 
     /* Als Hinweis-Fenster (über Blatt, Vollbild und Runde). Liegt ein Blatt
        darunter, bleibt es „offen" (Wischen gesperrt). */
-    gegnerErklaeren(b, nr) {
+    /* `lieblinge` (seit 0.28.0, wahlfrei): die gebannten Wörter der
+       laufenden Runde; sonst die eigenen Lieblingswörter des Geräts. */
+    gegnerErklaeren(b, nr, lieblinge) {
         const g = BIBLIOTHEK.gegner(b, nr);
         if (!g || typeof DIALOG === "undefined") {
             return;
         }
-        const zu = DIALOG.hinweis(g.name, "", START.gegnerErklaerungBauen(b, nr));
+        const zu = DIALOG.hinweis(g.name, "", START.gegnerErklaerungBauen(b, nr, lieblinge));
         START._blattWiederOffen(zu);
     },
 
@@ -1022,8 +1028,15 @@ Object.assign(START, {
     },
 
     /* Kurz am Gegner im Buch: die erste Besonderheit, bei mehr „+n". */
+    /* Die Lieblingswörter für den Zensor (seit 0.28.0) — undefined, wenn
+       APP fehlt (dann nennt die Erklärung die Regel allgemein). */
+    _lieblinge() {
+        return (typeof APP !== "undefined" && typeof APP.lieblingswoerter === "function")
+            ? APP.lieblingswoerter() : undefined;
+    },
+
     _gegnerKurz(b, nr) {
-        const g = BIBLIOTHEK.gegner(b, nr);
+        const g = BIBLIOTHEK.gegner(b, nr, START._lieblinge());
         if (!g || !g.besonderheiten.length) {
             return "";
         }

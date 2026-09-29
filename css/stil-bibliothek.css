@@ -48,6 +48,15 @@
     --tinte: color-mix(in srgb, var(--th) 78%, #000);
 }
 
+/* Farbwelt „Grau" (0.27.0, Start in Schwarz-Weiß; wie Blunderlucks Turm-Karte): keine Buchfarbe —
+   Papier-Tönung, Buch-Nummer, Buchrücken und Stations-Symbole neutral grau. Das Skript setzt --th/--b-farbe
+   inline, darum !important. Bedeutungsfarben (Boss rot, Elite bernstein, Herzen) bleiben. */
+html[data-farbwelt="grau"] [style*="--th"],
+html[data-farbwelt="grau"] [style*="--b-farbe"] {
+    --th: #6f747c !important;
+    --b-farbe: #6f747c !important;
+}
+
 .bib-karte {
     margin-bottom: 12px;
     padding: 10px 10px 12px;
@@ -1391,6 +1400,13 @@ body.buch-offen .leiste.up-leiste {
 .bib-gegner-chips {
     align-items: center;
     margin-bottom: 8px;
+}
+
+/* Letzter Gegner-Chip + „i" als Einheit (START.gegnerChips, 30.09.2026). */
+.bib-chips-ende {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .bib-chip.gegner {

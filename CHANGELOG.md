@@ -3,6 +3,48 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.28.0 — 30.09.2026
+
+**Lieblingswörter · Der Zensor bannt sie.**
+
+- **Deine Lieblingswörter:** Typoluck merkt sich auf dem Gerät, welche
+  Wörter du am häufigsten rätst — der erste Versuch zählt dreifach. Die drei
+  häufigsten (mindestens zweimal geraten) stehen klein mit Schloss in deinem
+  Profil unter der Statistik. Nur du siehst sie.
+- **Der Zensor (Boss des Reiseführers)** bannt zusätzlich deine
+  Lieblingswörter: Sie lassen sich in diesem Kampf nicht eingeben. Tippst du
+  eins, liegt ein Balken „Zensiert“ über der Zeile; Prüfen meldet
+  „Zensiert“. Das „i“ nennt die gebannten Wörter. Wer noch
+  keine Lieblingswörter hat, spielt nur ohne Gelb.
+- Die Lösung des Zensors ist nie eins deiner Lieblingswörter.
+- Nachbesserung: Meldung kurz „Zensiert“, Chips + „i“ passen bei 360 px in eine Zeile; Lieblingswörter nur aus a–z, ä, ö, ü (kein ß).
+- Die Top 3 gehen privat an dein UPCrew-Konto (nicht bei Gästen) — die
+  neue Datenbank-Regel ist seit 30.09.2026 eingespielt. Ebenso wandert die
+  Farbwelt „Grau“ aus 0.27.0 jetzt mit an dein Konto und damit auf deine
+  anderen Geräte.
+
+## 0.27.0 — 29.09.2026
+
+**Alle starten in Grau · Farbwelten über das Level · Würfel nur mit Freiem.**
+
+- **Neue Farbwelt „Grau“** (Schwarz · Weiss · Grau) ist jetzt der Start für
+  alle. Die Kacheln: falsch fast schwarz, richtig helles Grau, vorhanden ein
+  gedämpftes Blau — hell und dunkel gleich.
+- **Einmal für alle:** Wer schon eine Farbwelt gewählt hatte, steht jetzt
+  auch einmal auf Grau. Schrift, Knöpfe und hell/dunkel bleiben. Danach
+  wählst du frei.
+- **Farbwelten schaltest du über das Level frei:** Werkstatt ab Level 2,
+  Studio 3, Feld 11, Tiefsee 21, Gold 40 (so steht es auch im Level-Weg).
+- **Würfel in der Sammlung** wählt nur, was du schon freigeschaltet hast.
+  Gibt es noch nichts zu wählen, ist er aus.
+- **Tastatur besser lesbar:** Die Tasten für ausgeschlossene Buchstaben
+  haben in allen Farbwelten eine gut lesbare Schrift (in Grau dunkel war sie
+  dunkelgrau auf fast Schwarz) und heben sich weiter klar von den normalen
+  Tasten ab.
+- **Nachgebessert vor der Auslieferung:** In Grau hat die Bibliothek keine
+  Buchfarbe mehr — Papier, Buch-Nummer, Buchrücken und Stations-Symbole sind
+  neutral grau (Boss rot und Elite bernstein bleiben als Bedeutung).
+
 ## 0.26.2 — 29.09.2026
 
 **Profil schlanker.**

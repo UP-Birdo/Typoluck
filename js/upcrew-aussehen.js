@@ -20,13 +20,30 @@
  *
  * Was hier liegt (ein JSON unter `upcrew.aussehen`, bei GETEILT = false unter `<app>.aussehen`):
  *     darstellung  "geraet" | "hell" | "dunkel"
- *     farbwelt     "werkstatt" | "studio" | "feld" | "tiefsee" | "gold"
+ *     farbwelt     "grau" | "werkstatt" | "studio" | "feld" | "tiefsee" | "gold"   (Standard seit 29.09.2026c: "grau")
  *     schrift      "S1" … "S6"   (Crew-Schnitte, docs\SCHRIFT-KNOEPFE.md)
  *     knoepfe      "K1" … "K6"
  *     (leseschrift — seit 29.09.2026 WEG, Nutzer: „was macht standart schrift? brauchen wir eigentlich nicht“. Ein
  *      alter Wert im Gerät oder am Konto wird still übergangen und beim nächsten Speichern nicht mehr geschrieben;
  *      es gilt immer die gewählte `schrift`. Die Apps nehmen ihren Schalter „Standard-Schrift“ samt Hilfe heraus.)
  *     stand        Zeitpunkt der letzten Änderung (ms) — die neuere Wahl gewinnt
+ *     umstellung   Merker der einmaligen Umstellungen (Zahl, fehlt = 0). 1 = „Alle auf Grau" ist erledigt.
+ *
+ * EINMALIGE UMSTELLUNG AUF GRAU (Nutzer 29.09.2026 abends: bestehende Spieler „alle auf Schwarz-Weiß"; Farbwelten
+ * werden über das Level neu freigeschaltet, Shop-Käufe bleiben Besitz):
+ *   - Jedes Aussehen OHNE Merker (umstellung < UMSTELLUNG) gilt als „von vorher": seine Farbwelt wird "grau", der
+ *     Merker gesetzt, `stand` bleibt gleich (die Umstellung ist keine neue Wahl). Das gilt für das Gerät (beim ersten
+ *     Lesen, sofort zurückgeschrieben) UND für alles, was vom Konto kommt (`uebernehmen`) — so gewinnt eine NACH der
+ *     Umstellung getroffene Wahl (neuer `stand`, mit Merker) auf jedem Gerät, eine alte Wahl ohne Merker nie.
+ *   - Der Merker steht IM Aussehen-Objekt, also dort, wo es liegt: Gerät `<app>.aussehen` (GETEILT = false) bzw.
+ *     `upcrew.aussehen` (GETEILT = true, dann stellt die zweite App NICHT erneut um), Konto `aussehen` bzw.
+ *     `aussehenJe/<app>` über `fuerKonto()`. Der Umzug aus dem gemeinsamen `upcrew.aussehen` nimmt den Merker mit.
+ *   - Danach wählt jeder frei (`setzen` behält den Merker). `umgestelltJetzt` = true, wenn DIESER Start umgestellt
+ *     hat (für einen Hinweis der App); `kontoBraucht(vomKonto)` = true, wenn das Konto-Objekt noch keinen Merker hat
+ *     (die App schreibt dann einmal `fuerKonto()` ans Konto).
+ *   - Das Konto-Feld `umstellung` und der Wert "grau" brauchen die Regel-Ergänzung (EINBAU-2026-09-29c.md). Fehlt
+ *     sie, filtert die App beides heraus; das Gerät bleibt richtig, ein Konto-Objekt ohne Merker wird bei jedem
+ *     Übernehmen wieder auf Grau gestellt.
  *
  * WIE DIE ANDEREN APPS MITZIEHEN
  *  1. Gleicher Browser: beide Spiele liegen auf https://up-birdo.github.io/ → `localStorage` ist geteilt. Ist die
@@ -66,12 +83,16 @@
 
   const WAHL = {
     darstellung: ["geraet", "hell", "dunkel"],
-    farbwelt: ["werkstatt", "studio", "feld", "tiefsee", "gold"],
+    farbwelt: ["grau", "werkstatt", "studio", "feld", "tiefsee", "gold"],
     schrift: ["S1", "S2", "S3", "S4", "S5", "S6"],
     knoepfe: ["K1", "K2", "K3", "K4", "K5", "K6"],
   };
-  // Standard = frei für alle. Schrift und Knöpfe: Sieger der Bewertung, bis dahin S1/K1.
-  const STANDARD = { darstellung: "geraet", farbwelt: "werkstatt", schrift: "S1", knoepfe: "K1", stand: 0 };
+  // Standard = frei für alle. Schrift und Knöpfe: Sieger der Bewertung, bis dahin S1/K1. Farbwelt seit 29.09.2026c
+  // "grau" (Schwarz · Weiß · Grau, Level 0), vorher "werkstatt".
+  const STANDARD = { darstellung: "geraet", farbwelt: "grau", schrift: "S1", knoepfe: "K1", stand: 0 };
+  // Einmalige Umstellungen (siehe Kopf). 1 = alle auf Grau (29.09.2026c). Eine spätere bekäme 2.
+  const UMSTELLUNG = 1;
+  let umgestelltJetzt = false;
 
   // Wo die Crew-Schriften liegen (relativ zur Seite). Die App setzt es, falls anders: UPCREW_AUSSEHEN.schriftPfad = "…/".
   let schriftPfad = "schrift/";
@@ -99,7 +120,17 @@
       for (const k of Object.keys(WAHL)) if (WAHL[k].indexOf(roh[k]) !== -1) a[k] = roh[k];
       a.stand = Number(roh.stand) > 0 ? Number(roh.stand) : 0;
     }
+    const u = roh && typeof roh === "object" ? Math.floor(Number(roh.umstellung)) : 0;
+    a.umstellung = u > 0 ? u : 0;
     return a;
+  }
+
+  /* Die einmalige Umstellung auf ein (bereinigtes) Aussehen anwenden. → true, wenn sich etwas geändert hat. */
+  function umstellen(a) {
+    if (a.umstellung >= UMSTELLUNG) return false;
+    a.farbwelt = "grau";
+    a.umstellung = UMSTELLUNG;
+    return true;
   }
 
   let aktuell = null;
@@ -119,6 +150,13 @@
         roh = welt ? { farbwelt: welt } : null;
       }
       aktuell = bereinigen(roh);
+      // Einmalige Umstellung: nur ein VORHANDENES Aussehen zählt (sofort zurückschreiben); ein neuer Spieler hat
+      // ohnehin Grau und bekommt den Merker beim ersten Speichern.
+      if (umstellen(aktuell) && roh) {
+        umgestelltJetzt = true;
+        schreib(schluessel(), JSON.stringify(aktuell));
+        if (schluessel() === GEMEINSAM) schreib(ALT_FARBWELT, aktuell.farbwelt);
+      }
     }
     return Object.assign({}, aktuell);
   }
@@ -139,7 +177,10 @@
   function migrieren(alt) {
     if (lies(schluessel())) return false;
     if (schluessel() !== GEMEINSAM && lies(GEMEINSAM)) return false;   // der Umzug aus dem gemeinsamen gewinnt
-    speichern(Object.assign(lesen(), alt || {}, { stand: 0 }));
+    // Die alte Wahl ist „von vorher" → sie wird gleich mit umgestellt (Farbwelt Grau, Rest bleibt).
+    const neu = bereinigen(Object.assign(lesen(), alt || {}, { stand: 0, umstellung: 0 }));
+    if (umstellen(neu) && alt && alt.farbwelt) umgestelltJetzt = true;
+    speichern(neu);
     return true;
   }
 
@@ -187,13 +228,20 @@
 
   /* Konto → Gerät. Gibt true zurück, wenn sich etwas geändert hat. */
   function uebernehmen(vomKonto) {
-    if (!vomKonto || !(Number(vomKonto.stand) > lesen().stand)) return false;
-    speichern(vomKonto);
+    if (!vomKonto || typeof vomKonto !== "object") return false;
+    // Ein Konto-Objekt ohne Merker ist „von vorher": erst umstellen (stand bleibt), dann vergleichen.
+    const neu = bereinigen(vomKonto);
+    umstellen(neu);
+    if (!(neu.stand > lesen().stand)) return false;
+    speichern(neu);
     anwenden();
     melden("konto");
     return true;
   }
   const fuerKonto = () => lesen();
+  /* true, wenn das Konto-Objekt den Merker noch nicht trägt → die App schreibt einmal fuerKonto() ans Konto. */
+  const kontoBraucht = (vomKonto) => !vomKonto || typeof vomKonto !== "object"
+    || !(Math.floor(Number(vomKonto.umstellung)) >= UMSTELLUNG);
 
   // Andere App/Tab im selben Browser hat umgestellt
   if (typeof window !== "undefined") {
@@ -217,7 +265,9 @@
   }
 
   window.UPCREW_AUSSEHEN = {
-    GETEILT, GEMEINSAM, WAHL, STANDARD,
+    GETEILT, GEMEINSAM, WAHL, STANDARD, UMSTELLUNG, START_FARBWELT: STANDARD.farbwelt,
+    get umgestelltJetzt() { return umgestelltJetzt; },
+    kontoBraucht,
     get SCHLUESSEL() { return schluessel(); },
     get app() { return app; },
     set app(name) { const n = String(name || "").toLowerCase(); app = SPIELE.indexOf(n) !== -1 ? n : ""; aktuell = null; },

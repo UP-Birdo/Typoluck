@@ -15,6 +15,8 @@
  *         app: "typoluck",                 // welches Spiel die Vorschau zuerst zeigt
  *         stufe: 4,                        // erreichte Stufe im gemeinsamen Herausforderungs-Pfad
  *         alleFrei: false,                 // z. B. Werkstatt-Modus
+ *         besitz(art, wert) {…},           // optional: true = besessen (z. B. im Shop gekauft) → frei, egal welches
+ *                                          //  Level (seit 29.09.2026c; „Käufe aus dem Shop bleiben Besitz")
  *         sets: { lesen() {…}, schreiben(liste) {…} },  // optional; Standard: Gerät, später am Konto
  *         regale: [ … ]                    // optional: EIGENE Regale nur dieser App (siehe unten)
  *     });
@@ -27,16 +29,24 @@
  * (gekipptes Brett). Wer eine echte Vorschau zeichnen will: opt.vorschau(el, entwurf, app) nach dem Zeichnen.
  *     tab.stufeSetzen(5);  tab.neuZeichnen();  tab.entfernen();
  *
+ * Freischalten (seit 29.09.2026c): frei ist, was `alleFrei`, `besitz(art, wert)` oder STUFEN[art][wert] <= stufe
+ * (stufe = gemeinsames LEVEL) durchlässt; `UPCREW_ANPASSEN.frei(art, wert, stufe, besitz)` rechnet dasselbe für
+ * die App. Grau ist Stufe 0 (immer frei, Start für neue Spieler), die anderen Farbwelten folgen dem Level-Pfad
+ * (upcrew-levelpfad.js). Der WÜRFEL (Zufall, liegt in der Sammlung unten im Balken) wählt NUR Freies — bei Farbwelt,
+ * Schrift und Knöpfen; ist nirgends eine Wahl, ist er aus.
+ *
  * Braucht: upcrew-intro.js (WELTEN), upcrew-farbwelten.js, upcrew-aussehen.js, upcrew-knoepfe.css,
  * upcrew-anpassen.css, die Crew-Schriften unter UPCREW_AUSSEHEN.schriftPfad.
  */
 (function () {
   "use strict";
 
-  // Ab welcher Pfad-Stufe etwas frei ist. PLATZHALTER — der Nutzer legt sie fest, wenn der Pfad gebaut wird.
-  // Reihenfolge je Regal = Reihenfolge der Anzeige.
+  // Ab welchem LEVEL etwas frei ist. PLATZHALTER — der Nutzer legt sie fest. Reihenfolge je Regal = Anzeige.
+  // Farbwelt seit 29.09.2026c („alle auf Schwarz-Weiß"): Grau 0 = Start; die anderen wie der Level-Pfad
+  // (upcrew-levelpfad.js TABELLE: Studio 3, Feld 11, Tiefsee 21, Gold 40). Werkstatt (bisher Standard) = Level 2,
+  // PLATZHALTER (im Pfad kursiv). Vorher: werkstatt 0, studio 2, feld 4, tiefsee 6, gold 9.
   const STUFEN = {
-    farbwelt: { werkstatt: 0, studio: 2, feld: 4, tiefsee: 6, gold: 9 },
+    farbwelt: { grau: 0, werkstatt: 2, studio: 3, feld: 11, tiefsee: 21, gold: 40 },
     schrift: { S1: 0, S4: 2, S2: 3, S3: 5, S5: 7, S6: 8 },
     knoepfe: { K1: 0, K5: 2, K3: 3, K2: 4, K4: 6, K6: 9 },
     darstellung: { geraet: 0, hell: 0, dunkel: 0 },
@@ -44,6 +54,16 @@
   const KNOPF_NAMEN = { K1: "Stufe", K2: "Kissen", K3: "Taste", K4: "Stempel", K5: "Kapsel", K6: "Ecke" };
   const DARST_NAMEN = { geraet: "Gerät", hell: "Hell", dunkel: "Dunkel" };
   const TEILE = ["farbwelt", "schrift", "knoepfe", "darstellung"];
+  const WUERFEL_TEILE = ["farbwelt", "schrift", "knoepfe"];
+
+  /* Frei? alleFrei, Besitz (Shop/Inventar der App) oder Stufe erreicht. Unbekanntes ist gesperrt. */
+  function freiRechnen(art, w, stufe, besitz, alleFrei) {
+    if (alleFrei) return true;
+    if (typeof besitz === "function") { try { if (besitz(art, w)) return true; } catch (e) { /* App-Fehler: nur Stufe */ } }
+    const tabelle = STUFEN[art] || {};
+    if (!(w in tabelle)) return false;
+    return tabelle[w] <= (Number(stufe) || 0);
+  }
   const SETS_SCHLUESSEL = "upcrew.aussehen-sets";
 
   const SYM = {
@@ -60,7 +80,7 @@
       lesen() { try { return JSON.parse(localStorage.getItem(SETS_SCHLUESSEL) || "null") || [null, null, null]; } catch (e) { return [null, null, null]; } },
       schreiben(l) { try { localStorage.setItem(SETS_SCHLUESSEL, JSON.stringify(l)); } catch (e) { /* egal */ } },
     };
-    const frei = (art, w) => !!opt.alleFrei || (STUFEN[art][w] || 0) <= stufe;
+    const frei = (art, w) => freiRechnen(art, w, stufe, opt.besitz, opt.alleFrei);
     A.erlaubtSetzen(frei);
     A.WAHL.schrift.forEach(A.schriftLaden);
 
@@ -99,6 +119,7 @@
         <button type="button" class="up-kn up-haupt upa-uebernehmen"><i class="up-led"></i><span>Übernehmen</span></button>
       </div>`;
     const $ = (s) => ort.querySelector(s);
+    const freieVon = (k) => Object.keys(STUFEN[k]).filter((w) => A.WAHL[k].indexOf(w) !== -1 && frei(k, w));
     const reihe = (r) => ort.querySelector(`[data-regal="${r}"]`);
 
     // ---------- Vorschau ----------
@@ -149,6 +170,10 @@
       knopf.disabled = !!gruende.length || fertig;
       text.textContent = gruende.length ? "Noch gesperrt" : fertig ? "Übernommen" : "Übernehmen";
       $(".upa-zurueck").disabled = fertig;
+      // Würfel aus, wenn es nirgends eine Wahl gibt (z. B. neuer Spieler: nur Grau, S1, K1). Er liegt evtl. schon
+      // im Balken (upcrew-sammlung wuerfelUnten) — gesucht wird am ganzen Ort.
+      const wuerfel = ort.querySelector(".upa-zufall");
+      if (wuerfel) wuerfel.disabled = !WUERFEL_TEILE.some((k) => freieVon(k).length > 1);
     }
 
     // ---------- Regale ----------
@@ -215,14 +240,20 @@
       const ex = e.target.closest(".upa-stueck[data-extra]");
       if (ex) {
         entwurf.extra = Object.assign({}, entwurf.extra, { [ex.dataset.extra]: ex.dataset.wert });
-        if (ex.dataset.extra === "brett" && geteilt) vorschauApp = "blunderluck";   // Brett zeigen, wenn man es antippt
+        // Brett/Figuren zeigen, wenn man sie antippt (Vorschlag BL v0.157.4: auch "figurart")
+        if ((ex.dataset.extra === "brett" || ex.dataset.extra === "figurart") && geteilt) vorschauApp = "blunderluck";
         zeichnen(); return;
       }
       const app = e.target.closest(".upa-mini-seg button");
       if (app) { vorschauApp = app.dataset.app; vorschauZeichnen(); return; }
       if (e.target.closest(".upa-zufall")) {
+        // Nur Freigeschaltetes/Besessenes (Nutzer 29.09.2026). Bis zu 8 Würfe, damit sich möglichst etwas ändert.
         const zufall = (l) => l[Math.floor(Math.random() * l.length)];
-        for (const k of ["farbwelt", "schrift", "knoepfe"]) entwurf[k] = zufall(A.WAHL[k]);
+        const vorher = WUERFEL_TEILE.map((k) => entwurf[k]).join("|");
+        for (let wurf = 0; wurf < 8; wurf++) {
+          for (const k of WUERFEL_TEILE) { const l = freieVon(k); if (l.length) entwurf[k] = zufall(l); }
+          if (WUERFEL_TEILE.map((k) => entwurf[k]).join("|") !== vorher) break;
+        }
         zeichnen(); return;
       }
       if (e.target.closest(".upa-zurueck")) { entwurf = uebernommen(); zeichnen(); return; }
@@ -248,5 +279,5 @@
     };
   }
 
-  window.UPCREW_ANPASSEN = { zeigen, STUFEN };
+  window.UPCREW_ANPASSEN = { zeigen, STUFEN, frei: (art, w, stufe, besitz) => freiRechnen(art, w, stufe, besitz, false) };
 })();

@@ -73,10 +73,16 @@ function blockNach(text, marke, sprache) {
     return text.slice(a, text.indexOf("```", a));
 }
 
-const sicherheit = dateisystem.readFileSync(sicherheitPfad, "utf8");
-const konzept = dateisystem.readFileSync(konzeptPfad, "utf8");
+/* Zeilenenden zählen nicht (Konzept und SICHERHEIT.md liegen seit 29.09.2026 mit CRLF) — wie in
+   Blunderlucks test-regel-12.js (v0.159.0). */
+const sicherheit = dateisystem.readFileSync(sicherheitPfad, "utf8").replace(/\r/g, "");
+const konzept = dateisystem.readFileSync(konzeptPfad, "utf8").replace(/\r/g, "");
 const TEXT_11C = blockNach(sicherheit, "**Die GESAMTE Regel (§11 + §11a + §11b + §11c)", "text");
-const TEXT_12 = blockNach(konzept, "## 11. Regeltext §12", "json");
+/* Geprüft wird gegen die EINGESPIELTE Regel (SICHERHEIT.md §14). Seit Blunderluck v0.159.0 trägt das
+   Konzept Abschnitt 11 die Regel MIT Grau; sie steht in SICHERHEIT.md als §15 (vorbereitet). */
+const TEXT_12 = blockNach(sicherheit, "## 14. Regel §12", "text");
+const TEXT_12_GRAU = blockNach(sicherheit, "## 15. Regel §13", "text");
+const TEXT_KONZEPT = blockNach(konzept, "## 11. Regeltext §12", "json");
 const REGEL_11C = JSON.parse(TEXT_11C);
 const REGEL_12 = JSON.parse(TEXT_12);
 
@@ -230,12 +236,14 @@ const spieler = (fb) => fb.db.spieler;
 
 (async () => {
 
-    await pruefe("Regeltext §12: gültiges JSON, byte-gleich mit Blunderlucks SICHERHEIT.md §14; §11c-Zeilen bis auf die geänderten enthalten", () => {
+    await pruefe("Regeltext §12: gültiges JSON, Konzept = Blunderlucks SICHERHEIT.md §14 bzw. §15 (mit Grau); §11c-Zeilen bis auf die geänderten enthalten", () => {
         wahr(REGEL_12.rules && REGEL_12.rules.spieler, "Regel §12 gelesen");
+        wahr(JSON.parse(TEXT_12_GRAU).rules.spieler, "Regel §12 mit Grau gelesen");
         /* Seit 0.24.0 (Blunderluck v0.155.2): derselbe Text steht in
-           SICHERHEIT.md §14 und im Konzept Abschnitt 11. */
-        gleich(blockNach(sicherheit, "## 14. Regel §12", "text") === TEXT_12, true,
-            "Konzept Abschnitt 11 = SICHERHEIT.md §14");
+           SICHERHEIT.md §14 und im Konzept Abschnitt 11; seit 0.27.0 trägt
+           das Konzept die Regel mit Grau = SICHERHEIT.md §15. */
+        gleich(TEXT_KONZEPT === (TEXT_KONZEPT.indexOf("\"umstellung\"") !== -1 ? TEXT_12_GRAU : TEXT_12), true,
+            "Konzept Abschnitt 11 = SICHERHEIT.md §14 bzw. §15");
         wahr(TEXT_12.indexOf("\"spielzeitOeffentlich\"") !== -1, "Regeltext mit spielzeitOeffentlich (v0.155.2)");
         const zeilen12 = new Set(TEXT_12.split("\n").map((z) => z.trim()));
         const fehlen = TEXT_11C.split("\n").map((z) => z.trim())

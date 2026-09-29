@@ -3,7 +3,8 @@
    In die Apps KOPIEREN, nicht dort abwandeln - Aenderungen hier machen und neu verteilen.
 
    - Bei jedem Start die naechste von sechs Arten (A-F); EIN Zaehler fuer alle Apps (localStorage, gleicher Ursprung).
-   - Farbwelt rotiert nie: gewaehlte Welt aus Option oder localStorage, sonst "werkstatt".
+   - Farbwelt rotiert nie: gewaehlte Welt aus Option oder localStorage, sonst "werkstatt" (Trainer; Blunderluck und
+     Typoluck geben ihre Welt aus UPCREW_AUSSEHEN mit, Standard dort seit 29.09.2026c "grau").
    - Immer dunkel UND hell; die App sagt, welche Fassung gilt.
    - Kein Netz, keine fremde Schrift, kein Inline-Skript (Blunderluck-CSP); nur style-Attribute.
    - Tippen oder Taste ueberspringt; "Bewegung reduzieren" zeigt kurz das Endbild.
@@ -23,6 +24,11 @@
   // ---------- Farbwelten: 7 Bausteine je dunkel und hell ----------
   // bg Grund, fl Flaeche, ta Taste, ink Schrift, lei Leise, ak Akzent, lcd Anzeige
   const WELTEN = {
+    // Grau (seit 29.09.2026c): Schwarz · Weiss · Grau, Start-Farbwelt fuer neue Spieler (Level 0) in beiden Spielen.
+    // Vorlage: entwuerfe\Sammlung-Neu (graustufe). Akzent dunkel = fast weiss, hell = fast schwarz.
+    grau: { name: "Grau",
+      dunkel: { bg: "#141414", fl: "#222222", ta: "#3c3c3c", ink: "#f2f2f2", lei: "#9c9c9c", ak: "#ececec", lcd: "#0b0b0b" },
+      hell:   { bg: "#e2e2e2", fl: "#f8f8f8", ta: "#c8c8c8", ink: "#141414", lei: "#666666", ak: "#1d1d1d", lcd: "#222222" } },
     werkstatt: { name: "Werkstatt",
       dunkel: { bg: "#17181a", fl: "#232427", ta: "#3b3c3f", ink: "#eeebe4", lei: "#8f8c85", ak: "#ff6a2b", lcd: "#0c0d0e" },
       hell:   { bg: "#e6e3dc", fl: "#f5f3ee", ta: "#cdcac2", ink: "#1d1e20", lei: "#76736c", ak: "#ff5b1f", lcd: "#26272a" } },

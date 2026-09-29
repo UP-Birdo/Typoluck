@@ -135,8 +135,11 @@ const BIBLIOTHEK = {
         { titel: "Das Kochbuch", farbe: "#c26a2a", stil: "kochbuch", von: 18, bis: 44, kap: ["B", "D", "A", "C", "X"],
             boss: { name: "Die Küchenchefin", eigen: "Harter Modus · 7 Versuche", regeln: { hart: true, versuche: 7 } } },
         { titel: "Der Reiseführer", farbe: "#2a93a6", stil: "reise", von: 24, bis: 50, kap: ["A", "C", "B", "D", "A", "X"],
-            boss: { name: "Der Zensor", eigen: "Kein Gelb · 7 Versuche · ohne Tipp",
-                regeln: { farben: "ohneGelb", versuche: 7, ohneTipp: true } } },
+            /* Seit 0.28.0 bannt er zusätzlich die Lieblingswörter
+               (js/lieblingswoerter.js); wer noch keine hat, spielt nur
+               ohne Gelb. */
+            boss: { name: "Der Zensor", eigen: "Kein Gelb · Lieblingswörter zensiert · 7 Versuche · ohne Tipp",
+                regeln: { farben: "ohneGelb", versuche: 7, ohneTipp: true, lieblingeBannen: true } } },
         { titel: "Der Krimi", farbe: "#8a3b52", stil: "krimi", von: 30, bis: 56, kap: ["C", "A", "D", "B", "C", "A", "X"],
             boss: { name: "Die Spurenleserin", eigen: "Harter Modus · ohne Grau · ohne Tipp",
                 regeln: { hart: true, tastatur: "ohneGrau", ohneTipp: true } } },
@@ -425,7 +428,7 @@ const BIBLIOTHEK = {
        möglichst nicht). "" = keine Kampf-Station. `filter` (seit 0.21.0,
        Fund „Doppelbuchstabe") = Merkmale für WORTBEWERTUNG.passtMerkmale;
        hat der Bereich kein passendes Wort, die nächstgelegenen passenden. */
-    wortZiehen(b, nr, zufall, vermeiden, filter) {
+    wortZiehen(b, nr, zufall, vermeiden, filter, verboten) {
         let alle = BIBLIOTHEK.woerter(b, nr);
         if (!alle.length) {
             alle = BIBLIOTHEK.naechsteWoerter(b, nr);
@@ -445,6 +448,16 @@ const BIBLIOTHEK = {
             }
             if (gefiltert.length) {
                 alle = gefiltert;
+            }
+        }
+        /* Seit 0.28.0 (Zensor): gebannte Lieblingswörter sind nie die
+           Lösung — sonst wäre der Bann entweder unfair (Lösung nicht
+           eingebbar) oder verriete sie (fehlte in der Bann-Liste). */
+        const nein = Array.isArray(verboten) ? verboten : [];
+        if (nein.length) {
+            const erlaubt = alle.filter((wort) => nein.indexOf(wort) === -1);
+            if (erlaubt.length) {
+                alle = erlaubt;
             }
         }
         if (!alle.length) {
@@ -893,15 +906,23 @@ const BIBLIOTHEK = {
         ohneTipp: { chip: "Ohne Tipp", kurz: "Ohne Tipp", was: "Kein Tipp, keine Tinte",
             gesperrt: "Tipp · Tinte", wie: "Selbst lösen" },
         ohneLeben: { chip: "Ohne Extra-Leben", kurz: "Ohne Leben", was: "Keine Zeile dazu, wenn die letzte fehlt",
-            gesperrt: "Extra-Leben", wie: "Mit den Zeilen haushalten" }
+            gesperrt: "Extra-Leben", wie: "Mit den Zeilen haushalten" },
+        /* Seit 0.28.0 (Zensor): `gesperrt` nennt die eigenen Wörter, wenn
+           sie bekannt sind (`besonderheiten(regeln, lieblinge)`). */
+        lieblingeBannen: { chip: "Lieblingswörter zensiert", kurz: "Zensiert",
+            was: "Deine 3 meistgeratenen Wörter sind gesperrt", gesperrt: "Deine Lieblingswörter",
+            wie: "Neue Startwörter wagen" }
     },
 
     /*
      * Die Besonderheiten aus Regeln (js/bibliothek.js `regeln`): Liste von
      * { id, chip, kurz, was, gesperrt, wie } — mehr oder weniger Versuche,
      * Uhr, dann die Verschärfungen in fester Reihenfolge. Leer = keine.
+     * `lieblinge` (seit 0.28.0, wahlfrei): die Lieblingswörter des
+     * Spielers — eine leere Liste lässt den Bann weg (wer keine hat, spielt
+     * nur ohne Gelb), eine volle nennt die Wörter unter „Gesperrt".
      */
-    besonderheiten(regeln) {
+    besonderheiten(regeln, lieblinge) {
         const r = regeln || {};
         const liste = [];
         const v = BIBLIOTHEK.VERSCHAERFUNGEN;
@@ -923,6 +944,10 @@ const BIBLIOTHEK = {
         if (r.farben === "ersteZeileBlind" || r.farben === "ohneGelb") {
             an.push(r.farben);
         }
+        const bekannt = Array.isArray(lieblinge);
+        if (r.lieblingeBannen && (!bekannt || lieblinge.length > 0)) {
+            an.push("lieblingeBannen");
+        }
         if (r.tastatur === "ohneGrau") {
             an.push("ohneGrau");
         }
@@ -932,19 +957,22 @@ const BIBLIOTHEK = {
         if (r.ohneLeben) {
             an.push("ohneLeben");
         }
-        an.forEach((id) => liste.push(Object.assign({ id: id }, v[id])));
+        an.forEach((id) => liste.push(Object.assign({ id: id }, v[id],
+            id === "lieblingeBannen" && bekannt
+                ? { gesperrt: lieblinge.map((w) => String(w).toUpperCase()).join(" · ") } : {})));
         return liste;
     },
 
     /* Der Gegner einer Station (nur Elite und Boss): { art, name,
-       besonderheiten } — sonst null. */
-    gegner(b, nr) {
+       besonderheiten } — sonst null. `lieblinge` wie bei `besonderheiten`. */
+    gegner(b, nr, lieblinge) {
         const st = BIBLIOTHEK.station(b, nr);
         if (!st || (st.art !== "e" && st.art !== "b")) {
             return null;
         }
         const name = st.art === "e" ? BIBLIOTHEK.elite(b, nr).name : BIBLIOTHEK.buch(b).boss.name;
-        return { art: st.art, name: name, besonderheiten: BIBLIOTHEK.besonderheiten(BIBLIOTHEK.regeln(b, nr)) };
+        return { art: st.art, name: name,
+            besonderheiten: BIBLIOTHEK.besonderheiten(BIBLIOTHEK.regeln(b, nr), lieblinge) };
     },
 
     /*

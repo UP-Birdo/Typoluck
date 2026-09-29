@@ -130,6 +130,24 @@ const SAMMLUNG = {
     /* Die Regale des gemeinsamen Aussehens, die als Sammelstücke zählen. */
     AUSSEHEN_TEILE: ["farbwelt", "schrift", "knoepfe"],
 
+    /* Ist ein Wert des Aussehens frei? Über das Level oder als Besitz. */
+    _aussehenFrei(liste, teil, wert, stufe, besitz) {
+        if (typeof UPCREW_ANPASSEN !== "undefined" && typeof UPCREW_ANPASSEN.frei === "function"
+                && liste === (UPCREW_ANPASSEN.STUFEN || {})[teil]) {
+            return UPCREW_ANPASSEN.frei(teil, wert, stufe, besitz);
+        }
+        if (typeof besitz === "function") {
+            try {
+                if (besitz(teil, wert)) {
+                    return true;
+                }
+            } catch (fehler) {
+                /* Fehler beim Besitz: dann zählt nur die Stufe. */
+            }
+        }
+        return liste[wert] <= (stufe || 0);
+    },
+
     /* Wie viele Stücke einer Gruppe man hat. */
     gruppeZaehlen(gruppe) {
         return {
@@ -145,16 +163,20 @@ const SAMMLUNG = {
      *   stufe     erreichte Stufe (heute 0)
      *   alleFrei  Werkstatt: alles Aussehen zählt als frei
      *   taten     erfüllte Taten (seit 0.13.0, wahlfrei)
+     *   besitz    (art, wert) → true = besessen, egal welches Level (seit
+     *             0.27.0, wahlfrei; „Käufe aus dem Shop bleiben Besitz").
+     * Frei rechnet seit 0.27.0 der Baustein (`UPCREW_ANPASSEN.frei`), wenn er
+     * geladen ist — sonst dieselbe Regel hier (Tests ohne Browser).
      * Liefert { hat, alle, prozent } — prozent ganzzahlig gerundet.
      */
-    anteil(stufen, stufe, alleFrei, taten) {
+    anteil(stufen, stufe, alleFrei, taten, besitz) {
         let hat = 0;
         let alle = 0;
         for (const teil of SAMMLUNG.AUSSEHEN_TEILE) {
             const liste = (stufen && stufen[teil]) || {};
             for (const wert of Object.keys(liste)) {
                 alle += 1;
-                if (alleFrei || liste[wert] <= (stufe || 0)) {
+                if (alleFrei || SAMMLUNG._aussehenFrei(liste, teil, wert, stufe, besitz)) {
                     hat += 1;
                 }
             }
