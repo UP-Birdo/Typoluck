@@ -3,6 +3,23 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.26.2 — 29.09.2026
+
+**Profil schlanker.**
+
+- **Abzeichen:** Der Knopf „Wählen“ ist weg. Du siehst deine drei Plätze —
+  freie mit „+“. Tippe auf einen Platz (auch einen belegten), um ein Abzeichen
+  auszusuchen. Die Liste aller Abzeichen erscheint nur noch dort.
+- **Oben rechts im Profil** steht jetzt die Flamme mit deiner Serie (antippen
+  zeigt die Serien-Karte). Darunter dein Level als Balken — antippen klappt
+  den Level-Weg direkt im Profil auf, noch mal antippen klappt ihn zu.
+- **Kürzer:** „seit Sep 2026“ statt eines ganzen Datums. Die Spielzeit zeigt
+  nur noch dieses Spiel; antippen zeigt die Rechnung mit den anderen Spielen
+  und der Summe.
+- Deine Partien stehen nicht mehr im Profil, sondern nur unter
+  Menü → Verlauf.
+  Verlauf ist dafür jetzt ein eigenes Blatt mit deinen letzten Tageswörtern.
+
 ## 0.26.1 — 29.09.2026
 
 **Profil direkt, ohne Zwischen-Karte · Flamme und Level am Bild · Menü zurück.**

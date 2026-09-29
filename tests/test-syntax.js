@@ -459,9 +459,14 @@ const profilText = lesen("js/bildschirm-profil.js");
 /* Seit 0.26.0 zweistufig (Nutzer 29.09.2026): Vorschau-Karte, dann das
    ausführliche Profil aus dem Baustein — eigen UND fremd; Statistik und
    Partien gibt Typoluck hinein; jede Level-Anzeige → Level-Pfad. */
-pruefe("Profil: ausführlich aus dem Baustein, eigen und fremd, mit Statistik und Partien",
-    /UPCREW_PROFIL\.zeichnen\(ort, PROFIL_BILDSCHIRM\.daten\(spieler, eigenes\), \{\s*eigen: eigenes,[\s\S]*?statistik: statistik,\s*verlauf: verlauf,/
-        .test(profilText));
+pruefe("Profil: ausführlich aus dem Baustein, eigen und fremd, mit Statistik, ohne Partien (seit 0.26.2)",
+    /UPCREW_PROFIL\.zeichnen\(ort, PROFIL_BILDSCHIRM\.daten\(spieler, eigenes\), \{\s*eigen: eigenes,[\s\S]*?statistik: statistik,\s*zusatz: zusatz/
+        .test(profilText) && !/verlauf: verlauf/.test(profilText));
+pruefe("Verlauf: eigenes Blatt über das Drei-Striche-Menü (seit 0.26.2), Spielzeit nur Typoluck mit Rechnung",
+    /verlaufOeffnen\(\) \{\s*return PROFIL_BILDSCHIRM\.verlaufOeffnen\(\);/.test(lesen("js/bildschirm-start.js"))
+        && /UPCREW_BLATT\.oeffnen\(\{ titel: "Verlauf"/.test(profilText)
+        && /wert: FORTSCHRITT\.spielzeitText\(zeit\.spiele\.typoluck \|\| 0\)/.test(profilText)
+        && /summe: FORTSCHRITT\.spielzeitText\(zeit\.summe\)/.test(profilText));
 pruefe("Profil: jeder Tipp direkt ins ausführliche Profil, keine Vorschau-Karte (seit 0.26.1), Start mit Kopfzeile",
     !/UPCREW_PROFIL\.vorschau\(/.test(profilText) && profilText.indexOf("vorschauOeffnen") === -1
         && /UPCREW_PROFIL\.kopfzeile\(ort, PROFIL_BILDSCHIRM\.vorschauDaten\(spieler, true\)/.test(lesen("js/bildschirm-start.js"))
@@ -489,7 +494,7 @@ pruefe("Profil: Werte aus dem Modell (Spiele, Statistik, Level, Titel)",
     ["FORTSCHRITT.spiele(", "FORTSCHRITT.statistik(", "FORTSCHRITT.level(", "FORTSCHRITT.titelVon("]
         .every((t) => profilText.indexOf(t) !== -1));
 pruefe("Profil: Abzeichen aus dem gemeinsamen Baustein, keine eigene Kopie",
-    /UPCREW_ABZEICHEN\.alle\(/.test(profilText) && /UPCREW_ABZEICHEN\.blatt\(/.test(profilText)
+    /UPCREW_ABZEICHEN\.alle\(/.test(profilText) && /UPCREW_PROFIL\.abzeichenWahl\(/.test(profilText)
         && profilText.indexOf("\"button\"") === -1 && !/abzeichen\(eintrag, beiKlick\)/.test(lesen("js/bausteine.js")));
 pruefe("Profil: Orte von Blunderluck aus KONFIG",
     /KONFIG\.andereSpiele\.blunderluck/.test(profilText)

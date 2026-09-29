@@ -4,7 +4,8 @@
  * js/upcrew-blatt.js, wenn da). Neu 29.09.2026.
  *
  * Nutzer 29.09.2026: „ich will auf level klicken können um den level pfad zu sehen“. Geöffnet wird er von JEDER
- * Level-Anzeige: Level-Knopf der Vorschau-Karte, Level-Kachel im ausführlichen Profil, Ring im Kopf der App.
+ * Level-Anzeige: Level-Knopf der Vorschau-Karte, Level-Balken im ausführlichen Profil (klappt ihn dort inline auf),
+ * Ring im Kopf der App.
  *
  * DATEN: das GEMEINSAME Level (Zweig-Modell, Level 10 in Blunderluck = Level 10 in Typoluck). Die App gibt, was
  * `FORTSCHRITT.levelAus(gesamtXp)` ohnehin liefert: { level, imLevel, kosten, anteil }. Die Kosten je Level rechnet
@@ -21,6 +22,8 @@
  *     UPCREW_LEVELPFAD.oeffnen({ level: 14, imLevel: 264, kosten: 425 }, { titel?, bis?, texte?, stufe? });
  *         // öffnet ein Blatt (UPCREW_BLATT), rollt zur aktuellen Stufe; → das Blatt
  *     UPCREW_LEVELPFAD.zeichnen(ort, daten, optionen)   // nur der Inhalt (ohne Blatt), → ort
+ *         // optionen.kopf: false → ohne den Kopf (Level groß + Balken); so klappt ihn das Profil unter seinem
+ *         // Level-Balken auf (seit 29.09.2026 spät, BL v0.157.2 / TL 0.26.2)
  *     UPCREW_LEVELPFAD.stufe(14)   → { level: 14, art: "material", name: "Material Kreide", stern: false, platzhalter: false }
  *     UPCREW_LEVELPFAD.kosten(14)  → 425            UPCREW_LEVELPFAD.ausXp(2100) → { level, imLevel, kosten, anteil }
  *     UPCREW_LEVELPFAD.knopf(element, () => daten)  // macht eine vorhandene Level-Anzeige antippbar (Tastatur mit)
@@ -200,7 +203,8 @@
         ort.classList.add("up-lp");
         ort.textContent = "";
 
-        /* Oben: Level groß, XP-Balken, „noch … XP“. */
+        /* Oben: Level groß, XP-Balken, „noch … XP“ — ohne mit `kopf: false` (im Profil aufgeklappt steht darüber
+           schon der Level-Balken, seit 29.09.2026 spät). */
         const kopf = el("div", "up-lp-kopf");
         const zahl = el("div", "up-lp-gross");
         zahl.appendChild(el("small", "", t.level));
@@ -215,7 +219,9 @@
         mitte.appendChild(el("small", "up-lp-xp", d.imLevel + " / " + d.kosten + " " + t.xp + " · " + t.noch + " "
             + (d.kosten - d.imLevel)));
         kopf.appendChild(mitte);
-        ort.appendChild(kopf);
+        if (o.kopf !== false) {
+            ort.appendChild(kopf);
+        }
 
         /* Der Weg: von oben (Level 1) nach unten, Knoten an einer Linie; die aktuelle Stufe wird in die Mitte gerollt. */
         const weg = el("ol", "up-lp-weg");

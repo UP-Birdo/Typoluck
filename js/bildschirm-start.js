@@ -242,17 +242,10 @@ const START = {
         NAVIGATION.zeigen("profil", null);
     },
 
-    /* „Verlauf" aus dem Drei-Striche-Menü (seit 0.26.1): das eigene Profil, gerollt
-       bis zu den letzten Tageswörtern (Abschnitt „Partien"). */
+    /* „Verlauf" aus dem Drei-Striche-Menü: seit 0.26.2 ein eigenes Blatt mit
+       den letzten Tageswörtern (die Partien stehen nicht mehr im Profil). */
     verlaufOeffnen() {
-        START.profilOeffnen();
-        setTimeout(() => {
-            const ort = document.getElementById("profil-verlauf");
-            const abschnitt = ort && (ort.closest(".up-pf-abschnitt") || ort);
-            if (abschnitt && typeof abschnitt.scrollIntoView === "function") {
-                abschnitt.scrollIntoView({ block: "start" });
-            }
-        }, 0);
+        return PROFIL_BILDSCHIRM.verlaufOeffnen();
     },
 
     /* Der Kopf oben (seit 0.26.0 die kompakte Kopfzeile; seit 0.26.1 Tipp →

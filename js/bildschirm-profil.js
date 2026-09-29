@@ -18,10 +18,18 @@
  *            wie Blunderluck `RANGLISTE.abzeichenListe`).
  *   Stufe 2  dieses Blatt „Profil" (`alsBlatt` in js\navigation.js): das
  *            ausführliche Profil aus UPCREW_PROFIL.zeichnen — Kopf,
- *            Ausgerüstet (+ Wählen), Statistik und Partien (von hier),
- *            Stand, alle Abzeichen, Über, bei Fremden die Freundschaft,
- *            ganz unten die Level-Kachel. Das Zahnrad (nur eigen) oben
- *            rechts → Einstellungen.
+ *            Ausgerüstet, Statistik (von hier), Stand, bei Fremden die
+ *            Freundschaft. Das Zahnrad (nur eigen) oben rechts →
+ *            Einstellungen.
+ *            SEIT 0.26.2 SCHLANK (Nutzer 29.09.2026 spät: „den wählen knopf
+ *            raus … Partien aus profil … flamme oben rechts … level balken …
+ *            dabei seit kompakter … sammlung der abzeichen soll auch raus"):
+ *            kein „Wählen" (jeder der 3 Plätze öffnet die Auswahl), keine
+ *            Partien (die letzten Tageswörter stehen im eigenen Blatt
+ *            „Verlauf", `verlaufOeffnen`, über das Menü), keine Abzeichen-Liste,
+ *            kein „Über" und keine Level-Kachel; oben rechts die Flamme,
+ *            darunter der Level-Balken (klappt den Level-Pfad auf),
+ *            „seit …" und die Spielzeit NUR von Typoluck (Tipp → Rechnung).
  * Jede Level-Anzeige öffnet den LEVEL-PFAD (js/upcrew-levelpfad.js,
  * `levelPfadOeffnen`).
  *
@@ -99,10 +107,7 @@ const PROFIL_BILDSCHIRM = {
 
         const statistik = BAUSTEINE.el("div", "profil-statistik");
         statistik.id = "profil-statistik";
-        const verlauf = BAUSTEINE.el("div", "profil-verlauf");
-        verlauf.id = "profil-verlauf";
         PROFIL_BILDSCHIRM._statistikFuellen(statistik, id, eigenes);
-        PROFIL_BILDSCHIRM._verlaufFuellen(verlauf, id, eigenes);
 
         if (PROFIL_BILDSCHIRM._mitBaustein()) {
             if (eigenes) {
@@ -118,16 +123,14 @@ const PROFIL_BILDSCHIRM = {
             UPCREW_PROFIL.zeichnen(ort, PROFIL_BILDSCHIRM.daten(spieler, eigenes), {
                 eigen: eigenes,
                 beiAbzeichen: eigenes ? () => PROFIL_BILDSCHIRM.abzeichenWahlOeffnen() : undefined,
-                beiAbzeichenTipp: (eintrag) => DIALOG.hinweis(eintrag.titel, "", UPCREW_ABZEICHEN.blatt(eintrag)),
+                beiSerie: (eigenes && typeof START !== "undefined") ? () => START.serieOeffnen() : undefined,
                 beiLevel: () => PROFIL_BILDSCHIRM.levelPfadOeffnen(spieler, eigenes),
                 statistik: statistik,
-                verlauf: verlauf,
                 zusatz: zusatz
             });
             behaelter.appendChild(ort);
         } else {
             behaelter.appendChild(statistik);
-            behaelter.appendChild(verlauf);
         }
 
         if (PROFIL_BILDSCHIRM._verlauf === null && !PROFIL_BILDSCHIRM._fehler) {
@@ -219,7 +222,8 @@ const PROFIL_BILDSCHIRM = {
 
     /* Die Zahlen für das ausführliche Profil: die der Karte, dazu Spielzeit,
        „dabei seit" und „Wo du stehst" (nur eigen; fremd nur die
-       veröffentlichte Spielzeit). */
+       veröffentlichte Spielzeit). Seit 0.26.2 ist `spielzeit.wert` NUR
+       Typoluck; die anderen Spiele und die Summe zeigt der Tipp darauf. */
     daten(spieler, eigenes) {
         const daten = PROFIL_BILDSCHIRM.vorschauDaten(spieler, eigenes !== false);
         daten.spielzeit = null;
@@ -228,7 +232,7 @@ const PROFIL_BILDSCHIRM = {
         if (eigenes === false) {
             const zeilen = typeof SPIELZEIT !== "undefined" ? PROFIL_BILDSCHIRM.spielzeitZeilen(spieler, false) : [];
             if (zeilen.length) {
-                daten.spielzeit = { wert: zeilen[0].replace("Gesamt · ", ""), zeilen: [], oeffentlich: true };
+                daten.spielzeit = { wert: zeilen[0].replace("Gesamt · ", ""), oeffentlich: true };
             }
             return daten;
         }
@@ -236,10 +240,12 @@ const PROFIL_BILDSCHIRM = {
         if (typeof SPIELZEIT !== "undefined") {
             const zeit = SPIELZEIT.spielzeit();
             daten.spielzeit = {
-                wert: FORTSCHRITT.spielzeitText(zeit.summe),
-                zeilen: Object.keys(zeit.spiele).filter((app) => zeit.spiele[app] > 0).sort()
-                    .map((app) => (PROFIL_BILDSCHIRM.SPIEL_NAMEN[app] || app) + " "
-                        + FORTSCHRITT.spielzeitText(zeit.spiele[app])),
+                wert: FORTSCHRITT.spielzeitText(zeit.spiele.typoluck || 0),
+                spiel: "Typoluck",
+                andere: Object.keys(zeit.spiele).filter((app) => app !== "typoluck" && zeit.spiele[app] > 0).sort()
+                    .map((app) => ({ spiel: PROFIL_BILDSCHIRM.SPIEL_NAMEN[app] || app,
+                        wert: FORTSCHRITT.spielzeitText(zeit.spiele[app]) })),
+                summe: FORTSCHRITT.spielzeitText(zeit.summe),
                 oeffentlich: SPIELZEIT._eigener() && SPIELZEIT.oeffentlich()
             };
             daten.seit = zeit.seit ? SPIELZEIT.datumText(zeit.seit) : "";
@@ -443,9 +449,39 @@ const PROFIL_BILDSCHIRM = {
             : (PROFIL_BILDSCHIRM._verlauf || {});
     },
 
-    /* Die Partien (Abschnitt „Partien"): die letzten Tageswörter, neueste
-       zuerst — Datum, Versuche, Punkte. */
-    VERLAUF_ZEILEN: 7,
+    /* Der VERLAUF (seit 0.26.2 ein eigenes Blatt über das Drei-Striche-Menü „Verlauf", Nutzer
+       29.09.2026 spät: „Partien aus profil da der verlauf soll nur unter
+       verlauf stehen"; bis 0.26.1 der Abschnitt „Partien" im Profil): die
+       letzten Tageswörter, neueste zuerst — Datum, Versuche, Punkte. */
+    VERLAUF_ZEILEN: 30,
+
+    verlaufOeffnen() {
+        const ich = ANMELDUNG.ich();
+        if (!ich || typeof UPCREW_BLATT === "undefined") {
+            NAVIGATION.zeigen("profil", null);
+            return null;
+        }
+        if (PROFIL_BILDSCHIRM._fuerId !== ich.id || Date.now() - PROFIL_BILDSCHIRM._geladenAm > 30000) {
+            PROFIL_BILDSCHIRM._verlauf = null;
+            PROFIL_BILDSCHIRM._fehler = "";
+            PROFIL_BILDSCHIRM._fuerId = ich.id;
+        }
+        const ort = BAUSTEINE.el("div", "profil-verlauf verlauf-blatt");
+        const fuellen = () => {
+            if (PROFIL_BILDSCHIRM._verlauf === null) {
+                ort.textContent = "";
+                ort.appendChild(ZUSTAND.laden({ zeilen: 3 }));
+                return;
+            }
+            PROFIL_BILDSCHIRM._verlaufFuellen(ort, ich.id, true);
+        };
+        fuellen();
+        const blatt = UPCREW_BLATT.oeffnen({ titel: "Verlauf", klasse: "blatt-verlauf", inhalt: ort });
+        if (PROFIL_BILDSCHIRM._verlauf === null) {
+            PROFIL_BILDSCHIRM._laden(ich.id, true).then(fuellen);
+        }
+        return blatt;
+    },
 
     _verlaufFuellen(ort, id, eigenes) {
         ort.textContent = "";
@@ -516,10 +552,6 @@ const PROFIL_BILDSCHIRM = {
         const karte = document.getElementById("profil-statistik");
         if (karte && NAVIGATION.sichtbar("profil") && PROFIL_BILDSCHIRM._fuerId === id) {
             PROFIL_BILDSCHIRM._statistikFuellen(karte, id, eigenes);
-            const verlauf = document.getElementById("profil-verlauf");
-            if (verlauf) {
-                PROFIL_BILDSCHIRM._verlaufFuellen(verlauf, id, eigenes);
-            }
         }
     }
 };

@@ -33,30 +33,36 @@
  * STUFE 2 — das AUSFÜHRLICHE Profil (Inhalt eines Blatts):
  *     UPCREW_PROFIL.oeffnen(daten, optionen)      // Blatt „Profil“ (UPCREW_BLATT) mit Zahnrad NUR bei eigen
  *     UPCREW_PROFIL.zeichnen(ort, daten, optionen)   // nur der Inhalt
+ *   SCHLANK seit 29.09.2026 spät (Nutzer: „den wählen knopf raus … Partien aus profil … oben rechts im profil die
+ *   flamme … level balken wieder rein … level pfad aufklappen … dabei seit kompakter … die sammlung der abzeichen
+ *   soll auch raus“; BL v0.157.2 / TL 0.26.2). Die Start-Kopfzeile bleibt davon unberührt.
  *   daten wie oben, dazu wahlfrei:
- *         alle: [eintrag, …],                         // ALLE Abzeichen (UPCREW_ABZEICHEN.alle) für „Abzeichen“
- *         spielzeit: { wert: "2h+", zeilen: ["Blunderluck 1h+"], oeffentlich: false } | null,
- *         seit: "12.08.2026",
+ *         spielzeit: { wert: "1h+", spiel: "Blunderluck",     // NUR dieses Spiel (fremd: die veröffentlichte Summe)
+ *                      andere: [{ spiel: "Typoluck", wert: "20 min" }], summe: "1h+",   // → die Rechnung beim Tipp
+ *                      oeffentlich: false } | null,
+ *         seit: "12.08.2026",                         // steht kompakt als „seit Aug 2026“ (seitKurz)
  *         orte: [{ spiel: "Blunderluck", titel: "Turm · Ort 2", unter: "…", anteil: 0.3, pfad: "…" }]
  *   optionen:
- *         eigen: true,                                // eigenes Profil: Zahnrad, Abzeichen wählen
+ *         eigen: true,                                // eigenes Profil: Zahnrad, Plätze antippbar
  *         beiZahnrad: () => …,                        // → Einstellungen (nur mit eigen)
- *         beiAbzeichen: () => …,                      // Tipp auf „Wählen“/einen Platz → Auswahl (nur eigen)
- *         beiAbzeichenTipp: (eintrag) => …,           // Tipp auf ein Abzeichen in „Abzeichen“ (Stufen zeigen)
- *         beiLevel: () => …,                          // wie bei der Vorschau
+ *         beiAbzeichen: (platz) => …,                 // Tipp auf einen der 3 Plätze (auch belegt) → Auswahl (nur eigen)
+ *         beiSerie: () => …,                          // Tipp auf die Flamme oben rechts → Serien-Karte (wahlfrei)
  *         statistik: element | (ort) => {},           // DIE APP gibt ihre Statistik hinein (Abschnitt „Statistik“)
- *         verlauf: element | (ort) => {},             // DIE APP gibt Partien/Verlauf hinein (Abschnitt „Partien“)
  *         zusatz: [element, …],                       // weitere eigene Abschnitte (UPCREW_PROFIL.abschnitt)
- *         texte: { … }                                // wahlfrei, siehe TEXTE (z. B. verlauf: "Verlauf")
- *   Reihenfolge (fest): Kopf (Ring, Name #Tag, Titel) · Ausgerüstet (3 Plätze) · Statistik · Stand (orte) ·
- *   Partien · Abzeichen (alle) · Über (Spielzeit, dabei seit) · zusatz · LEVEL-KACHEL GANZ UNTEN (antippbar → Pfad).
+ *         texte: { … }                                // wahlfrei, siehe TEXTE
+ *   Reihenfolge (fest): Kopf (Kreis OHNE Level-Zahl, Name #Tag, Titel, „seit …“ · Spielzeit; rechts die Flamme) ·
+ *   Level-BALKEN (Tipp klappt den Level-Pfad darunter auf, erneuter Tipp zu; rollt zur aktuellen Stufe) ·
+ *   Abzeichen (3 Plätze, leere mit „+“; fremd nicht antippbar) · Statistik · Stand (orte) · zusatz.
+ *   Tipp auf die Spielzeit → kleine Rechnung darunter (dieses Spiel, die anderen, Summe).
+ *   ENTFALLEN: „Wählen“-Knopf, Partien (`verlauf` wird übergangen — Verlauf nur über ☰), Abzeichen-Liste (`alle`
+ *   braucht nur noch die Auswahl), „Über“, Level-Kachel unten (`levelKachel` bleibt als Baustein-Teil).
  *
  *     UPCREW_PROFIL.abzeichenWahl(ort, alle, gewaehlt, { plaetze: 3, beiWechsel: (liste) => … });
  *     UPCREW_PROFIL.abschnitt(titel) · ring(daten, gross) · levelKachel(daten, beiLevel) · zahnrad(beiKlick)
  *
  * Kurze Texte: nur Beschriftungen (1–3 Wörter), keine erklärenden Sätze. Kein Spiel-Eigenes: alle Zahlen und Texte
- * kommen von der App; alles über textContent. Alte Aufrufe von `zeichnen` (Stand 28.09.) laufen weiter — der XP-Balken
- * steht jetzt in der Level-Kachel unten, `xpText` ebenso.
+ * kommen von der App; alles über textContent. Alte Aufrufe von `zeichnen` laufen weiter (`xpText` steht im Balken;
+ * alte `spielzeit.zeilen` werden nicht mehr gezeigt).
  */
 (function () {
     "use strict";
@@ -81,6 +87,7 @@
         haken: "M5 12.5 L10 17 L19 7",
         flamme: "M12 3 C15 7 18 9 18 14 A6 6 0 0 1 6 14 C6 11 8 9 9 7 C10 10 11 11 12 11 C12 8 11 6 12 3 Z",
         rechts: "M9 5 L16 12 L9 19",
+        runter: "M5 9 L12 16 L19 9",
         menue: "M4 7 H20 M4 12 H20 M4 17 H20",
         freunde: "M9 11 A3.5 3.5 0 1 0 9 4 A3.5 3.5 0 1 0 9 11 Z M2.5 20 C3 15.5 15 15.5 15.5 20 M16 4.4 A3.3 3.3 0 0 1 16 10.6 M18 14.5 C20.3 15.3 21.3 17 21.5 20"
     };
@@ -89,9 +96,10 @@
     const TEXTE = {
         profil: "Profil",
         oeffnen: "Profil öffnen",
-        abzeichen: "Ausgerüstet",
+        abzeichen: "Abzeichen",
         alle: "Abzeichen",
         waehlen: "Wählen",
+        summe: "Summe",
         leer: "frei",
         statistik: "Statistik",
         verlauf: "Partien",
@@ -570,7 +578,58 @@
         return k;
     }
 
-    /* ---------- Stufe 2: das ausführliche Profil ---------- */
+    /* „Dabei seit“ KOMPAKT (29.09.2026 spät, Nutzer: „dabei seit soll kompakter sein wie z.b. seit 2026“):
+       „12.08.2026“ / „2026-08-12“ → „seit Aug 2026“; nur ein Jahr → „seit 2026“; sonst „seit “ + Text. */
+    const MONATE = ["Jan", "Feb", "März", "Apr", "Mai", "Juni", "Juli", "Aug", "Sep", "Okt", "Nov", "Dez"];
+    function seitKurz(seit) {
+        const s = String(seit || "").trim();
+        if (!s) {
+            return "";
+        }
+        let m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(s);
+        if (m) {
+            return "seit " + (MONATE[Number(m[2]) - 1] || "") + " " + m[3];
+        }
+        m = /^(\d{4})-(\d{2})(?:-\d{2})?/.exec(s);
+        if (m) {
+            return "seit " + (MONATE[Number(m[2]) - 1] || "") + " " + m[1];
+        }
+        return /^seit /.test(s) ? s : "seit " + s;
+    }
+
+    /* Der Level-BALKEN im Profil (29.09.2026 spät): Level-Zahl + Fortschritt; Tipp klappt den Level-Pfad auf. */
+    function levelBalken(daten, texte) {
+        const d = daten || {};
+        const t = Object.assign({}, TEXTE, texte || {});
+        const stand = levelStand(d);
+        const k = el("button", "up-pf-levelkachel up-pf-levelbalken up-lp-antippbar");
+        k.type = "button";
+        k.setAttribute("aria-label", t.level + " " + stand.level + " · " + t.levelPfad);
+        k.setAttribute("aria-expanded", "false");
+        const zahl = el("span", "up-pf-lk-zahl");
+        zahl.appendChild(el("small", "", t.level));
+        zahl.appendChild(el("b", "", stand.level));
+        k.appendChild(zahl);
+        const mitte = el("span", "up-pf-lk-mitte");
+        const balken = el("span", "up-pf-xp");
+        const fuellung = el("i");
+        fuellung.style.width = Math.round(stand.anteil * 100) + "%";
+        balken.appendChild(fuellung);
+        mitte.appendChild(balken);
+        mitte.appendChild(el("small", "up-pf-xp-text", d.xpText || (stand.kosten > 0
+            ? stand.imLevel + " / " + stand.kosten + " XP" : "")));
+        k.appendChild(mitte);
+        k.appendChild(zeichen("runter", "up-pf-zeichen up-pf-klein-zeichen up-pf-lb-pfeil"));
+        return k;
+    }
+
+    /* ---------- Stufe 2: das ausführliche Profil ----------
+       Seit 29.09.2026 spät SCHLANK (Nutzer: „den wählen knopf raus … Partien aus profil … oben rechts die flamme …
+       level balken wieder rein … level pfad aufklappen … dabei seit kompakter … sammlung der abzeichen soll auch
+       raus“; BL v0.157.2 / TL 0.26.2): Kopf (Kreis ohne Level-Zahl · Name #Tag · Titel · „seit …“ und Spielzeit ·
+       rechts die Flamme) · Level-Balken (Tipp → Level-Pfad klappt darunter auf/zu) · 3 Abzeichen-Plätze · Statistik ·
+       Stand · zusatz. Kein „Wählen“, keine Partien, keine Abzeichen-Liste, kein „Über“, keine Level-Kachel.
+       `optionen.verlauf` wird still übergangen. */
     function zeichnen(ort, daten, optionen) {
         const d = daten || {};
         const o = optionen || {};
@@ -579,9 +638,9 @@
         ort.innerHTML = "";
         ort.classList.add("up-pf");
 
-        /* Kopf: Ring, Name + #Tag, Titel. */
+        /* Kopf: Kreis (ohne Level-Zahl), Name + #Tag, Titel, „seit …“ + Spielzeit; rechts die Flamme. */
         const kopf = el("div", "up-pf-kopf");
-        kopf.appendChild(ring(d, true));
+        kopf.appendChild(ring(Object.assign({}, d, { level: null }), true));
         const mitte = el("div", "up-pf-mitte");
         const name = el("div", "up-pf-name", d.name || "");
         if (d.tag) {
@@ -591,39 +650,131 @@
         if (d.titel) {
             mitte.appendChild(el("div", "up-pf-titel", d.titel));
         }
-        kopf.appendChild(mitte);
-        ort.appendChild(kopf);
-
-        /* Ausgerüstet: immer `plaetze` Plätze; leere mit Plus nur im eigenen Profil. */
-        const plaetze = (typeof d.plaetze === "number" && d.plaetze > 0) ? d.plaetze : 3;
-        const beiAbzeichen = () => {
-            if (eigen && typeof o.beiAbzeichen === "function") {
-                o.beiAbzeichen();
-            }
-        };
-        let waehlen = null;
-        if (eigen && typeof o.beiAbzeichen === "function") {
-            waehlen = el("button", "up-pf-h3-knopf", t.waehlen);
-            waehlen.type = "button";
-            waehlen.addEventListener("click", beiAbzeichen);
+        const fakten = el("div", "up-pf-kurzfakten");
+        let rechnung = null;
+        if (d.seit) {
+            const f = el("span", "up-pf-kf up-pf-seit");
+            f.appendChild(zeichen("kalender"));
+            f.appendChild(document.createTextNode(seitKurz(d.seit)));
+            f.title = t.seit + " " + d.seit;
+            fakten.appendChild(f);
         }
-        const az = abschnitt(t.abzeichen, waehlen);
-        /* Kompakt als Zeichen (29.09.2026): der Name beim Antippen (fremd: beiAbzeichenTipp) bzw. als title. */
+        if (d.spielzeit && d.spielzeit.wert) {
+            const z = d.spielzeit;
+            const andere = Array.isArray(z.andere) ? z.andere.filter((a) => a && a.wert) : [];
+            const mitRechnung = andere.length > 0 || !!z.summe;
+            const f = el(mitRechnung ? "button" : "span", "up-pf-kf up-pf-spielzeit");
+            f.appendChild(zeichen("uhr"));
+            f.appendChild(document.createTextNode(z.wert));
+            if (!z.oeffentlich) {
+                f.appendChild(zeichen("schloss", "up-pf-zeichen up-pf-kf-schloss"));
+            }
+            const label = t.spielzeit + (z.spiel ? " " + z.spiel : "") + " " + z.wert
+                + " · " + (z.oeffentlich ? t.oeffentlich : t.privat);
+            f.setAttribute("aria-label", label);
+            f.title = label;
+            if (mitRechnung) {
+                f.type = "button";
+                f.setAttribute("aria-expanded", "false");
+                rechnung = el("div", "up-pf-rechnung");
+                rechnung.hidden = true;
+                const zeile = (links, rechts, klasse) => {
+                    const r = el("div", "up-pf-rechnung-zeile" + (klasse ? " " + klasse : ""));
+                    r.appendChild(el("span", "", links));
+                    r.appendChild(el("b", "", rechts));
+                    rechnung.appendChild(r);
+                };
+                zeile(z.spiel || t.spielzeit, z.wert);
+                for (const a of andere) {
+                    zeile(a.spiel || "", a.wert);
+                }
+                if (z.summe) {
+                    zeile(t.summe, z.summe, "up-pf-rechnung-summe");
+                }
+                f.addEventListener("click", () => {
+                    rechnung.hidden = !rechnung.hidden;
+                    f.setAttribute("aria-expanded", rechnung.hidden ? "false" : "true");
+                });
+            }
+            fakten.appendChild(f);
+        }
+        if (fakten.firstChild) {
+            mitte.appendChild(fakten);
+        }
+        kopf.appendChild(mitte);
+
+        /* Oben rechts die Flamme mit der Serie (Tipp → Serien-Karte, wenn beiSerie). */
+        const serie = ganz(d.serie);
+        const zustand = serie === 0 ? "aus" : (d.heute ? "voll" : "offen");
+        const flamme = el(typeof o.beiSerie === "function" ? "button" : "span",
+            "up-pf-kopf-flamme up-pf-serie up-pf-serie-" + zustand);
+        flamme.appendChild(zeichen("flamme"));
+        flamme.appendChild(el("b", "", serie < 1000 ? String(serie) : Math.floor(serie / 1000) + "k+"));
+        const serieLabel = serieText(serie, d.heute === true);
+        flamme.setAttribute("aria-label", serieLabel);
+        flamme.title = serieLabel;
+        if (typeof o.beiSerie === "function") {
+            flamme.type = "button";
+            flamme.addEventListener("click", () => o.beiSerie());
+        }
+        kopf.appendChild(flamme);
+        ort.appendChild(kopf);
+        if (rechnung) {
+            ort.appendChild(rechnung);   // die Rechnung zur Spielzeit, zu bis zum Tipp
+        }
+
+        /* Level-BALKEN: Tipp klappt den Level-Pfad darunter auf (inline), erneuter Tipp zu. */
+        if (typeof d.level === "number") {
+            const lvAbschnitt = el("div", "up-pf-level-abschnitt");
+            const knopf = levelBalken(d, o.texte);
+            let pfad = null;
+            knopf.addEventListener("click", () => {
+                if (pfad) {
+                    pfad.parentNode.removeChild(pfad);
+                    pfad = null;
+                    knopf.setAttribute("aria-expanded", "false");
+                    knopf.classList.remove("up-pf-levelbalken-auf");
+                    return;
+                }
+                if (typeof UPCREW_LEVELPFAD === "undefined" || typeof UPCREW_LEVELPFAD.zeichnen !== "function") {
+                    levelAuf(d, o)();
+                    return;
+                }
+                pfad = el("div", "up-pf-levelpfad");
+                lvAbschnitt.appendChild(pfad);
+                UPCREW_LEVELPFAD.zeichnen(pfad, levelStand(d), { texte: o.levelTexte, kopf: false });
+                knopf.setAttribute("aria-expanded", "true");
+                knopf.classList.add("up-pf-levelbalken-auf");
+            });
+            lvAbschnitt.appendChild(knopf);
+            ort.appendChild(lvAbschnitt);
+        }
+
+        /* Drei Abzeichen-Plätze: eigen jeder Platz antippbar (leer mit „+“) → Auswahl; fremd nicht antippbar. */
+        const plaetze = (typeof d.plaetze === "number" && d.plaetze > 0) ? d.plaetze : 3;
+        const kannWaehlen = eigen && typeof o.beiAbzeichen === "function";
+        const az = abschnitt(t.abzeichen);
         const reihe = el("div", "up-pf-plaetze up-pf-plaetze-kompakt");
         const liste = Array.isArray(d.abzeichen) ? d.abzeichen.slice(0, plaetze) : [];
         for (let i = 0; i < plaetze; i++) {
             const platz = el("div", "up-pf-platz");
-            if (liste[i]) {
-                platz.appendChild(symbolVon(liste[i], eigen ? beiAbzeichen : (typeof o.beiAbzeichenTipp === "function"
-                    ? () => o.beiAbzeichenTipp(liste[i]) : null)));
-            } else if (eigen) {
-                const leer = el("button", "up-pf-leer up-az-symbol up-az-symbol-leer");
-                leer.type = "button";
-                leer.setAttribute("aria-label", t.abzeichen + " · " + t.leer);
-                leer.title = t.leer;
-                leer.appendChild(zeichen("plus"));
-                leer.addEventListener("click", beiAbzeichen);
-                platz.appendChild(leer);
+            const eintrag = liste[i] || null;
+            if (kannWaehlen) {
+                const k = el("button", "up-pf-platz-knopf" + (eintrag ? "" : " up-pf-leer up-az-symbol up-az-symbol-leer"));
+                k.type = "button";
+                k.setAttribute("aria-label", t.abzeichen + " " + (i + 1) + " · " + (eintrag ? (eintrag.titel || "") : t.leer));
+                if (eintrag) {
+                    const s = symbolVon(eintrag, null);
+                    s.setAttribute("aria-hidden", "true");
+                    k.appendChild(s);
+                } else {
+                    k.title = t.leer;
+                    k.appendChild(zeichen("plus"));
+                }
+                k.addEventListener("click", () => o.beiAbzeichen(i));
+                platz.appendChild(k);
+            } else if (eintrag) {
+                platz.appendChild(symbolVon(eintrag, null));
             } else {
                 platz.appendChild(el("span", "up-pf-leer up-pf-leer-fremd up-az-symbol up-az-symbol-leer"));
             }
@@ -671,71 +822,10 @@
             ort.appendChild(wo);
         }
 
-        /* Partien/Verlauf der App. */
-        if (o.verlauf) {
-            const v = abschnitt(t.verlauf);
-            inhaltEinsetzen(v, o.verlauf);
-            ort.appendChild(v);
-        }
-
-        /* Alle Abzeichen (verdiente hell, andere blass). */
-        const alle = Array.isArray(d.alle) ? d.alle : [];
-        if (alle.length > 0) {
-            const a = abschnitt(t.alle);
-            const raster = el("div", "up-pf-alle");
-            for (const eintrag of alle) {
-                const zelle = el("div", "up-pf-wahl-zelle" + (eintrag.erreicht > 0 ? "" : " up-pf-gesperrt"));
-                zelle.appendChild(kachelVon(eintrag, typeof o.beiAbzeichenTipp === "function"
-                    ? () => o.beiAbzeichenTipp(eintrag) : null));
-                raster.appendChild(zelle);
-            }
-            a.appendChild(raster);
-            ort.appendChild(a);
-        }
-
-        /* Über: Spielzeit, dabei seit. */
-        if (d.spielzeit || d.seit) {
-            const ueber = abschnitt(t.ueber);
-            const fakten = el("div", "up-pf-fakten");
-            if (d.spielzeit) {
-                const f = el("div", "up-pf-fakt up-pf-spielzeit");
-                const kl = el("small");
-                kl.appendChild(zeichen("uhr"));
-                kl.appendChild(document.createTextNode(t.spielzeit + " "));
-                kl.appendChild(zeichen(d.spielzeit.oeffentlich ? "auge" : "schloss"));
-                kl.appendChild(document.createTextNode(d.spielzeit.oeffentlich ? t.oeffentlich : t.privat));
-                f.appendChild(kl);
-                f.appendChild(el("b", "", d.spielzeit.wert || ""));
-                for (const zeile of (d.spielzeit.zeilen || [])) {
-                    f.appendChild(el("span", "up-pf-klein", zeile));
-                }
-                fakten.appendChild(f);
-            }
-            if (d.seit) {
-                const f = el("div", "up-pf-fakt up-pf-seit");
-                const kl = el("small");
-                kl.appendChild(zeichen("kalender"));
-                kl.appendChild(document.createTextNode(t.seit));
-                f.appendChild(kl);
-                f.appendChild(el("b", "", d.seit));
-                fakten.appendChild(f);
-            }
-            ueber.appendChild(fakten);
-            ort.appendChild(ueber);
-        }
-
         for (const zusatz of (o.zusatz || [])) {
             if (zusatz) {
                 ort.appendChild(zusatz);
             }
-        }
-
-        /* Level-Kachel GANZ UNTEN (Nutzer 29.09.2026). */
-        if (typeof d.level === "number") {
-            const lvAbschnitt = abschnitt(t.level);
-            lvAbschnitt.classList.add("up-pf-level-abschnitt");
-            lvAbschnitt.appendChild(levelKachel(d, levelAuf(d, o), o.texte));
-            ort.appendChild(lvAbschnitt);
         }
         return ort;
     }
@@ -811,7 +901,7 @@
     }
 
     const UPCREW_PROFIL = { vorschau: vorschau, kopfzeile: kopfzeile, menue: menue, zeichnen: zeichnen, oeffnen: oeffnen, abzeichenWahl: abzeichenWahl,
-        ring: ring, abschnitt: abschnitt, levelKachel: levelKachel, levelStand: levelStand, zahnrad: zahnrad,
+        ring: ring, abschnitt: abschnitt, levelKachel: levelKachel, levelBalken: levelBalken, seitKurz: seitKurz, levelStand: levelStand, zahnrad: zahnrad,
         TEXTE: TEXTE, PFADE: PFADE };
     if (typeof window !== "undefined") {
         window.UPCREW_PROFIL = UPCREW_PROFIL;
