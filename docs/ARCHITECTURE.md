@@ -23,16 +23,18 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\wertung.js` | Modell | Wertung einer beendeten Runde: Können je Versuch gegen den besten möglichen, Glück getrennt, Figuren Bauer/Springer/König (seit 0.10.0) |
 | `js\fortschritt-kern.js` | Modell (Kern-Baustein) | `FORTSCHRITT_KERN`: Zusammenführen, Serie, öffentlicher Auszug, Spielzeit — byte-gleich aus `..\UPCrew\bausteine\kern`, direkt vor `fortschritt.js` (seit 0.28.1) |
 | `js\fortschritt.js` | Modell + Gerät | Kern + Typolucks eigene Glieder (`Object.assign`). XP, Level, Serie mit Schutz, „Heute", Abzeichen — für alle UPCrew-Spiele unter `upcrew.fortschritt`, je Spieler-Id; **Datenvertrag im Kopf der Datei** (seit 0.10.0) |
-| `js\sammlung.js` | Modell | Die reine Sammlung (Modi) und der Anteil „NN %" (seit 0.9.0) |
+| `js\sammlung.js` | Modell | Die reine Sammlung (Modi, `restGruppen`), welche Kachel-Sets frei sind (Tat oder Level, `kachelsetStuecke` — seit 0.30.0 als Regal des Anpassen-Bausteins) und der Anteil „NN %" (seit 0.30.0: `anteil(tab.zaehlen(), eigene Abschnitte)`) |
 | `js\bausteine.js` | Oberfläche | Knopf, Karte, Kopfzeile, Segment, Zeichen, Tab der Leiste, Sammelstück, Figuren, Level-Ring — **die 3D-Naht** |
 | `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
 | `js\upcrew-farbwelten.js` | Oberfläche | Die UPCrew-Farbwelten → Farb-Variablen an `<html>` (seit 0.7.0; gemeinsamer Baustein, Quelle seit 03.10.2026 `Apps\UPCrew\bausteine`, hier nie abwandeln; lädt mit `upcrew-intro.js` VOR `darstellung.js`) |
 | `js\upcrew-aussehen.js` | Oberfläche | **Ein Aussehen für alle UPCrew-Spiele** (seit 0.8.0): hell/dunkel, Farbwelt, Schrift, Knöpfe, Standard-Schrift unter `upcrew.aussehen`; zieht Blunderluck im selben Browser mit (gemeinsamer Baustein, kopiert, nie abwandeln) |
 | `js\darstellung.js` | Oberfläche | Typolucks Anschluss an `upcrew-aussehen.js` (seit 0.8.0 ohne eigene Werte; einmaliger Umzug der alten Wahl; früher Aufruf beim Laden), Kachelfarben-Sperre (NYT-Look) |
-| `js\upcrew-anpassen.js` | Oberfläche | Anpassen samt Vorschau und Freischalt-Stufen (seit 0.8.0, seit 0.9.0 Teil der Sammlung; gemeinsamer Baustein, kopiert, nie abwandeln; Stil `css\upcrew-anpassen.css`) |
+| `js\upcrew-anpassen.js` | Oberfläche | Anpassen samt Vorschau und Freischalt-Stufen (seit 0.8.0, seit 0.9.0 Teil der Sammlung; gemeinsamer Baustein, kopiert, nie abwandeln; Stil `css\upcrew-anpassen.css`). Seit 0.30.0 „Variante A": Kategorie-Kacheln im 2er-Raster, ein Tipp öffnet ein Blatt mit den Stücken (3er-Raster) — nichts rollt waagrecht; `tab.zaehlen()`, `blattOeffnen(k)`, `probieren(k, wert)` |
+| `js\upcrew-katalog.js` | Daten (Baustein) | Die EINE Liste aller Sammel-Stücke beider Spiele (seit 0.30.0; nur Daten). Typolucks Arten: `kachelset` (= `KACHELSETS.SETS`, Test), `einband` (wirkt noch nicht). Preise stehen darin, gekauft wird noch nichts |
+| `js\upcrew-platz.js` | Oberfläche (Baustein) | Der Platz einer Grafik: jedes Bild in Sammlung und Shop ist ein benannter, austauschbarer Platz (`data-platz`, `data-mass`; seit 0.30.0; Stil `css\upcrew-platz.css`, lädt VOR `upcrew-anpassen`) |
 | `js\aussehen-abgleich.js` | Leitung | Das Aussehen am UPCrew-Konto: `konten/<uid>/aussehen` senden und holen, still bei Fehler (seit 0.8.0) |
 | `js\dialog.js` | Oberfläche | Eigene Dialoge und Kurzmeldung |
-| `js\navigation.js` | Oberfläche | Bildschirme, Menü hinter den drei Balken (seit 0.3.0), Leiste unten (seit 0.5.0; seit 0.9.0 der Baustein `upcrew-leiste.css`: Aufgaben · Sammlung · Start · Rangliste · Bald), Zurück-Taste |
+| `js\navigation.js` | Oberfläche | Bildschirme; seit 0.29.0 das Seiten-Band der Leisten-Tabs (je Tab eine stehende Seite in `#band`, Baustein `js\upcrew-wischen.js`, seit 0.30.0 mit `frueh: true` — die Leiste zieht schon nach, während das losgelassene Band ausrollt; alles ohne Leisten-Knopf im gemeinsamen Ort `#inhalt`), Menü hinter den drei Balken (seit 0.3.0), Leiste unten (seit 0.5.0; seit 0.9.0 der Baustein `upcrew-leiste.css`: Aufgaben · Sammlung · Start · Rangliste · Bald), Zurück-Taste |
 | `js\anmeldung.js` | Bildschirm | Anmelde-Vollbild, Konto anlegen, Name/Passwort ändern |
 | `js\bildschirm-start.js` | Bildschirm | Start mit Spiel-Kacheln und „Heute bei deinen Freunden" |
 | `js\bildschirm-wordle.js` | Bildschirm | Brett, Tastatur, Aufdecken, Ende |
@@ -41,7 +43,7 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\bildschirm-profil.js` | Bildschirm | Spieler und Statistik |
 | `js\bildschirm-einstellungen.js` | Bildschirm | Wortspiel, dieses Gerät, UPCrew-Konto, Über Typoluck (seit 0.5.0) |
 | `js\bildschirm-herausforderungen.js` | Bildschirm | Tab „Aufgaben" = „Heute": Tageswort, Tagesbrett aus Blunderluck, ×1,5, Serie (seit 0.10.0; 0.7.0 bis 0.9.0 Platzhalter) |
-| `js\bildschirm-sammlung.js` | Bildschirm | Tab „Sammlung" (Platz 2): Anpassen-Baustein direkt im Tab, darunter die Modi, Kopf „NN %", Stufe = Level (seit 0.9.0; ersetzt `bildschirm-anpassen.js` von 0.8.0) |
+| `js\bildschirm-sammlung.js` | Bildschirm | Tab „Sammlung" (Platz 2): Anpassen-Baustein direkt im Tab, Kopf „NN %", Stufe = Level (seit 0.9.0; ersetzt `bildschirm-anpassen.js` von 0.8.0). Seit 0.30.0 „Variante A": Kachel-Sets als eigenes Regal des Bausteins (`_kachelsetRegal`, übernommen über `KACHELSETS.waehlen`), ihre Farben in der Vorschau (`_vorschau`), Abzeichen und Modi als Kacheln mit Blatt, `shop: false` (kein Besitz, kein Kauf) |
 | `js\wunsch.js` | Oberfläche | Wunsch-/Fehler-Knopf → GitHub-Formular |
 | `js\werkstatt.js` | Werkzeug | Testzustand für Bildschirmfotos (`?werkstatt`), sonst untätig |
 | `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro samt den Grundfarben der Farbwelten (gemeinsamer Baustein, Quelle seit 03.10.2026 `Apps\UPCrew\bausteine`, hier nie abwandeln; Stil `css\upcrew-intro.css`; lädt seit 0.7.0 früh, vor `darstellung.js`) |

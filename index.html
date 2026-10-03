@@ -134,8 +134,10 @@
     <!-- Seit 0.8.0 (UPCrew-Runde 3): die Knopf-Familien K1-K6 und der Tab
          „Anpassen" (seit 0.9.0 Teil der Sammlung), seit 0.9.0 (Runde 4)
          die Leiste unten — ebenfalls kopierte Bausteine, NACH dem eigenen
-         Stil, damit ihre Regeln gelten. -->
+         Stil, damit ihre Regeln gelten. Seit 0.30.0 (Sammlung „Variante A")
+         der Platz einer Grafik (upcrew-platz.css) VOR upcrew-anpassen.css. -->
     <link rel="stylesheet" href="css/upcrew-knoepfe.css">
+    <link rel="stylesheet" href="css/upcrew-platz.css">
     <link rel="stylesheet" href="css/upcrew-anpassen.css">
     <link rel="stylesheet" href="css/upcrew-sammlung.css">
     <link rel="stylesheet" href="css/upcrew-abzeichen.css">
@@ -162,10 +164,19 @@
 
     <p class="hinweis" id="hinweis" role="status" hidden></p>
 
-    <!-- Die Seite (Leisten-Tabs, Spiel). Profil, Freunde, Einstellungen und
-         Verwaltung öffnen seit 0.25.0 als Blatt im Halter „ebenen" darüber
-         (js\upcrew-blatt.js); das Menü hinter den drei Balken ist weg. -->
-    <main class="inhalt" id="inhalt"></main>
+    <!-- DAS SEITEN-BAND (seit 0.29.0, gemeinsamer Baustein
+         js\upcrew-wischen.js): Jeder Bildschirm mit Leisten-Knopf hat hier
+         seine eigene, stehenbleibende Seite — die Seiten baut
+         js\navigation.js (NAVIGATION.bandBauen) aus NAVIGATION.LEISTE. Der
+         Browser rollt das Band waagrecht und rastet an jeder Seite ein. -->
+    <div class="band up-band" id="band"></div>
+    <!-- Alles ohne Leisten-Knopf (die Runde): der gemeinsame Ort in seinem
+         eigenen Rollbereich. Solange er offen ist, ist das Band verborgen.
+         Profil, Freunde, Einstellungen und Verwaltung öffnen seit 0.25.0 als
+         Blatt im Halter „ebenen" darüber (js\upcrew-blatt.js). -->
+    <div class="ohne-leiste" id="ohne-leiste" hidden>
+        <main class="inhalt" id="inhalt"></main>
+    </div>
     <div id="ebenen"></div>
 
     <!-- Die Leiste unten (seit 0.5.0): steht fest auf JEDEM Bildschirm —
@@ -207,6 +218,10 @@
     <script src="js/upcrew-aussehen.js"></script>
     <script src="js/darstellung.js"></script>
     <script src="js/kachelsets.js"></script>
+    <!-- Seit 0.30.0: der Katalog aller Sammel-Stücke und der Platz einer
+         Grafik — beide VOR upcrew-anpassen.js und upcrew-sammlung.js. -->
+    <script src="js/upcrew-katalog.js"></script>
+    <script src="js/upcrew-platz.js"></script>
     <script src="js/upcrew-anpassen.js"></script>
     <script src="js/upcrew-abzeichen.js"></script>
     <script src="js/upcrew-abzeichen-spiele.js"></script>

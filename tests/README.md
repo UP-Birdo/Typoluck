@@ -24,9 +24,11 @@ Kopien. Sie gehen nie ins Netz — die Datenbank spielt eine Attrappe.
 | `test-darstellung.js` | Hell/dunkel und Standard-Schrift über das gemeinsame Aussehen (`upcrew-aussehen.js`), der einmalige Umzug der alten Wahl, Kachelfarben-Sperre für jede Kachelfarbe und jede Farbwelt |
 | `test-knoepfe.js` | `BAUSTEINE.knopf` vergibt `up-kn`-Klassen und Leuchtpunkt (in einem Ersatz-DOM); kein eigener Stil gibt diesen Knöpfen Rundung, Kante, Schatten oder Rahmen |
 | `test-aussehen-abgleich.js` | Aussehen am Konto: senden (mit Marke, fremde Felder bleiben), holen (neuer gewinnt), nichts für Gäste, still bei abgelehnter Regel |
-| `test-sammlung.js` | Sammlung (seit 0.9.0): Modi 3/5 wie im Auftrag, nichts gesperrt, was es heute gibt; Anteil „NN %" aus den echten Stufen des Anpassen-Bausteins |
+| `test-sammlung.js` | Sammlung, das Modell (seit 0.9.0): Modi wie im Auftrag, nichts gesperrt, was es heute gibt; Kachel-Sets frei über Tat oder Level. Seit 0.30.0: die Kachel-Sets als Regal (`kachelsetStuecke` = `KACHELSETS.SETS` = Katalog-Art `kachelset`), die reine Sammlung ohne sie (`restGruppen`), „NN %" = Zahl des Bausteins plus eigene Abschnitte (`anteil`) |
+| `test-sammlung-blatt.js` | Die Sammlung „Variante A" (seit 0.30.0): der ECHTE Bildschirm `js\bildschirm-sammlung.js` mit den ECHTEN Bausteinen (Anpassen, Sammlung, Katalog, Platz, Blatt, Abzeichen, Aussehen) an einem kleinen DOM (`kleines-dom.js`) — Kacheln statt Regal-Reihen, Kachel-Sets als erstes Regal, Abzeichen und Modi als Kacheln mit Blatt, „NN %" = `tab.zaehlen()` plus eigene Abschnitte, ein freies Kachel-Set im Blatt wählen und übernehmen (ohne Rückfrage), ein gesperrtes nur ansehen, „wird erspielt" statt Level, die Vorschau im Set des Entwurfs; Einbindung (`index.html`, `sw.js`) und kein waagrechter Rollbereich im Stil |
 | `test-wertung.js` | Wertung einer Runde (seit 0.10.0): Erwartung und Gruppen, Können 0–100, bester Versuch 100, „Lösung stand fest" wird nicht gewertet (Probelauf TISCH/BLUME/BLICK), Figuren nach den Schwellen, eine echte Runde unter 3 s |
 | `test-fortschritt.js` | Fortschritt (seit 0.10.0): Level-Kosten, XP je Quelle nur einmal am Tag, ×1,5 für beide Spiele, Serie mit Schutz, Belohnungen nach Level 10, additiver Datenvertrag, Speicher je Spieler unter `upcrew.fortschritt`; seit 0.28.1 der Kern-Baustein: Typoluck liefert jedes Glied aus `FORTSCHRITT_KERN_ERWARTET`, und `js\fortschritt.js` schreibt kein Glied des Kerns noch einmal |
+| `test-wischen.js` | Das Seiten-Band (seit 0.29.0, neu geschrieben): die Einbindung in `js\navigation.js` mit dem ECHTEN Baustein `js\upcrew-wischen.js` an einem nachgebauten Band (Rollstand, `scroll`, `scrollend`) — Band = Leiste in ihrer Reihenfolge, stiller Tab ohne Seite, Zeichnen sofort/Leerlauf/`kommt`, `wechseln` ruft `zu`, jede Seite behält ihren Inhalt, Sperre (Runde, Anmeldung, Dialog, Buch, Intro) über den Wächter, ein Bildschirm ohne Leisten-Knopf verbirgt das Band, Blatt über der Seite, Rückfall ohne Band. Seit 0.30.0 die Wahl `frueh: true`: losgelassen über der Hälfte = EIN Wechsel sofort, beim Einrasten kein zweiter (bedienbar wird die neue Seite erst beim Einrasten), kein eigenes Rollen dabei, nicht beim Tipp, nicht gesperrt, zurückgezogen = zurück. Die reine Logik und das Verhalten des Bausteins selbst prüft UPCrew (`..\UPCrew\tests\test-wischen-band.js`, `test-wischen-geraet.js`) |
 | `test-regel-12.js` | Regel §12 Phase A (seit 0.22.0): die echten Dateien gegen eine Firebase mit der ECHTEN Regel (`regel-nachbau.js`, Kopie aus Blunderluck) — Umstieg alt → §12 → nachziehen → zurück; Lesen, Anmelden, Auswahl, Freund suchen nur Name#Nummer, Nummer ändern, Anlegen, Gast, Marke, Fortschritt + Auszug, Auszug = voller Fortschritt. Regeltexte aus `Apps/Blunderluck/SICHERHEIT.md` und `Apps/UPCrew/docs/DATENBANK-KONZEPT-12.md` (nur gelesen; fehlen sie, prüft der Test nichts) |
 
 **Blicke aus dem Projekt hinaus** (Stand 03.10.2026, 0.28.1; fehlt der
@@ -38,7 +40,7 @@ Test vermerkt und fällt weg, sobald die Sache in UPCrew liegt:
 
 | Test | Liest | Verbleib |
 |---|---|---|
-| `test-oberflaeche-7.js` | `..\UPCrew\bausteine\js`, `css` und (seit 0.28.1) `kern` — Byte-Vergleich der Bausteine, `konto.js` bis auf den Schlüssel | bleibt (UPCrew) |
+| `test-oberflaeche-7.js` | `..\UPCrew\bausteine\js`, `css` und (seit 0.28.1) `kern` — Byte-Vergleich der Bausteine (seit 0.30.0 auch Katalog, Platz, Anpassen, Wischen, Shop-Stil), `konto.js` bis auf den Schlüssel | bleibt (UPCrew) |
 | `test-regel-12.js`, `test-lieblingswoerter.js` | `..\UPCrew\docs\DATENBANK-KONZEPT-12.md` | bleibt (UPCrew) |
 | `test-wunsch.js` | `..\Blunderluck\js\wunsch.js` (Zeichenliste) | vorerst |
 | `test-regel-12.js` | `..\Blunderluck\SICHERHEIT.md` (eingespielte Regeltexte) | vorerst, bis die Regeltexte in UPCrew liegen |
@@ -51,6 +53,11 @@ Weggefallen mit 0.28.1 (die Sache ist jetzt ein Kern-Baustein): `test-konto.js`
 
 `pruefer.js` ist das kleine Prüfwerkzeug (`pruefe`, `gleich`, `spaeter`,
 `fazit`). **Neue Prüfungen gehören VOR `fazit()`** — dahinter laufen sie nie.
+
+`kleines-dom.js` (seit 0.30.0) ist ein kleines DOM für Tests, die echte
+Bausteine mit Markup aus Text fahren (`innerHTML`, `outerHTML`,
+`querySelector`, `closest`, `click()` mit Aufsteigen). Es misst und zeichnet
+nichts — wie es aussieht und ob etwas rollt, zeigt nur der Browser.
 
 `kern.js` (seit 0.28.1) stellt `FORTSCHRITT_KERN` und das zusammengesetzte
 `FORTSCHRITT` als globale Namen bereit, wie der Browser sie sieht. **Jeder

@@ -474,8 +474,10 @@ Object.assign(START, {
          * „von oben nach unten wischen soll die buchseiten wechseln, nicht
          * von rechts nach links"): nach oben = nächstes Kapitel, nach unten
          * = voriges. Waagrecht gehört das Wischen wieder dem Tab-Wechsel
-         * (gemeinsamer Baustein upcrew-wischen; `.buch` steht deshalb nicht
-         * mehr in NAVIGATION.WISCHEN_SPERREN). `BUCH_WISCH` rechnet es.
+         * (gemeinsamer Baustein upcrew-wischen). Das bedienbare Buch gibt
+         * es nur im Vollbild — das liegt ausserhalb des Seiten-Bandes, und
+         * solange es offen ist, ist das Band gesperrt (`body.buch-offen`,
+         * NAVIGATION.wischenErlaubt). `BUCH_WISCH` rechnet es.
          */
         if (vorschau) {
             return buchEl;

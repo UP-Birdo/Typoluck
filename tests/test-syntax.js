@@ -58,7 +58,12 @@ const KOPIEN = [
     /* seit 0.28.1: die Kern-Bausteine aus ..\UPCrew\bausteine\kern — die
        Konten-Rückwand (Klasse SpeicherKonten) und der gemeinsame Teil des
        Fortschritts */
-    "js/speicher-konten.js", "js/fortschritt-kern.js"
+    "js/speicher-konten.js", "js/fortschritt-kern.js",
+    /* seit 0.30.0 (Sammlung „Variante A", UPCrew-Runde 8): der Katalog aller
+       Sammel-Stücke (nur Daten; er nennt die Werte S1 … K6 des Aussehens —
+       das ist seine Aufgabe, keine in der App festgeschriebene Stufe) und
+       der Platz einer Grafik */
+    "js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -300,11 +305,16 @@ gleich("Manifest: Name", JSON.parse(lesen("manifest.webmanifest")).name, "Typolu
  * Platzhalter"; „in die drei Balken auch Einstellungen")
  * ------------------------------------------------------------------ */
 
+/* Seit 0.29.0 (Seiten-Band): Das Band der Leisten-Tabs und der Rollbereich
+   für alles ohne Leisten-Knopf stehen nebeneinander; danach der Halter der
+   Blätter, dann die Leiste — alle ausserhalb voneinander. */
 pruefe("Die Leiste steht fest in index.html, ausserhalb des Inhalts, als Baustein up-leiste",
-    /<\/main>\s*(<div id="ebenen"><\/div>\s*)?(<!--[\s\S]*?-->\s*)?<nav class="leiste up-leiste" id="leiste"/.test(index));
-/* Seit 0.25.0: der Halter der Blätter direkt nach der Seite, ausserhalb von ihr. */
+    /<\/main>\s*<\/div>\s*<div id="ebenen"><\/div>\s*(<!--[\s\S]*?-->\s*)?<nav class="leiste up-leiste" id="leiste"/.test(index));
 pruefe("Der Halter der Blätter steht neben der Seite (nicht darin)",
-    /<main class="inhalt" id="inhalt"><\/main>\s*<div id="ebenen"><\/div>/.test(index));
+    /<div class="ohne-leiste" id="ohne-leiste" hidden>\s*<main class="inhalt" id="inhalt"><\/main>\s*<\/div>\s*<div id="ebenen"><\/div>/.test(index));
+pruefe("Das Seiten-Band steht leer in index.html, vor dem gemeinsamen Ort (die Seiten baut NAVIGATION.bandBauen)",
+    /<div class="band up-band" id="band"><\/div>\s*(<!--[\s\S]*?-->\s*)?<div class="ohne-leiste"/.test(index)
+        && /document\.getElementById\("band"\)\);/.test(lesen("js/app.js")));
 const leisteText = (lesen("js/navigation.js").match(/LEISTE: \[([\s\S]*?)\],/) || ["", ""])[1];
 const leisteEintraege = leisteText.split("\n").filter((z) => z.indexOf("{") !== -1);
 /* Seit 0.9.0 (UPCrew-Runde 4) in BEIDEN Spielen gleich:
@@ -342,16 +352,23 @@ pruefe("Sammlung: Gerüst aus UPCREW_SAMMLUNG, Tab direkt im rollenden Inhalt",
         .test(sammlungText));
 pruefe("Sammlung zeigt den gemeinsamen Tab im Ort des Gerüsts, als Typoluck, Stufe aus einer Stelle",
     /UPCREW_ANPASSEN\.zeigen\(geruest\.ort, \{\s*app: "typoluck",\s*stufe: SAMMLUNG_BILDSCHIRM\.stufe\(\)/.test(sammlungText));
+/* Seit 0.30.0 (Variante A): „NN %" = tab.zaehlen() des Bausteins plus die
+   eigenen Abschnitte — zusammengezählt im Modell, nicht mehr über die
+   Stufen-Tabelle. Der Kopf wird weiter beim Zeichnen gemessen. */
 pruefe("Sammlung: reine Sammlung übers Gerüst VOR den Balken, Anteil aus dem Modell, Vorschau bündig",
-    /geruest\.restEinsetzen\(/.test(sammlungText) && /SAMMLUNG\.anteil\(UPCREW_ANPASSEN\.STUFEN/.test(sammlungText)
+    /geruest\.restEinsetzen\(/.test(sammlungText)
+        && /SAMMLUNG\.anteil\(SAMMLUNG_BILDSCHIRM\._tab\.zaehlen\(\), abschnitte\)/.test(sammlungText)
         && /geruest\.anteilSetzen\(anteil\.hat, anteil\.alle\)/.test(sammlungText) && /geruest\.obenSetzen\(\)/.test(sammlungText));
 pruefe("Sammlung: Abzeichen als erste Gruppe, aus dem gemeinsamen Baustein",
     /UPCREW_SAMMLUNG\.rest\(\);[\s\S]*?UPCREW_SAMMLUNG\.abzeichenTeil\(FORTSCHRITT\.abzeichen\(/.test(sammlungText));
 pruefe("Sammlung: Teile, Gitter und Stücke aus dem Gerüst",
     /UPCREW_SAMMLUNG\.teil\(/.test(sammlungText) && /UPCREW_SAMMLUNG\.gitter\(\)/.test(sammlungText)
         && /UPCREW_SAMMLUNG\.stueck\(/.test(sammlungText));
-pruefe("Sammlung räumt beim Verlassen auf",
-    /verlassen: \(\) => SAMMLUNG_BILDSCHIRM\.entfernen\(\)/.test(sammlungText));
+/* Seit 0.29.0 (Seiten-Band): Die Sammlung bleibt als Seite im Band stehen —
+   aufgeräumt wird beim Verlassen nur noch ohne Band (gemeinsamer Ort). */
+pruefe("Sammlung bleibt im Band stehen (räumt beim Verlassen nur ohne Band auf)",
+    /verlassen: \(\) => \{\s*if \(!NAVIGATION\.imBand\("sammlung"\)\) \{\s*SAMMLUNG_BILDSCHIRM\.entfernen\(\);/.test(sammlungText)
+        && /zeigen\(behaelter\) \{[\s\S]{0,400}?SAMMLUNG_BILDSCHIRM\.entfernen\(\);/.test(sammlungText));
 {
     const bildschirme = lesen("css/stil-bildschirme.css").replace(/\/\*[\s\S]*?\*\//g, "");
     pruefe("Sammlung: kein eigenes Gerüst mehr (Kopf, Ort, Balken, Vorschau-Lage kommen aus dem Baustein)",
@@ -360,8 +377,16 @@ pruefe("Sammlung räumt beim Verlassen auf",
     pruefe("Sammlung: Stellschrauben des Gerüsts in css\\stil.css",
         /--up-sm-rand: var\(--inhalt-rand\);/.test(lesen("css/stil.css"))
             && /--up-sm-leiste: calc\(var\(--leiste-hoehe\) \+ env\(safe-area-inset-bottom, 0px\)\);/.test(lesen("css/stil.css")));
+    /* Seit 0.29.0 rollt die Seite des Bandes (bzw. `.ohne-leiste`), nie
+       der Ort `.inhalt` darin — und die Seite hat keinen Innenabstand, damit
+       `--oben-frei` und `--up-sm-leiste` genau einmal gelten. */
     pruefe("Die Seite selbst rollt: kein Inhalt mit eigenem Rollbereich",
         !/\.inhalt[^{]*\{[^}]*overflow(-y)?:\s*(auto|scroll)/.test(lesen("css/stil.css") + bildschirme));
+    pruefe("Die Seiten des Bandes haben keinen eigenen Innenabstand",
+        !/up-band-seite[^{]*\{[^}]*padding/.test(lesen("css/stil.css") + bildschirme
+            + lesen("css/stil-blatt.css") + lesen("css/stil-bibliothek.css") + lesen("css/stil-wordle.css")));
+    pruefe("Das Dokument rollt nicht mehr (html, body: feste Höhe, overflow hidden)",
+        /html,\s*body \{\s*height: 100%;\s*overflow: hidden;/.test(lesen("css/stil.css")));
     const stile = indexStile;
     pruefe("Sammlungs- und Abzeichen-Stil laden NACH upcrew-anpassen.css",
         stile.indexOf("css/upcrew-sammlung.css") > stile.indexOf("css/upcrew-anpassen.css")
@@ -578,7 +603,7 @@ for (const datei of ["js/bildschirm-shop.js", "js/bildschirm-sammlung.js", "js/b
 pruefe("Kein Menü hinter den drei Balken mehr",
     !/menueBauen|_menueOeffnen/.test(liste("js").filter((d) => d.endsWith(".js")).map(lesen).join("")));
 pruefe("Ein Seitenwechsel schliesst alle Blätter",
-    /_wechseln\(id, parameter\) \{\s*\/\*[^*]*\*\/\s*NAVIGATION\._alleSchliessen\(\);/.test(navText)
+    /_wechseln\(id, parameter, sofort\) \{\s*\/\*[^*]*\*\/\s*NAVIGATION\._alleSchliessen\(\);/.test(navText)
         && /UPCREW_BLATT\.alleSchliessen\(\)/.test(navText));
 pruefe("Blätter über den Baustein, eingerichtet mit Halter und Seite",
     /UPCREW_BLATT\.einrichten\(\{ ebenen: ebenenEl, haupt: inhaltEl, verlauf: true, horchen: false \}\)/.test(navText)

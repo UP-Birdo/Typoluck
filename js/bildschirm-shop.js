@@ -36,7 +36,13 @@ const SHOP_BILDSCHIRM = {
             zeichen: "shop",
             imMenue: false,
             zeigen: (behaelter) => SHOP_BILDSCHIRM.zeigen(behaelter),
-            verlassen: () => { SHOP_BILDSCHIRM._griff = null; }
+            /* Seit 0.29.0 (Seiten-Band): Die Seite bleibt im Band stehen,
+               der Griff gilt weiter. Nur ohne Band wie bis 0.28.1. */
+            verlassen: () => {
+                if (!NAVIGATION.imBand("shop")) {
+                    SHOP_BILDSCHIRM._griff = null;
+                }
+            }
         });
     },
 

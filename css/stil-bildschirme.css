@@ -343,12 +343,13 @@
 /* ------------------------------------------------------------------ *
  * Sammlung (seit 0.9.0, bis 0.8.1 „Anpassen"). SEIT 0.15.9 kommt das
  * GANZE Gerüst — Kopf „Sammlung NN %", klebende Vorschau mit Abschluss,
- * Regale, reine Sammlung, Balken „Zurück · Übernehmen" — aus den
- * gemeinsamen Bausteinen css\upcrew-sammlung.css + css\upcrew-anpassen.css
- * (Apps\UPCrew\bausteine, gleich in Blunderluck). Stellschrauben in
- * css\stil.css (`--up-sm-rand`, `--up-sm-leiste`, `--oben-frei`). Hier
- * steht nur, was Typoluck eigen ist: das Bild eines Stücks und die
- * Markierung des getragenen Kachel-Sets.
+ * seit 0.30.0 Kategorie-Kacheln mit Blatt statt der Regal-Reihen (nichts
+ * rollt waagrecht), Balken „Zurück · Übernehmen" — aus den gemeinsamen
+ * Bausteinen css\upcrew-sammlung.css + css\upcrew-anpassen.css +
+ * css\upcrew-platz.css (Apps\UPCrew\bausteine, gleich in Blunderluck).
+ * Stellschrauben in css\stil.css (`--up-sm-rand`, `--up-sm-leiste`,
+ * `--oben-frei`). Hier steht nur, was Typoluck eigen ist: das Bild eines
+ * Stücks der reinen Sammlung (Modi).
  * ------------------------------------------------------------------ */
 
 /* Die Leiste „Neue Version" (seit 0.15.2, js\aktualisierung.js): oben in
@@ -377,7 +378,7 @@
 }
 
 /* Der Inhalt rückt unter die Leiste, damit nichts verdeckt ist. */
-body:has(#werkstatt-kachelwahl) #inhalt {
+body:has(#werkstatt-kachelwahl) .inhalt {
     padding-top: calc(96px + var(--oben-frei));
 }
 
@@ -404,12 +405,9 @@ body:has(#werkstatt-kachelwahl) #inhalt {
     }
 }
 
-/* Das Stück, das man trägt (seit 0.14.0, Kachel-Sets): doppelte Kante. */
-.stueck-aktiv {
-    box-shadow: 0 0 0 2px var(--karte), 0 0 0 4px var(--haupt);
-}
-
-/* Das Bild eines Stücks: Kürzel (oder „?") auf einer kleinen Kachel. */
+/* Das Bild eines Stücks der reinen Sammlung (Modi): Kürzel (oder „?") auf
+   einer kleinen Kachel. Die Kachel-Sets sind seit 0.30.0 ein Regal des
+   Anpassen-Bausteins — ihre Markierung „getragen" kommt von dort. */
 .stueck-bild {
     display: grid;
     place-items: center;

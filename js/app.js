@@ -151,9 +151,10 @@ const APP = {
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
         SAMMLUNG_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
-        /* Seit 0.25.0 mit dem Halter der Blätter (js/upcrew-blatt.js). */
+        /* Seit 0.25.0 mit dem Halter der Blätter (js/upcrew-blatt.js), seit
+           0.29.0 mit dem Seiten-Band der Leisten-Tabs (js/upcrew-wischen.js). */
         NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"),
-            document.getElementById("ebenen"));
+            document.getElementById("ebenen"), document.getElementById("band"));
 
         /* 4. Spielerliste */
         APP._gestartet = true;

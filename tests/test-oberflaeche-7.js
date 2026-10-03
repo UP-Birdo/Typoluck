@@ -432,7 +432,14 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
             .concat(["js/upcrew-abzeichen.js", "css/upcrew-abzeichen.css", "js/upcrew-sammlung.js", "css/upcrew-sammlung.css",
                 /* seit 0.26.0 geändert in der Quelle */
                 "js/upcrew-flamme.js", "css/upcrew-flamme.css", "js/upcrew-muenzen.js", "js/upcrew-shop.js",
-                "js/upcrew-aussehen.js"])) {
+                "js/upcrew-aussehen.js",
+                /* seit 0.30.0 (Sammlung „Variante A", Leiste zieht früher
+                   nach): neu Katalog und Platz, ersetzt Anpassen und
+                   Wischen (upcrew-sammlung steht oben schon); der Shop
+                   bleibt der bisherige */
+                "js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css",
+                "js/upcrew-anpassen.js", "css/upcrew-anpassen.css",
+                "js/upcrew-wischen.js", "css/upcrew-wischen.css", "css/upcrew-shop.css"])) {
             const quelle = pfad.join(QUELLE, datei);
             pruefe("Byte-gleich mit UPCrew\\bausteine: " + datei,
                 fs.existsSync(quelle) && fs.readFileSync(quelle).equals(fs.readFileSync(pfad.join(wurzel, datei))));

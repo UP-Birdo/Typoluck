@@ -13,7 +13,9 @@
  * Rechnet nichts selbst — Punkte und Plätze kommen aus js\rangliste.js.
  * Geladen wird bei jedem Öffnen und auf Knopfdruck; einen Dauer-Abgleich
  * gibt es hier nicht (die Tageswertung ändert sich selten, und jede Abfrage
- * kostet Datenvolumen).
+ * kostet Datenvolumen). Seit 0.29.0 steht die Rangliste als Seite im Band:
+ * Wird sie nur VORBEREITET (Leerlauf, Nachbarseite beim Wischen), zeichnet
+ * sie sich, lädt aber nicht — geladen wird erst, wenn sie offen ist.
  */
 
 const RANGLISTE_BILDSCHIRM = {
@@ -70,12 +72,17 @@ const RANGLISTE_BILDSCHIRM = {
     zeigen(behaelter) {
         RANGLISTE_BILDSCHIRM._behaelter = behaelter;
         RANGLISTE_BILDSCHIRM._zeichnen();
-        RANGLISTE_BILDSCHIRM._laden();
+        /* Nur die offene Seite lädt (seit 0.29.0). */
+        if (NAVIGATION.aktuell === "rangliste") {
+            RANGLISTE_BILDSCHIRM._laden();
+        }
     },
 
     _zeichnen() {
         const behaelter = RANGLISTE_BILDSCHIRM._behaelter;
-        if (!behaelter || NAVIGATION.aktuell !== "rangliste") {
+        /* Im Band hat die Rangliste ihre eigene Seite und darf jederzeit
+           zeichnen; im gemeinsamen Ort nur, solange sie offen ist. */
+        if (!behaelter || !NAVIGATION.zeichenbar("rangliste")) {
             return;
         }
         /* Wer gerade im Suchfeld der Freunde schreibt, verliert es nicht
@@ -128,7 +135,10 @@ const RANGLISTE_BILDSCHIRM = {
                 technik: RANGLISTE_BILDSCHIRM._fehler, nochmal: () => RANGLISTE_BILDSCHIRM._laden()
             }));
         } else if (!RANGLISTE_BILDSCHIRM._stand || RANGLISTE_BILDSCHIRM._stand.zeitraum !== RANGLISTE_BILDSCHIRM.zeitraum) {
-            karte.appendChild(ZUSTAND.laden({ zeilen: 5, nochmal: () => RANGLISTE_BILDSCHIRM._laden() }));
+            /* `ruht`: Die Seite ist nur vorbereitet und lädt gerade nicht —
+               dann ohne die Uhr, die nach 10 s „Keine Antwort" zeigt. */
+            karte.appendChild(ZUSTAND.laden({ zeilen: 5, nochmal: () => RANGLISTE_BILDSCHIRM._laden(),
+                ruht: !RANGLISTE_BILDSCHIRM._laedt }));
         } else {
             RANGLISTE_BILDSCHIRM._tabelleEinsetzen(karte);
         }

@@ -59,7 +59,9 @@ const START = {
             zeichen: "start",
             imMenue: false,
             zeigen: (behaelter, parameter) => START.zeigen(behaelter, parameter),
-            /* Seit 0.23.2: das Vollbild-Buch geht beim Verlassen zu. */
+            /* Seit 0.23.2: das Vollbild-Buch geht beim Verlassen zu. Es
+               liegt ÜBER der Seite (am <body>), nicht in ihr — die Seite
+               selbst bleibt seit 0.29.0 im Band stehen. */
             verlassen: () => START.buchVerlassen && START.buchVerlassen()
         });
     },

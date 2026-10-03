@@ -16,11 +16,20 @@
  * „Kachel-Sets"); nichts wird gesperrt, was vorher frei war (Auftrag:
  * „Nichts sperren, was heute frei ist").
  *
- * DER ANTEIL „NN %" oben rechts zählt über alle Regale des Aussehens
- * (Farbwelt, Schrift, Knöpfe — Darstellung nicht, die ist immer ganz frei
- * und kein Sammelstück) und über die Gruppen hier. Ab welcher Stufe ein
- * Stück des Aussehens frei ist, steht allein im Baustein
- * (`UPCREW_ANPASSEN.STUFEN`) — hier wird es nur gelesen, nie festgeschrieben.
+ * SEIT 0.30.0 (Sammlung „Variante A", UPCrew-Runde 8): Die Kachel-Sets
+ * sind ein REGAL des Anpassen-Bausteins (Kachel mit Blatt, Probe,
+ * Übernehmen) und stehen nicht mehr in der reinen Sammlung. Diese Datei
+ * bleibt das Modell dafür, welches Set FREI ist (Tat oder Level,
+ * `kachelsetStuecke`); die Liste der Sets führt der gemeinsame Katalog
+ * (js\upcrew-katalog.js, Art „kachelset") — tests\test-sammlung.js hält
+ * beide gleich.
+ *
+ * DER ANTEIL „NN %" oben rechts (seit 0.30.0): was der Anpassen-Baustein
+ * über alle Sammel-Kacheln zählt (`tab.zaehlen()`, samt Kachel-Sets) plus
+ * die eigenen Abschnitte der reinen Sammlung (Abzeichen, Modi). Die eigene
+ * Rechnung über die Stufen-Tabelle des Bausteins gibt es nicht mehr. Ab
+ * welcher Stufe ein Stück des Aussehens frei ist, steht allein im Baustein
+ * (`UPCREW_ANPASSEN.STUFEN`) — nie hier.
  */
 
 const SAMMLUNG = {
@@ -53,6 +62,10 @@ const SAMMLUNG = {
         {
             id: "kachelsets",
             titel: "Kachel-Sets",
+            /* Seit 0.30.0: kein Abschnitt der reinen Sammlung mehr, sondern
+               das Regal „kachelset" des Anpassen-Bausteins (= die Art im
+               Katalog). */
+            regal: "kachelset",
             stuecke: [
                 { id: "papier", name: "Papier", da: true, anziehbar: true, text: "Das Grund-Set" },
                 { id: "leder", name: "Leder", da: false, anziehbar: true, tat: "zweiter-versuch", text: "Kachel-Set" },
@@ -83,6 +96,29 @@ const SAMMLUNG = {
                     || (alleFrei === true && stueck.anziehbar === true)
             }))
         }));
+    },
+
+    /* Die Gruppen der REINEN Sammlung (seit 0.30.0): alle ohne `regal` —
+       heute die Modi. Mit dem Stand des Spielers wie `gruppen`. */
+    restGruppen(taten, alleFrei, level) {
+        return SAMMLUNG.gruppen(taten, alleFrei, level).filter((gruppe) => !gruppe.regal);
+    },
+
+    /* Die Kachel-Sets als Stücke für das Regal des Anpassen-Bausteins
+       (seit 0.30.0): [{ wert, name, frei }] in der Reihenfolge der Anzeige.
+       `frei` = was `gruppen` „da" nennt: Papier immer, sonst über die Tat
+       oder das Level; mit `alleFrei` (Werkstatt) alle. */
+    kachelsetStuecke(taten, alleFrei, level) {
+        const stuecke = [];
+        for (const gruppe of SAMMLUNG.gruppen(taten, alleFrei, level)) {
+            if (gruppe.regal !== "kachelset") {
+                continue;
+            }
+            for (const stueck of gruppe.stuecke) {
+                stuecke.push({ wert: stueck.id, name: stueck.name, frei: stueck.da === true });
+            }
+        }
+        return stuecke;
     },
 
     /* Ab welchem Level welches Kachel-Set frei ist — als Tabelle wie
@@ -127,27 +163,6 @@ const SAMMLUNG = {
         return treffer;
     },
 
-    /* Die Regale des gemeinsamen Aussehens, die als Sammelstücke zählen. */
-    AUSSEHEN_TEILE: ["farbwelt", "schrift", "knoepfe"],
-
-    /* Ist ein Wert des Aussehens frei? Über das Level oder als Besitz. */
-    _aussehenFrei(liste, teil, wert, stufe, besitz) {
-        if (typeof UPCREW_ANPASSEN !== "undefined" && typeof UPCREW_ANPASSEN.frei === "function"
-                && liste === (UPCREW_ANPASSEN.STUFEN || {})[teil]) {
-            return UPCREW_ANPASSEN.frei(teil, wert, stufe, besitz);
-        }
-        if (typeof besitz === "function") {
-            try {
-                if (besitz(teil, wert)) {
-                    return true;
-                }
-            } catch (fehler) {
-                /* Fehler beim Besitz: dann zählt nur die Stufe. */
-            }
-        }
-        return liste[wert] <= (stufe || 0);
-    },
-
     /* Wie viele Stücke einer Gruppe man hat. */
     gruppeZaehlen(gruppe) {
         return {
@@ -157,34 +172,26 @@ const SAMMLUNG = {
     },
 
     /*
-     * Der Anteil über alles: Aussehen + Gruppen.
-     *   stufen    UPCREW_ANPASSEN.STUFEN (aus dem Baustein, von aussen
-     *             hereingereicht — so bleibt das Modell ohne Browser testbar)
-     *   stufe     erreichte Stufe (heute 0)
-     *   alleFrei  Werkstatt: alles Aussehen zählt als frei
-     *   taten     erfüllte Taten (seit 0.13.0, wahlfrei)
-     *   besitz    (art, wert) → true = besessen, egal welches Level (seit
-     *             0.27.0, wahlfrei; „Käufe aus dem Shop bleiben Besitz").
-     * Frei rechnet seit 0.27.0 der Baustein (`UPCREW_ANPASSEN.frei`), wenn er
-     * geladen ist — sonst dieselbe Regel hier (Tests ohne Browser).
-     * Liefert { hat, alle, prozent } — prozent ganzzahlig gerundet.
+     * Der Anteil über alles (seit 0.30.0):
+     *   zahl        { hat, alle } aus dem Anpassen-Baustein (`tab.zaehlen()`:
+     *               alle Sammel-Kacheln samt Kachel-Sets)
+     *   abschnitte  [{ hat, alle }, …] — die eigenen Abschnitte der reinen
+     *               Sammlung (Abzeichen, Modi), so wie sie auf ihren Kacheln
+     *               stehen
+     * Liefert { hat, alle, prozent } — prozent ganzzahlig gerundet. Was
+     * keine Zahl ist, zählt nicht. (Bis 0.29.0 rechnete diese Funktion
+     * selbst über die Stufen-Tabelle des Bausteins.)
      */
-    anteil(stufen, stufe, alleFrei, taten, besitz) {
-        let hat = 0;
-        let alle = 0;
-        for (const teil of SAMMLUNG.AUSSEHEN_TEILE) {
-            const liste = (stufen && stufen[teil]) || {};
-            for (const wert of Object.keys(liste)) {
-                alle += 1;
-                if (alleFrei || SAMMLUNG._aussehenFrei(liste, teil, wert, stufe, besitz)) {
-                    hat += 1;
-                }
-            }
-        }
-        for (const gruppe of SAMMLUNG.gruppen(taten, false, stufe)) {
-            const zahl = SAMMLUNG.gruppeZaehlen(gruppe);
-            hat += zahl.hat;
-            alle += zahl.alle;
+    anteil(zahl, abschnitte) {
+        const ganz = (wert) => {
+            const n = Number(wert);
+            return (isFinite(n) && n > 0) ? Math.floor(n) : 0;
+        };
+        let hat = ganz(zahl && zahl.hat);
+        let alle = ganz(zahl && zahl.alle);
+        for (const abschnitt of abschnitte || []) {
+            hat += ganz(abschnitt && abschnitt.hat);
+            alle += ganz(abschnitt && abschnitt.alle);
         }
         return { hat: hat, alle: alle, prozent: alle ? Math.round(hat / alle * 100) : 0 };
     }

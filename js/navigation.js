@@ -1,6 +1,6 @@
 /*
- * navigation.js — welcher Bildschirm gerade zu sehen ist: als SEITE im
- * Hauptelement oder als BLATT darüber.
+ * navigation.js — welcher Bildschirm gerade zu sehen ist: als SEITE (im
+ * Band der Leisten-Tabs oder im gemeinsamen Ort) oder als BLATT darüber.
  *
  * Jeder Bildschirm meldet sich mit `NAVIGATION.anmelden({...})` an:
  *
@@ -14,6 +14,26 @@
  *         zeigen(behaelter, parameter),  // baut seinen Inhalt in den Behälter
  *         verlassen()                    // optional: aufräumen (Tastatur usw.)
  *     }
+ *
+ * DAS SEITEN-BAND (seit 0.29.0, UPCrew-Runde 8, gemeinsamer Baustein
+ * js\upcrew-wischen.js; Nutzer 03.10.2026: „als wären die seiten nicht
+ * wirklich getrent einzelene seiten sondern eine breite wo man durch scrollen
+ * kann wagrecht und an fix punkten hängen bleiebt"). Jeder Bildschirm MIT
+ * Leisten-Knopf hat seine EIGENE, stehenbleibende Seite im Band (`#band`,
+ * gebaut in `bandBauen` aus `LEISTE`): `zeigen(behaelter, …)` bekommt den
+ * Ort dieser Seite. Der Browser rollt das Band waagrecht und rastet ein; der
+ * Baustein ruft danach `wechseln` — derselbe Weg wie ein Tipp auf die Leiste.
+ *   - Gezeichnet wird die offene Seite sofort, die anderen im Leerlauf nach
+ *     dem Start und spätestens, wenn der Baustein `kommt(id)` meldet. Beim
+ *     Einrasten (und beim Tipp) wird die Seite neu gezeichnet wie bisher.
+ *   - `verlassen()` baut eine Leisten-Seite nicht ab — sie bleibt stehen.
+ *   - Alles OHNE Leisten-Knopf (Runde, Rückfall-Seiten) zeichnet weiter in
+ *     den gemeinsamen Ort (`#inhalt`); solange so ein Bildschirm offen ist,
+ *     ist das Band verborgen und der Baustein ruht.
+ *   - Das Dokument rollt nicht mehr: jede Seite des Bandes und der Rollbereich
+ *     um den gemeinsamen Ort rollen für sich (css\stil.css, „Der Rahmen").
+ *   - Ohne Band-Element oder ohne den Baustein (Tests) zeichnet wie bis 0.28.1
+ *     jeder Bildschirm in den gemeinsamen Ort.
  *
  * Neue Spiele und neue Bildschirme kommen so dazu, ohne dass diese Datei
  * sich ändert: anmelden, fertig.
@@ -60,6 +80,16 @@ const NAVIGATION = {
     aktuell: null,
     _parameter: null,
 
+    /* Das Seiten-Band (seit 0.29.0): das Element, der Griff des Bausteins
+       (zu, auffrischen …), je Leisten-Bildschirm der Ort in seiner Seite,
+       welche Seiten schon gezeichnet sind, und der Rollbereich um den
+       gemeinsamen Ort. */
+    _bandEl: null,
+    _band: null,
+    _seiten: {},
+    _gebaut: {},
+    _freiEl: null,
+
     /* Zahlen an Knöpfen (z. B. offene Freundesanfragen), je Bildschirm-Id.
        Gezeigt werden sie dort, wo der Knopf steht (`marke(id)`). */
     _marken: {},
@@ -98,11 +128,11 @@ const NAVIGATION = {
         NAVIGATION._reihenfolge.push(bildschirm.id);
     },
 
-    starten(inhaltEl, startId, leisteEl, ebenenEl) {
+    starten(inhaltEl, startId, leisteEl, ebenenEl, bandEl) {
         NAVIGATION._inhaltEl = inhaltEl;
+        NAVIGATION.bandBauen(bandEl);
         if (leisteEl) {
             NAVIGATION.leisteBauen(leisteEl);
-            NAVIGATION.wischenEinrichten(inhaltEl);
         }
         if (ebenenEl && typeof UPCREW_BLATT !== "undefined") {
             NAVIGATION._ebenenEl = ebenenEl;
@@ -120,6 +150,10 @@ const NAVIGATION = {
                eben ohne Zurück-Taste. */
         }
         NAVIGATION._wechseln(startId, null);
+        /* Erst jetzt das Band anmelden: Es beginnt ohne Weg auf der offenen
+           Seite. Danach die übrigen Seiten im Leerlauf zeichnen. */
+        NAVIGATION.wischenEinrichten();
+        NAVIGATION._imLeerlaufBauen();
     },
 
     _beiZurueck(zustand, startId, ereignis) {
@@ -136,7 +170,8 @@ const NAVIGATION = {
         }
     },
 
-    /* Einen Bildschirm zeigen. `ersetzen` = kein neuer Verlaufseintrag. */
+    /* Einen Bildschirm zeigen. `ersetzen` = kein neuer Verlaufseintrag (das
+       Band springt dann ohne Weg zur Seite). */
     zeigen(id, parameter, ersetzen) {
         const bildschirm = NAVIGATION._bildschirme[id];
         if (!bildschirm) {
@@ -156,7 +191,7 @@ const NAVIGATION = {
         } catch (fehler) {
             /* wie oben */
         }
-        NAVIGATION._wechseln(id, parameter || null);
+        NAVIGATION._wechseln(id, parameter || null, !!ersetzen);
     },
 
     zurueck() {
@@ -168,7 +203,9 @@ const NAVIGATION = {
     },
 
     /* Den gerade sichtbaren Bildschirm neu bauen — nach neuen Daten; offene
-       Blätter bauen sich mit neu (ihre Rollposition bleibt). */
+       Blätter bauen sich mit neu (ihre Rollposition bleibt). Seit 0.29.0
+       trifft das nur die EIGENE Seite: Die anderen Seiten des Bandes bleiben
+       stehen und werden neu gezeichnet, wenn das Band auf ihnen einrastet. */
     auffrischen() {
         if (NAVIGATION.aktuell) {
             NAVIGATION._bauen(NAVIGATION.aktuell, NAVIGATION._parameter);
@@ -323,48 +360,195 @@ const NAVIGATION = {
         }
     },
 
-    /*
-     * WISCHEN (seit 0.15.10, gemeinsamer Baustein js\upcrew-wischen.js):
-     * wischbar sind die Tabs der Leiste in ihrer Reihenfolge. Gewechselt
-     * wird über denselben Weg wie ein Tipp auf die Leiste. Nicht gewischt
-     * wird während einer Runde (`body.im-spiel`), in der Anmeldung, im Intro
-     * und bei offenen Dialogen; nie auf dem Spielfeld, der Tastatur und
-     * Umschaltern (`WISCHEN_SPERREN`, dazu die Sperren des Bausteins).
-     * Blätter liegen ausserhalb des Hauptelements — auf ihnen wird nicht
-     * gewischt.
-     */
-    WISCHEN_SPERREN: ".wordle-brett, .tastatur, .segment, .menue, .werkstatt-kachelwahl, .bib-blatt-grund",
+    /* ---------------------------------------------------------------- *
+     * Das Seiten-Band (seit 0.29.0, gemeinsamer Baustein
+     * js\upcrew-wischen.js — Vertrag in dessen Kopf)
+     * ---------------------------------------------------------------- */
 
+    /*
+     * Baut je Leisten-Eintrag EINE Seite in das Band: die Seite
+     * (`.up-band-seite`, `data-up-seite="<Bildschirm-Id>"`) rollt senkrecht
+     * für sich, darin der Ort (`.inhalt`, `data-bildschirm`), in den der
+     * Bildschirm zeichnet — so gelten alle Regeln `.inhalt[data-bildschirm=…]`
+     * weiter. Ein stiller Platz (`platzhalter`) bekommt keine Seite. Ohne
+     * Band-Element oder ohne den Baustein bleibt alles beim gemeinsamen Ort.
+     */
+    bandBauen(bandEl) {
+        NAVIGATION._bandEl = null;
+        NAVIGATION._band = null;
+        NAVIGATION._seiten = {};
+        NAVIGATION._gebaut = {};
+        NAVIGATION._freiEl = null;
+        if (!bandEl || typeof UPCREW_WISCHEN === "undefined") {
+            return;
+        }
+        NAVIGATION._bandEl = bandEl;
+        const eltern = NAVIGATION._inhaltEl ? NAVIGATION._inhaltEl.parentNode : null;
+        NAVIGATION._freiEl = (eltern && eltern.classList && eltern.classList.contains("ohne-leiste"))
+            ? eltern : NAVIGATION._inhaltEl;
+        bandEl.innerHTML = "";
+        for (const eintrag of NAVIGATION.LEISTE) {
+            if (eintrag.platzhalter || !eintrag.id || !NAVIGATION._bildschirme[eintrag.id]) {
+                continue;
+            }
+            const seite = document.createElement("section");
+            seite.className = "band-seite up-band-seite";
+            seite.dataset.upSeite = eintrag.id;
+            seite.setAttribute("aria-label", eintrag.text);
+            const ort = document.createElement("div");
+            ort.className = "inhalt";
+            ort.dataset.bildschirm = eintrag.id;
+            seite.appendChild(ort);
+            bandEl.appendChild(seite);
+            NAVIGATION._seiten[eintrag.id] = ort;
+        }
+    },
+
+    /* Hat der Bildschirm eine eigene Seite im Band? */
+    imBand(id) {
+        return !!NAVIGATION._seiten[id];
+    },
+
+    /* Darf der Bildschirm jetzt in seinen Ort zeichnen (auch nach einem
+       späten Laden)? Eine Leisten-Seite immer — sie steht im Band; alles
+       andere nur, solange es offen ist (der gemeinsame Ort gehört sonst
+       schon dem nächsten Bildschirm). */
+    zeichenbar(id) {
+        return NAVIGATION.aktuell === id || NAVIGATION.imBand(id);
+    },
+
+    /* Die Tabs für den Baustein: die Leiste in ihrer Reihenfolge, ein
+       Platzhalter als stiller Tab (er steht nicht im Band). */
     wischenTabs() {
         return NAVIGATION.LEISTE.map((eintrag) => (eintrag.platzhalter
             ? { id: "platz-" + eintrag.text.toLowerCase(), still: true } : eintrag.id));
     },
 
+    /*
+     * Gesperrt ist das Band während einer Runde (`body.im-spiel`), in der
+     * Anmeldung, im Intro, bei offenen Dialogen und solange das Buch im
+     * Vollbild offen ist. Ein offenes Blatt oder eine Karte sperrt der
+     * Baustein selbst (html.up-bl-offen).
+     */
     wischenErlaubt() {
         const body = document.body;
         return !body.classList.contains("im-spiel")
             && !body.classList.contains("anmeldung-offen")
             && !body.classList.contains("dialog-offen")
+            && !body.classList.contains("buch-offen")
             && !(typeof ANMELDUNG !== "undefined" && ANMELDUNG.offen)
             && !document.querySelector(".upi:not([hidden])");
     },
 
-    wischenEinrichten(inhaltEl) {
-        if (typeof UPCREW_WISCHEN === "undefined" || !inhaltEl) {
+    wischenEinrichten() {
+        const bandEl = NAVIGATION._bandEl;
+        if (typeof UPCREW_WISCHEN === "undefined" || !bandEl) {
             return null;
         }
-        return UPCREW_WISCHEN.an(inhaltEl, {
+        NAVIGATION._band = UPCREW_WISCHEN.an(bandEl, {
             tabs: () => NAVIGATION.wischenTabs(),
             aktiv: () => NAVIGATION.aktuell,
-            /* Derselbe Weg wie ein Tipp auf die Leiste (leisteBauen). */
+            /* Derselbe Weg wie ein Tipp auf die Leiste (leisteBauen);
+               `_wechseln` ruft am Ende `band.zu(id)`. Seit 0.30.0 kommt der
+               Ruf FRÜH (`frueh`, unten): schon während das losgelassene
+               Band zur Nachbarseite ausrollt, nicht erst nach dem
+               Einrasten. `_wechseln` darf das Rollen darum nicht stören —
+               es rollt selbst nichts (`band.zu` schweigt, solange die
+               Leiste voraus ist), zeichnet die ankommende Seite im selben
+               Zug neu (nie leer) und lässt ihren Rollstand stehen. */
             wechseln: (id) => {
                 if (NAVIGATION.aktuell !== id) {
                     NAVIGATION.zeigen(id, null);
                 }
             },
             erlaubt: () => NAVIGATION.wischenErlaubt(),
-            sperren: NAVIGATION.WISCHEN_SPERREN
+            /* Die Seite kommt gleich in Sicht: jetzt zeichnen, falls der
+               Leerlauf noch nicht so weit war. */
+            kommt: (id) => {
+                NAVIGATION._seiteBauen(id);
+            },
+            /* Die Leiste zieht früher nach (seit 0.30.0, Nutzer 03.10.2026):
+               Sobald der Finger oben ist und das Band die Hälfte zur
+               Nachbarseite überschritten hat, kommt `wechseln`; beim
+               Einrasten dann kein zweites Mal. */
+            frueh: true
         });
+        NAVIGATION._sperreBeobachten();
+        return NAVIGATION._band;
+    },
+
+    /* Tabs oder Sperre haben sich geändert (Runde beginnt/endet, Anmeldung):
+       Die Sperre gilt dann sofort, nicht erst ab der nächsten Berührung. */
+    bandAuffrischen() {
+        if (NAVIGATION._band && NAVIGATION._bandEl && !NAVIGATION._bandEl.hidden) {
+            NAVIGATION._band.auffrischen();
+        }
+    },
+
+    /* Alles, wovon `wischenErlaubt` abhängt, steht als Klasse am <body>
+       (im-spiel, anmeldung-offen, dialog-offen, buch-offen) oder ist das
+       Intro (`hidden`). EIN Wächter an diesen zwei Stellen ruft
+       `bandAuffrischen`, sobald sich die Antwort ändert — so muss kein
+       Bildschirm daran denken. */
+    _sperreBeobachten() {
+        if (typeof MutationObserver !== "function" || !document.body) {
+            return;
+        }
+        let zuletzt = NAVIGATION.wischenErlaubt();
+        const waechter = new MutationObserver(() => {
+            const jetzt = NAVIGATION.wischenErlaubt();
+            if (jetzt !== zuletzt) {
+                zuletzt = jetzt;
+                NAVIGATION.bandAuffrischen();
+            }
+        });
+        waechter.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+        const intro = document.querySelector(".upi");
+        if (intro) {
+            waechter.observe(intro, { attributes: true, attributeFilter: ["hidden"] });
+        }
+    },
+
+    /* Eine Leisten-Seite zum ersten Mal zeichnen (Leerlauf, `kommt`). Die
+       offene Seite zeichnet `_wechseln`. Nicht, solange das Band verborgen
+       ist (Runde): Wer beim Zeichnen misst, mässe dann null — die Seite
+       kommt später dran (`kommt`, Öffnen). Liefert true, wenn gezeichnet
+       wurde. */
+    _seiteBauen(id) {
+        if (!NAVIGATION._seiten[id] || NAVIGATION._gebaut[id] || !NAVIGATION._bildschirme[id]
+                || (NAVIGATION._bandEl && NAVIGATION._bandEl.hidden)) {
+            return false;
+        }
+        NAVIGATION._bauen(id, null);
+        return true;
+    },
+
+    /* Nach dem Start: die übrigen Seiten nacheinander, je eine im Leerlauf.
+       Scheitert eine, bleibt sie leer — beim Öffnen wird sie ohnehin neu
+       gezeichnet (und der Fehler dort gezeigt wie bisher). */
+    _imLeerlaufBauen() {
+        const offen = Object.keys(NAVIGATION._seiten).filter((id) => !NAVIGATION._gebaut[id]);
+        if (!offen.length) {
+            return;
+        }
+        const planen = () => {
+            if (typeof requestIdleCallback === "function") {
+                requestIdleCallback(weiter, { timeout: 600 });
+            } else if (typeof setTimeout === "function") {
+                setTimeout(weiter, 80);
+            }
+        };
+        const weiter = () => {
+            try {
+                NAVIGATION._seiteBauen(offen.shift());
+            } catch (fehler) {
+                /* siehe oben */
+            }
+            if (offen.length) {
+                planen();
+            }
+        };
+        planen();
     },
 
     _leisteMarkieren() {
@@ -388,26 +572,104 @@ const NAVIGATION = {
      * Innereien
      * ---------------------------------------------------------------- */
 
-    _wechseln(id, parameter) {
+    _wechseln(id, parameter, sofort) {
         /* Eine neue Seite: alle Blätter zu (Einbau-Notiz 29.09.2026). */
         NAVIGATION._alleSchliessen();
-        const vorher = NAVIGATION._bildschirme[NAVIGATION.aktuell];
-        if (vorher && vorher.verlassen && NAVIGATION.aktuell !== id) {
+        const vorherId = NAVIGATION.aktuell;
+        const vorher = NAVIGATION._bildschirme[vorherId];
+        if (vorher && vorher.verlassen && vorherId !== id) {
             vorher.verlassen();
+        }
+        /* Mit Band: Ein Bildschirm ohne Leisten-Knopf räumt den gemeinsamen
+           Ort, wenn er geht (eine Leisten-Seite bleibt stehen). */
+        if (NAVIGATION._bandEl && vorherId && vorherId !== id && !NAVIGATION.imBand(vorherId)) {
+            NAVIGATION._inhaltEl.innerHTML = "";
         }
         NAVIGATION.aktuell = id;
         NAVIGATION._parameter = parameter;
+        NAVIGATION._hauptSetzen(id);
+        /* Erst zeigen, dann zeichnen: Wer beim Zeichnen misst (die Sammlung
+           ihren Kopf, die Runde ihr Brett), braucht einen sichtbaren Ort. */
+        const warVerborgen = NAVIGATION._ortZeigen(id);
         NAVIGATION._bauen(id, parameter);
         NAVIGATION._leisteMarkieren();
-        window.scrollTo(0, 0);
+        NAVIGATION._bandStellen(id, sofort, warVerborgen);
     },
 
+    /* Der Ort, in den ein Bildschirm zeichnet: seine Seite im Band oder der
+       gemeinsame Ort. */
+    _ort(id) {
+        return NAVIGATION._seiten[id] || NAVIGATION._inhaltEl;
+    },
+
+    /* Hinter einem Blatt rückt der Ort des OFFENEN Bildschirms zurück
+       (`up-bl-dahinter`), und dort wird der Kopf gemessen — mit Band ist das
+       je Bildschirm ein anderes Element. Die Blätter sind hier schon zu. */
+    _hauptSetzen(id) {
+        if (NAVIGATION._bandEl && NAVIGATION._ebenenEl && typeof UPCREW_BLATT !== "undefined") {
+            UPCREW_BLATT.einrichten({ ebenen: NAVIGATION._ebenenEl, haupt: NAVIGATION._ort(id), verlauf: true,
+                horchen: false });
+        }
+    },
+
+    /*
+     * Band oder gemeinsamer Ort — was zu sehen ist. Eine Leisten-Seite: das
+     * Band. Sonst: Band verborgen (der Baustein ruht), dafür der Rollbereich
+     * um den gemeinsamen Ort. Liefert, ob das Band vorher verborgen war.
+     */
+    _ortZeigen(id) {
+        const bandEl = NAVIGATION._bandEl;
+        if (!bandEl) {
+            return false;
+        }
+        const imBand = NAVIGATION.imBand(id);
+        const warVerborgen = !!bandEl.hidden;
+        bandEl.hidden = !imBand;
+        NAVIGATION._freiEl.hidden = imBand;
+        return warVerborgen;
+    },
+
+    /*
+     * Nach dem Zeichnen: Das Band rollt zur Seite (`band.zu`; kommt es aus
+     * dem Verborgenen oder mit `sofort`, ohne Weg), der Rollbereich um den
+     * gemeinsamen Ort beginnt oben. `window.scrollTo` gibt es nur noch ohne
+     * Band (mit Band rollt das Dokument nicht).
+     */
+    _bandStellen(id, sofort, warVerborgen) {
+        if (!NAVIGATION._bandEl) {
+            window.scrollTo(0, 0);
+            return;
+        }
+        if (!NAVIGATION.imBand(id)) {
+            NAVIGATION._freiEl.scrollTop = 0;
+            return;
+        }
+        if (!NAVIGATION._band) {
+            return;
+        }
+        if (warVerborgen) {
+            NAVIGATION._band.auffrischen();
+        } else {
+            NAVIGATION._band.zu(id, sofort ? { sofort: true } : undefined);
+        }
+    },
+
+    /* Zeichnet einen Bildschirm in seinen Ort. Eine Leisten-Seite behält
+       dabei ihren Rollstand (wie ein Blatt). */
     _bauen(id, parameter) {
         const bildschirm = NAVIGATION._bildschirme[id];
-        const inhalt = NAVIGATION._inhaltEl;
+        const inhalt = NAVIGATION._ort(id);
+        const seite = NAVIGATION._seiten[id] ? inhalt.parentNode : null;
+        const y = seite ? seite.scrollTop : 0;
         inhalt.innerHTML = "";
         inhalt.dataset.bildschirm = id;
-        document.body.dataset.bildschirm = id;
+        if (id === NAVIGATION.aktuell) {
+            document.body.dataset.bildschirm = id;
+        }
         bildschirm.zeigen(inhalt, parameter);
+        if (seite) {
+            NAVIGATION._gebaut[id] = true;
+            seite.scrollTop = y;
+        }
     }
 };

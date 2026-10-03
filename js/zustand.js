@@ -29,6 +29,8 @@ const ZUSTAND = {
      *   zeilen   wie viele graue Balken (Vorgabe 3) — so viele Zeilen, wie
      *            der Inhalt ungefähr haben wird, damit nichts springt
      *   nochmal  Funktion für den Fehler-Knopf, falls die Grenze reisst
+     *   ruht     true = es wird gerade NICHT geladen (eine nur vorbereitete
+     *            Seite im Band, seit 0.29.0): die Balken ohne die Grenze
      */
     laden(angaben) {
         const einstellung = angaben || {};
@@ -38,6 +40,9 @@ const ZUSTAND = {
         const zeilen = einstellung.zeilen || 3;
         for (let i = 0; i < zeilen; i++) {
             platzhalter.appendChild(BAUSTEINE.el("span", "zustand-balken"));
+        }
+        if (einstellung.ruht) {
+            return platzhalter;
         }
         setTimeout(() => {
             if (platzhalter.isConnected) {

@@ -5,8 +5,12 @@
  *     als „?" mit einer Zeile;
  *   - „nichts sperren, was heute frei ist": jedes Stück, das es heute im
  *     Spiel gibt, ist da;
- *   - der Anteil zählt Farbwelt, Schrift und Knöpfe aus dem ECHTEN Baustein
- *     (js\upcrew-anpassen.js) plus die Gruppen.
+ *   - seit 0.30.0 (Sammlung „Variante A"): die Kachel-Sets als Regal des
+ *     Anpassen-Bausteins (`kachelsetStuecke`, gleich dem Katalog
+ *     js\upcrew-katalog.js), die reine Sammlung ohne sie (`restGruppen`),
+ *     und „NN %" = Zahl des Bausteins plus eigene Abschnitte (`anteil`).
+ *     Den Bildschirm mit den echten Bausteinen prüft
+ *     tests\test-sammlung-blatt.js.
  */
 
 const fs = require("fs");
@@ -36,7 +40,6 @@ pruefe("Jedes Stück hat eine Zeile, keinen Satz mit Punkt",
     modi.stuecke.every((s) => s.text && s.text.length <= 60 && !/\.$/.test(s.text)));
 gleich("Modi zählen 2/4", SAMMLUNG.gruppeZaehlen(modi), { hat: 2, alle: 4 });
 
-/* Anteil: bei Stufe 0 je Aussehen-Regal nur die Stücke mit Stufe 0. */
 /* Kachel-Sets über Taten (seit 0.13.0) */
 require("./kern.js");
 const FORTSCHRITT = require("../js/fortschritt.js");
@@ -65,50 +68,67 @@ pruefe("Jedes Set kommt über genau einen Weg (frei, Tat oder Level)",
     sets.stuecke.every((s) => [s.da === true, !!s.tat, typeof s.ab === "number"].filter(Boolean).length === 1));
 pruefe("Keine Level-Stufe fällt auf einen Rahmen (10, 15, 20 …)",
     Object.values(SAMMLUNG.kachelsetStufen()).every((l) => l < 10 || l % 5 !== 0));
-gleich("Anteil zählt Sets über das Level", SAMMLUNG.anteil(null, 12, false).hat, 2 + 1 + 4);
 gleich("Stücke zu Taten (für die Kurzmeldung)", SAMMLUNG.stueckeZuTaten(["koennen-90"]).map((s) => s.name), ["Neon"]);
 pruefe("Die Gruppen-Vorlage bleibt unverändert", !sets.stuecke[1].da);
 
-const aussehenAlle = ["farbwelt", "schrift", "knoepfe"].reduce((n, t) => n + Object.keys(STUFEN[t]).length, 0);
-const aussehenFrei0 = ["farbwelt", "schrift", "knoepfe"]
-    .reduce((n, t) => n + Object.values(STUFEN[t]).filter((s) => s <= 0).length, 0);
-const null0 = SAMMLUNG.anteil(STUFEN, 0, false);
-gleich("Anteil Stufe 0: gezählt über Aussehen + Modi + Kachel-Sets", [null0.hat, null0.alle],
-    [aussehenFrei0 + 2 + 1, aussehenAlle + 4 + 10]);
-gleich("Anteil Stufe 0: Prozent gerundet", null0.prozent,
-    Math.round((aussehenFrei0 + 3) / (aussehenAlle + 14) * 100));
-const werkstatt = SAMMLUNG.anteil(STUFEN, 0, true);
-gleich("Werkstatt: alles Aussehen frei, Modi 2/4, Sets nach Taten", werkstatt.hat, aussehenAlle + 3);
-pruefe("Höhere Stufe gibt nie weniger", SAMMLUNG.anteil(STUFEN, 5, false).hat >= null0.hat);
-gleich("Taten zählen im Anteil mit", SAMMLUNG.anteil(STUFEN, 0, false, ["serie-7", "koennen-90"]).hat, null0.hat + 2);
-/* Seit 0.27.0 (EINBAU-2026-09-29c): Grau ist das sechste Stück im
-   Farbwelt-Regal, Farbwelten nach dem Level-Pfad, Besitz zählt. */
+/* ------------------------------------------------------------------ *
+ * Seit 0.30.0 (Sammlung „Variante A"): Die Kachel-Sets sind ein Regal des
+ * Anpassen-Bausteins, die reine Sammlung sind nur noch die Modi (und die
+ * Abzeichen, die der Baustein baut), und „NN %" rechnet der Baustein
+ * (`tab.zaehlen()`) plus die eigenen Abschnitte.
+ * ------------------------------------------------------------------ */
+
+gleich("Die Gruppe Kachel-Sets ist ein Regal (Katalog-Art kachelset), die Modi nicht",
+    SAMMLUNG.GRUPPEN.map((g) => g.regal || null), [null, "kachelset"]);
+gleich("Reine Sammlung: nur noch die Modi", SAMMLUNG.restGruppen([], false, 0).map((g) => g.id), ["modi"]);
+gleich("… mit ihrem Stand (2/4), auch in der Werkstatt",
+    [SAMMLUNG.gruppeZaehlen(SAMMLUNG.restGruppen([], false, 0)[0]), SAMMLUNG.gruppeZaehlen(SAMMLUNG.restGruppen([], true, 0)[0])],
+    [{ hat: 2, alle: 4 }, { hat: 2, alle: 4 }]);
+
+/* Die Stücke für das Regal: { wert, name, frei } — frei wie bisher über Tat oder Level. */
+const KACHELSETS = require("../js/kachelsets.js");
+const KATALOG = require("../js/upcrew-katalog.js");
+const regal0 = SAMMLUNG.kachelsetStuecke([], false, 0);
+gleich("Regal: jedes Stück trägt genau wert, name, frei", regal0.map((s) => Object.keys(s).join()),
+    regal0.map(() => "wert,name,frei"));
+gleich("Regal: die zehn Sets des Spiels in ihrer Reihenfolge", regal0.map((s) => s.wert), KACHELSETS.SETS.map((s) => s.id));
+gleich("KACHELSETS.SETS[].id = Katalog „kachelset“ (js\\upcrew-katalog.js)",
+    KACHELSETS.SETS.map((s) => s.id), KATALOG.stuecke("kachelset").map((s) => s.wert));
+gleich("… und die Namen im Modell sind die des Katalogs", regal0.map((s) => s.name), KATALOG.stuecke("kachelset").map((s) => s.name));
+gleich("Die Katalog-Art heisst als Regal wie der Schlüssel, den Typoluck übergibt",
+    [KATALOG.art("kachelset").regal, KATALOG.art("kachelset").spiel, SAMMLUNG.GRUPPEN[1].regal], ["kachelset", "typoluck", "kachelset"]);
+const freie = (taten, alleFrei, level) => SAMMLUNG.kachelsetStuecke(taten, alleFrei, level).filter((s) => s.frei).map((s) => s.wert);
+gleich("Regal, Level 0 ohne Taten: frei nur Papier", freie([], false, 0), ["papier"]);
+gleich("Regal, mit Taten: Leder und Neon dazu", freie(["zweiter-versuch", "koennen-90"], false, 0), ["papier", "leder", "neon"]);
+gleich("Regal, Level 12: Kreide, Sand, Mitternacht, Kupfer dazu", freie([], false, 12),
+    ["papier", "kreide", "sand", "mitternacht", "kupfer"]);
+gleich("Regal, Werkstatt: alle frei", freie([], true, 0).length, 10);
+pruefe("Regal: `frei` ist immer true oder false (der Baustein fragt `frei !== false`)",
+    SAMMLUNG.kachelsetStuecke([], false, 0).every((s) => s.frei === true || s.frei === false));
+
+/* „NN %“: tab.zaehlen() plus die eigenen Abschnitte. */
+gleich("Anteil: Zahl des Bausteins plus Abschnitte",
+    SAMMLUNG.anteil({ hat: 6, alle: 40 }, [{ hat: 1, alle: 10 }, { hat: 2, alle: 4 }]), { hat: 9, alle: 54, prozent: 17 });
+gleich("Anteil: die Abschnitte dürfen Text sein (so stehen sie an den Kacheln)",
+    SAMMLUNG.anteil({ hat: 6, alle: 40 }, [{ hat: "1", alle: "10" }]), { hat: 7, alle: 50, prozent: 14 });
+gleich("Anteil: ohne Abschnitte nur der Baustein", SAMMLUNG.anteil({ hat: 3, alle: 12 }), { hat: 3, alle: 12, prozent: 25 });
+gleich("Anteil: nichts da = 0 %, keine Teilung durch null", SAMMLUNG.anteil(null, []), { hat: 0, alle: 0, prozent: 0 });
+gleich("Anteil: was keine Zahl ist, zählt nicht",
+    SAMMLUNG.anteil({ hat: "x", alle: 10 }, [{ hat: -2, alle: undefined }, null]), { hat: 0, alle: 10, prozent: 0 });
+gleich("Anteil: alles da = 100 %", SAMMLUNG.anteil({ hat: 5, alle: 5 }, [{ hat: 4, alle: 4 }]).prozent, 100);
+pruefe("Die eigene Rechnung über die Stufen-Tabelle ist weg",
+    SAMMLUNG.AUSSEHEN_TEILE === undefined && SAMMLUNG._aussehenFrei === undefined && SAMMLUNG.anteil.length === 2);
+
+/* Die Stufen des Aussehens stehen weiter allein im Baustein (unverändert). */
 gleich("Farbwelt-Stufen aus dem Baustein", STUFEN.farbwelt,
     { grau: 0, werkstatt: 2, studio: 3, feld: 11, tiefsee: 21, gold: 40 });
-gleich("Aussehen: 18 Stücke (6 Farbwelten, 6 Schriften, 6 Knöpfe), frei ab Werk nur Grau/S1/K1",
-    [aussehenAlle, aussehenFrei0], [18, 3]);
-gleich("Anteil Stufe 0: 3 + 2 + 1 von 32", [null0.hat, null0.alle], [6, 32]);
-const farbweltenFrei = (stufe, besitz) => SAMMLUNG.anteil({ farbwelt: STUFEN.farbwelt }, stufe, false, [], besitz).hat
-    - SAMMLUNG.anteil(null, stufe, false, []).hat;
-gleich("Farbwelten frei bei Level 0/2/3/11/21/40", [0, 2, 3, 11, 21, 40].map((l) => farbweltenFrei(l)), [1, 2, 3, 4, 5, 6]);
-gleich("Besitz zählt, egal welches Level (Gold gekauft bei Level 0)",
-    farbweltenFrei(0, (art, wert) => art === "farbwelt" && wert === "gold"), 2);
-gleich("Besitz, der wirft: nur die Stufe", farbweltenFrei(0, () => { throw new Error("x"); }), 1);
-{
-    /* Mit geladenem Baustein rechnet UPCREW_ANPASSEN.frei — gleiches Ergebnis. */
-    global.UPCREW_ANPASSEN = fenster.UPCREW_ANPASSEN;
-    gleich("Mit Baustein: gleiches Ergebnis",
-        [SAMMLUNG.anteil(STUFEN, 11, false).hat, farbweltenFrei(0, (art, wert) => wert === "gold")],
-        [SAMMLUNG.anteil(STUFEN, 11, false).hat, 2]);
-    pruefe("Baustein: frei(farbwelt, grau, 0) ja, werkstatt erst ab 2",
-        fenster.UPCREW_ANPASSEN.frei("farbwelt", "grau", 0) && !fenster.UPCREW_ANPASSEN.frei("farbwelt", "werkstatt", 1)
-            && fenster.UPCREW_ANPASSEN.frei("farbwelt", "werkstatt", 2));
-    delete global.UPCREW_ANPASSEN;
-}
+pruefe("Baustein: frei(farbwelt, grau, 0) ja, werkstatt erst ab 2",
+    fenster.UPCREW_ANPASSEN.frei("farbwelt", "grau", 0) && !fenster.UPCREW_ANPASSEN.frei("farbwelt", "werkstatt", 1)
+        && fenster.UPCREW_ANPASSEN.frei("farbwelt", "werkstatt", 2));
+gleich("Baustein: Besitz zählt, egal welches Level; Besitz, der wirft: nur die Stufe",
+    [fenster.UPCREW_ANPASSEN.frei("farbwelt", "gold", 0, (art, wert) => art === "farbwelt" && wert === "gold"),
+        fenster.UPCREW_ANPASSEN.frei("farbwelt", "gold", 0, () => { throw new Error("x"); })], [true, false]);
 pruefe("Die Sammlung gibt dem Baustein den Besitz mit",
-    /besitz: SAMMLUNG_BILDSCHIRM\.besitz/.test(require("fs").readFileSync(require("path").join(__dirname, "..", "js", "bildschirm-sammlung.js"), "utf8")));
-pruefe("Darstellung zählt nicht mit (immer frei, kein Sammelstück)",
-    SAMMLUNG.AUSSEHEN_TEILE.indexOf("darstellung") === -1);
-gleich("Ohne Stufen-Tabelle: nur die Gruppen", SAMMLUNG.anteil(null, 0, false), { hat: 3, alle: 14, prozent: 21 });
+    /besitz: SAMMLUNG_BILDSCHIRM\.besitz/.test(fs.readFileSync(path.join(__dirname, "..", "js", "bildschirm-sammlung.js"), "utf8")));
 
 fazit();

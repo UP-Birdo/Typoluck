@@ -3,6 +3,48 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.30.0 — 04.10.2026
+
+**Die Sammlung ist neu aufgeräumt — und die Leiste zieht beim Wischen früher nach.**
+
+- In der Sammlung rollt nichts mehr zur Seite. Statt der Reihen stehen unter
+  der Vorschau Kacheln: Kachel-Sets, Farbwelten, Schriften, Knöpfe und
+  weitere. Ein Tipp auf eine Kachel öffnet ein Blatt mit allen Stücken.
+- Im Blatt: antippen zeigt das Stück sofort in der Vorschau — auch eines,
+  das man noch nicht hat. Unten „Zurück · Würfel · Übernehmen".
+- Die Kachel-Sets wählt man jetzt genauso wie Farbwelt und Schrift: ansehen,
+  dann übernehmen. Die Nachfrage „Anziehen" gibt es nicht mehr, und die
+  Vorschau zeigt die Kacheln im gewählten Set.
+- Abzeichen und Modi sind ebenfalls Kacheln mit Blatt.
+- Ein Wisch zur Seite wechselt nun überall in der Sammlung den Tab.
+- Was man noch nicht hat, trägt „wird erspielt" oder „bald". Ein Level steht
+  nirgends mehr; frei ist weiter alles, was vorher frei war.
+- Die Zahl „NN %" oben rechts zählt jetzt alle Stücke der Sammlung mit, auch
+  die, die erst noch kommen — sie fällt deshalb kleiner aus als bisher.
+- Tabs wechseln durch Wischen: Die Leiste unten springt schon um, sobald das
+  losgelassene Band mehr als zur Hälfte auf der nächsten Seite ist — nicht
+  erst, wenn es eingerastet ist.
+- Der Shop ist unverändert.
+
+## 0.29.0 — 03.10.2026
+
+**Tabs wechseln wie auf einem Band: Die Seiten hängen nebeneinander.**
+
+- Shop, Sammlung, Start, Aufgaben und Rangliste liegen jetzt nebeneinander
+  wie auf einem breiten Band. Beim Wischen zur Seite ist die Nachbarseite
+  sofort zu sehen, ein kleiner Wisch reicht, und das Band rastet auf der
+  nächsten Seite ein. Rechts und links ist Stopp.
+- Die Leiste unten bleibt, wie sie ist: Ein Tipp rollt das Band zur Seite;
+  nach einem Wisch zieht die Leiste nach, sobald das Band eingerastet ist.
+- Jede Seite rollt für sich nach unten. Wer eine Seite verlässt, findet sie
+  beim nächsten Mal wieder oben.
+- Tabs, Reihenfolge, Inhalt und Aussehen jeder Seite sind unverändert.
+  Während einer Runde, in der Anmeldung, bei offenem Buch und in Dialogen
+  wird nicht gewischt.
+- Noch wie bisher: In der Sammlung rollen die Regal-Reihen (Farbwelt,
+  Schrift, Knöpfe, Darstellung, Sets) selbst zur Seite. Wer auf so einer
+  Reihe wischt, bewegt die Reihe — daneben wechselt der Wisch die Seite.
+
 ## 0.28.1 — 03.10.2026
 
 **Aufgeräumt unter der Haube — am Spiel ändert sich nichts.**

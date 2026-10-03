@@ -16,11 +16,9 @@
     --up-seite-kopf-ebene: 12;
 }
 
-/* Kein Seitwärts-Ruck am Rechner, wenn die Sperre (html.up-bl-offen) den Rollbalken nimmt (Einbau-Notiz
-   29.09.2026). */
-html {
-    scrollbar-gutter: stable;
-}
+/* Bis 0.28.1 stand hier `html { scrollbar-gutter: stable; }` (kein Seitwärts-Ruck, wenn die Sperre html.up-bl-offen
+   den Rollbalken nimmt). Seit 0.29.0 rollt das Dokument nicht mehr; den Platz des Rollbalkens halten die Seiten des
+   Bandes und der Rollbereich `.ohne-leiste` selbst frei (css\stil.css, „Der Rahmen“). */
 
 /* In einem Blatt gibt es keinen iPhone-Balken über dem Inhalt: Klebendes klebt bündig an der Oberkante. */
 .up-bl-inhalt {

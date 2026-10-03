@@ -258,19 +258,23 @@ html {
     -webkit-text-size-adjust: 100%;
 }
 
-/* Kein waagrechtes Rollen und Überrollen der Seite selbst (seit 0.15.11,
-   Nutzer 27.09.2026: „man soll nicht infinite scrollen können, sprich
-   rechts und links ist Stopp"). `clip` statt `hidden`: Es macht aus der
-   Seite keinen eigenen Rollbereich, das Kleben der Sammlung bleibt heil.
-   Waagrechte Rollbereiche IN der Seite (Regal-Reihen, Umschalter) rollen
-   weiter; sie geben am Ende nichts an die Seite weiter. */
+/* DAS DOKUMENT ROLLT NICHT MEHR (seit 0.29.0, Seiten-Band): Gerollt wird
+   im Band (waagrecht, der Browser rastet ein) und in jeder Seite für sich
+   (senkrecht) — siehe „Der Rahmen" unten. Bis 0.28.1 rollte die Seite
+   selbst (`overflow-x: clip`, seit 0.15.11; Nutzer 27.09.2026: „rechts und
+   links ist Stopp" — das hält jetzt das Band an seinen zwei Enden). */
 html,
 body {
-    overflow-x: clip;
-    overscroll-behavior-x: none;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
 body {
+    /* Eine Spalte: oben (falls da) der Hinweisstreifen, darunter füllt das
+       Band ODER der Rollbereich ohne Leiste den Rest. */
+    display: flex;
+    flex-direction: column;
     margin: 0;
     background: var(--flaeche);
     color: var(--schrift);
@@ -297,11 +301,6 @@ body::before {
     pointer-events: none;
 }
 
-body.dialog-offen,
-body.anmeldung-offen {
-    overflow: hidden;
-}
-
 .nur-vorlesen {
     position: absolute;
     width: 1px;
@@ -314,7 +313,50 @@ body.anmeldung-offen {
 /* ------------------------------------------------------------------ *
  * Der Rahmen: Inhalt in der Mitte, darunter fest die Leiste (seit 0.5.0).
  * Der Inhalt hält unten die Höhe der Leiste plus den iPhone-Streifen frei.
+ *
+ * SEIT 0.29.0 DAS SEITEN-BAND (gemeinsamer Baustein css\upcrew-wischen.css,
+ * gebaut in `NAVIGATION.bandBauen`): Jeder Leisten-Tab hat seine eigene
+ * Seite, alle liegen nebeneinander im Band. Der Baustein regelt Rollen und
+ * Einrasten; hier steht nur, was das Spiel festlegt — wo das Band steht
+ * und wie hoch es ist. Doppelte Klassen, damit es vor dem Baustein gilt,
+ * der später geladen wird (wie bei der Leiste).
+ *   - Die SEITE (`.up-band-seite`) ist der Rollbereich und hat KEINEN
+ *     Innenabstand; der Ort darin (`.inhalt`) trägt ihn wie bisher. So
+ *     kleben Kopf, Vorschau und Balken der Sammlung genau wie vorher:
+ *     `--oben-frei` und `--up-sm-leiste` gelten weiter genau einmal, ab
+ *     der Kante der Seite (= der Kante des Fensters).
+ *   - Alles ohne Leisten-Knopf (die Runde) steht im Rollbereich
+ *     `.ohne-leiste` daneben; das Band ist dann verborgen.
  * ------------------------------------------------------------------ */
+
+.band.up-band,
+.ohne-leiste {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+}
+
+/* Verborgen heisst weg — `display: flex` des Bausteins schlüge sonst das
+   `hidden` des Browsers. */
+.band.up-band[hidden],
+.ohne-leiste[hidden] {
+    display: none;
+}
+
+.ohne-leiste {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+/* Am Rechner hält jeder Rollbereich den Platz seines Rollbalkens frei (wie
+   bis 0.28.1 das Dokument, css\stil-blatt.css): Zwischen kurzen und langen
+   Seiten ruckt nichts zur Seite. */
+.band-seite.up-band-seite,
+.ohne-leiste {
+    scrollbar-gutter: stable;
+}
 
 .inhalt {
     max-width: var(--inhalt-breite);
@@ -365,13 +407,6 @@ body.anmeldung-offen {
    iPhone-Streifen frei. */
 body.im-spiel .leiste.up-leiste {
     display: none;
-}
-
-/* Während einer Runde wird nie gewischt (js\navigation.js): Die Fläche
-   gibt dem Browser dann wieder jede Geste zurück (seit 0.15.10, wie
-   Blunderluck `partie-laeuft`). */
-body.im-spiel .up-wischen {
-    touch-action: auto;
 }
 
 body.im-spiel .inhalt {
