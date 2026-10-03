@@ -7,9 +7,9 @@
  * datum" · „bis zur ersten stunde 0 bis 59 min danach 1h+ 2h".
  *
  * Geprüft:
- *   1. VERGLEICH MIT BLUNDERLUCK (wenn der Ordner daneben liegt): der Teil
- *      von js\fortschritt.js ab „DER ÖFFENTLICHE AUSZUG" bis zum Ende,
- *      `FRUEH_ZAEHLER` und `_zaehlerZusammen` Zeile für Zeile gleich.
+ *   1. Der gemeinsame Teil (Auszug, Spielzeit, `FRUEH_ZAEHLER`,
+ *      `_zaehlerZusammen`) steht seit 0.28.1 im Kern-Baustein
+ *      js\fortschritt-kern.js — kein Vergleich mit Blunderluck mehr.
  *   2. Die Rechnung (wie Blunderlucks test-spielzeit.js): Zählen mit
  *      Grenze, „seit", Zusammenführen, Anzeige, Haken mit Standard aus.
  *   3. js\spielzeit.js: nur bei sichtbarer Seite, ins EIGENE Zweig
@@ -52,29 +52,31 @@ function welt(ich) {
     };
     umgebung.globalThis = umgebung;
     vm.createContext(umgebung);
-    vm.runInContext(lesen("js/upcrew-abzeichen.js") + "\n;" + lesen("js/fortschritt.js") + "\n;" + lesen("js/spielzeit.js")
+    vm.runInContext(lesen("js/upcrew-abzeichen.js") + "\n;" + lesen("js/fortschritt-kern.js") + "\n;"
+        + lesen("js/fortschritt.js") + "\n;" + lesen("js/spielzeit.js")
         + "\nObject.assign(globalThis, { FORTSCHRITT, SPIELZEIT });", umgebung);
     return { F: umgebung.FORTSCHRITT, S: umgebung.SPIELZEIT, gespeichert, gesendet };
 }
 
-/* 1. Vergleich mit Blunderluck */
+/* 1. Der gemeinsame Teil kommt aus dem Kern-Baustein */
 {
-    const bl = pfad.join(projekt, "..", "Blunderluck", "js", "fortschritt.js");
-    if (fs.existsSync(bl)) {
-        const text = fs.readFileSync(bl, "utf8");
-        const eigen = lesen("js/fortschritt.js");
-        const teil = (t) => t.slice(t.indexOf("     * DER ÖFFENTLICHE AUSZUG"));
-        pruefe("Auszug- und Spielzeit-Teil Zeile für Zeile wie Blunderluck (bis zum Dateiende)",
-            teil(eigen).length > 1000 && teil(eigen) === teil(text));
-        const funktion = (t, name) => {
-            const a = t.indexOf("\n    " + name + "(") + 1;
-            return a > 0 ? t.slice(a, t.indexOf("\n    },", a) + 7) : null;
-        };
-        pruefe("_zaehlerZusammen Zeile für Zeile wie Blunderluck (mit „seit“)",
-            funktion(eigen, "_zaehlerZusammen") !== null && funktion(eigen, "_zaehlerZusammen") === funktion(text, "_zaehlerZusammen"));
-        pruefe("FRUEH_ZAEHLER wie Blunderluck", eigen.indexOf("    FRUEH_ZAEHLER: [\"seit\"],") !== -1
-            && text.indexOf("    FRUEH_ZAEHLER: [\"seit\"],") !== -1);
-    }
+    /* Seit 0.28.1 KEIN Blick mehr nach Blunderluck: Auszug, Spielzeit,
+       `FRUEH_ZAEHLER` und `_zaehlerZusammen` stehen in
+       js\fortschritt-kern.js (Quelle ..\UPCrew\bausteine\kern; die
+       Gleichheit mit der Quelle prüfen tests\test-oberflaeche-7.js und
+       ..\UPCrew\tools\Bausteine-Pruefen.ps1). Hier bleibt: Die Glieder,
+       die bisher Zeile für Zeile verglichen wurden, stehen im Kern und
+       nicht mehr in js\fortschritt.js. */
+    const kern = lesen("js/fortschritt-kern.js");
+    const eigen = lesen("js/fortschritt.js");
+    const namen = ["AUSZUG_WERTE", "auszug", "auszugPruefen", "auszugVon", "auszugLevel", "auszugSerie",
+        "auszugAlsStand", "SPIELZEIT_OEFFENTLICH_STANDARD", "SPIELZEIT_SCHRITT_MAX", "SPIELZEIT_MAX",
+        "spielzeitZaehlen", "spielzeitVon", "spielzeitSumme", "seitVon", "spielzeitText",
+        "spielzeitOeffentlichVon", "_zaehlerZusammen", "FRUEH_ZAEHLER"];
+    const steht = (text, name) => new RegExp("\\n    " + name + "\\s*[(:]").test(text);
+    gleich("Auszug- und Spielzeit-Teil, _zaehlerZusammen, FRUEH_ZAEHLER: im Kern, nicht mehr in js\\fortschritt.js",
+        namen.filter((name) => !steht(kern, name) || steht(eigen, name)), []);
+    pruefe("FRUEH_ZAEHLER unverändert", kern.indexOf("    FRUEH_ZAEHLER: [\"seit\"],") !== -1);
 }
 
 /* 2. Die Rechnung */

@@ -3,6 +3,30 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.28.1 — 03.10.2026
+
+**Aufgeräumt unter der Haube — am Spiel ändert sich nichts.**
+
+- Zwei Teile, die Typoluck und Blunderluck bisher jeder für sich mitführten,
+  kommen jetzt als gemeinsame Bausteine vom Studio: die Verbindung zum
+  UPCrew-Konto und der gemeinsame Teil des Fortschritts (Serie,
+  Zusammenführen zweier Geräte, öffentlicher Auszug fürs Profil, Spielzeit).
+- Gerechnet wird genau wie vorher — der Code ist nur umgezogen. Level, Serie,
+  Münzen, Abzeichen und Spielzeit bleiben, wie sie sind.
+- Zwei der vier Vergleiche mit Blunderluck in den Tests sind damit erledigt;
+  es bleiben die Wunsch-Zeichenliste und die Regeltexte.
+
+## Ohne neue Version — 03.10.2026
+
+**Nur Tests und Doku — am Spiel ändert sich nichts.**
+
+- Die gemeinsamen UPCrew-Bausteine (Oberfläche, Konto, Schriften) haben eine
+  neue Quelle beim Studio (`UPCrew\bausteine`). Tests und Doku zeigen jetzt
+  dorthin; der Vergleich von `konto.js` mit Blunderluck ist entfernt.
+- Vier Vergleiche mit Blunderluck bleiben vorerst (Konten-Klasse,
+  gemeinsamer Teil des Fortschritts, Wunsch-Zeichenliste, Regeltexte) — im
+  Test vermerkt, bis auch diese Teile beim Studio liegen.
+
 ## 0.28.0 — 30.09.2026
 
 **Lieblingswörter · Der Zensor bannt sie.**

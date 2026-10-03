@@ -98,7 +98,7 @@
  *
  * DIE SERIE SEIT 0.17.0 (= Blunderluck v0.152.0) (Nutzer 27.09.2026: „Serie soll einfach: einmal
  * eine Runde starten, egal welches Game" · „ja über 60"). In BEIDEN
- * `fortschritt.js` gleich:
+ * Spielen gleich (die Rechnung seit 0.28.1 in js\fortschritt-kern.js):
  *   - Ein Tag zählt, sobald in IRGENDEINEM UPCrew-Spiel eine Runde
  *     GESTARTET wird (`rundeGestartet`; Blunderluck: beim Anpfiff jeder
  *     Partie; Typoluck: beim ersten abgegebenen Versuch einer Runde,
@@ -131,12 +131,23 @@
  *     die drei Serien-Zähler kommen gemeinsam aus der Fassung mit dem
  *     neueren `serieBis` (`zusammenfuehren`).
  *
+ * SEIT 0.28.1 IN ZWEI DATEIEN: Was in jedem UPCrew-Spiel gleich ist —
+ * Zusammenführen, die Serie, die Erstattung alter Schilde, der öffentliche
+ * Auszug, Spielzeit und „dabei seit", die Datums-Helfer, `RAHMEN`/`TITEL` —
+ * steht im Baustein js\fortschritt-kern.js (`FORTSCHRITT_KERN`, Quelle
+ * Apps\UPCrew\bausteine\kern, nie hier abwandeln; in index.html VOR dieser
+ * Datei). Hier steht nur Typolucks Teil; `FORTSCHRITT` ist beides zusammen.
+ * Der Kern ruft alles über den Namen `FORTSCHRITT` und braucht von hier
+ * `APP`, `_zahl`, `alleTage`, `gesamtXp`, `level`, `levelAus`,
+ * `normalisieren`, `spielLeer` (`FORTSCHRITT_KERN_ERWARTET`). Kein Glied
+ * des Kerns wird hier noch einmal geschrieben (tests\test-fortschritt.js).
+ * Ausserhalb des Browsers muss `FORTSCHRITT_KERN` vorher als globaler Name
+ * bereitstehen (tests\umgebung.js).
  */
 
-const FORTSCHRITT = {
+const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
 
     SCHLUESSEL: "upcrew.fortschritt",
-    VERSION: 1,
 
     /* Der Eintrag für Gäste und Nicht-Angemeldete — wie Blunderluck. */
     GAST: "gast",
@@ -160,27 +171,6 @@ const FORTSCHRITT = {
        0.14.0, vorher im Zweig unter `umzug`). Liegt im Namensraum von
        Typoluck, nicht unter `upcrew.`. */
     UMZUG_SCHLUESSEL: "typoluck.fortschritt-umzug",
-
-    /* Rahmen und Titel (seit 0.14.0 wie Blunderluck `RAHMEN`/`TITEL`,
-       Nachtrag Runde 6: „ein Profil, eine Regel" — Rahmen ab Level 10,
-       dann alle 5). Über Level 20 heisst jeder weitere Rahmen „Glanz n". */
-    RAHMEN: [
-        { ab: 10, id: "silber", name: "Silber" },
-        { ab: 15, id: "gold", name: "Gold" },
-        { ab: 20, id: "platin", name: "Platin" }
-    ],
-
-    TITEL: [
-        { ab: 1, name: "Neuling" },
-        { ab: 10, name: "Stammgast" },
-        { ab: 25, name: "Kenner" },
-        { ab: 50, name: "Legende" }
-    ],
-
-    /* Schutz gegen Unsinn aus dem Speicher; so viele Tage merkt sich ein
-       Zweig (wie Blunderluck — genug für jede sichtbare Serie). */
-    XP_MAX: 10000000,
-    TAGE_MAX: 60,
 
     /* Die XP-Quellen zum Anzeigen (Profil) — aus denselben Zahlen. Kurz,
        kein Satz (UPCrew-Standard). */
@@ -224,39 +214,19 @@ const FORTSCHRITT = {
      * Kleine Helfer
      * ---------------------------------------------------------------- */
 
-    _istObjekt(wert) {
-        return !!wert && typeof wert === "object" && !Array.isArray(wert);
-    },
-
     /* Eine Zahl ≥ 0, ganz, höchstens `hoechstens` — sonst 0. */
     _zahl(wert, hoechstens) {
         return (typeof wert === "number" && isFinite(wert) && wert > 0)
             ? Math.min(Math.floor(wert), hoechstens || FORTSCHRITT.XP_MAX) : 0;
     },
 
-    _istDatum(wert) {
-        return typeof wert === "string" && /^\d{4}-\d{2}-\d{2}$/.test(wert);
-    },
-
     _kopie(wert) {
         return wert === undefined ? undefined : JSON.parse(JSON.stringify(wert));
-    },
-
-    /* Der Tag davor, als „JJJJ-MM-TT" (in UTC gerechnet — es zählt nur die
-       Kalenderfolge). */
-    _vortag(datum) {
-        const d = new Date(datum + "T12:00:00Z");
-        d.setUTCDate(d.getUTCDate() - 1);
-        return d.toISOString().slice(0, 10);
     },
 
     /* ---------------------------------------------------------------- *
      * Grundformen
      * ---------------------------------------------------------------- */
-
-    leer() {
-        return { version: FORTSCHRITT.VERSION, spiele: {} };
-    },
 
     zweigLeer() {
         const zaehler = {};
@@ -542,7 +512,7 @@ const FORTSCHRITT = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Normalisieren und Zusammenführen
+     * Normalisieren (Zusammenführen: js\fortschritt-kern.js)
      * ---------------------------------------------------------------- */
 
     /*
@@ -584,73 +554,6 @@ const FORTSCHRITT = {
             return zweig;
         }
         return name === FORTSCHRITT.APP ? FORTSCHRITT.zweigLeer() : {};
-    },
-
-    /* Zwei Stände zusammen (Gerät und später Konto): je Spiel gewinnt der
-       Zweig mit dem neueren `stand` — wie in Blunderluck. */
-    zusammenfuehren(a, b) {
-        const eins = FORTSCHRITT.normalisieren(a);
-        const zwei = FORTSCHRITT.normalisieren(b);
-        const ergebnis = Object.assign({}, zwei, eins, { spiele: {} });
-        const apps = new Set(Object.keys(eins.spiele).concat(Object.keys(zwei.spiele)));
-        for (const app of apps) {
-            const x = eins.spiele[app];
-            const y = zwei.spiele[app];
-            if (!x || !y) {
-                ergebnis.spiele[app] = x || y;
-            } else {
-                const neuer = (y.stand > x.stand) ? y : x;
-                const aelter = (neuer === y) ? x : y;
-                ergebnis.spiele[app] = FORTSCHRITT._zaehlerZusammen(neuer, aelter);
-            }
-        }
-        return ergebnis;
-    },
-
-    /* Die drei Zähler der Serie — sie gehören zusammen (seit 0.17.0, wie
-       Blunderluck v0.152.0; tests/test-muenzen.js vergleicht die Rechnung
-       Zeile für Zeile mit Blunderlucks fortschritt.js). */
-    SERIE_ZAEHLER: ["serie", "serieBis", "serieSchutz"],
-
-    /* Zähler, bei denen beim Zusammenführen der FRÜHERE Wert gilt
-       (JJJJMMTT „dabei seit", seit Blunderluck v0.155.0; seit Typoluck 0.24.0). */
-    FRUEH_ZAEHLER: ["seit"],
-
-    /* Zwei Fassungen DESSELBEN Zweigs: Zähler je Name der grössere Wert,
-       die Serien-Zähler gemeinsam aus der Fassung mit dem neueren serieBis. */
-    _zaehlerZusammen(neuer, aelter) {
-        const a = FORTSCHRITT._istObjekt(neuer.zaehler) ? neuer.zaehler : null;
-        const b = FORTSCHRITT._istObjekt(aelter.zaehler) ? aelter.zaehler : null;
-        if (!b) {
-            return neuer;
-        }
-        const zaehler = Object.assign({}, a || {});
-        for (const k of Object.keys(b)) {
-            if (FORTSCHRITT.SERIE_ZAEHLER.indexOf(k) !== -1) {
-                continue;
-            }
-            /* „dabei seit" (seit Blunderluck v0.155.0): das frühere Datum. */
-            if (FORTSCHRITT.FRUEH_ZAEHLER.indexOf(k) !== -1) {
-                if (typeof b[k] === "number" && b[k] > 0
-                        && !(typeof zaehler[k] === "number" && zaehler[k] > 0 && zaehler[k] <= b[k])) {
-                    zaehler[k] = b[k];
-                }
-                continue;
-            }
-            if (typeof b[k] === "number" && !(typeof zaehler[k] === "number" && zaehler[k] >= b[k])) {
-                zaehler[k] = b[k];
-            }
-        }
-        const bisA = (a && typeof a.serieBis === "number") ? a.serieBis : -1;
-        const bisB = typeof b.serieBis === "number" ? b.serieBis : -1;
-        if (bisB > bisA) {
-            for (const k of FORTSCHRITT.SERIE_ZAEHLER) {
-                if (typeof b[k] === "number") {
-                    zaehler[k] = b[k];
-                }
-            }
-        }
-        return Object.assign({}, neuer, { zaehler: zaehler });
     },
 
     /* ---------------------------------------------------------------- *
@@ -796,15 +699,8 @@ const FORTSCHRITT = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Serie
+     * Serie (die Rechnung selbst: js\fortschritt-kern.js)
      * ---------------------------------------------------------------- */
-
-    /* Serien-Schutz gibt es nicht mehr (seit 0.26.0, Nutzer 29.09.2026:
-       „serien schild raus … soll nach einem lose nicht aufhaltbar sein") —
-       immer 0, die Serie reisst ohne Rettung. Wie Blunderluck. */
-    schutzVerdient(level) {
-        return 0;
-    },
 
     /* Alle Tage mit geschaffter Tagesaufgabe, über alle Spiele. */
     alleTage(stand) {
@@ -818,195 +714,9 @@ const FORTSCHRITT = {
         return tage;
     },
 
-    /*
-     * DIE SERIE (seit 0.17.0 wörtlich Blunderluck v0.152.0, Kopf „DIE SERIE
-     * SEIT 0.17.0“): Tage am Stück, an denen in IRGENDEINEM Spiel eine Runde
-     * gestartet wurde, bis heute oder bis gestern; über 60 Tage trägt der
-     * Zähler. Liefert { tage, heute, schutzGenutzt }.
-     */
-    serie(stand, datum, schutz) {
-        const level = Math.max(0, Math.floor(schutz || 0));
-        const st = FORTSCHRITT.serieStand(stand, level, datum);
-        const leer = { tage: 0, heute: false, schutzGenutzt: 0 };
-        if (!st.bis) {
-            return leer;
-        }
-        if (st.bis === datum) {
-            return { tage: st.tage, heute: true, schutzGenutzt: st.schutzImLauf };
-        }
-        const luecke = FORTSCHRITT._tageZwischen(st.bis, datum) - 1;
-        if (luecke === 0) {
-            return { tage: st.tage, heute: false, schutzGenutzt: st.schutzImLauf };
-        }
-        /* Gestern fehlt: Die Serie lebt noch, wenn heute ein Schutz den
-           Tag überbrücken kann (verbraucht wird er erst beim nächsten Start). */
-        if (luecke === 1 && (level - st.schutzImLauf > 0 || st.schildeFrei > 0)) {
-            return { tage: st.tage, heute: false, schutzGenutzt: st.schutzImLauf };
-        }
-        return leer;
-    },
-
-    /* „JJJJ-MM-TT“ ↔ Zahl JJJJMMTT (für `zaehler.serieBis`). */
-    _datumZahl(datum) {
-        return FORTSCHRITT._istDatum(datum) ? Number(datum.replace(/-/g, "")) : 0;
-    },
-
-    _zahlDatum(zahl) {
-        const t = String(Math.floor(Number(zahl) || 0));
-        return /^\d{8}$/.test(t) ? t.slice(0, 4) + "-" + t.slice(4, 6) + "-" + t.slice(6, 8) : "";
-    },
-
-    /* Kalendertage von a bis b. */
-    _tageZwischen(a, b) {
-        return Math.round((Date.parse(b + "T12:00:00Z") - Date.parse(a + "T12:00:00Z")) / 86400000);
-    },
-
-    /* Summe eines Zählers über alle Zweige. */
-    _zaehlerSumme(stand, name) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        let summe = 0;
-        for (const app of Object.keys(sauber.spiele)) {
-            const z = sauber.spiele[app].zaehler;
-            if (FORTSCHRITT._istObjekt(z) && typeof z[name] === "number" && isFinite(z[name]) && z[name] > 0) {
-                summe += Math.floor(z[name]);
-            }
-        }
-        return summe;
-    },
-
-    /* Gekaufte, noch nicht verbrauchte Flammen-Schilde über alle Spiele. */
-    schildVorrat(stand) {
-        return 0;
-    },
-
-    /*
-     * ERSTATTUNG ALTER SCHILDE (seit 0.26.0): Wer vor dem Wegfall Flammen-
-     * Schilde gekauft und nicht verbraucht hat, bekommt EINMAL den
-     * Kaufpreis als Münzen (`preis` je Stück, 50). Jedes Spiel erstattet
-     * nur, was in SEINEM Zweig gekauft wurde, gemerkt im Zähler
-     * `schildErstattet` (Stückzahl, wächst nur). Offen sind alle Käufe
-     * minus alle Verbrauche über alle Zweige; was ein anderes Spiel schon
-     * erstattet hat, zieht ab — so zahlt keiner zweimal. Rein; liefert
-     * { stand, stueck, muenzen } (ohne Erstattung stueck 0).
-     */
-    schildeErstatten(stand, app, preis, zeitpunkt) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        const zweig = sauber.spiele[app];
-        const z = zweig && FORTSCHRITT._istObjekt(zweig.zaehler) ? zweig.zaehler : null;
-        const zahl = (wert) => (typeof wert === "number" && isFinite(wert) && wert > 0) ? Math.floor(wert) : 0;
-        const gekauft = z ? zahl(z.schildGekauft) : 0;
-        const erstattet = z ? zahl(z.schildErstattet) : 0;
-        const offen = Math.max(0, FORTSCHRITT._zaehlerSumme(sauber, "schildGekauft")
-            - FORTSCHRITT._zaehlerSumme(sauber, "schildGenutzt"));
-        const andere = FORTSCHRITT._zaehlerSumme(sauber, "schildErstattet") - erstattet;
-        const soll = Math.min(gekauft, Math.max(0, offen - andere));
-        const stueck = soll - erstattet;
-        if (stueck <= 0) {
-            return { stand: sauber, stueck: 0, muenzen: 0 };
-        }
-        const muenzen = stueck * Math.max(0, Math.floor(preis || 0));
-        z.schildErstattet = soll;
-        z.muenzenVerdient = Math.min(zahl(z.muenzenVerdient) + muenzen, 1000000000);
-        zweig.stand = Math.max((zweig.stand || 0) + 1, zeitpunkt || 0);
-        return { stand: sauber, stueck: stueck, muenzen: muenzen };
-    },
-
-    /* Der Stand der Serie über alle Spiele (Kopf „DIE SERIE SEIT 0.17.0“). */
-    serieStand(stand, levelSchutz, bisDatum) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        const level = Math.max(0, Math.floor(levelSchutz || 0));
-        const grenze = FORTSCHRITT._istDatum(bisDatum) ? bisDatum : "9999-12-31";
-
-        let tage = 0;
-        let bis = "";
-        let schutzImLauf = 0;
-        for (const app of Object.keys(sauber.spiele)) {
-            const z = sauber.spiele[app].zaehler;
-            if (!FORTSCHRITT._istObjekt(z)) {
-                continue;
-            }
-            const datum = FORTSCHRITT._zahlDatum(z.serieBis);
-            const laenge = Math.floor(Number(z.serie) || 0);
-            if (!datum || datum > grenze || laenge < 1) {
-                continue;
-            }
-            if (datum > bis || (datum === bis && laenge > tage)) {
-                bis = datum;
-                tage = laenge;
-                schutzImLauf = Math.max(0, Math.floor(Number(z.serieSchutz) || 0));
-            }
-        }
-
-        let schildeFrei = FORTSCHRITT.schildVorrat(sauber);
-        let verbraucht = 0;
-        const danach = Array.from(FORTSCHRITT.alleTage(sauber))
-            .filter((tag) => tag > bis && tag <= grenze).sort();
-        for (const tag of danach) {
-            if (!bis) {
-                tage = 1;
-                schutzImLauf = 0;
-            } else {
-                const luecke = FORTSCHRITT._tageZwischen(bis, tag) - 1;
-                if (luecke === 0) {
-                    tage++;
-                } else if (luecke === 1 && schutzImLauf < level) {
-                    tage++;
-                    schutzImLauf++;
-                } else if (luecke === 1 && schildeFrei > 0) {
-                    tage++;
-                    schutzImLauf++;
-                    schildeFrei--;
-                    verbraucht++;
-                } else {
-                    tage = 1;
-                    schutzImLauf = 0;
-                }
-            }
-            bis = tag;
-        }
-        return { tage: bis ? tage : 0, bis: bis, schutzImLauf: schutzImLauf,
-            schildeFrei: schildeFrei, schildeVerbraucht: verbraucht };
-    },
-
-    /* Eine Runde wurde gestartet: Der Tag zählt für die Serie (einmal je Tag). */
-    rundeGestartet(stand, datum, zeitpunkt, app, schutz) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        const name = app || FORTSCHRITT.APP;
-        const zweig = sauber.spiele[name] || FORTSCHRITT.spielLeer();
-        const zaehler = FORTSCHRITT._zaehlerAnlegen(zweig);
-        const tageListe = Array.isArray(zweig.tage) ? zweig.tage : [];
-        if (!FORTSCHRITT._istDatum(datum)
-                || (tageListe.indexOf(datum) !== -1 && zaehler.serieBis === FORTSCHRITT._datumZahl(datum))) {
-            return { stand: sauber, neu: false, serie: FORTSCHRITT.serie(sauber, datum, schutz).tage };
-        }
-        zweig.tage = tageListe.indexOf(datum) === -1 ? tageListe.concat([datum]) : tageListe;
-        sauber.spiele[name] = zweig;
-        const st = FORTSCHRITT.serieStand(sauber, schutz, datum);
-        zaehler.serie = st.tage;
-        zaehler.serieBis = FORTSCHRITT._datumZahl(st.bis);
-        zaehler.serieSchutz = st.schutzImLauf;
-        if (st.schildeVerbraucht > 0) {
-            zaehler.schildGenutzt = (zaehler.schildGenutzt || 0) + st.schildeVerbraucht;
-        }
-        zweig.zaehler = zaehler;
-        zweig.stand = Math.max(zweig.stand + 1, zeitpunkt || 0);
-        sauber.spiele[name] = zweig;
-        const neu = FORTSCHRITT.normalisieren(sauber);
-        return { stand: neu, neu: true, serie: st.tage };
-    },
-
-    /* Die Zähler eines Zweigs, mit einmaligem Umzug der Tagesaufgaben. */
-    _zaehlerAnlegen(zweig) {
-        const zaehler = Object.assign({}, FORTSCHRITT._istObjekt(zweig.zaehler) ? zweig.zaehler : {});
-        if (typeof zaehler.tagesaufgaben !== "number") {
-            zaehler.tagesaufgaben = (Array.isArray(zweig.tage) ? zweig.tage : [])
-                .filter(FORTSCHRITT._istDatum).length;
-        }
-        return zaehler;
-    },
-
-    /* Blunderlucks Name für den leeren Zweig (die gemeinsame Rechnung oben
-       ruft ihn) — in Typoluck derselbe wie `zweigLeer`. */
+    /* Der Name des Kerns für den leeren Zweig (die gemeinsame Rechnung in
+       js\fortschritt-kern.js ruft ihn) — in Typoluck derselbe wie
+       `zweigLeer`. */
     spielLeer() {
         return FORTSCHRITT.zweigLeer();
     },
@@ -1271,7 +981,7 @@ const FORTSCHRITT = {
 
     /*
      * DIE ABZEICHEN (seit 0.15.9) rechnet der gemeinsame Baustein
-     * js\upcrew-abzeichen.js aus Design\3D-Schrift\final — gleich in
+     * js\upcrew-abzeichen.js aus Apps\UPCrew\bausteine — gleich in
      * Blunderluck, über ALLE Zweige (Rechnung 1:1 aus Typoluck 0.12.0, die
      * eigene Kopie hier ist weg; tests\test-fortschritt.js prüft, dass
      * derselbe Fortschritt dieselben Abzeichen ergibt). Nur die LAUFENDE
@@ -1402,227 +1112,16 @@ const FORTSCHRITT = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Zwei Helfer unter Blunderlucks Namen (seit 0.22.0), damit die
-     * Auszug-Funktionen unten Zeile für Zeile Blunderlucks sind
-     * (tests\test-muenzen.js vergleicht sie): `datumVon` wörtlich wie dort,
-     * `levelAus` = `levelVon` in Blunderlucks Form.
+     * Ein Helfer unter dem Namen, den der Kern ruft (seit 0.22.0; der
+     * Auszug steht seit 0.28.1 in js\fortschritt-kern.js, `auszugLevel`):
+     * `levelAus` = `levelVon` in der Form { level, imLevel, kosten, anteil }.
      * ---------------------------------------------------------------- */
-
-    datumVon(zeitpunkt) {
-        const d = new Date(zeitpunkt);
-        const zwei = (zahl) => (zahl < 10 ? "0" : "") + zahl;
-        return d.getFullYear() + "-" + zwei(d.getMonth() + 1) + "-" + zwei(d.getDate());
-    },
 
     levelAus(xp) {
         const l = FORTSCHRITT.levelVon(xp);
         return { level: l.level, imLevel: l.hat, kosten: l.kosten, anteil: l.hat / l.kosten };
-    },
-
-    /* ---------------------------------------------------------------- *
-     * DER ÖFFENTLICHE AUSZUG (seit v0.154.0, Regel §12 —
-     * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md, Abschnitt 3 und K3)
-     *
-     * Unter §12 lesen andere nur noch `spieler/oeffentlich/<uid>`, nicht mehr
-     * den ganzen Fortschritt. Was fremde Bildschirme davon brauchen (Level-
-     * Karte, die fünf Abzeichen), steht im Auszug:
-     *
-     *     { xp, serie, serieBis, werte: { partien, besteSerie, beideTage,
-     *       figuren, tagesaufgaben } }
-     *
-     * `xp` = Summe aller Zweige; `serie` = laufende Serie am Tag `heute`,
-     * `serieBis` = ihr letzter gezählter Tag als JJJJMMTT (0 ohne Serie);
-     * `werte` = die fünf Zahlen des Abzeichen-Bausteins
-     * (`UPCREW_ABZEICHEN.werte`, mit der laufenden Serie). Schon unter der
-     * alten Regel rechnet Blunderluck fremdes Level und fremde Abzeichen über
-     * diesen Auszug (`auszugVon`) — dieselbe Rechnung wie später.
-     * Grenzen wie in der Regel (xp ≤ 1e8, serie ≤ 1e5, werte ≤ 1e9).
-     * ---------------------------------------------------------------- */
-
-    AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],
-
-    auszug(stand, heute, optionen) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        const datum = FORTSCHRITT._istDatum(heute) ? heute : FORTSCHRITT.datumVon(Date.now());
-        const schutz = FORTSCHRITT.schutzVerdient(FORTSCHRITT.level(sauber).level);
-        const serie = FORTSCHRITT.serie(sauber, datum, schutz);
-        const bis = serie.tage > 0
-            ? FORTSCHRITT._datumZahl(FORTSCHRITT.serieStand(sauber, schutz, datum).bis) : 0;
-        const roh = (typeof UPCREW_ABZEICHEN !== "undefined" && typeof UPCREW_ABZEICHEN.werte === "function")
-            ? UPCREW_ABZEICHEN.werte(sauber, serie.tage) : {};
-        const werte = {};
-        for (const name of FORTSCHRITT.AUSZUG_WERTE) {
-            werte[name] = FORTSCHRITT._zahl(roh[name], 1000000000);
-        }
-        /* Die Spielzeit nur, wenn der Spieler sie öffentlich zeigt (seit
-           Blunderluck v0.155.0, `optionen.spielzeit`). */
-        if (optionen && optionen.spielzeit === true) {
-            werte.spielzeit = FORTSCHRITT.spielzeitSumme(sauber);
-        }
-        return {
-            xp: FORTSCHRITT._zahl(FORTSCHRITT.gesamtXp(sauber), 100000000),
-            serie: FORTSCHRITT._zahl(serie.tage, 100000),
-            serieBis: bis,
-            werte: werte
-        };
-    },
-
-    /* Ein Auszug vom Server in Form — oder null, wenn keiner da ist. */
-    auszugPruefen(roh) {
-        if (!FORTSCHRITT._istObjekt(roh)) {
-            return null;
-        }
-        const werte = {};
-        const rohWerte = FORTSCHRITT._istObjekt(roh.werte) ? roh.werte : {};
-        for (const name of FORTSCHRITT.AUSZUG_WERTE) {
-            werte[name] = FORTSCHRITT._zahl(rohWerte[name], 1000000000);
-        }
-        if (typeof rohWerte.spielzeit === "number") {
-            werte.spielzeit = FORTSCHRITT._zahl(rohWerte.spielzeit, FORTSCHRITT.SPIELZEIT_MAX);
-        }
-        const bis = FORTSCHRITT._zahl(roh.serieBis, 99991231);
-        return {
-            xp: FORTSCHRITT._zahl(roh.xp, 100000000),
-            serie: FORTSCHRITT._zahl(roh.serie, 100000),
-            serieBis: /^\d{8}$/.test(String(bis)) ? bis : 0,
-            werte: werte
-        };
-    },
-
-    /* Der Auszug eines Spieler-Eintrags: Liegt der volle `fortschritt` da
-       (alte Regel, eigener Eintrag, Admin), wird aus ihm gerechnet; sonst
-       gilt `auszug` vom Eintrag (§12, aus `spieler/oeffentlich`). */
-    auszugVon(spieler, heute) {
-        if (spieler && FORTSCHRITT._istObjekt(spieler.fortschritt)) {
-            return FORTSCHRITT.auszug(spieler.fortschritt, heute);
-        }
-        return (spieler && FORTSCHRITT.auszugPruefen(spieler.auszug))
-            || FORTSCHRITT.auszug(null, heute);
-    },
-
-    /* Level aus dem Auszug — dasselbe wie `level(stand)` am vollen Stand. */
-    auszugLevel(auszug) {
-        return FORTSCHRITT.levelAus(auszug ? auszug.xp : 0);
-    },
-
-    /* Die laufende Serie am Tag `heute`: sie lebt, solange ihr letzter Tag
-       höchstens gestern war (einen Serien-Schutz kennt der Auszug nicht). */
-    auszugSerie(auszug, heute) {
-        if (!auszug || !auszug.serie || !auszug.serieBis) {
-            return 0;
-        }
-        const datum = FORTSCHRITT._istDatum(heute) ? heute : FORTSCHRITT.datumVon(Date.now());
-        const luecke = FORTSCHRITT._tageZwischen(FORTSCHRITT._zahlDatum(auszug.serieBis), datum);
-        return (luecke >= 0 && luecke <= 1) ? auszug.serie : 0;
-    },
-
-    /* Ein Stand, aus dem `UPCREW_ABZEICHEN.werte` genau die fünf Werte des
-       Auszugs liest (der Baustein bleibt unverändert, er kommt aus final). */
-    auszugAlsStand(auszug) {
-        const w = (auszug && auszug.werte) || {};
-        return {
-            version: 1,
-            spiele: {
-                auszug: {
-                    xp: 0, partien: w.partien || 0, tage: [],
-                    zaehler: {
-                        besteSerie: w.besteSerie || 0, beideTage: w.beideTage || 0,
-                        figuren: w.figuren || 0, tagesaufgaben: w.tagesaufgaben || 0
-                    }
-                }
-            }
-        };
-    },
-
-    /* ---------------------------------------------------------------- *
-     * SPIELZEIT UND „DABEI SEIT" (seit Blunderluck v0.155.0, Nutzer
-     * 28.09.2026: „log die zeit wie lange die app offen ist auf jedem
-     * account" · „okay privat … auch bei gästen … sowohl als auch der start
-     * datum" · „bis zur ersten stunde 0 bis 59 min danach 1h+ 2h …")
-     *
-     * Je Spiel ein Zähler im EIGENEN Zweig: `zaehler.spielzeit` (Sekunden,
-     * nur solange die App sichtbar ist — das misst die App) und
-     * `zaehler.seit` (JJJJMMTT des ersten gezählten Tages; beim
-     * Zusammenführen gilt das frühere, `FRUEH_ZAEHLER`). Beides passt in
-     * die Regel §11b (Zähler: Buchstaben-Name, Zahl bis 1e9). Ein einzelner
-     * Schritt zählt höchstens `SPIELZEIT_SCHRITT_MAX` Sekunden (Ausreisser:
-     * Ruhezustand, verstellte Uhr). Zwei Geräte zugleich: Es gilt der
-     * grössere Zähler, nicht die Summe (wie bei allen Zählern).
-     *
-     * Öffentlich nur mit Haken — seit v0.155.2 AM KONTO (Feld
-     * `spielzeitOeffentlich` des Eintrags, Nutzer 28.09.2026; Regel §14
-     * lässt es nur den Besitzer ändern), gilt also auf jedem Gerät und in
-     * jedem UPCrew-Spiel. Der Standard ist EINE Konstante.
-     * ---------------------------------------------------------------- */
-
-    SPIELZEIT_OEFFENTLICH_STANDARD: false,
-    SPIELZEIT_SCHRITT_MAX: 120,
-    SPIELZEIT_MAX: 315360000,
-
-    /* `sekunden` sichtbare Zeit auf den Zweig `app` buchen. Liefert einen
-       NEUEN Stand (unverändert bei 0 oder Unsinn). */
-    spielzeitZaehlen(stand, sekunden, zeitpunkt, app) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        const dazu = Math.min(FORTSCHRITT._zahl(sekunden, FORTSCHRITT.SPIELZEIT_MAX),
-            FORTSCHRITT.SPIELZEIT_SCHRITT_MAX);
-        const jetzt = (typeof zeitpunkt === "number" && isFinite(zeitpunkt)) ? zeitpunkt : Date.now();
-        if (dazu <= 0) {
-            return sauber;
-        }
-        const name = app || FORTSCHRITT.APP;
-        const zweig = sauber.spiele[name] || FORTSCHRITT.spielLeer();
-        const zaehler = FORTSCHRITT._zaehlerAnlegen(zweig);
-        zaehler.spielzeit = Math.min(FORTSCHRITT._zahl(zaehler.spielzeit, FORTSCHRITT.SPIELZEIT_MAX) + dazu,
-            FORTSCHRITT.SPIELZEIT_MAX);
-        if (!(typeof zaehler.seit === "number" && zaehler.seit > 0)) {
-            zaehler.seit = FORTSCHRITT._datumZahl(FORTSCHRITT.datumVon(jetzt));
-        }
-        zweig.zaehler = zaehler;
-        zweig.stand = Math.max(zweig.stand + 1, jetzt);
-        sauber.spiele[name] = zweig;
-        return FORTSCHRITT.normalisieren(sauber);
-    },
-
-    /* Sekunden eines Spiels. */
-    spielzeitVon(stand, app) {
-        const zweig = FORTSCHRITT.normalisieren(stand).spiele[app || FORTSCHRITT.APP];
-        return (zweig && FORTSCHRITT._istObjekt(zweig.zaehler))
-            ? FORTSCHRITT._zahl(zweig.zaehler.spielzeit, FORTSCHRITT.SPIELZEIT_MAX) : 0;
-    },
-
-    /* Sekunden über alle Spiele. */
-    spielzeitSumme(stand) {
-        return Math.min(FORTSCHRITT._zaehlerSumme(stand, "spielzeit"), FORTSCHRITT.SPIELZEIT_MAX);
-    },
-
-    /* „dabei seit": das früheste `seit` aller Zweige als „JJJJ-MM-TT", sonst "". */
-    seitVon(stand) {
-        const sauber = FORTSCHRITT.normalisieren(stand);
-        let frueh = 0;
-        for (const app of Object.keys(sauber.spiele)) {
-            const z = sauber.spiele[app].zaehler;
-            const wert = FORTSCHRITT._istObjekt(z) ? FORTSCHRITT._zahl(z.seit, 99991231) : 0;
-            if (wert > 0 && (frueh === 0 || wert < frueh)) {
-                frueh = wert;
-            }
-        }
-        return frueh ? FORTSCHRITT._zahlDatum(frueh) : "";
-    },
-
-    /* Die Anzeige: unter einer Stunde „N min" (0–59), sonst „Nh+" (volle
-       Stunden abgerundet). */
-    spielzeitText(sekunden) {
-        const s = FORTSCHRITT._zahl(sekunden, FORTSCHRITT.SPIELZEIT_MAX);
-        return s < 3600 ? Math.floor(s / 60) + " min" : Math.floor(s / 3600) + "h+";
-    },
-
-    /* Zeigt dieser Konto-Eintrag seine Spielzeit öffentlich? Das Feld
-       `spielzeitOeffentlich` (Ja/Nein) am Konto, ohne Angabe der Standard. */
-    spielzeitOeffentlichVon(eintrag) {
-        return (eintrag && typeof eintrag.spielzeitOeffentlich === "boolean")
-            ? eintrag.spielzeitOeffentlich : FORTSCHRITT.SPIELZEIT_OEFFENTLICH_STANDARD;
     }
-};
+});
 
 if (typeof module !== "undefined" && module.exports) {
     module.exports = FORTSCHRITT;

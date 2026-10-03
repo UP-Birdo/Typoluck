@@ -13,7 +13,7 @@
  * Farbpalette / Schriftart nutzt, sollen sich alle anderen Apps auch so
  * umstellen"). Hell/dunkel, Farbwelt, Schrift und Knöpfe stehen NUR noch im
  * gemeinsamen Baustein js\upcrew-aussehen.js (Schlüssel `upcrew.aussehen`,
- * kopiert aus Design\3D-Schrift\final, nie abwandeln). Diese Datei liest und
+ * kopiert aus Apps\UPCrew\bausteine, nie abwandeln). Diese Datei liest und
  * schreibt nur über ihn — sie hält selbst keinen Wert mehr. Was ab Werk gilt
  * (Standard-Schrift, Standard-Knöpfe), steht allein im Baustein; hier wird
  * nichts davon festgeschrieben.

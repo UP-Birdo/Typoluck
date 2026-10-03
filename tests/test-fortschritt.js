@@ -17,6 +17,7 @@ const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
 const { pruefe, gleich, fazit, speicherAttrappe } = require("./pruefer.js");
+const { FORTSCHRITT_KERN, FORTSCHRITT_KERN_ERWARTET } = require("./kern.js");
 const FORTSCHRITT = require("../js/fortschritt.js");
 
 const fenster = {};
@@ -421,5 +422,56 @@ gleich("Tat-Titel", FORTSCHRITT.tatTitel("serie-7"), "7 Tage Serie");
 gleich("Quellen zum Anzeigen", FORTSCHRITT.quellen().map((q) => q.wert), ["+10", "+10", "+15…30", "×1,5", "+5…35"]);
 pruefe("Kurze Namen passen unter die Kacheln (höchstens 7 Zeichen)",
     FORTSCHRITT.quellen().every((q) => q.titel.length <= 7) && UPCREW_ABZEICHEN.ABZEICHEN.every((a) => a.kurz.length <= 7));
+
+/* ------------------------------------------------------------------ *
+ * Der Kern-Baustein js\fortschritt-kern.js (seit 0.28.1): FORTSCHRITT =
+ * Kern + Typolucks eigene Glieder. Der Kern ruft alles über den Namen
+ * FORTSCHRITT — was er vom Spiel braucht, steht in
+ * FORTSCHRITT_KERN_ERWARTET.
+ * ------------------------------------------------------------------ */
+{
+    const text = fs.readFileSync(path.join(__dirname, "..", "js", "fortschritt.js"), "utf8");
+    const kernNamen = Object.keys(FORTSCHRITT_KERN);
+
+    /* Die eigenen Glieder, wie js\fortschritt.js sie an Object.assign
+       übergibt — abgefangen beim frischen Laden, nicht aus dem Text geraten. */
+    let eigene = null;
+    const echtes = Object.assign;
+    Object.assign = function (ziel, ...quellen) {
+        if (quellen.length === 2 && quellen[0] === FORTSCHRITT_KERN) {
+            eigene = Object.keys(quellen[1]);
+        }
+        return echtes.call(Object, ziel, ...quellen);
+    };
+    const datei = require.resolve("../js/fortschritt.js");
+    const gemerkt = require.cache[datei];
+    delete require.cache[datei];
+    try {
+        require(datei);
+    } finally {
+        Object.assign = echtes;
+        require.cache[datei] = gemerkt;
+    }
+
+    pruefe("Kern: js\\fortschritt.js setzt sich aus dem Kern zusammen",
+        /\nconst FORTSCHRITT = Object\.assign\(\{\}, FORTSCHRITT_KERN, \{\n/.test(text) && Array.isArray(eigene));
+    pruefe("Kern: der Baustein hat Glieder und nennt, was er erwartet",
+        kernNamen.length > 0 && Array.isArray(FORTSCHRITT_KERN_ERWARTET) && FORTSCHRITT_KERN_ERWARTET.length > 0);
+    for (const name of FORTSCHRITT_KERN_ERWARTET) {
+        pruefe("Kern: Typoluck liefert, was der Kern erwartet: " + name,
+            (eigene || []).indexOf(name) !== -1 && FORTSCHRITT[name] !== undefined
+                && kernNamen.indexOf(name) === -1);
+    }
+    gleich("Kern: js\\fortschritt.js definiert kein Glied, das auch im Kern steht (kein stilles Überschreiben)",
+        (eigene || ["nicht abgefangen"]).filter((name) => kernNamen.indexOf(name) !== -1), []);
+    gleich("Kern: auch im Text steht kein Kern-Glied noch einmal",
+        kernNamen.filter((name) => new RegExp("\\n    " + name.replace(/[$]/g, "\\$&") + "\\s*[(:]").test(text)), []);
+    pruefe("Kern: jedes Glied des Kerns ist in FORTSCHRITT dasselbe Ding",
+        kernNamen.every((name) => FORTSCHRITT[name] === FORTSCHRITT_KERN[name]));
+    pruefe("Kern: alles, was der Kern über FORTSCHRITT ruft, gibt es",
+        (fs.readFileSync(path.join(__dirname, "..", "js", "fortschritt-kern.js"), "utf8")
+            .replace(/\/\*[\s\S]*?\*\//g, "").match(/FORTSCHRITT\.([A-Za-z_][A-Za-z0-9_]*)/g) || [])
+            .every((ruf) => ruf.slice("FORTSCHRITT.".length) in FORTSCHRITT));
+}
 
 fazit();

@@ -19,6 +19,7 @@
 
 const { pruefe, gleich, spaeter, fazit } = require("./pruefer.js");
 const { geraetLeeren } = require("./umgebung.js");
+require("./kern.js");
 global.FORTSCHRITT = require("../js/fortschritt.js");
 const FORTSCHRITT_ABGLEICH = require("../js/fortschritt-abgleich.js");
 

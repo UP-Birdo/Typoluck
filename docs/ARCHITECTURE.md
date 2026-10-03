@@ -14,17 +14,19 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\spieler.js` | Modell | Die **geteilten** UPCrew-Konten: Freundschaft, Zusammenführen |
 | `js\ich.js` | Gerät | Wer hier angemeldet ist, angefangene Runden, Warteliste |
 | `js\speicher.js` | Leitung | Lokal oder Firebase-REST, gleiche Schnittstelle, Zeitlimits |
+| `js\speicher-konten.js` | Leitung (Kern-Baustein) | Klasse `SpeicherKonten`, die Rückwand der UPCrew-Konten — byte-gleich aus `..\UPCrew\bausteine\kern`, direkt nach `speicher.js` (seit 0.28.1, vorher in `speicher.js`) |
 | `js\abgleich.js` | Leitung | Hält die Spielerliste mit dem Server zusammen (Marke, Zusammenführen) |
 | `js\woerter-de.js` | Daten | Lösungs- und Zusatzwörter, Tagesplan |
 | `js\wordle.js` | Modell | Die Spielregeln: bewerten, raten, Tageswort, Muster |
 | `js\ergebnisse.js` | Modell + Leitung | Was von einer Runde in die Datenbank kommt, Warteliste |
 | `js\rangliste.js` | Modell | Punkte, Tabellen, Statistik, Serie |
 | `js\wertung.js` | Modell | Wertung einer beendeten Runde: Können je Versuch gegen den besten möglichen, Glück getrennt, Figuren Bauer/Springer/König (seit 0.10.0) |
-| `js\fortschritt.js` | Modell + Gerät | XP, Level, Serie mit Schutz, „Heute", Abzeichen — für alle UPCrew-Spiele unter `upcrew.fortschritt`, je Spieler-Id; **Datenvertrag im Kopf der Datei** (seit 0.10.0) |
+| `js\fortschritt-kern.js` | Modell (Kern-Baustein) | `FORTSCHRITT_KERN`: Zusammenführen, Serie, öffentlicher Auszug, Spielzeit — byte-gleich aus `..\UPCrew\bausteine\kern`, direkt vor `fortschritt.js` (seit 0.28.1) |
+| `js\fortschritt.js` | Modell + Gerät | Kern + Typolucks eigene Glieder (`Object.assign`). XP, Level, Serie mit Schutz, „Heute", Abzeichen — für alle UPCrew-Spiele unter `upcrew.fortschritt`, je Spieler-Id; **Datenvertrag im Kopf der Datei** (seit 0.10.0) |
 | `js\sammlung.js` | Modell | Die reine Sammlung (Modi) und der Anteil „NN %" (seit 0.9.0) |
 | `js\bausteine.js` | Oberfläche | Knopf, Karte, Kopfzeile, Segment, Zeichen, Tab der Leiste, Sammelstück, Figuren, Level-Ring — **die 3D-Naht** |
 | `js\zustand.js` | Oberfläche | Laden, Leer, Fehler — je ein festes Bild statt eines Satzes (UPCrew-Standard, seit 0.4.0) |
-| `js\upcrew-farbwelten.js` | Oberfläche | Die UPCrew-Farbwelten → Farb-Variablen an `<html>` (seit 0.7.0; gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; lädt mit `upcrew-intro.js` VOR `darstellung.js`) |
+| `js\upcrew-farbwelten.js` | Oberfläche | Die UPCrew-Farbwelten → Farb-Variablen an `<html>` (seit 0.7.0; gemeinsamer Baustein, Quelle seit 03.10.2026 `Apps\UPCrew\bausteine`, hier nie abwandeln; lädt mit `upcrew-intro.js` VOR `darstellung.js`) |
 | `js\upcrew-aussehen.js` | Oberfläche | **Ein Aussehen für alle UPCrew-Spiele** (seit 0.8.0): hell/dunkel, Farbwelt, Schrift, Knöpfe, Standard-Schrift unter `upcrew.aussehen`; zieht Blunderluck im selben Browser mit (gemeinsamer Baustein, kopiert, nie abwandeln) |
 | `js\darstellung.js` | Oberfläche | Typolucks Anschluss an `upcrew-aussehen.js` (seit 0.8.0 ohne eigene Werte; einmaliger Umzug der alten Wahl; früher Aufruf beim Laden), Kachelfarben-Sperre (NYT-Look) |
 | `js\upcrew-anpassen.js` | Oberfläche | Anpassen samt Vorschau und Freischalt-Stufen (seit 0.8.0, seit 0.9.0 Teil der Sammlung; gemeinsamer Baustein, kopiert, nie abwandeln; Stil `css\upcrew-anpassen.css`) |
@@ -42,7 +44,7 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\bildschirm-sammlung.js` | Bildschirm | Tab „Sammlung" (Platz 2): Anpassen-Baustein direkt im Tab, darunter die Modi, Kopf „NN %", Stufe = Level (seit 0.9.0; ersetzt `bildschirm-anpassen.js` von 0.8.0) |
 | `js\wunsch.js` | Oberfläche | Wunsch-/Fehler-Knopf → GitHub-Formular |
 | `js\werkstatt.js` | Werkzeug | Testzustand für Bildschirmfotos (`?werkstatt`), sonst untätig |
-| `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro samt den Grundfarben der Farbwelten (gemeinsamer Baustein, kopiert aus `Design\3D-Schrift\final`, hier nie abwandeln; Stil `css\upcrew-intro.css`; lädt seit 0.7.0 früh, vor `darstellung.js`) |
+| `js\upcrew-intro.js` | Oberfläche | Das UPCrew-Studio-Intro samt den Grundfarben der Farbwelten (gemeinsamer Baustein, Quelle seit 03.10.2026 `Apps\UPCrew\bausteine`, hier nie abwandeln; Stil `css\upcrew-intro.css`; lädt seit 0.7.0 früh, vor `darstellung.js`) |
 | `js\intro.js` | Oberfläche | Anpasser für Typoluck: bei jedem Start, hell/dunkel wie die App, Werkstatt-Schalter `&intro` |
 | `js\app.js` | Start | Verbindet alles, hält den eigenen Verlauf |
 | `css\stil.css` | Aussehen | Variablen (Farben, Tiefe, Ebenen), Knöpfe, Karten, Dialoge, Anmeldung |
@@ -50,7 +52,7 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `css\stil-wordle.css` | Aussehen | Brett, Kacheln, Tastatur, Bewegungen |
 | `css\upcrew-knoepfe.css` | Aussehen | Die Knopf-Familien K1–K6 für alle `up-kn`-Knöpfe (seit 0.8.0; kopiert, nie abwandeln; lädt NACH dem eigenen Stil) |
 | `css\upcrew-leiste.css` | Aussehen | Die Leiste unten: nur Zeichen, aktiver Tab gehoben (seit 0.9.0; kopiert, nie abwandeln; lädt NACH dem eigenen Stil — die feste Lage unten regelt `.leiste.up-leiste` in `stil.css`) |
-| `schrift\` | Aussehen | Die zwölf Crew-Schriften (woff2) samt `LIZENZ.txt` (seit 0.8.0; kopiert aus `Design\3D-Schrift\final\schrift`, im Service Worker) |
+| `schrift\` | Aussehen | Die zwölf Crew-Schriften (woff2) samt `LIZENZ.txt` (seit 0.8.0; Quelle seit 03.10.2026 `Apps\UPCrew\bausteine\schrift`, im Service Worker) |
 | `sw.js` | Offline | Service Worker (Dateiliste + Versionsnummer) |
 | `tools\` | Werkzeuge | Start, Tests, Deploy, Icons, Wünsche |
 | `tests\` | Tests | siehe `tests\README.md` |

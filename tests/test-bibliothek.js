@@ -30,6 +30,7 @@ const ARTEN = require("../js/wortarten-daten.js");
 const B = require("../js/bibliothek.js");
 const W = require("../js/wordle.js");
 global.UPCREW_ABZEICHEN = require("../js/upcrew-abzeichen.js");
+require("./kern.js");
 const F = require("../js/fortschritt.js");
 const M = require("../js/upcrew-muenzen.js");
 

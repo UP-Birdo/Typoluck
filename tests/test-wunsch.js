@@ -119,6 +119,10 @@ spaeter("Wunsch-Ablauf", (async () => {
     const dialog = fs.readFileSync(pfad.join(wurzel, "js", "dialog.js"), "utf8");
     pruefe("Dialoge setzen Text nur über textContent (innerHTML nur zum Leeren)",
         !/innerHTML\s*=(?!\s*"")/.test(dialog) && /absatz\.textContent = text/.test(dialog));
+    /* BLEIBT VORERST (Stand 03.10.2026, Auftrag „Bausteine aus UPCrew“):
+       ein Blick ins Schwester-Spiel. Die Zeichenliste NICHT_ERLAUBT ist
+       kein Baustein. FÄLLT WEG, sobald sie (oder wunsch.js) in
+       ..\UPCrew\bausteine liegt — der Koordination gemeldet. */
     const blunderluck = pfad.join(wurzel, "..", "Blunderluck", "js", "wunsch.js");
     if (fs.existsSync(blunderluck)) {
         const dort = /NICHT_ERLAUBT:\s*(\/.*\/[a-z]*),/.exec(fs.readFileSync(blunderluck, "utf8"));

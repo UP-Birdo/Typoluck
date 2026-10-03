@@ -19,6 +19,7 @@
 - Eine CSS-Animation kann nicht „zur Farbe der Klasse" springen
 - In der Testumgebung gibt es kein window.setInterval
 - Firebase speichert leere Listen gar nicht
+- Ein Test auf den Rückfall-Schalter kann zufällig grün sein
 
 ## entschieden.md — getroffene Entscheidungen
 

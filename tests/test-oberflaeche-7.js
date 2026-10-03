@@ -19,7 +19,10 @@
  *   5. Einstellungen im gemeinsamen Aufbau: feste Reihenfolge, „Nur in
  *      Typoluck".
  *   6. Einbindung: index.html, sw.js (offline), Kopien byte-gleich mit
- *      final, wo final erreichbar ist.
+ *      der Quelle ..\UPCrew\bausteine (seit 03.10.2026, vorher
+ *      Design\3D-Schrift\final), wo sie erreichbar ist — seit 0.28.1 auch
+ *      die Kern-Bausteine aus ..\UPCrew\bausteine\kern (speicher-konten.js,
+ *      fortschritt-kern.js, konto.js bis auf den Schlüssel).
  */
 
 const fs = require("fs");
@@ -276,6 +279,7 @@ function navWelt() {
  * 2. Typoluck-Abzeichen
  * ------------------------------------------------------------------ */
 
+require("./kern.js");
 const FORTSCHRITT = require("../js/fortschritt.js");
 const A = require("../js/upcrew-abzeichen.js");
 global.UPCREW_ABZEICHEN = A;
@@ -414,20 +418,67 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
     pruefe("Nach jeder Runde werden verdiente Abzeichen gebucht",
         /APP\.abzeichenBuchen\(\) > 0/.test(lesen("js/app.js")));
 
-    /* Byte-gleich mit final, wo final erreichbar ist (auf anderen Rechnern
-       fehlt der Ordner — dann nichts zu prüfen). upcrew-abzeichen-spiele.js
-       trägt die Typoluck-Liste (Vorschlag an final) und ist ausgenommen. */
-    const FINAL = pfad.join(wurzel, "..", "..", "Design", "3D-Schrift", "final");
-    if (fs.existsSync(FINAL)) {
-        for (const datei of neu.filter((d) => /upcrew-/.test(d) && !/abzeichen-spiele/.test(d))
+    /* Byte-gleich mit der Quelle, wo sie erreichbar ist (auf anderen
+       Rechnern fehlt der Ordner — dann nichts zu prüfen). Seit 03.10.2026
+       ist die Quelle ..\UPCrew\bausteine\ (js\ und css\, wie in der App),
+       nicht mehr Design\3D-Schrift\final. Die ganze Liste aller Bausteine
+       und Apps prüft ..\UPCrew\tools\Bausteine-Pruefen.ps1; hier bleiben
+       die Dateien dieser Runde als schneller Wächter in der Testkette.
+       upcrew-abzeichen-spiele.js ist seitdem ein Baustein wie jeder andere
+       (die Typoluck-Liste steht in der Quelle) und nicht mehr ausgenommen. */
+    const QUELLE = pfad.join(wurzel, "..", "UPCrew", "bausteine");
+    if (fs.existsSync(QUELLE)) {
+        for (const datei of neu.filter((d) => /upcrew-/.test(d))
             .concat(["js/upcrew-abzeichen.js", "css/upcrew-abzeichen.css", "js/upcrew-sammlung.js", "css/upcrew-sammlung.css",
-                /* seit 0.26.0 geändert in final */
+                /* seit 0.26.0 geändert in der Quelle */
                 "js/upcrew-flamme.js", "css/upcrew-flamme.css", "js/upcrew-muenzen.js", "js/upcrew-shop.js",
                 "js/upcrew-aussehen.js"])) {
-            const quelle = pfad.join(FINAL, pfad.basename(datei));
-            pruefe("Byte-gleich mit final: " + datei,
+            const quelle = pfad.join(QUELLE, datei);
+            pruefe("Byte-gleich mit UPCrew\\bausteine: " + datei,
                 fs.existsSync(quelle) && fs.readFileSync(quelle).equals(fs.readFileSync(pfad.join(wurzel, datei))));
         }
+
+        /* Die Kern-Bausteine (seit 0.28.1): Quelle ..\UPCrew\bausteine\kern,
+           in der App unter js\. speicher-konten.js und fortschritt-kern.js
+           sind Byte für Byte die Quelle. konto.js trägt in der Quelle an
+           genau einer Stelle den Platzhalter UPCREW-JE-APP:KONTO-SCHLUESSEL
+           (BAUSTEINE.json, `jeApp`), in Typoluck steht dort
+           „typoluck.konto“ — sonst Byte für Byte gleich. */
+        for (const datei of ["speicher-konten.js", "fortschritt-kern.js"]) {
+            const quelle = pfad.join(QUELLE, "kern", datei);
+            pruefe("Byte-gleich mit UPCrew\\bausteine\\kern: js/" + datei,
+                fs.existsSync(quelle) && fs.readFileSync(quelle).equals(fs.readFileSync(pfad.join(wurzel, "js", datei))));
+        }
+        const kontoQuelle = pfad.join(QUELLE, "kern", "konto.js");
+        const platzhalter = Buffer.from("UPCREW-JE-APP:KONTO-SCHLUESSEL", "utf8");
+        let kontoGleich = false;
+        let stellen = 0;
+        if (fs.existsSync(kontoQuelle)) {
+            const roh = fs.readFileSync(kontoQuelle);
+            const stelle = roh.indexOf(platzhalter);
+            for (let i = stelle; i !== -1; i = roh.indexOf(platzhalter, i + 1)) {
+                stellen++;
+            }
+            kontoGleich = stelle !== -1 && Buffer.concat([roh.slice(0, stelle), Buffer.from("typoluck.konto", "utf8"),
+                roh.slice(stelle + platzhalter.length)]).equals(fs.readFileSync(pfad.join(wurzel, "js", "konto.js")));
+        }
+        gleich("Byte-gleich mit UPCrew\\bausteine\\kern bis auf den Schlüssel (Platzhalter genau einmal): js/konto.js",
+            [kontoGleich, stellen], [true, 1]);
+    }
+
+    /* Die Kern-Bausteine sind eingebunden: speicher-konten.js direkt NACH
+       speicher.js (erbt von SpeicherGemeinsam), fortschritt-kern.js direkt
+       VOR fortschritt.js (FORTSCHRITT setzt sich aus ihm zusammen). */
+    {
+        const skripte = (index.match(/<script src="([^"]+)"/g) || []).map((z) => z.match(/"([^"]+)"/)[1]);
+        gleich("index.html: speicher-konten.js direkt nach speicher.js",
+            skripte.slice(skripte.indexOf("js/speicher.js"), skripte.indexOf("js/speicher.js") + 2),
+            ["js/speicher.js", "js/speicher-konten.js"]);
+        gleich("index.html: fortschritt-kern.js direkt vor fortschritt.js",
+            skripte.slice(skripte.indexOf("js/fortschritt-kern.js"), skripte.indexOf("js/fortschritt-kern.js") + 2),
+            ["js/fortschritt-kern.js", "js/fortschritt.js"]);
+        pruefe("Kern-Bausteine offline (sw.js)",
+            sw.indexOf("\"./js/speicher-konten.js\"") !== -1 && sw.indexOf("\"./js/fortschritt-kern.js\"") !== -1);
     }
 }
 

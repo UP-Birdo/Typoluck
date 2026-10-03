@@ -21,7 +21,9 @@ const { geraetLeeren } = require("./umgebung.js");
 const L = require("../js/lieblingswoerter.js");
 const W = require("../js/wordle.js");
 const B = require("../js/bibliothek.js");
-const { SpeicherKonten } = require("../js/speicher.js");
+/* Seit 0.28.1 der Baustein js\speicher-konten.js; er erbt von
+   SpeicherGemeinsam, das umgebung.js oben global bereitgestellt hat. */
+const { SpeicherKonten } = require("../js/speicher-konten.js");
 
 const lesen = (name) => fs.readFileSync(pfad.join(__dirname, "..", name), "utf8");
 const zaehle = (stand, runden) => runden.reduce((s, r) => L.zaehlen(s, r), stand || L.leer());

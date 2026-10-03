@@ -21,7 +21,10 @@ const wurzel = path.join(__dirname, "..");
 const lesen = (datei) => fs.readFileSync(path.join(wurzel, datei), "utf8");
 const liste = (ordner) => fs.readdirSync(path.join(wurzel, ordner)).map((name) => ordner + "/" + name);
 
-/* Die kopierten UPCrew-Bausteine aus Design\3D-Schrift\final — hier NIE
+/* Die kopierten UPCrew-Bausteine — Quelle seit 03.10.2026
+   Apps\UPCrew\bausteine (Liste dort: BAUSTEINE.json; vorher
+   Design\3D-Schrift\final), verteilt mit
+   ..\UPCrew\tools\Bausteine-Verteilen.ps1 — hier NIE
    abgewandelt. Für sie gelten die Form-Prüfungen des eigenen Stils nicht
    (die Knopf-Familien haben eigene Rundungen, das ist ihr Zweck), und die
    Emoji-Prüfung nicht (der Anpassen-Tab zeigt Schachfiguren U+265A-265F,
@@ -51,7 +54,11 @@ const KOPIEN = [
     "js/upcrew-profil.js", "css/upcrew-profil.css", "js/upcrew-einstellungen.js", "css/upcrew-einstellungen.css",
     "js/upcrew-abzeichen-spiele.js",
     /* seit 0.26.0: der Level-Pfad (Blatt) */
-    "js/upcrew-levelpfad.js", "css/upcrew-levelpfad.css"
+    "js/upcrew-levelpfad.js", "css/upcrew-levelpfad.css",
+    /* seit 0.28.1: die Kern-Bausteine aus ..\UPCrew\bausteine\kern — die
+       Konten-Rückwand (Klasse SpeicherKonten) und der gemeinsame Teil des
+       Fortschritts */
+    "js/speicher-konten.js", "js/fortschritt-kern.js"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -387,11 +394,12 @@ pruefe("Neu gezeichnet wird die Sammlung nicht von fremden Daten (der Entwurf bl
 pruefe("Keine Freischalt-Stufen oder Standard-Werte in der App festgeschrieben",
     liste("js").filter((d) => d.endsWith(".js") && KOPIEN.indexOf(d) === -1)
         .every((d) => !/\b(S[1-6]|K[1-6])\b"|"(S[1-6]|K[1-6])"|STUFEN\s*[=:]/.test(
-            /* Ausgenommen: die Klasse SpeicherKonten (seit 0.22.0 Zeile für
-               Zeile Blunderlucks — ihre Liste REGEL_AUSSEHEN sind die Werte
-               der Datenbank-Regel §11a, keine Freischalt-Stufen). */
-            lesen(d).replace(/\nclass SpeicherKonten [\s\S]*?\n\}\n/, "\n")
-                .replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
+            /* Die Klasse SpeicherKonten (ihre Liste REGEL_AUSSEHEN sind die
+               Werte der Datenbank-Regel §11a, keine Freischalt-Stufen) ist
+               seit 0.28.1 der Baustein js\speicher-konten.js und steht in
+               KOPIEN — bis dahin wurde sie hier aus js\speicher.js
+               herausgenommen. */
+            lesen(d).replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, ""))));
 /* Seit 0.26.0 (Nutzer 29.09.2026): kein Schalter „Standard-Schrift", kein
    Schwer-Modus, der Speicher mit Status-Lampe. */
 pruefe("Einstellungen: ohne Standard-Schrift und Schwer-Modus, „Anpassen“ springt in die Sammlung",
@@ -445,6 +453,18 @@ pruefe("Wertung und Fortschritt laden nach dem Spiel-Modell und vor den Baustein
         && indexSkripte.indexOf("js/wertung.js") < indexSkripte.indexOf("js/fortschritt.js")
         && indexSkripte.indexOf("js/fortschritt.js") < indexSkripte.indexOf("js/bausteine.js")
         && indexSkripte.indexOf("js/fortschritt.js") < indexSkripte.indexOf("js/werkstatt.js"));
+/* Seit 0.28.1: die Kern-Bausteine. Der Kern des Fortschritts direkt VOR
+   js\fortschritt.js (das sich aus ihm zusammensetzt), die Konten-Rückwand
+   direkt NACH js\speicher.js (sie erbt von SpeicherGemeinsam). */
+gleich("Kern-Bausteine: fortschritt-kern.js direkt vor fortschritt.js",
+    indexSkripte.slice(indexSkripte.indexOf("js/fortschritt-kern.js"), indexSkripte.indexOf("js/fortschritt-kern.js") + 2),
+    ["js/fortschritt-kern.js", "js/fortschritt.js"]);
+gleich("Kern-Bausteine: speicher-konten.js direkt nach speicher.js",
+    indexSkripte.slice(indexSkripte.indexOf("js/speicher.js"), indexSkripte.indexOf("js/speicher.js") + 2),
+    ["js/speicher.js", "js/speicher-konten.js"]);
+pruefe("Kern-Bausteine: js\\speicher.js nennt SpeicherKonten nicht mehr als eigenes Stück",
+    !/class SpeicherKonten/.test(lesen("js/speicher.js"))
+        && /module\.exports = \{ SpeicherLokal, SpeicherGemeinsam, speicherErzeugen \};/.test(lesen("js/speicher.js")));
 const wordleBildschirm = lesen("js/bildschirm-wordle.js").replace(/\/\*[\s\S]*?\*\//g, "");
 gleich("Der Fortschritt wird an genau einer Stelle gemeldet",
     (wordleBildschirm.match(/APP\.fortschrittMelden\(/g) || []).length, 1);
@@ -590,11 +610,12 @@ pruefe("Die Rangliste steht nicht doppelt (nicht auch im Menü)",
  * Die UPCrew-Bausteine (seit 0.7.0): kopiert, nie abgewandelt
  * ------------------------------------------------------------------ */
 
-/* Farbwelt und Intro kommen aus Design\3D-Schrift\final. Der Test liest
-   bewusst NUR im eigenen Projekt (ein Projekt muss sich allein verschieben
-   lassen, und ein Pfad nach draussen zur Laufzeit ginge an der
-   Projekt-Schranke vorbei). Ob die Kopien gleich der Quelle sind, prüft
-   der Mensch bzw. Claude beim Kopieren (Byte-Vergleich, STATUS.md). */
+/* Die Bausteine kommen aus Apps\UPCrew\bausteine (seit 03.10.2026, vorher
+   Design\3D-Schrift\final). Dieser Test liest bewusst NUR im eigenen
+   Projekt (ein Projekt muss sich allein verschieben lassen). Ob die
+   Kopien gleich der Quelle sind, prüft
+   ..\UPCrew\tools\Bausteine-Pruefen.ps1 für alle Apps („0 Abweichungen“
+   vor jeder Auslieferung). */
 for (const kopie of KOPIEN) {
     pruefe("UPCrew-Baustein vorhanden: " + kopie, fs.existsSync(path.join(wurzel, kopie)));
 }

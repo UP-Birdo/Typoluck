@@ -19,6 +19,7 @@ const wurzel = pfad.join(__dirname, "..");
 const lesen = (name) => fs.readFileSync(pfad.join(wurzel, name), "utf8");
 const KONTO = require("../js/konto.js");
 const SPIELER = require("../js/spieler.js");
+require("./kern.js");
 const FORTSCHRITT = require("../js/fortschritt.js");
 const WB = require("../js/wortbewertung.js");
 const WOERTER_DE = require("../js/woerter-de.js");

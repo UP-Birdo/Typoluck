@@ -174,3 +174,15 @@ benutzen — sie gibt es im Browser und in Node gleichermassen.
 Liste mit Lücken als Objekt mit Zahlen-Schlüsseln. `SPIELER.normalisieren`
 legt fehlende Listen wieder an und macht aus dem Objekt eine Liste — der
 Test „Liste als Objekt wird zur Liste" hält es fest.
+
+## Ein Test auf den Rückfall-Schalter kann zufällig grün sein (30.09.2026)
+
+`LIEBLINGSWOERTER.regelDa()` fragt `typeof SpeicherKonten` global. In Node
+kommt die Klasse nur per `require` in eine lokale Variable, global fehlt
+sie — `regelDa()` ist dort immer false. Solange `REGEL_GRAU_EINGESPIELT`
+false war, stimmte der Test „ohne Test-Schalter gilt der Schalter" nur
+zufällig; beim Umschalten auf true fiel er. Jetzt setzt der Test
+`globalThis.SpeicherKonten` für genau diese Prüfung und prüft den Fall
+„ohne Klasse" getrennt. Merke: Ein Test, der `false` gegen einen
+Standardwert `false` prüft, misst nichts — einmal mit dem anderen Wert
+gegenprüfen.

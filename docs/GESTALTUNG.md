@@ -7,7 +7,7 @@ welche nimmt. Deshalb keine Farbcodes in dieser Datei.
 ## Die Farben
 
 **Seit 0.7.0 kommen die Farben aus der UPCrew-Farbwelt** (UPCrew-Runde 2):
-`js\upcrew-farbwelten.js` (kopiert aus `Design\3D-Schrift\final`, nie hier
+`js\upcrew-farbwelten.js` (Baustein aus `Apps\UPCrew\bausteine`, nie hier
 abwandeln) rechnet aus einer Welt alle Oberflächen-, Kachel- und
 Tasten-Variablen und setzt sie direkt an `<html>`. **Seit 0.8.0 wählt der
 Spieler die Welt selbst** (Tab „Anpassen"): Welt, hell/dunkel, Schrift und
@@ -185,8 +185,8 @@ bekommt keine.
 
 Das Studio-Zeichen, mit dem jede UPCrew-App beginnt. **Seit 0.6.1 ein
 gemeinsamer Baustein:** `js\upcrew-intro.js` und `css\upcrew-intro.css`,
-unverändert kopiert aus `Design\3D-Schrift\final\` — dort wird er gestaltet
-und geändert (Aussehen: `Design\3D-Schrift\docs\GESTALTUNG.md` Abschnitt 10,
+unverändert aus `Apps\UPCrew\bausteine` (Quelle seit 03.10.2026, vorher
+`Design\3D-Schrift\final\`) — geändert wird er nur dort (Aussehen: `Design\3D-Schrift\docs\GESTALTUNG.md` Abschnitt 10,
 Einbau: `Design\3D-Schrift\docs\EINBAU-INTRO.md`). **Hier nie abwandeln**,
 sondern dort ändern und neu kopieren. `js\intro.js` ist nur der Anpasser:
 Er sagt dem Baustein hell oder dunkel, Nummer „02", Name und Version.

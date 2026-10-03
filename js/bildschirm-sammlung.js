@@ -7,7 +7,7 @@
  * Auftrag: Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md.
  *
  * DAS GERÜST (seit 0.15.9) ist der gemeinsame Baustein js\upcrew-sammlung.js
- * + css\upcrew-sammlung.css aus Design\3D-Schrift\final — in Blunderluck
+ * + css\upcrew-sammlung.css aus Apps\UPCrew\bausteine — in Blunderluck
  * derselbe (Nutzer 27.09.2026: „bei beiden Apps soll Sammlung gleich sein
  * und immer gleich bleiben", „1:1 bis auf die spieleigenen Items"). Er baut:
  *   1. den klebenden Kopf „Sammlung" mit „NN %" (SAMMLUNG.anteil);

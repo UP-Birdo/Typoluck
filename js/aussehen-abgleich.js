@@ -66,7 +66,8 @@ const AUSSEHEN_ABGLEICH = {
     AUSSEHEN_JE_AM_KONTO: true,
 
     /* Gilt die Regel mit Grau? Der EINE Schalter steht in der Klasse
-       SpeicherKonten (Blunderlucks, `REGEL_GRAU_EINGESPIELT`); dieses Feld
+       SpeicherKonten (Baustein js\speicher-konten.js aus
+       Apps\UPCrew\bausteine, `REGEL_GRAU_EINGESPIELT`); dieses Feld
        überstimmt ihn nur in Tests (true/false), sonst null. */
     REGEL_GRAU: null,
 

@@ -2,8 +2,9 @@
  * test-muenzen.js — Münzen, Shop und Serie ab Rundenstart (seit 0.17.0, wie
  * Apps\Blunderluck\tests\test-muenzen.js zu Blunderluck v0.152.0).
  *
- *   1. Die Serien- und Zähler-Rechnung ist in BEIDEN fortschritt.js
- *      identisch (Funktion für Funktion verglichen).
+ *   1. Die Serien- und Zähler-Rechnung ist in beiden Spielen dieselbe:
+ *      Sie kommt aus dem Kern-Baustein js\fortschritt-kern.js (seit 0.28.1;
+ *      vorher Funktion für Funktion mit Blunderluck verglichen).
  *   2. Serie: jeder Rundenstart zählt, über 60 Tage, Schutz und Schilde,
  *      alte Stände wie bisher, zwei Geräte.
  *   3. Münzen: verdienen je Runde, Kontostand über beide Zweige, kaufen.
@@ -20,6 +21,7 @@ const { pruefe, gleich, fazit } = require("./pruefer.js");
 const wurzel = pfad.join(__dirname, "..");
 const lesen = (name) => fs.readFileSync(pfad.join(wurzel, name), "utf8");
 global.UPCREW_ABZEICHEN = require("../js/upcrew-abzeichen.js");
+const KERN = require("./kern.js");
 const F = require("../js/fortschritt.js");
 const M = require("../js/upcrew-muenzen.js");
 const WORDLE = require("../js/wordle.js");
@@ -29,36 +31,23 @@ function tag(n) {
     return new Date(Date.UTC(2026, 0, 1 + n, 12)).toISOString().slice(0, 10);
 }
 
-/* 1. Dieselbe Rechnung wie Blunderluck */
-function funktion(text, name) {
-    const m = new RegExp("\\n    " + name.replace(/[$]/g, "\\$&") + "\\(").exec(text);
-    if (!m) {
-        return null;
-    }
-    const a = m.index + 1;
-    return text.slice(a, text.indexOf("\n    },", a) + 7);
-}
+/* 1. Dieselbe Rechnung in beiden Spielen */
 {
-    const bl = pfad.join(wurzel, "..", "Blunderluck", "js", "fortschritt.js");
-    const tl = lesen("js/fortschritt.js");
+    /* Seit 0.28.1 KEIN Blick mehr nach Blunderluck: Die Serien-, Zähler-
+       und Auszug-Rechnung steht im Kern-Baustein js\fortschritt-kern.js
+       (Quelle ..\UPCrew\bausteine\kern). Dass die Kopie gleich der Quelle
+       ist, prüfen tests\test-oberflaeche-7.js (Byte-Vergleich) und
+       ..\UPCrew\tools\Bausteine-Pruefen.ps1. Hier bleibt nur: Jedes Glied,
+       das bisher Zeile für Zeile verglichen wurde, IST das des Kerns. */
     const namen = ["zusammenfuehren", "_zaehlerZusammen", "serie", "_datumZahl", "_zahlDatum", "_tageZwischen",
         "_zaehlerSumme", "schildVorrat", "serieStand", "rundeGestartet", "_zaehlerAnlegen",
         /* Seit 0.26.0 (Schild und Schutz weg): Schutz 0, Erstattung. */
         "schutzVerdient", "schildeErstatten",
         /* Seit 0.22.0 (Regel §12): der öffentliche Auszug. */
-        "datumVon", "auszug", "auszugPruefen", "auszugVon", "auszugLevel", "auszugSerie", "auszugAlsStand"];
-    if (fs.existsSync(bl)) {
-        const text = fs.readFileSync(bl, "utf8");
-        for (const name of namen) {
-            const eigen = funktion(tl, name);
-            pruefe("Zeile für Zeile wie Blunderluck: " + name, eigen !== null && eigen === funktion(text, name));
-        }
-        pruefe("Zeile für Zeile wie Blunderluck: AUSZUG_WERTE", tl.indexOf('AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],') !== -1
-            && text.indexOf('AUSZUG_WERTE: ["partien", "besteSerie", "beideTage", "figuren", "tagesaufgaben"],') !== -1);
-        pruefe("Zeile für Zeile wie Blunderluck: SERIE_ZAEHLER",
-            tl.indexOf('SERIE_ZAEHLER: ["serie", "serieBis", "serieSchutz"],') !== -1
-                && text.indexOf('SERIE_ZAEHLER: ["serie", "serieBis", "serieSchutz"],') !== -1);
-    }
+        "datumVon", "auszug", "auszugPruefen", "auszugVon", "auszugLevel", "auszugSerie", "auszugAlsStand",
+        "AUSZUG_WERTE", "SERIE_ZAEHLER"];
+    gleich("Die gemeinsame Rechnung kommt aus dem Kern-Baustein (nicht aus js\\fortschritt.js)",
+        namen.filter((name) => !(name in KERN.FORTSCHRITT_KERN) || F[name] !== KERN.FORTSCHRITT_KERN[name]), []);
 }
 
 /* 2. Serie */

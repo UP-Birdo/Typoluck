@@ -53,6 +53,11 @@ function wahr(bedingung, was) {
 }
 
 const projekt = pfad.join(__dirname, "..");
+/* BLEIBT VORERST (Stand 03.10.2026, Auftrag „Bausteine aus UPCrew“): ein
+   Blick ins Schwester-Spiel — die eingespielten Regeltexte (§11c, §12, §13)
+   stehen nur in Blunderlucks SICHERHEIT.md. FÄLLT WEG, sobald die
+   Regeltexte in ..\UPCrew liegen (der Koordination gemeldet); das Konzept
+   liegt dort schon. */
 const sicherheitPfad = pfad.join(projekt, "..", "Blunderluck", "SICHERHEIT.md");
 const konzeptPfad = pfad.join(projekt, "..", "UPCrew", "docs", "DATENBANK-KONZEPT-12.md");
 
@@ -135,8 +140,9 @@ function appLaden(fb) {
     umgebung.globalThis = umgebung;
     vm.createContext(umgebung);
 
-    const quelltext = ["konto.js", "upcrew-abzeichen.js", "fortschritt.js", "fortschritt-abgleich.js",
-        "versiegelung.js", "spieler.js", "ich.js", "speicher.js", "abgleich.js", "anmeldung.js",
+    const quelltext = ["konto.js", "upcrew-abzeichen.js", "fortschritt-kern.js", "fortschritt.js",
+        "fortschritt-abgleich.js", "versiegelung.js", "spieler.js", "ich.js", "speicher.js",
+        "speicher-konten.js", "abgleich.js", "anmeldung.js",
         "woerter-de.js", "wortbewertung-daten.js", "wortbewertung-korrektur.js", "wortbewertung.js",
         "wortstatistik.js", "wortstatistik-abgleich.js", "spielzeit.js"]
         .map((name) => dateisystem.readFileSync(pfad.join(projekt, "js", name), "utf8"))

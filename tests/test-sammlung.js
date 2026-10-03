@@ -38,6 +38,7 @@ gleich("Modi zählen 2/4", SAMMLUNG.gruppeZaehlen(modi), { hat: 2, alle: 4 });
 
 /* Anteil: bei Stufe 0 je Aussehen-Regal nur die Stücke mit Stufe 0. */
 /* Kachel-Sets über Taten (seit 0.13.0) */
+require("./kern.js");
 const FORTSCHRITT = require("../js/fortschritt.js");
 const sets = SAMMLUNG.GRUPPEN.find((g) => g.id === "kachelsets");
 gleich("Kachel-Sets: die fünf aus dem Entwurf zuerst, dann fünf Vorschläge (seit 0.14.0)", sets.stuecke.map((s) => s.name),

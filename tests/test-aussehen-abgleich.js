@@ -18,7 +18,9 @@
 const { pruefe, gleich, spaeter, fazit } = require("./pruefer.js");
 const { geraetLeeren, aussehenLaden } = require("./umgebung.js");
 const AUSSEHEN_ABGLEICH = require("../js/aussehen-abgleich.js");
-const { SpeicherKonten } = require("../js/speicher.js");
+/* Seit 0.28.1 der Baustein js\speicher-konten.js; er erbt von
+   SpeicherGemeinsam, das umgebung.js oben global bereitgestellt hat. */
+const { SpeicherKonten } = require("../js/speicher-konten.js");
 
 const SCHLUESSEL = "typoluck.test-konten";
 

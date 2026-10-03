@@ -20,6 +20,7 @@ const { pruefe, gleich, fazit } = require("./pruefer.js");
 const wurzel = pfad.join(__dirname, "..");
 const lesen = (name) => fs.readFileSync(pfad.join(wurzel, name), "utf8");
 const F = require("../js/upcrew-flamme.js");
+require("./kern.js");
 const FORTSCHRITT = require("../js/fortschritt.js");
 const WORDLE = require("../js/wordle.js");
 

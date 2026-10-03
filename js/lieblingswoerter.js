@@ -31,7 +31,8 @@
  * Nur echte Konten (der `uidGeber` aus js/app.js liefert für Gäste und die
  * Werkstatt null). Die Regel ist vorbereitet, aber NICHT eingespielt —
  * deshalb hängt das Schreiben am selben Schalter wie Grau:
- * `SpeicherKonten.REGEL_GRAU_EINGESPIELT` (Blunderlucks Klasse). Solange
+ * `SpeicherKonten.REGEL_GRAU_EINGESPIELT` (Baustein js\speicher-konten.js
+ * aus Apps\UPCrew\bausteine). Solange
  * er false ist, geht NICHTS ans Konto (sonst lehnt die Datenbank ab). Das
  * Feld `REGEL` überstimmt ihn nur in Tests. Die Zählung selbst bleibt
  * immer auf dem Gerät. Still bei Fehler.

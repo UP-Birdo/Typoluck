@@ -1,6 +1,7 @@
 /*
  * test-konto.js — das UPCrew-Konto (seit v0.2.0): js\konto.js (in allen
- * UPCrew-Spielen gleich), die Konten-Rückwand in js\speicher.js und die
+ * UPCrew-Spielen gleich; Quelle seit 03.10.2026
+ * Apps\UPCrew\bausteine\kern\konto.js), die Konten-Rückwand in js\speicher.js und die
  * Abläufe in js\anmeldung.js.
  *
  * Regressionstests gehen nie ins Netz (Haus-Regel): Eine NACHGEBAUTE
@@ -276,7 +277,7 @@ function appLaden(fb) {
     vm.createContext(umgebung);
 
     const quelle = ["konfig.js", "konto.js", "versiegelung.js", "spieler.js", "ich.js",
-        "speicher.js", "abgleich.js", "anmeldung.js"]
+        "speicher.js", "speicher-konten.js", "abgleich.js", "anmeldung.js"]
         .map((n) => fs.readFileSync(pfad.join(__dirname, "..", "js", n), "utf8"))
         .join("\n;\n")
         + "\nObject.assign(globalThis, { KONFIG, KONTO, SPIELER, ICH, ANMELDUNG, Abgleich,"
@@ -600,7 +601,8 @@ spaeter("UPCrew-Konto", (async () => {
             .filter((a) => a.adresse.indexOf("signInWithPassword") !== -1).length === 1);
 
     /* Level und letzter Tag, soweit ohne Anmeldung lesbar */
-    vm.runInContext(fs.readFileSync(pfad.join(__dirname, "..", "js", "fortschritt.js"), "utf8")
+    vm.runInContext(fs.readFileSync(pfad.join(__dirname, "..", "js", "fortschritt-kern.js"), "utf8") + "\n;\n"
+        + fs.readFileSync(pfad.join(__dirname, "..", "js", "fortschritt.js"), "utf8")
         + ";\nglobalThis.FORTSCHRITT = FORTSCHRITT;", w.umgebung);
     const mitStand = { name: "Sam", tag: "1234", fortschritt: { version: 1, spiele: {
         typoluck: { xp: 5000, tage: ["2026-09-20", "2026-09-26"] } } } };
@@ -663,27 +665,28 @@ spaeter("UPCrew-Konto", (async () => {
     const anmeldung = ohneKommentare(fs.readFileSync(pfad.join(__dirname, "..", "js", "anmeldung.js"), "utf8"));
     pruefe("Anmelden: Feld „Name“, kein „Name#Nummer“, keine „(#1234)“",
         !/Name#Nummer/.test(anmeldung) && !/\(#1234\)/.test(anmeldung) && /"Name und Passwort/.test(anmeldung));
-    gleich("konto.js ist Blunderlucks Fassung (nur SCHLUESSEL eigen): Reihum-Grenze", require("../js/konto.js").ANMELDEN_REIHUM_MAX, 20);
+    gleich("konto.js ist die gemeinsame Fassung (nur SCHLUESSEL je App): Reihum-Grenze", require("../js/konto.js").ANMELDEN_REIHUM_MAX, 20);
     {
-        /* Seit 0.18.5 Zeile für Zeile: Blunderlucks konto.js (v0.152.4), nur SCHLUESSEL eigen. */
-        const fsx = require("fs");
-        const blDatei = require("path").join(__dirname, "..", "..", "Blunderluck", "js", "konto.js");
-        if (fsx.existsSync(blDatei)) {
-            const tl = fsx.readFileSync(require("path").join(__dirname, "..", "js", "konto.js"), "utf8").split("\n");
-            const bl = fsx.readFileSync(blDatei, "utf8").split("\n");
-            const anders = tl.map((z, i) => (z === bl[i] ? null : z.trim())).filter(Boolean);
-            gleich("konto.js = Blunderluck bis auf SCHLUESSEL", [tl.length === bl.length, anders],
-                [true, ['SCHLUESSEL: "typoluck.konto",']]);
-        }
-        /* Seit 0.22.0 (Regel §12 Phase A): die Klasse SpeicherKonten
-           Zeile für Zeile Blunderlucks (Entscheidung der Koordination). */
-        const blSpeicher = require("path").join(__dirname, "..", "..", "Blunderluck", "js", "speicher.js");
-        if (fsx.existsSync(blSpeicher)) {
-            const klasse = (text) => (text.match(/\nclass SpeicherKonten [\s\S]*?\n\}\n/) || [""])[0];
-            const tlKlasse = klasse(fsx.readFileSync(require("path").join(__dirname, "..", "js", "speicher.js"), "utf8"));
-            pruefe("SpeicherKonten = Blunderlucks Klasse, Zeile für Zeile",
-                tlKlasse.length > 1000 && tlKlasse === klasse(fsx.readFileSync(blSpeicher, "utf8")));
-        }
+        /* Seit 03.10.2026 (Nutzer: „Die Quelle aller gemeinsamen Bausteine
+           liegt in Apps\UPCrew\bausteine“): KEIN Blick mehr nach Blunderluck
+           für konto.js. Die Quelle ist ..\UPCrew\bausteine\kern\konto.js
+           (Platzhalter UPCREW-JE-APP:KONTO-SCHLUESSEL, hier
+           „typoluck.konto“ — geprüft weiter oben, „Eigener Schlüssel im
+           Gerätespeicher“); ob die Datei gleich der Quelle ist, prüft
+           ..\UPCrew\tools\Bausteine-Pruefen.ps1 für alle Apps. Bis dahin
+           (seit 0.18.5) verglich dieser Test Zeile für Zeile mit
+           Blunderlucks konto.js. */
+        /* Seit 0.28.1 auch KEIN Blick mehr nach Blunderluck für die Klasse
+           SpeicherKonten (bis dahin Zeile für Zeile verglichen, seit
+           0.22.0): Sie ist der Baustein js\speicher-konten.js aus
+           ..\UPCrew\bausteine\kern. Gleichheit mit der Quelle:
+           tests\test-oberflaeche-7.js (Byte-Vergleich) und
+           Bausteine-Pruefen.ps1. Hier bleibt: Die Klasse steht nur noch
+           im Baustein, nicht mehr in js\speicher.js. */
+        const klasse = (name) => /\nclass SpeicherKonten extends SpeicherGemeinsam \{\n/
+            .test(fs.readFileSync(pfad.join(__dirname, "..", "js", name), "utf8"));
+        gleich("SpeicherKonten steht im Baustein js\\speicher-konten.js, nicht mehr in js\\speicher.js",
+            [klasse("speicher-konten.js"), klasse("speicher.js")], [true, false]);
     }
 }
 
