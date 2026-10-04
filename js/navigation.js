@@ -12,6 +12,8 @@
  *         blattTitel(parameter),         // wahlfrei: Titel des Blatts je Parameter
  *         blattRechts(parameter),        // wahlfrei: Knöpfe rechts im Blatt-Kopf (Zahnrad)
  *         zeigen(behaelter, parameter),  // baut seinen Inhalt in den Behälter
+ *         geoeffnet(behaelter),          // wahlfrei (seit 0.33.0): die Seite im Band wurde geöffnet,
+ *                                        // OHNE neu gezeichnet zu werden (sie stand frisch da)
  *         verlassen()                    // optional: aufräumen (Tastatur usw.)
  *     }
  *
@@ -24,8 +26,20 @@
  * Ort dieser Seite. Der Browser rollt das Band waagrecht und rastet ein; der
  * Baustein ruft danach `wechseln` — derselbe Weg wie ein Tipp auf die Leiste.
  *   - Gezeichnet wird die offene Seite sofort, die anderen im Leerlauf nach
- *     dem Start und spätestens, wenn der Baustein `kommt(id)` meldet. Beim
- *     Einrasten (und beim Tipp) wird die Seite neu gezeichnet wie bisher.
+ *     dem Start und spätestens, wenn der Baustein `kommt(id)` meldet.
+ *   - NUR WAS VERALTET IST, WIRD NEU GEZEICHNET (seit 0.33.0; bis 0.32.0
+ *     baute jeder Wechsel die Zielseite ganz neu, mitten im Ausrollen). Eine
+ *     Seite gilt als veraltet, wenn
+ *       a) `veralten()` oder `auffrischen()` sie so markiert hat (im Zweifel
+ *          alle: Anmeldung, Abgleich, Runden-Ende, Kauf, Aussehen),
+ *       b) ein Bildschirm ohne Leisten-Knopf (die Runde) offen war, oder
+ *       c) die Stand-Marke der App (`frischMarke`, js\app.js: Tag, Person,
+ *          Geräte-Stand) seit ihrem letzten Zeichnen eine andere ist.
+ *     Gezeichnet wird sie dann, sobald sie in Sicht kommt (`kommt`) oder
+ *     geöffnet wird — genau einmal; beim Einrasten nicht noch einmal. Die
+ *     veralteten NACHBARN der offenen Seite zieht der Leerlauf nach. Steht
+ *     die Seite frisch da, meldet der Wechsel nur `geoeffnet()` (wahlfrei
+ *     am Bildschirm: z. B. die Rangliste lädt dann nach).
  *   - `verlassen()` baut eine Leisten-Seite nicht ab — sie bleibt stehen.
  *   - Alles OHNE Leisten-Knopf (Runde, Rückfall-Seiten) zeichnet weiter in
  *     den gemeinsamen Ort (`#inhalt`); solange so ein Bildschirm offen ist,
@@ -89,6 +103,16 @@ const NAVIGATION = {
     _seiten: {},
     _gebaut: {},
     _freiEl: null,
+
+    /* Veraltet (seit 0.33.0, Kopf der Datei): je Leisten-Seite der Merker
+       und die Stand-Marke ihres letzten Zeichnens. `frischMarke` setzt die
+       App (eine billige Funktion, die einen Text liefert); ohne sie zählen
+       nur die Merker. `aufgefrischt` zählt die Rufe von `auffrischen`. */
+    _veraltet: {},
+    _standBei: {},
+    frischMarke: null,
+    aufgefrischt: 0,
+    _nachzugGeplant: 0,
 
     /* Zahlen an Knöpfen (z. B. offene Freundesanfragen), je Bildschirm-Id.
        Gezeigt werden sie dort, wo der Knopf steht (`marke(id)`). */
@@ -204,15 +228,70 @@ const NAVIGATION = {
 
     /* Den gerade sichtbaren Bildschirm neu bauen — nach neuen Daten; offene
        Blätter bauen sich mit neu (ihre Rollposition bleibt). Seit 0.29.0
-       trifft das nur die EIGENE Seite: Die anderen Seiten des Bandes bleiben
-       stehen und werden neu gezeichnet, wenn das Band auf ihnen einrastet. */
+       trifft das sofort nur die EIGENE Seite. Seit 0.33.0 gelten die
+       anderen Seiten des Bandes danach als veraltet: Die Nachbarn zieht der
+       Leerlauf nach, die übrigen werden gezeichnet, sobald sie in Sicht
+       kommen oder geöffnet werden. */
     auffrischen() {
+        NAVIGATION.aufgefrischt++;
+        NAVIGATION._alleVeraltet();
         if (NAVIGATION.aktuell) {
             NAVIGATION._bauen(NAVIGATION.aktuell, NAVIGATION._parameter);
         }
         for (const blatt of NAVIGATION._blaetter.slice()) {
             NAVIGATION._blattBauen(blatt);
         }
+        NAVIGATION._nachbarnNachziehen();
+    },
+
+    /*
+     * Seiten als veraltet markieren, OHNE die offene neu zu zeichnen (seit
+     * 0.33.0) — für alles, was Daten ändert, während die offene Seite
+     * ungestört bleiben soll oder sich selbst zeichnet (Kauf im Shop,
+     * Entwurf in der Sammlung, Runden-Ende). Ohne Angabe: alle Seiten des
+     * Bandes, sonst die genannten. Auch die offene Seite ist dann markiert
+     * und wird bei ihrem nächsten Besuch neu gezeichnet.
+     */
+    veralten(ids) {
+        if (Array.isArray(ids)) {
+            for (const id of ids) {
+                if (NAVIGATION._seiten[id]) {
+                    NAVIGATION._veraltet[id] = true;
+                }
+            }
+        } else {
+            NAVIGATION._alleVeraltet();
+        }
+        NAVIGATION._nachbarnNachziehen();
+    },
+
+    _alleVeraltet() {
+        for (const id of Object.keys(NAVIGATION._seiten)) {
+            NAVIGATION._veraltet[id] = true;
+        }
+    },
+
+    /* Die Stand-Marke der App als Text; ohne Geber leer. Wirft der Geber,
+       gilt null — dann zählt jede Seite als veraltet (wie bis 0.32.0). */
+    _standMarke() {
+        if (typeof NAVIGATION.frischMarke !== "function") {
+            return "";
+        }
+        try {
+            return String(NAVIGATION.frischMarke());
+        } catch (fehler) {
+            return null;
+        }
+    },
+
+    /* Muss die Leisten-Seite gezeichnet werden — noch nie gebaut, markiert
+       oder mit einer anderen Stand-Marke gezeichnet? */
+    _zuZeichnen(id) {
+        if (!NAVIGATION._gebaut[id] || NAVIGATION._veraltet[id] === true) {
+            return true;
+        }
+        const marke = NAVIGATION._standMarke();
+        return marke === null || NAVIGATION._standBei[id] !== marke;
     },
 
     /* Merkt eine Zahl für einen Knopf (z. B. offene Freundesanfragen) und
@@ -260,6 +339,12 @@ const NAVIGATION = {
 
     blattOffen(id) {
         return NAVIGATION._blaetter.some((blatt) => blatt.id === id);
+    },
+
+    /* Die offenen Blätter, unten zuerst: [{ id, parameter }] (seit 0.33.0,
+       für den Takt der Abfrage in js\app.js). */
+    blaetter() {
+        return NAVIGATION._blaetter.map((blatt) => ({ id: blatt.id, parameter: blatt.parameter }));
     },
 
     /* Ist der Bildschirm zu sehen — als Seite oder als Blatt? */
@@ -378,6 +463,8 @@ const NAVIGATION = {
         NAVIGATION._band = null;
         NAVIGATION._seiten = {};
         NAVIGATION._gebaut = {};
+        NAVIGATION._veraltet = {};
+        NAVIGATION._standBei = {};
         NAVIGATION._freiEl = null;
         if (!bandEl || typeof UPCREW_WISCHEN === "undefined") {
             return;
@@ -454,8 +541,10 @@ const NAVIGATION = {
                Band zur Nachbarseite ausrollt, nicht erst nach dem
                Einrasten. `_wechseln` darf das Rollen darum nicht stören —
                es rollt selbst nichts (`band.zu` schweigt, solange die
-               Leiste voraus ist), zeichnet die ankommende Seite im selben
-               Zug neu (nie leer) und lässt ihren Rollstand stehen. */
+               Leiste voraus ist), lässt die ankommende Seite nie leer
+               (seit 0.33.0 zeichnet es sie nur noch, wenn sie veraltet
+               ist — meist hat `kommt` das schon getan) und lässt ihren
+               Rollstand stehen. */
             wechseln: (id) => {
                 if (NAVIGATION.aktuell !== id) {
                     NAVIGATION.zeigen(id, null);
@@ -463,7 +552,9 @@ const NAVIGATION = {
             },
             erlaubt: () => NAVIGATION.wischenErlaubt(),
             /* Die Seite kommt gleich in Sicht: jetzt zeichnen, falls der
-               Leerlauf noch nicht so weit war. */
+               Leerlauf noch nicht so weit war — oder (seit 0.33.0) falls
+               sie veraltet ist: So ist beim Wischen nie ein alter Stand
+               zu sehen. */
             kommt: (id) => {
                 NAVIGATION._seiteBauen(id);
             },
@@ -509,18 +600,89 @@ const NAVIGATION = {
         }
     },
 
-    /* Eine Leisten-Seite zum ersten Mal zeichnen (Leerlauf, `kommt`). Die
-       offene Seite zeichnet `_wechseln`. Nicht, solange das Band verborgen
-       ist (Runde): Wer beim Zeichnen misst, mässe dann null — die Seite
-       kommt später dran (`kommt`, Öffnen). Liefert true, wenn gezeichnet
-       wurde. */
+    /* Eine Leisten-Seite im Hintergrund zeichnen (Leerlauf, `kommt`): zum
+       ersten Mal oder, seit 0.33.0, weil sie veraltet ist. Die offene Seite
+       zeichnet nur `_wechseln` oder `auffrischen` (sie kann ungestört
+       bleiben müssen und trägt ihren Parameter). Nicht, solange das Band
+       verborgen ist (Runde): Wer beim Zeichnen misst, mässe dann null — die
+       Seite kommt später dran (`kommt`, Öffnen). Liefert true, wenn
+       gezeichnet wurde. */
     _seiteBauen(id) {
-        if (!NAVIGATION._seiten[id] || NAVIGATION._gebaut[id] || !NAVIGATION._bildschirme[id]
-                || (NAVIGATION._bandEl && NAVIGATION._bandEl.hidden)) {
+        if (!NAVIGATION._seiten[id] || !NAVIGATION._bildschirme[id]
+                || (NAVIGATION._gebaut[id] && id === NAVIGATION.aktuell)
+                || (NAVIGATION._bandEl && NAVIGATION._bandEl.hidden) || !NAVIGATION._zuZeichnen(id)) {
             return false;
         }
         NAVIGATION._bauen(id, null);
         return true;
+    },
+
+    /* Die Nachbarn der offenen Seite im Band (links, rechts). */
+    _nachbarn() {
+        const reihe = NAVIGATION.LEISTE.filter((e) => e.id && NAVIGATION._seiten[e.id]).map((e) => e.id);
+        const i = reihe.indexOf(NAVIGATION.aktuell);
+        return i === -1 ? [] : [reihe[i - 1], reihe[i + 1]].filter((id) => !!id);
+    },
+
+    /* Rollt das Band gerade (es steht zwischen zwei Seiten)? */
+    _bandRollt() {
+        const bandEl = NAVIGATION._bandEl;
+        const b = bandEl ? (bandEl.clientWidth || 0) : 0;
+        if (!b) {
+            return false;
+        }
+        const teil = (bandEl.scrollLeft || 0) / b;
+        return Math.abs(teil - Math.round(teil)) > 0.02;
+    },
+
+    /*
+     * Veraltete NACHBARN der offenen Seite im Leerlauf neu zeichnen (seit
+     * 0.33.0): je Leerlauf-Runde eine, nie während das Band rollt. So steht
+     * beim Wischen schon der neue Stand da. Seiten, die noch nie gezeichnet
+     * wurden, gehören `_imLeerlaufBauen`; alle übrigen veralteten Seiten
+     * kommen dran, wenn sie in Sicht kommen oder geöffnet werden.
+     */
+    _nachbarnNachziehen() {
+        const faellig = () => NAVIGATION._nachbarn().find((id) => NAVIGATION._gebaut[id] && NAVIGATION._zuZeichnen(id));
+        /* Höchstens EIN Auftrag zugleich. Der Merker ist die Uhrzeit der
+           Bestellung: Käme der Leerlauf einmal nie, gälte er nach drei
+           Sekunden als verfallen (sonst zöge nie wieder jemand nach). */
+        const geplant = NAVIGATION._nachzugGeplant;
+        if ((geplant && Date.now() - geplant < 3000) || !NAVIGATION._bandEl || !faellig()) {
+            return;
+        }
+        let aufschub = 0;
+        const planen = () => {
+            if (typeof requestIdleCallback === "function") {
+                requestIdleCallback(weiter, { timeout: 600 });
+            } else if (typeof setTimeout === "function") {
+                setTimeout(weiter, 80);
+            } else {
+                NAVIGATION._nachzugGeplant = 0;
+                return;
+            }
+            NAVIGATION._nachzugGeplant = Date.now();
+        };
+        const weiter = () => {
+            if (NAVIGATION._bandRollt() && aufschub++ < 20) {
+                planen();
+                return;
+            }
+            let gezeichnet = false;
+            try {
+                const id = faellig();
+                gezeichnet = !!id && NAVIGATION._seiteBauen(id);
+            } catch (fehler) {
+                /* Scheitert eine Seite, bleibt sie veraltet — beim Öffnen
+                   wird sie gezeichnet (und der Fehler dort gezeigt). */
+            }
+            if (gezeichnet && faellig()) {
+                planen();
+            } else {
+                NAVIGATION._nachzugGeplant = 0;
+            }
+        };
+        planen();
     },
 
     /* Nach dem Start: die übrigen Seiten nacheinander, je eine im Leerlauf.
@@ -584,6 +746,10 @@ const NAVIGATION = {
            Ort, wenn er geht (eine Leisten-Seite bleibt stehen). */
         if (NAVIGATION._bandEl && vorherId && vorherId !== id && !NAVIGATION.imBand(vorherId)) {
             NAVIGATION._inhaltEl.innerHTML = "";
+            /* Seit 0.33.0: In der Runde kann sich alles geändert haben
+               (Münzen, Level, Tageswort, angefangene Runde) — jede Seite
+               des Bandes ist danach veraltet. */
+            NAVIGATION._alleVeraltet();
         }
         NAVIGATION.aktuell = id;
         NAVIGATION._parameter = parameter;
@@ -591,9 +757,23 @@ const NAVIGATION = {
         /* Erst zeigen, dann zeichnen: Wer beim Zeichnen misst (die Sammlung
            ihren Kopf, die Runde ihr Brett), braucht einen sichtbaren Ort. */
         const warVerborgen = NAVIGATION._ortZeigen(id);
-        NAVIGATION._bauen(id, parameter);
+        /* Seit 0.33.0: Eine Leisten-Seite, die frisch dasteht, wird beim
+           Wechsel NICHT neu gezeichnet (Inhalt, Rollstand, gewählter Reiter
+           bleiben) — der Bildschirm erfährt nur, dass er offen ist. Immer
+           gezeichnet wird: mit Parameter, dieselbe Seite noch einmal, alles
+           ohne Leisten-Knopf, alles ohne Band. */
+        if (NAVIGATION._seiten[id] && vorherId !== id && !parameter && !NAVIGATION._zuZeichnen(id)) {
+            document.body.dataset.bildschirm = id;
+            const bildschirm = NAVIGATION._bildschirme[id];
+            if (typeof bildschirm.geoeffnet === "function") {
+                bildschirm.geoeffnet(NAVIGATION._ort(id));
+            }
+        } else {
+            NAVIGATION._bauen(id, parameter);
+        }
         NAVIGATION._leisteMarkieren();
         NAVIGATION._bandStellen(id, sofort, warVerborgen);
+        NAVIGATION._nachbarnNachziehen();
     },
 
     /* Der Ort, in den ein Bildschirm zeichnet: seine Seite im Band oder der
@@ -669,6 +849,11 @@ const NAVIGATION = {
         bildschirm.zeigen(inhalt, parameter);
         if (seite) {
             NAVIGATION._gebaut[id] = true;
+            /* Frisch (seit 0.33.0): Merker weg, Stand-Marke NACH dem
+               Zeichnen gemerkt (was die Seite beim Zeichnen selbst
+               speichert, macht sie nicht gleich wieder veraltet). */
+            delete NAVIGATION._veraltet[id];
+            NAVIGATION._standBei[id] = NAVIGATION._standMarke();
             seite.scrollTop = y;
         }
     }

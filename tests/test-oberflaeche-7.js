@@ -439,7 +439,10 @@ const SPIELE = require("../js/upcrew-abzeichen-spiele.js");
                    bleibt der bisherige */
                 "js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css",
                 "js/upcrew-anpassen.js", "css/upcrew-anpassen.css",
-                "js/upcrew-wischen.js", "css/upcrew-wischen.css", "css/upcrew-shop.css"])) {
+                "js/upcrew-wischen.js", "css/upcrew-wischen.css", "css/upcrew-shop.css",
+                /* seit 0.31.0 (Shop mit Besitz): neu der Besitz; der Shop
+                   (js oben, css hier) und der Anpassen-Stil sind ersetzt */
+                "js/upcrew-besitz.js"])) {
             const quelle = pfad.join(QUELLE, datei);
             pruefe("Byte-gleich mit UPCrew\\bausteine: " + datei,
                 fs.existsSync(quelle) && fs.readFileSync(quelle).equals(fs.readFileSync(pfad.join(wurzel, datei))));

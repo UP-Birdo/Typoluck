@@ -177,6 +177,9 @@ const FORTSCHRITT_ABGLEICH = {
             return false;
         }
         const konto = FORTSCHRITT.normalisieren(vomKonto);
+        /* Die fremden Zweige von vorher (seit 0.31.0) — zum Vergleich unten. */
+        const fremdVorher = (FORTSCHRITT_ABGLEICH._kontoUid === uid)
+            ? FORTSCHRITT_ABGLEICH._fremdText(FORTSCHRITT_ABGLEICH._konto) : "{}";
         FORTSCHRITT_ABGLEICH._konto = konto;
         FORTSCHRITT_ABGLEICH._kontoUid = uid;
 
@@ -194,8 +197,24 @@ const FORTSCHRITT_ABGLEICH = {
         if (hier && standVon(hier) > standVon(dort)) {
             await FORTSCHRITT_ABGLEICH.senden(geraet);
         }
-        /* Neues aus Blunderluck am Konto zeigt sich über `mitKonto`. */
-        return Object.keys(konto.spiele).some((app) => app !== FORTSCHRITT.APP);
+        /* Neues aus Blunderluck am Konto zeigt sich über `mitKonto`. Seit
+           0.31.0 gilt das nur als Änderung, wenn sich an den fremden Zweigen
+           wirklich etwas bewegt hat — bis 0.30.0 hiess „es gibt einen
+           fremden Zweig" schon „geändert", und bei jeder Rückkehr in den
+           Vordergrund wurde die offene Seite samt Blättern neu gezeichnet. */
+        return FORTSCHRITT_ABGLEICH._fremdText(konto) !== fremdVorher;
+    },
+
+    /* Die Zweige der anderen Spiele als Text (zum Vergleichen). */
+    _fremdText(stand) {
+        const fremd = {};
+        const spiele = (stand && stand.spiele && typeof stand.spiele === "object") ? stand.spiele : {};
+        for (const app of Object.keys(spiele).sort()) {
+            if (app !== FORTSCHRITT.APP) {
+                fremd[app] = spiele[app];
+            }
+        }
+        return JSON.stringify(fremd);
     }
 };
 

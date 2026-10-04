@@ -117,6 +117,54 @@ spaeter("Abgleich", (async () => {
     server.stand.geaendertAm += 5;
     await abgleich.fremdenStandHolen();
     gleich("Neue Marke: einmal laden", geholt, 1);
+
+    /* Seit 0.31.0 (Befund der Nacht 04.10.2026, Tabelle 1 Nr. 1): Der Start
+       merkt die Marke des geladenen Stands — bis 0.30.0 lud die erste
+       Abfrage nach fünf Sekunden bei JEDEM Start ein zweites Mal alles. */
+    const frisch = serverAttrappe({ datenVersion: 1, geaendertAm: 500, spieler: [{ id: "a", name: "Anna" }] }, true);
+    let ladungen = 0;
+    const ladenFrisch = frisch.laden.bind(frisch);
+    frisch.laden = async () => { ladungen++; return ladenFrisch(); };
+    const zweiter = new Abgleich(frisch, einstellung, {});
+    await zweiter.starten();
+    gleich("Start: einmal geladen, die Marke dieses Stands gilt als gesehen", [ladungen, zweiter.markeGesehen], [1, 500]);
+    await zweiter.fremdenStandHolen();
+    gleich("Erste Abfrage nach dem Start: gleiche Marke, kein zweites volles Laden", ladungen, 1);
+    frisch.stand.geaendertAm = 600;
+    await zweiter.fremdenStandHolen();
+    gleich("Bewegt sich die Marke danach, wird geladen", [ladungen, zweiter.markeGesehen], [2, 600]);
+    const ohneNetz = new Abgleich(serverAttrappe({ geaendertAm: 9, spieler: [] }, false), einstellung, {});
+    await ohneNetz.starten();
+    gleich("Start ohne Netz: keine Marke gesehen (die nächste Abfrage lädt)", ohneNetz.markeGesehen, null);
+
+    /* Nr. 3: nie zwei Abfragen zugleich. */
+    let markenRufe = 0;
+    let weiter = null;
+    frisch.marke = () => {
+        markenRufe++;
+        return new Promise((fertig) => { weiter = () => fertig(frisch.stand.geaendertAm); });
+    };
+    const erste = zweiter.fremdenStandHolen();
+    await zweiter.fremdenStandHolen();
+    gleich("Zwei Abfragen zugleich: die zweite kehrt sofort um, die Marke wird einmal gefragt",
+        [markenRufe, zweiter.holtGerade], [1, true]);
+    weiter();
+    await erste;
+    gleich("Ist die erste fertig, ist der Merker gelöst", zweiter.holtGerade, false);
+    frisch.marke = async () => { throw new Error("kaputt"); };
+    try {
+        await zweiter.fremdenStandHolen();
+    } catch (fehler) {
+        /* wie bisher nach aussen — hier zählt nur der Merker */
+    }
+    gleich("Auch nach einem Fehler ist der Merker gelöst", zweiter.holtGerade, false);
 })());
+
+/* Nr. 2: Die Nachfrage nach der Marke darf im Mobilfunk länger dauern — aber
+   kürzer als der Takt der Abfrage, sonst stapelten sie sich. */
+pruefe("Zeitlimit der Marke 3–4 s und unter dem Abfrage-Takt",
+    SpeicherGemeinsam.ZEITLIMIT_MARKE_MS >= 3000 && SpeicherGemeinsam.ZEITLIMIT_MARKE_MS <= 4000
+        && SpeicherGemeinsam.ZEITLIMIT_MARKE_MS < KONFIG.speicher.abfrageIntervallMs,
+    String(SpeicherGemeinsam.ZEITLIMIT_MARKE_MS));
 
 fazit();

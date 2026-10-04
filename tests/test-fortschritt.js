@@ -186,7 +186,11 @@ const kontoForm = FORTSCHRITT.fuerKonto({ version: 1, oben: 1, spiele: {
         zaehler: { figuren: 2, "kaputt-name": 3, text: "x" }, taten: ["serie-7"], umzug: { alt: {} }, neu: 1 },
     blunderluck: blunderZweig({ xp: 9 }) } });
 gleich("Konto: oben nur version und spiele", Object.keys(kontoForm).sort(), ["spiele", "version"]);
-gleich("Konto: nur der eigene Zweig", Object.keys(kontoForm.spiele), ["typoluck"]);
+/* Seit 0.34.2 reist der Zweig des anderen Spiels mit (bis 0.34.1 „nur der
+   eigene Zweig" — damit fiel er beim Speichern des ganzen Konto-Eintrags am
+   Konto weg; der ganze Ablauf: tests\test-konto-eintrag.js). */
+gleich("Konto: der eigene Zweig und der des anderen Spiels", Object.keys(kontoForm.spiele).sort(), ["blunderluck", "typoluck"]);
+gleich("Konto: der fremde Zweig unverändert in der Form der Regel", kontoForm.spiele.blunderluck, { xp: 9, partien: 0, stand: 5 });
 gleich("Konto: nur Felder der Regel", Object.keys(kontoForm.spiele.typoluck).sort(),
     ["gezaehlt", "heute", "partien", "stand", "tage", "taten", "xp", "zaehler"]);
 gleich("Konto: heute ohne Zusatzfelder", kontoForm.spiele.typoluck.heute, { datum: HEUTE, versuche: 1, figuren: 2 });

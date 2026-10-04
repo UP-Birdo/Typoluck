@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.30.0";
+const SPEICHER_NAME = "typoluck-v0.34.5";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -36,12 +36,15 @@ const DATEIEN = [
     "./icons/icon-180.png",
     "./icons/icon-192.png",
     "./icons/icon-512.png",
-    "./icons/vorschau.png",
+    /* `icons/vorschau.png` (160 KB) steht seit 0.31.0 NICHT mehr hier: Es
+       ist nur das Vorschaubild für geteilte Links (index.html, og:image),
+       die App zeigt es nie — jedes Gerät lud es bei jeder Version neu. */
 
     "./css/stil.css",
     "./css/stil-bildschirme.css",
     "./css/stil-wordle.css",
     "./css/stil-bibliothek.css",
+    "./css/stil-duell.css",
     "./css/upcrew-intro.css",
     "./css/upcrew-knoepfe.css",
     "./css/upcrew-platz.css",
@@ -87,6 +90,7 @@ const DATEIEN = [
     "./js/darstellung.js",
     "./js/kachelsets.js",
     "./js/upcrew-katalog.js",
+    "./js/upcrew-besitz.js",
     "./js/upcrew-platz.js",
     "./js/upcrew-anpassen.js",
     "./js/upcrew-abzeichen.js",
@@ -138,10 +142,14 @@ const DATEIEN = [
     "./js/bildschirm-sammlung.js",
     "./js/aussehen-abgleich.js",
     "./js/fortschritt-abgleich.js",
+    "./js/besitz.js",
     "./js/lieblingswoerter.js",
     "./js/spielzeit.js",
     "./js/wortstatistik.js",
     "./js/wortstatistik-abgleich.js",
+    "./js/duell.js",
+    "./js/duell-abgleich.js",
+    "./js/bildschirm-duell.js",
     "./js/wunsch.js",
     "./js/werkstatt.js",
     "./js/intro.js",

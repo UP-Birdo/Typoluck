@@ -84,6 +84,12 @@
  * erlaubt (version, spiele.typoluck mit xp, partien, stand, gezaehlt, tage,
  * heute {datum, versuche, figuren}, zaehler {Buchstaben: Zahl}, taten; seit
  * 0.18.0 turm {figuren {"b-l": 1–3}}, nur wenn es Figuren gibt).
+ * SEIT 0.34.2 MIT DEN ZWEIGEN DER ANDEREN SPIELE (`KONTO_SPIELE`) und
+ * `schutz`, in der Form der Regel, sonst unverändert: Der Konto-Eintrag wird
+ * bei Freunden und Abzeichen als GANZES geschrieben (js\speicher-konten.js
+ * schickt den Fortschritt dazu durch `fuerKonto`) — bis 0.34.1 fiel dabei
+ * der Zweig des anderen Spiels am Konto weg. Das Senden nach einer Runde
+ * (js\fortschritt-abgleich.js) nimmt weiter nur den eigenen Zweig.
  * Erkannt wird auch die Mischform, falls Blunderluck den flachen Stand vor
  * Typoluck angefasst hat (flache Felder oben UND `spiele` ohne Typoluck).
  *
@@ -741,10 +747,104 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
         return FORTSCHRITT.XP.tagesaufgabe[stufe] || FORTSCHRITT.XP.tagesaufgabe[2];
     },
 
+    /* Die Spiele, deren Zweige die Datenbank-Regel am Konto annimmt
+       (`fortschritt/spiele/$app`, Regel §13) — die Reihenfolge, in der
+       `fuerKonto` sie ausgibt. */
+    KONTO_SPIELE: ["blunderluck", "typoluck"],
+
+    /* Eine Tabelle { name: zahl } in der Form der Regel: nur Namen nach
+       `muster`, nur Zahlen ab `von`, höchstens `bis`. Auch eine Liste zählt
+       (Firebase liefert dichte Zahlen-Schlüssel als Liste). Sonst nichts
+       verändert — keine Rundung. */
+    _tabelleFuerKonto(roh, muster, von, bis) {
+        const aus = {};
+        if (!roh || typeof roh !== "object") {
+            return aus;
+        }
+        for (const name of Object.keys(roh)) {
+            const wert = roh[name];
+            if (muster.test(name) && typeof wert === "number" && isFinite(wert) && wert >= von) {
+                aus[name] = Math.min(wert, bis);
+            }
+        }
+        return aus;
+    },
+
+    /* Eine Liste in der Form der Regel: nur, was `passt`, höchstens
+       `hoechstens` (die letzten). Auch ein Objekt mit Zahlen-Schlüsseln
+       zählt (Firebase bei Lücken). */
+    _listeFuerKonto(roh, passt, hoechstens) {
+        let liste = [];
+        if (Array.isArray(roh)) {
+            liste = roh;
+        } else if (FORTSCHRITT._istObjekt(roh)) {
+            liste = Object.keys(roh).filter((k) => /^\d+$/.test(k))
+                .sort((a, b) => Number(a) - Number(b)).map((k) => roh[k]);
+        }
+        return liste.filter(passt).slice(-hoechstens);
+    },
+
+    /*
+     * Der Zweig eines ANDEREN Spiels, wie er ans Konto darf (seit 0.34.2).
+     * Typoluck ändert ihn nie — er wird durchgereicht, weil der Konto-Eintrag
+     * als Ganzes geschrieben wird. Deshalb: jedes Feld, das die Regel §13
+     * kennt, bleibt, wie es ist (nichts gerundet, nichts gekürzt, was die
+     * Regel erlaubt: 100 Kennungen, 1000 Tage, 1000 Taten); was sie ablehnt,
+     * bleibt draussen — sie lehnte sonst den GANZEN Konto-Eintrag ab. Felder,
+     * die fehlen, werden nicht angelegt.
+     */
+    _fremdFuerKonto(roh) {
+        const quelle = FORTSCHRITT._istObjekt(roh) ? roh : {};
+        const zweig = {};
+        const zahl = (ziel, feld, wert, bis) => {
+            if (typeof wert === "number" && isFinite(wert)) {
+                ziel[feld] = Math.min(Math.max(wert, 0), bis);
+            }
+        };
+        const mitInhalt = (feld, wert) => {
+            if (Object.keys(wert).length > 0) {
+                zweig[feld] = wert;
+            }
+        };
+        const kurzerText = (text) => typeof text === "string" && text.length <= 64;
+
+        zahl(zweig, "xp", quelle.xp, FORTSCHRITT.XP_MAX);
+        zahl(zweig, "partien", quelle.partien, FORTSCHRITT.XP_MAX);
+        zahl(zweig, "stand", quelle.stand, Number.MAX_VALUE);
+        mitInhalt("gezaehlt", FORTSCHRITT._listeFuerKonto(quelle.gezaehlt, kurzerText, 100));
+        mitInhalt("tage", FORTSCHRITT._listeFuerKonto(quelle.tage, FORTSCHRITT._istDatum, 1000));
+        if (FORTSCHRITT._istObjekt(quelle.heute)) {
+            const heute = {};
+            if (quelle.heute.datum === "" || FORTSCHRITT._istDatum(quelle.heute.datum)) {
+                heute.datum = quelle.heute.datum;
+            }
+            zahl(heute, "versuche", quelle.heute.versuche, 1000);
+            zahl(heute, "figuren", quelle.heute.figuren, 3);
+            mitInhalt("heute", heute);
+        }
+        if (FORTSCHRITT._istObjekt(quelle.turm)) {
+            const turm = {};
+            const figuren = FORTSCHRITT._tabelleFuerKonto(quelle.turm.figuren, /^\d{1,2}-\d{1,2}$/, 1, 3);
+            const merker = FORTSCHRITT._tabelleFuerKonto(quelle.turm.schwuere, /^\d{1,3}$/, 0, 3);
+            if (Object.keys(figuren).length > 0) {
+                turm.figuren = figuren;
+            }
+            if (Object.keys(merker).length > 0) {
+                turm.schwuere = merker;
+            }
+            mitInhalt("turm", turm);
+        }
+        mitInhalt("zaehler", FORTSCHRITT._tabelleFuerKonto(quelle.zaehler, /^[a-zA-Z]{1,32}$/, 0, 1000000000));
+        mitInhalt("taten", FORTSCHRITT._listeFuerKonto(quelle.taten, kurzerText, 1000));
+        return zweig;
+    },
+
     /* Die Felder des Vertrags, wie sie ans Konto dürfen (Regel §11b in
-       Apps\Blunderluck\SICHERHEIT.md): `version` und NUR der eigene Zweig,
-       darin nur erlaubte Felder. `umzug` und alles Unbekannte bleiben
-       draussen — die Regel lehnt sonst den GANZEN Konto-Eintrag ab. */
+       Apps\Blunderluck\SICHERHEIT.md, heute §13): `version`, der eigene
+       Zweig mit nur erlaubten Feldern — `umzug` und alles Unbekannte bleiben
+       draussen, die Regel lehnt sonst den GANZEN Konto-Eintrag ab — und
+       (seit 0.34.2) die Zweige der anderen Spiele samt `schutz`, unverändert
+       in der Form der Regel (`_fremdFuerKonto`). */
     fuerKonto(stand) {
         const zweig = FORTSCHRITT.zweig(stand);
         const zaehler = {};
@@ -776,7 +876,25 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
                 typoluck.turm.schwuere = merker;
             }
         }
-        return { version: FORTSCHRITT.VERSION, spiele: { typoluck: typoluck } };
+        /* Seit 0.34.2: die anderen Zweige und `schutz` reisen mit (Kopf). */
+        const sauber = FORTSCHRITT.normalisieren(stand);
+        const spiele = {};
+        for (const app of FORTSCHRITT.KONTO_SPIELE) {
+            if (app === FORTSCHRITT.APP) {
+                spiele[app] = typoluck;
+                continue;
+            }
+            const fremd = FORTSCHRITT._fremdFuerKonto(sauber.spiele[app]);
+            if (Object.keys(fremd).length > 0) {
+                spiele[app] = fremd;
+            }
+        }
+        const vertrag = { version: FORTSCHRITT.VERSION, spiele: spiele };
+        const schutz = FORTSCHRITT._tabelleFuerKonto(sauber.schutz, /^[a-zA-Z]{1,32}$/, 0, 1000);
+        if (Object.keys(schutz).length > 0) {
+            vertrag.schutz = schutz;
+        }
+        return vertrag;
     },
 
     /*

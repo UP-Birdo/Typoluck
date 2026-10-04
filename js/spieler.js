@@ -389,7 +389,9 @@ const SPIELER = {
         ergebnis.spieler = fremdStand.spieler.map((spieler) => {
             if (meiner && spieler.id === eigeneId) {
                 gefunden = true;
-                return SPIELER._neueresAussehenJe(SPIELER._neueresAussehen(meiner, spieler), spieler);
+                return SPIELER._besitzZusammen(SPIELER._fortschrittZusammen(SPIELER._fremdesVomKonto(
+                    SPIELER._neueresAussehenJe(SPIELER._neueresAussehen(meiner, spieler), spieler), spieler),
+                spieler), spieler);
             }
             return spieler;
         });
@@ -398,6 +400,154 @@ const SPIELER = {
             ergebnis.spieler.push(meiner);
         }
         return ergebnis;
+    },
+
+    /*
+     * WAS IM EIGENEN EINTRAG NICHT VON DIESEM GERÄT KOMMT (seit 0.34.2).
+     *
+     * „Der eigene Eintrag gewinnt" gilt für das, was Typoluck in seiner Kopie
+     * selbst ändert: Name, Freunde, Abgelehnte, Abzeichen und die Felder des
+     * Kontos selbst (`_eigeneFelder`). Alles andere am Eintrag ändert
+     * Typoluck in seiner Kopie NIE — es schreibt es höchstens als Teilpfad
+     * (Fortschritt, Besitz, Lieblingswörter, Stufe, Haken „Spielzeit
+     * öffentlich") oder gar nicht (was das andere Spiel pflegt, künftige
+     * Felder). Die Kopie ist dafür immer höchstens so neu wie das Konto.
+     * Bis 0.34.1 gewann trotzdem die Kopie als Ganzes: Wer einen Freund
+     * annahm oder Abzeichen wählte, schrieb damit ältere Fassungen dieser
+     * Felder zurück — und was inzwischen ein anderes Gerät oder Spiel ans
+     * Konto geschrieben hatte, war dort weg.
+     *
+     * Deshalb drei Regeln, alle nach demselben Satz „nie durch einen älteren
+     * oder leeren Stand ersetzen":
+     *   `_fremdesVomKonto`     jedes Feld, das nicht in `_eigeneFelder`
+     *                          steht und keinen eigenen Weg hat, kommt vom
+     *                          frisch geladenen Konto — fehlt es dort, fehlt
+     *                          es auch im Ergebnis (seit 0.34.3; bis 0.34.2
+     *                          blieb dann die Kopie, und am Konto Gelöschtes
+     *                          kam zurück). Mit Konto ebenso die Felder des
+     *                          Kontos selbst (`_kontoFelder`, seit 0.34.3);
+     *   `_fortschrittZusammen` die Zweige der anderen Spiele genau wie am
+     *                          Konto, der eigene Zweig feldweise wie der Kern;
+     *   `_besitzZusammen`      Vereinigung — Käufe wachsen nur.
+     * Das Aussehen hat seine eigene, ältere Regel (unten).
+     */
+    _eigeneFelder: ["id", "name", "uid", "tag", "kennung", "gast", "neuVerbinden",
+        "pinPruefwert", "pinSalz", "freunde", "abgelehnt", "abzeichen"],
+
+    /*
+     * DIE FELDER DES KONTOS SELBST (seit 0.34.3, Prüfung 0.34.2 Fund 2):
+     * Mit UPCrew-Konto ändert Typoluck sie NIE in seiner Kopie, sondern nur
+     * direkt über js\konto.js (Name, Nummer, Gast-Umzug, Neu-Verbinden,
+     * Admin-Freigabe), danach wird frisch geladen. Ein anderes Gerät kann
+     * sie inzwischen geändert haben — kämen sie aus der Kopie, schriebe
+     * Typoluck das Alte zurück (die Datenbank lehnt z. B. eine alte Nummer
+     * ab, und das Schreiben hinge fest). Darum vom frisch geladenen Konto,
+     * genau wie dort (fehlt eines, fehlt es auch hier). Wer sie ÄNDERT
+     * (Name/Nummer ändern), setzt den neuen Wert NACH dem Zusammenführen
+     * (js\anmeldung.js `_frischZumSchreiben` → js\konto.js `bauen`).
+     * Ohne Konto (lokaler Modus: kein `uid` am Eintrag vom Server) gilt
+     * weiter die Kopie — dort ändert `nameSetzen` den Namen in der Kopie.
+     */
+    _kontoFelder: ["name", "uid", "tag", "kennung", "gast", "neuVerbinden"],
+
+    /* Felder mit eigenem Weg beim Zusammenführen; `auszug` gehört nur in den
+       öffentlichen Auszug, nie in den Konto-Eintrag. */
+    _eigenerWeg: ["aussehen", "aussehenJe", "fortschritt", "besitz", "auszug"],
+
+    _fremdesVomKonto(meiner, vomServer) {
+        if (!SPIELER._istObjekt(vomServer)) {
+            return meiner;
+        }
+        const vomKonto = (feld) => SPIELER._eigeneFelder.indexOf(feld) === -1
+            && SPIELER._eigenerWeg.indexOf(feld) === -1;
+        const mitKonto = typeof vomServer.uid === "string" && vomServer.uid !== "";
+        const zusammen = Object.assign({}, meiner);
+        for (const feld of Object.keys(zusammen)) {
+            if (!(feld in vomServer) && (vomKonto(feld) || (mitKonto && SPIELER._kontoFelder.indexOf(feld) !== -1))) {
+                delete zusammen[feld];
+            }
+        }
+        for (const feld of Object.keys(vomServer)) {
+            if (vomKonto(feld) || (mitKonto && SPIELER._kontoFelder.indexOf(feld) !== -1)) {
+                zusammen[feld] = JSON.parse(JSON.stringify(vomServer[feld]));
+            }
+        }
+        return zusammen;
+    },
+
+    /* Der Fortschritt (Zweig-Form aus js\fortschritt.js): alles, wie es am
+       frisch geladenen Konto steht — fehlt dort ein fremder Zweig (oder der
+       ganze Fortschritt), wird er NICHT aus der alten Kopie zurückgeholt
+       (seit 0.34.3 auch dann nicht, wenn der ganze Fortschritt fehlt).
+       Der EIGENE Zweig:
+         - fehlt er am Konto, kommt er aus der Kopie (das Gerät ist dann die
+           einzige Quelle);
+         - sind beide da, feldweise wie der Kern (`FORTSCHRITT.zusammenfuehren`,
+           so auch das Schwester-Spiel): die Fassung mit dem höheren `stand`
+           (bei Gleichstand die vom Konto), ihre Zähler je Name das Maximum
+           beider Seiten (`FORTSCHRITT._zaehlerZusammen`, das Glied des Kerns,
+           das `zusammenfuehren` je Zweig ruft). Seit 0.34.3 — bis 0.34.2
+           bekam die höhere `stand`-Zahl den GANZEN Zweig; ging das Konto
+           rückwärts (Uhr eines Geräts nach), verlor die andere Seite Münzen.
+       Wörtlich, nichts in Geräte-Form umgerechnet: `zusammenfuehren` selbst
+       bringt den Zweig erst durch `normalisieren`, und Name/Nummer ändern
+       schreiben den Eintrag ohne die Schleuse `fuerKonto` (Grund, warum
+       0.34.2 es nicht nahm). Ohne js\fortschritt.js (ältere Tests) bleibt
+       die eigene Kopie. */
+    _fortschrittZusammen(meiner, vomServer) {
+        if (typeof FORTSCHRITT === "undefined" || !vomServer) {
+            return meiner;
+        }
+        const app = FORTSCHRITT.APP;
+        const eigenerZweig = (fortschritt) => (SPIELER._istObjekt(fortschritt)
+            && SPIELER._istObjekt(fortschritt.spiele) && SPIELER._istObjekt(fortschritt.spiele[app]))
+            ? fortschritt.spiele[app] : null;
+        const standVon = (zweig) => (zweig && typeof zweig.stand === "number" && isFinite(zweig.stand))
+            ? zweig.stand : 0;
+        const hier = eigenerZweig(meiner.fortschritt);
+        if (!SPIELER._istObjekt(vomServer.fortschritt)) {
+            const ohne = Object.assign({}, meiner);
+            delete ohne.fortschritt;
+            if (!hier) {
+                return ohne;
+            }
+            const version = (typeof meiner.fortschritt.version === "number") ? meiner.fortschritt.version : FORTSCHRITT.VERSION;
+            return Object.assign(ohne, { fortschritt: { version: version, spiele: { [app]: JSON.parse(JSON.stringify(hier)) } } });
+        }
+        const zusammen = JSON.parse(JSON.stringify(vomServer.fortschritt));
+        const dort = eigenerZweig(zusammen);
+        if (hier) {
+            if (!SPIELER._istObjekt(zusammen.spiele)) {
+                zusammen.spiele = {};
+            }
+            const kopie = JSON.parse(JSON.stringify(hier));
+            zusammen.spiele[app] = !dort ? kopie
+                : (standVon(kopie) > standVon(dort) ? FORTSCHRITT._zaehlerZusammen(kopie, dort)
+                    : FORTSCHRITT._zaehlerZusammen(dort, kopie));
+        }
+        return Object.assign({}, meiner, { fortschritt: zusammen });
+    },
+
+    /* Der Besitz aus dem Shop (`besitz/<art>` = ein Text, js\besitz.js):
+       je Art die Vereinigung aus Kopie und Konto (Baustein
+       js\upcrew-besitz.js). Passt eine Art danach nicht mehr in die Regel
+       (über 2000 Zeichen) oder fehlt der Baustein (ältere Tests), bleibt für
+       sie der Text vom Konto. Ohne Besitz am Konto bleibt die eigene Kopie. */
+    _besitzZusammen(meiner, vomServer) {
+        if (!vomServer || !SPIELER._istObjekt(vomServer.besitz)) {
+            return meiner;
+        }
+        const feld = JSON.parse(JSON.stringify(vomServer.besitz));
+        if (typeof UPCREW_BESITZ !== "undefined" && SPIELER._istObjekt(meiner.besitz)) {
+            const menge = UPCREW_BESITZ.zusammenfuehren(meiner.besitz, vomServer.besitz);
+            for (const art of Object.keys(menge)) {
+                const text = UPCREW_BESITZ.alsText({ [art]: menge[art] });
+                if (text.ok && typeof text.feld[art] === "string") {
+                    feld[art] = text.feld[art];
+                }
+            }
+        }
+        return Object.assign({}, meiner, { besitz: feld });
     },
 
     /*

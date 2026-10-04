@@ -178,7 +178,8 @@ function tag(n) {
     const wordle = lesen("js/bildschirm-wordle.js");
     pruefe("Start zählt beim abgegebenen Versuch (Tageswort und Übung)", /APP\.rundeGestartet\(\)/.test(wordle));
     pruefe("Tipp-Knopf nur mit Vorrat, Extra-Leben nach dem 6. Fehler",
-        /APP\.vorrat\("tipp"\)/.test(wordle) && /WORDLE\.lebenMoeglich\(WORDLE_BILDSCHIRM\.runde\) && APP\.vorrat\("leben"\) > 0/.test(wordle));
+        /* Seit 0.31.0 steht die Runde dort in `runde` (tests\test-rueckfrage.js). */
+        /APP\.vorrat\("tipp"\)/.test(wordle) && /WORDLE\.lebenMoeglich\(runde\) && APP\.vorrat\("leben"\) > 0/.test(wordle));
     pruefe("Münzen im Ergebnis neben den XP", /gewinn\.muenzen > 0/.test(wordle));
     const shop = lesen("js/bildschirm-shop.js");
     pruefe("Shop aus dem Baustein, Kauf über APP.kaufen, Waren-Texte für Typoluck",

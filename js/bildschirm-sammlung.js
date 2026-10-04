@@ -40,9 +40,11 @@
  * Modi) — zusammengezählt in `SAMMLUNG.anteil`. Die eigene Rechnung über
  * die Stufen-Tabelle des Bausteins ist weg.
  *
- * OHNE SHOP (0.30.0): Der Shop mit Besitz und Kauf kommt in einer eigenen
- * Version. Bis dahin `shop: false` — gesperrte Stücke tragen „wird erspielt",
- * `besitz` liefert fest false. Frei bleibt, was vorher frei war.
+ * MIT SHOP UND BESITZ (seit 0.31.0; 0.30.0 lief noch mit `shop: false`):
+ * Was im Shop gekauft ist, ist frei — `besitz(art, wert)` fragt
+ * js\besitz.js (Gerät + Konto vereinigt, je Person). Gesperrtes, das es zu
+ * kaufen gibt, trägt „im Shop". Der heutige Weg (Taten, Level) bleibt
+ * daneben unverändert: Frei ist, was vorher frei war, ODER was gekauft ist.
  *
  * DIE STUFE ist seit 0.10.0 das Level (js\fortschritt.js): Was darüber
  * liegt, kann man in der Vorschau ansehen, aber nicht übernehmen. Ab welcher Stufe was frei ist,
@@ -91,11 +93,38 @@ const SAMMLUNG_BILDSCHIRM = {
         return APP.level().level;
     },
 
-    /* Besessenes Aussehen (seit 0.27.0, Einbau 29.09.2026c): frei, egal
-       welches Level. Typoluck speichert noch keinen Besitz (der Shop mit
-       Kauf kommt eigens) — die Naht ist nur vorbereitet. */
+    /* Besessenes (seit 0.27.0 als Naht, seit 0.31.0 echt): frei, egal
+       welches Level — was die Person von jetzt im Shop gekauft hat
+       (js\besitz.js). `art` ist der Katalog-Schlüssel („kachelset",
+       „schrift" …). */
     besitz(art, wert) {
-        return false;
+        return typeof BESITZ !== "undefined" && BESITZ.hat(art, wert);
+    },
+
+    /* Auf dem heutigen Weg frei — ohne Kauf (seit 0.31.0, für den Shop:
+       so ein Stück wird dort nicht noch einmal verkauft). Gerechnet im
+       Modell (`SAMMLUNG.erspielt`). */
+    erspielt(art, wert) {
+        return SAMMLUNG.erspielt(art, wert, SAMMLUNG_BILDSCHIRM._taten(), SAMMLUNG_BILDSCHIRM._alleFrei(),
+            SAMMLUNG_BILDSCHIRM.stufe());
+    },
+
+    /* Der Weg in den Shop (seit 0.34.5, UPCrew-Runde 9; Vertrag `zumShop`
+       im Kopf von js\upcrew-anpassen.js): Das Blatt zeigt für ein
+       kaufbares, nicht besessenes Stück „Im Shop ansehen", schliesst sich
+       beim Tipp und ruft hier mit dem Katalog-Schlüssel { art, wert }.
+       Derselbe Weg wie ein Tipp auf die Leiste (das Band rollt; ist die
+       Shop-Seite noch nicht gebaut oder veraltet, zeichnet der Wechsel sie
+       jetzt), dann Reiter „Design" und das Stück-Blatt. Klappt das Öffnen
+       nicht, bleibt es beim Tab-Wechsel. */
+    zumShop(stueck) {
+        if (!stueck || !stueck.art || !stueck.wert || typeof NAVIGATION === "undefined") {
+            return false;
+        }
+        if (NAVIGATION.aktuell !== "shop") {
+            NAVIGATION.zeigen("shop", null);
+        }
+        return typeof SHOP_BILDSCHIRM !== "undefined" && SHOP_BILDSCHIRM.stueckOeffnen(stueck.art, stueck.wert);
     },
 
     _alleFrei() {
@@ -124,10 +153,9 @@ const SAMMLUNG_BILDSCHIRM = {
             stufe: SAMMLUNG_BILDSCHIRM.stufe(),
             alleFrei: SAMMLUNG_BILDSCHIRM._alleFrei(),
             besitz: SAMMLUNG_BILDSCHIRM.besitz,
-            /* Der Shop mit Besitz kommt eigens: bis dahin „wird erspielt". */
-            shop: false,
             regale: [SAMMLUNG_BILDSCHIRM._kachelsetRegal()],
-            vorschau: SAMMLUNG_BILDSCHIRM._vorschau
+            vorschau: SAMMLUNG_BILDSCHIRM._vorschau,
+            zumShop: (stueck) => SAMMLUNG_BILDSCHIRM.zumShop(stueck)
         });
 
         /* Die reine Sammlung VOR den Balken (das Gerüst weiß, wohin, und
@@ -151,15 +179,16 @@ const SAMMLUNG_BILDSCHIRM = {
        0.30.0; bis 0.29.0 eine Gruppe der reinen Sammlung mit „Anziehen"-
        Rückfrage). Der Schlüssel „kachelset" ist die Katalog-Art: Die Liste
        der Stücke kommt aus js\upcrew-katalog.js, Typoluck sagt je Stück,
-       ob es frei ist (Tat oder Level, js\sammlung.js). Übernommen wird über
-       js\kachelsets.js — der Baustein lässt nur Freies zu. */
+       ob es frei ist (Tat oder Level — oder, seit 0.31.0, gekauft;
+       js\sammlung.js). Übernommen wird über js\kachelsets.js — der Baustein
+       lässt nur Freies zu. */
     _kachelsetRegal() {
         return {
             schluessel: "kachelset",
             titel: "Kachel-Sets",
             wert: KACHELSETS.gewaehlt(),
             stuecke: SAMMLUNG.kachelsetStuecke(SAMMLUNG_BILDSCHIRM._taten(), SAMMLUNG_BILDSCHIRM._alleFrei(),
-                SAMMLUNG_BILDSCHIRM.stufe()),
+                SAMMLUNG_BILDSCHIRM.stufe(), SAMMLUNG_BILDSCHIRM.besitz),
             uebernehmen: KACHELSETS.waehlen
         };
     },

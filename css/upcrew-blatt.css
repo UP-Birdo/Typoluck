@@ -118,6 +118,10 @@ html.up-bl-offen body {
   animation: up-bl-auf 220ms cubic-bezier(.3, 1.3, .5, 1);
 }
 
+/* Die Fläche nimmt beim Öffnen den Fokus (tabindex -1, 04.10.2026) — sie ist kein Bedienelement, also kein Ring. */
+.up-bl-blatt:focus,
+.up-bl-karte:focus { outline: none; }
+
 @keyframes up-bl-ein { from { opacity: 0; } }
 @keyframes up-bl-hoch { from { transform: translateY(46px); opacity: 0; } }
 @keyframes up-bl-auf { from { transform: translate(-50%, -46%) scale(.94); opacity: 0; } }

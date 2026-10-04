@@ -72,53 +72,11 @@
     white-space: nowrap;
 }
 
-.spiel-kachel-kopf {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 12px;
-}
-
-.spiel-kachel-bild {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: none;
-    width: 56px;
-    height: 56px;
-    border-radius: var(--rund-mittel);
-    background: var(--kachel-richtig);
-    color: var(--kachel-schrift);
-}
-
-.spiel-kachel-bild .zeichen {
-    width: 30px;
-    height: 30px;
-}
-
-.spiel-kachel-name {
-    margin: 0;
-    font-size: 1.3rem;
-}
-
-.spiel-kachel-satz {
-    margin: 0;
-    color: var(--schrift-leise);
-    font-size: 0.95rem;
-}
-
-.spiel-kachel-stand {
-    margin: 0 0 12px;
-    padding: 8px 12px;
-    border-radius: var(--rund-klein);
-    background: var(--karte-leise);
-    font-weight: 600;
-}
-
-.spiel-stand-erledigt {
-    background: var(--gut-flaeche);
-    color: var(--gut);
-}
+/* Die Spiel-Kacheln des Starts (`.spiel-kachel…`, bis 0.31.0 die zwei
+   Karten Tageswort und Übung) sind seit 0.32.0 weg: Der Start hat EINE
+   Karte und den Knopf-Bereich (css/stil-bibliothek.css, „DER START SEIT
+   0.32.0"). Der Stand des Tagesworts färbt dort nur noch die Angabe
+   rechts im Kopf der Karte (`.spiel-stand-…`, unten). */
 
 /* ------------------------------------------------------------------ *
  * Rangliste (auch auf dem Start benutzt)
@@ -924,42 +882,76 @@ body:has(#werkstatt-kachelwahl) .inhalt {
     font-variant-numeric: tabular-nums;
 }
 
-/* Üben = zwei Modi (seit 0.23.4): Tageswort und Übung als zwei Karten,
-   knapp genug für 360 × 640 ohne Rollen. */
-.spiel-kachel.modus-karte {
-    margin-bottom: 10px;
-    padding: 12px 14px;
+/* ------------------------------------------------------------------ *
+ * Die Anprobe aus dem Shop (seit 0.31.0, js/bildschirm-shop.js): ein
+ * Streifen oben über Seite und Blättern — Name des Stücks, „Anprobe
+ * beenden", bei einem Kachel-Set fünf Kacheln zum Ansehen. Er liegt fest
+ * über allem (`#anprobe` in index.html), nie in einer Seite des Bandes;
+ * nichts darin rollt.
+ * ------------------------------------------------------------------ */
+
+.anprobe {
+    position: fixed;
+    /* Mittig über links/rechts + Rand „auto" (nicht über left: 50 % — das
+       liesse dem Streifen nur die halbe Breite, der Name fiele weg). */
+    left: 12px;
+    right: 12px;
+    top: calc(6px + var(--oben-frei));
+    z-index: var(--ebene-hinweis);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    box-sizing: border-box;
+    width: fit-content;
+    max-width: calc(100% - 24px);
+    margin: 0 auto;
+    padding: 6px 6px 6px 14px;
+    border: 2px solid var(--haupt);
+    border-radius: var(--rund-mittel);
+    background: var(--karte);
+    color: var(--schrift);
+    box-shadow: 0 3px 0 var(--haupt-kante);
 }
 
-.modus-karte .spiel-kachel-kopf {
-    gap: 12px;
-    margin-bottom: 8px;
+.anprobe[hidden] {
+    display: none;
 }
 
-.modus-karte .spiel-kachel-bild {
-    width: 44px;
-    height: 44px;
+.anprobe-kopf {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
 }
 
-.modus-karte .spiel-kachel-bild .zeichen {
-    width: 24px;
-    height: 24px;
-}
-
-.modus-karte .spiel-kachel-name {
-    font-size: 1.15rem;
-}
-
-.modus-karte .spiel-kachel-satz {
+.anprobe-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
     font-size: 0.85rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.modus-karte .spiel-kachel-stand {
-    margin-bottom: 10px;
-    padding: 6px 10px;
-    font-size: 0.88rem;
+.anprobe-kopf .knopf {
+    flex: none;
 }
 
+.anprobe-kacheln {
+    display: grid;
+    grid-template-columns: repeat(5, 30px);
+    gap: 4px;
+    padding: 0 8px 4px 0;
+}
+
+.anprobe-kacheln .kachel {
+    font-size: 0.95rem;
+}
+
+/* Der Stand des Tagesworts rechts im Kopf der Start-Karte. */
 .spiel-stand-geloest {
     background: var(--gut-flaeche);
     color: var(--gut);

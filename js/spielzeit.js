@@ -65,8 +65,16 @@ const SPIELZEIT = {
             gebucht = Math.min(Math.floor(Math.max(0, zeit - SPIELZEIT._sichtbarSeit) / 1000),
                 FORTSCHRITT.SPIELZEIT_SCHRITT_MAX);
             if (gebucht > 0) {
-                FORTSCHRITT.aendern(SPIELZEIT._id(),
+                const buchen = () => FORTSCHRITT.aendern(SPIELZEIT._id(),
                     (stand) => ({ stand: FORTSCHRITT.spielzeitZaehlen(stand, gebucht, zeit, FORTSCHRITT.APP) }), zeit);
+                /* Seit 0.33.0: Die Spielzeit lässt keine Seite anders
+                   aussehen — ihr Schreiben (alle 30 s) macht die Seiten des
+                   Bandes nicht veraltet (js\app.js `stillSchreiben`). */
+                if (typeof APP !== "undefined" && typeof APP.stillSchreiben === "function") {
+                    APP.stillSchreiben(buchen);
+                } else {
+                    buchen();
+                }
             }
         }
         SPIELZEIT._sichtbarSeit = sichtbar ? zeit : null;

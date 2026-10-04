@@ -1,9 +1,27 @@
 /*
  * upcrew-shop.css — der Tab „Shop“ und die Münze (zu upcrew-shop.js und upcrew-muenzen.js), gleich in Blunderluck
- * und Typoluck. Quelle künftig Design\3D-Schrift\final — KOPIEREN, nie abwandeln.
+ * und Typoluck. Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln. Seit Runde 8
+ * (04.10.2026): neu gebaut.
  *
- * Markup: siehe Kopf von upcrew-shop.js. Kopf wie die Sammlung (klebt, volle Breite; Stellschrauben
- * --up-sm-rand und --oben-frei aus upcrew-sammlung.css). Farben nur aus der Farbwelt.
+ * Aussehen der früheren Vorschau (Design\3D-Schrift\entwuerfe\Bibliothek): Schalter, „Heute im Angebot“ (drei
+ * Kacheln), Paket-Karten in der eigenen Farbwelt mit großem „UPCREW“, Bänder. Die Einzelteile als
+ * Kategorie-Kacheln wie in der Sammlung. NICHTS ROLLT WAAGRECHT (kein overflow-x).
+ *
+ * MARKUP (baut upcrew-shop.js):
+ *   <section class="up-shop">
+ *     <div class="up-shop-kopf"><h2 class="up-shop-titel">Shop</h2><span class="up-shop-saldo">…</span></div>
+ *     <div class="up-shop-seg"><button aria-pressed>Design</button><button>Typoluck</button></div>
+ *     <div class="up-shop-design">
+ *       <h3 class="up-shop-zwischen">Heute im Angebot <small>…</small></h3>
+ *       <div class="up-shop-angebot"><button class="up-shop-teil">Platz · Name · Preis · Band</button> ×3</div>
+ *       <div class="up-shop-pakete"><button class="up-shop-paket" style="--flaeche: …">…</button> …</div>
+ *       <div class="up-shop-kat-raster"><button class="up-shop-kat">…</button> …</div>
+ *     </div>
+ *     <div class="up-shop-liste"><article class="up-shop-karte">…</article> …</div>      ← Vorrat, wie bisher
+ *   </section>
+ *   Blätter (upcrew-blatt.js, Klasse up-shop-blatt): up-shop-koerper (rollt senkrecht) + up-shop-fuss (klebt).
+ * Kopf wie die Sammlung (klebt, volle Breite; Stellschrauben --up-sm-rand und --oben-frei aus
+ * upcrew-sammlung.css). Farben nur aus der Farbwelt. Braucht upcrew-platz.css.
  */
 
 /* ---- Die Münze (überall, wo UPCREW_MUENZEN.zeichen() steht) ---- */
@@ -25,7 +43,28 @@
     opacity: 0.85;
 }
 
+/* Die Münze als Platz: so groß wie die Schrift daneben. */
+.up-shop-mz {
+    --up-pl-breite: 1.1em;
+}
+
 /* ---- Der Tab ---- */
+.up-shop[hidden],
+.up-shop [hidden] {
+    display: none;
+}
+
+/* Der Tab zieht sich selbst auf die volle Breite (wie die Sammlung); alles unter dem Kopf rückt wieder ein. */
+.up-shop {
+    margin-left: calc(-1 * var(--up-sm-rand, 12px));
+    margin-right: calc(-1 * var(--up-sm-rand, 12px));
+}
+
+.up-shop > :not(.up-shop-kopf) {
+    margin-left: var(--up-sm-rand, 12px);
+    margin-right: var(--up-sm-rand, 12px);
+}
+
 .up-shop-kopf {
     position: sticky;
     top: var(--oben-frei, 0px);
@@ -33,7 +72,6 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 0 calc(-1 * var(--up-sm-rand, 12px));
     padding: 8px var(--up-sm-rand, 12px) 10px;
     background: var(--flaeche);
     border-bottom: 1px solid var(--rahmen);
@@ -42,6 +80,7 @@
 .up-shop-titel {
     margin: 0;
     flex: 1 1 auto;
+    min-width: 0;
     font-size: 1.15rem;
     font-weight: 700;
 }
@@ -54,11 +93,498 @@
     font-variant-numeric: tabular-nums;
 }
 
+.up-shop-betrag s {
+    font-weight: 700;
+    opacity: 0.55;
+}
+
 .up-shop-saldo {
+    flex: none;
     color: var(--haupt);
     font-size: 1.05rem;
 }
 
+/* ---- Schalter „Design · <Spielname>“ ---- */
+.up-shop-seg {
+    display: flex;
+    margin: 10px 0 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--karte-leise);
+}
+
+.up-shop-seg button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 8px 6px;
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--schrift-leise);
+    background: none;
+    border: 0;
+    border-radius: 999px;
+    cursor: pointer;
+    overflow-wrap: anywhere;
+}
+
+.up-shop-seg button[aria-pressed="true"] {
+    color: var(--schrift);
+    background: var(--karte);
+    box-shadow: 0 2px 0 var(--still-kante);
+}
+
+.up-shop-design {
+    padding-bottom: 18px;
+}
+
+.up-shop-zwischen {
+    margin: 16px 2px 8px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--schrift-leise);
+}
+
+.up-shop-zwischen small {
+    font-size: inherit;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+/* ---- Bänder: im Besitz · neu · wird erspielt · bald ---- */
+.up-shop-band {
+    display: inline-block;
+    max-width: 100%;
+    padding: 3px 7px;
+    font-size: 0.62rem;
+    font-style: normal;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    text-align: center;
+    overflow-wrap: anywhere;
+    border-radius: 999px;
+    background: var(--karte-leise);
+    color: var(--schrift-leise);
+}
+
+.up-shop-band-neu {
+    background: var(--haupt);
+    color: var(--haupt-schrift);
+}
+
+.up-shop-band-erspielt {
+    background: color-mix(in srgb, var(--haupt) 22%, var(--karte-leise));
+    color: var(--schrift);
+}
+
+.up-shop-band-bald {
+    border: 1px dashed var(--rahmen);
+    background: transparent;
+}
+
+/* ---- Ein Stück als Kachel: Angebot (drei nebeneinander) und Raster im Blatt (drei Spalten) ---- */
+.up-shop-angebot,
+.up-shop-raster {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.up-shop-teil {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: 5px;
+    min-width: 0;
+    padding: 10px 5px 9px;
+    font: inherit;
+    color: var(--schrift);
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: 16px;
+    box-shadow: 0 3px 0 var(--still-kante);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.up-shop-teil:active,
+.up-shop-kat:active,
+.up-shop-paket:active {
+    transform: translateY(3px);
+    box-shadow: 0 0 0 var(--still-kante);
+}
+
+.up-shop-teil:focus-visible,
+.up-shop-kat:focus-visible,
+.up-shop-paket:focus-visible {
+    outline: 3px solid var(--haupt);
+    outline-offset: 2px;
+}
+
+.up-shop-teil .up-platz-stueck {
+    --up-pl-breite: 56px;
+}
+
+.up-shop-teil-name {
+    max-width: 100%;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+}
+
+.up-shop-preis {
+    font-size: 0.8rem;
+}
+
+.up-shop-hat .up-platz-stueck {
+    opacity: 0.6;
+}
+
+/* ---- Design-Pakete: Karten untereinander, jede in IHRER Farbwelt (Variablen am Element) ---- */
+.up-shop-pakete {
+    display: grid;
+    gap: 12px;
+}
+
+.up-shop-paket {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 12px;
+    font: inherit;
+    text-align: left;
+    color: var(--schrift);
+    background: var(--flaeche);
+    border: 1px solid var(--rahmen);
+    border-radius: 20px;
+    box-shadow: 0 4px 0 var(--still-kante);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.up-shop-paket-text {
+    min-width: 0;
+}
+
+.up-shop-marke {
+    font-size: 1.35rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 1;
+}
+
+.up-shop-marke b {
+    color: var(--haupt);
+}
+
+.up-shop-marke-gross {
+    font-size: 2.6rem;
+}
+
+.up-shop-paket-name {
+    margin-top: 4px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.up-shop-paket small {
+    display: block;
+    font-size: 0.74rem;
+    color: var(--schrift-leise);
+    overflow-wrap: anywhere;
+}
+
+.up-shop-mini {
+    display: flex;
+    gap: 3px;
+    margin-top: 8px;
+}
+
+.up-shop-mini i {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    font-size: 0.66rem;
+    font-style: normal;
+    font-weight: 900;
+    color: var(--kachel-schrift, #ffffff);
+    background: var(--kachel-falsch);
+    border-radius: 5px;
+}
+
+.up-shop-mini i.r {
+    background: var(--kachel-richtig);
+}
+
+.up-shop-mini i.v {
+    background: var(--kachel-vorhanden);
+}
+
+.up-shop-mini i.h {
+    background: var(--feld-hell);
+    border-radius: 0;
+}
+
+.up-shop-mini i.d {
+    background: var(--feld-dunkel);
+    border-radius: 0;
+}
+
+.up-shop-paket-rechts {
+    display: grid;
+    justify-items: end;
+    gap: 8px;
+}
+
+.up-shop-mini-knopf {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+    color: var(--haupt-schrift);
+    background: var(--haupt);
+    border-radius: 12px;
+    box-shadow: 0 3px 0 var(--haupt-kante);
+}
+
+/* Die Münze auf der Hauptfarbe: umgekehrt, damit sie sich abhebt. */
+.up-shop-mini-knopf .up-mz-rand {
+    fill: var(--haupt-schrift);
+    stroke: var(--haupt-schrift);
+}
+
+.up-shop-mini-knopf .up-mz-praege {
+    fill: var(--haupt);
+}
+
+/* ---- Einzelteile: Kategorie-Kacheln, 2er-Raster (wie die Sammlung) ---- */
+.up-shop-kat-raster {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.up-shop-kat {
+    position: relative;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 4px 10px;
+    min-width: 0;
+    padding: 10px 10px 9px;
+    font: inherit;
+    text-align: left;
+    color: var(--schrift);
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel, 14px);
+    box-shadow: 0 3px 0 var(--still-kante);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.up-shop-kat-bild {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+}
+
+.up-shop-kat-bild .up-platz {
+    --up-pl-breite: 52px;
+}
+
+.up-shop-kat-bald .up-shop-kat-bild {
+    opacity: 0.6;
+}
+
+/* Der Name bricht nicht mitten im Wort (04.10.2026, bei 360 px „Profilzeich-en“): Die Schrift folgt der Breite der
+   Spalte (Container-Einheit cqi), so dass das längste Wort der Kategorie-Namen in jeder Crew-Schrift passt —
+   „Profilzeichen“ in Crew S4 fett ist 6,93 em breit, also höchstens 100 cqi / 7,1 = 14 cqi. Breiter bleibt 0.86rem.
+   Umbrochen wird an Leerzeichen und Bindestrich; `break-word` greift nur, wenn ein Wort selbst so nicht passt. */
+.up-shop-kat-text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+    container-type: inline-size;
+}
+
+.up-shop-kat-text b {
+    font-size: 0.86rem;
+    font-size: min(0.86rem, 14cqi);
+    line-height: 1.15;
+    overflow-wrap: break-word;
+    hyphens: manual;
+}
+
+.up-shop-kat-text small {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--schrift-leise);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+}
+
+.up-shop-strich {
+    grid-column: 1 / -1;
+    display: block;
+    height: 4px;
+    margin-top: 4px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--karte-leise);
+}
+
+.up-shop-strich i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--haupt);
+}
+
+.up-shop-kat .up-shop-band {
+    padding: 2px 6px;
+    font-size: 0.58rem;
+    vertical-align: 1px;
+}
+
+/* ---- Blätter ---- */
+.up-shop-blatt > .up-bl-inhalt {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+}
+
+.up-shop-koerper {
+    flex: 1 0 auto;
+    padding: 4px 12px 16px;
+}
+
+.up-shop-stueck {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: 6px;
+    text-align: center;
+}
+
+.up-shop-stueck > * {
+    max-width: 100%;
+    min-width: 0;
+}
+
+.up-shop-stueck .up-shop-zwischen,
+.up-shop-stueck .up-shop-raster {
+    justify-self: stretch;
+    text-align: left;
+}
+
+.up-shop-gross {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 18px 12px 14px;
+    border: 1px solid var(--rahmen);
+    border-radius: 20px;
+    background: var(--karte);
+}
+
+.up-shop-gross-bild {
+    --up-pl-breite: 168px;
+}
+
+.up-shop-name {
+    margin: 8px 0 0;
+    font-size: 1.3rem;
+    overflow-wrap: anywhere;
+}
+
+.up-shop-leise {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: var(--schrift-leise);
+}
+
+.up-shop-grosspreis {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    margin: 6px 0 0;
+    font-size: 1.5rem;
+    color: var(--haupt);
+}
+
+.up-shop-grosspreis small {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: var(--schrift-leise);
+}
+
+/* Die Bühne des Paket-Blatts: das Paket in SEINER Farbwelt, Schrift und Knopf-Familie. */
+.up-shop-buehne {
+    display: grid;
+    justify-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 18px 12px 16px;
+    color: var(--schrift);
+    background: var(--flaeche);
+    border: 1px solid var(--rahmen);
+    border-radius: 20px;
+    box-shadow: 0 4px 0 var(--still-kante);
+}
+
+.up-shop-buehne .up-shop-paket-name {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.up-shop-buehne .up-shop-mini {
+    margin-top: 2px;
+}
+
+.up-shop-buehne .up-kn {
+    pointer-events: none;
+}
+
+.up-shop-fuss {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex: none;
+    gap: 8px;
+    padding: 10px 12px 12px;
+    border-top: 1px solid var(--rahmen);
+    background: var(--flaeche);
+}
+
+.up-shop-fuss .up-kn {
+    min-width: 0;
+}
+
+.up-shop-fuss .up-haupt {
+    flex: 1;
+}
+
+.up-shop-fuss .up-kn:disabled {
+    --kf: var(--karte-leise);
+    --kk: var(--still-kante);
+    --ks: var(--schrift-leise);
+    opacity: 1;
+}
+
+/* ---- Vorrat (Reiter des Spiels) — wie bisher ---- */
 .up-shop-liste {
     display: flex;
     flex-direction: column;
@@ -85,6 +611,10 @@
     border-radius: var(--rund-voll, 999px);
     background: var(--karte-leise);
     color: var(--haupt);
+}
+
+.up-shop-bild .up-platz {
+    --up-pl-breite: 28px;
 }
 
 .up-shop-bild svg {
@@ -127,11 +657,11 @@
     gap: 6px;
 }
 
-.up-shop-preis {
+.up-shop-karte .up-shop-preis {
     font-size: 0.95rem;
 }
 
-.up-shop-kaufen {
+.up-shop-karte .up-shop-kaufen {
     min-width: 88px;
 }
 

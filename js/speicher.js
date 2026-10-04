@@ -238,7 +238,11 @@ class SpeicherGemeinsam {
 
 SpeicherGemeinsam.ZEITLIMIT_LADEN_MS = 8000;
 SpeicherGemeinsam.ZEITLIMIT_SPEICHERN_MS = 12000;
-SpeicherGemeinsam.ZEITLIMIT_MARKE_MS = 800;
+/* Seit 0.31.0 3500 statt 800 ms: Im Mobilfunk dauert die Nachfrage oft
+   länger als 800 ms — dann hiess die Antwort „weiss nicht", und es wurde
+   alle fünf Sekunden alles geladen. Bleibt unter dem Takt der Abfrage
+   (KONFIG.speicher.abfrageIntervallMs). */
+SpeicherGemeinsam.ZEITLIMIT_MARKE_MS = 3500;
 
 /* Welches Feld die Marke ist (wie Blunderluck). */
 SpeicherGemeinsam.MARKEN_FELD = "geaendertAm";

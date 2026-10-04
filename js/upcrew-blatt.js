@@ -14,6 +14,9 @@
  *
  * Schliessen: ✕ / Zurück, Tipp auf den abgedunkelten Grund, Esc. Die Leiste der App liegt ÜBER den Blättern und bleibt
  * bedienbar (z-index der App höher als `--up-bl-ebene`).
+ * Seit 04.10.2026: Esc übergeht das Blatt, solange ein Dialog des Spiels darüber offen ist (`[aria-modal="true"]`,
+ * der nicht Blatt/Karte selbst ist). Fokus: beim Öffnen auf die Fläche (tabindex -1), beim Schliessen zurück zum
+ * Auslöser (siehe „Fokus“ unten).
  *
  * SEITE ODER BLATT (Nutzer 29.09.2026, gilt ab Blunderluck v0.157 / Typoluck 0.25): Was IN DER LEISTE steht (Shop,
  * Sammlung, Start, Aufgaben/Herausforderungen, Rangliste), ist eine normale SEITE im Hauptelement — nie ein Blatt.
@@ -282,9 +285,105 @@
         }
     }
 
+    /* ---- Fremder Dialog (04.10.2026) ----
+       Liegt über dem Blatt ein Dialog des Spiels (`[aria-modal="true"]` oder `dialog[open]`, sichtbar, und NICHT
+       die Fläche eines Eintrags hier — die Karte ist selbst modal), gehört Escape ihm: Das Blatt bleibt offen.
+       Gemessen wird zu Beginn des Tastendrucks (Horcher in der Einfang-Phase), damit es nicht davon abhängt, ob
+       der Horcher des Dialogs vor oder nach dem des Blatts läuft und den Dialog schon abgeräumt hat. */
+    function fremderDialogOffen() {
+        if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") {
+            return false;
+        }
+        for (const d of document.querySelectorAll("[aria-modal='true'], dialog[open]")) {
+            if (stapel.some((s) => s.flaeche === d)) {
+                continue;
+            }
+            if (!d.getClientRects || d.getClientRects().length > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    let escBeimDruck = null;   /* Ereignis, bei dessen Beginn ein fremder Dialog offen war */
+
+    function vorEsc(ereignis) {
+        escBeimDruck = (ereignis && ereignis.key === "Escape" && stapel.length > 0 && fremderDialogOffen())
+            ? ereignis : null;
+    }
+
     function aufEsc(ereignis) {
         if (ereignis && ereignis.key === "Escape" && stapel.length > 0) {
+            if (ereignis === escBeimDruck || fremderDialogOffen()) {
+                return;
+            }
             schliessen("esc");
+        }
+    }
+
+    /* ---- Fokus (04.10.2026) ----
+       Beim Öffnen geht der Fokus auf die Fläche selbst (tabindex -1, nie auf ein Eingabefeld — am Handy ginge sonst
+       die Tastatur auf), es sei denn, der Inhalt hat ihn schon in die Fläche gelegt. Beim Schliessen kehrt er zu dem
+       Element zurück, das ihn vorher hatte (gestapelt: zum Vorgänger) — nur wenn es noch im Dokument steht, kein
+       Eingabefeld ist und sichtbar ist, und nur wenn der Fokus gerade im Geschlossenen oder nirgends liegt (ein
+       Tipp in die Leiste behält ihn). */
+    function aktivesElement() {
+        return (typeof document !== "undefined" && document.activeElement) || null;
+    }
+
+    function fokusSetzen(ziel) {
+        if (!ziel || typeof ziel.focus !== "function") {
+            return;
+        }
+        try {
+            ziel.focus({ preventScroll: true });
+        } catch (fehler) {
+            /* nimmt keinen Fokus: dann eben nicht */
+        }
+    }
+
+    function fokusNehmen(eintrag) {
+        const f = eintrag.flaeche;
+        const jetzt = aktivesElement();
+        if (jetzt && f && typeof f.contains === "function" && f.contains(jetzt)) {
+            return;
+        }
+        if (f && typeof f.setAttribute === "function") {
+            f.setAttribute("tabindex", "-1");
+        }
+        fokusSetzen(f);
+    }
+
+    function taugtFuerFokus(ziel) {
+        if (!ziel || typeof ziel.focus !== "function" || typeof document === "undefined") {
+            return false;
+        }
+        if (ziel === document.body || ziel === document.documentElement) {
+            return false;
+        }
+        if (typeof document.contains === "function" ? !document.contains(ziel) : !ziel.isConnected) {
+            return false;
+        }
+        const art = String(ziel.tagName || "").toLowerCase();
+        if (art === "input" || art === "textarea" || art === "select" || ziel.isContentEditable === true
+                || (typeof ziel.closest === "function" && ziel.closest("[contenteditable]:not([contenteditable='false'])"))) {
+            return false;
+        }
+        return !ziel.getClientRects || ziel.getClientRects().length > 0;
+    }
+
+    /* VOR dem Abhängen fragen: Liegt der Fokus im Eintrag oder nirgends? */
+    function fokusIm(eintrag) {
+        const jetzt = aktivesElement();
+        return !jetzt || (typeof document !== "undefined" && jetzt === document.body)
+            || (!!eintrag.el && typeof eintrag.el.contains === "function" && eintrag.el.contains(jetzt));
+    }
+
+    function fokusZurueck(eintrag, warDrin) {
+        const ziel = eintrag.vorher;
+        eintrag.vorher = null;
+        if (warDrin && taugtFuerFokus(ziel)) {
+            fokusSetzen(ziel);
         }
     }
 
@@ -293,6 +392,7 @@
         ebenenEl = o.ebenen || null;
         hauptEl = o.haupt || null;
         if (!horcht && typeof document !== "undefined" && document.addEventListener) {
+            document.addEventListener("keydown", vorEsc, true);
             document.addEventListener("keydown", aufEsc);
             horcht = true;
         }
@@ -346,7 +446,8 @@
         flaeche.appendChild(inhalt);
         ebene.appendChild(flaeche);
 
-        const eintrag = { art: art, el: ebene, flaeche: flaeche, inhalt: inhalt, kopf: kopf, optionen: o };
+        const eintrag = { art: art, el: ebene, flaeche: flaeche, inhalt: inhalt, kopf: kopf, optionen: o,
+            vorher: aktivesElement() };
         eintrag.schliessen = () => schliessenEintrag(eintrag, "code");
         stapel.push(eintrag);
 
@@ -362,6 +463,7 @@
         hintenSetzen();
         obenSetzen(ebene);
         eintragAnlegen(eintrag);
+        fokusNehmen(eintrag);
         return eintrag;
     }
 
@@ -376,10 +478,12 @@
         if (mitgegeben && typeof mitgegeben === "object" && mitgegeben.parentNode === eintrag.inhalt) {
             eintrag.inhalt.removeChild(mitgegeben);
         }
+        const fokusWarDrin = fokusIm(eintrag);
         if (eintrag.el && eintrag.el.parentNode) {
             eintrag.el.parentNode.removeChild(eintrag.el);
         }
         hintenSetzen();
+        fokusZurueck(eintrag, fokusWarDrin);
         eintragZuruecknehmen(eintrag, wie);
         if (typeof eintrag.optionen.beimSchliessen === "function") {
             eintrag.optionen.beimSchliessen(wie);

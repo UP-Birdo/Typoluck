@@ -945,26 +945,36 @@ body.im-spiel .inhalt {
     color: var(--schrift-leise);
 }
 
+/* Seit 0.34.4 (Rauchprobe 0.34.3, 360 px): `width: max-content` — vorher
+   war der Streifen wegen `left: 50%` höchstens halb so breit wie der
+   Bildschirm (180 px) und brach schon „Unbekanntes Wort" in zwei Zeilen.
+   Jetzt einzeilig, solange der Text in die Breite passt; bricht ein langer
+   Text doch um, endet er mit 8 px oben, engerem Rand und Zeilenabstand vor
+   den Reitern darunter (zwei Zeilen: unten bei 64 px, Reiter ab 66 px).
+   Er verschwindet, indem er nach oben hinausfährt — voll deckend, nie halb
+   durchsichtig über einem Titel (bis 0.34.3: Ausblenden über `opacity`). */
 .kurzmeldung {
     position: fixed;
     left: 50%;
-    top: calc(16px + var(--oben-frei));
+    top: calc(8px + var(--oben-frei));
     z-index: var(--ebene-kurzmeldung);
+    width: max-content;
     max-width: calc(100% - 32px);
     margin: 0;
-    padding: 10px 18px;
+    padding: 8px 18px;
     transform: translateX(-50%);
     border-radius: var(--rund-voll);
     background: var(--schrift);
     color: var(--flaeche);
     font-weight: 600;
+    line-height: 1.25;
     text-align: center;
     box-shadow: 0 var(--karte-tiefe) 0 var(--schrift-leise);
-    transition: opacity 250ms ease;
+    transition: transform 250ms ease;
 }
 
 .kurzmeldung-weg {
-    opacity: 0;
+    transform: translate(-50%, calc(-100% - 16px - var(--oben-frei)));
 }
 
 /* ------------------------------------------------------------------ *

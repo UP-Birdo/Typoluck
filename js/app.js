@@ -44,7 +44,8 @@ const APP = {
 
     async starten() {
         /* Für den Notfall-Weg in index.html (seit 0.15.4): „die App hat
-           gestartet". Fehlt das nach 10 s, räumt er Worker und Speicher. */
+           gestartet". Fehlt das nach 10 s (seit 0.33.0: und ist fertig
+           geladen, spätestens nach 30 s), räumt er Worker und Speicher. */
         window.TYPOLUCK_GESTARTET = true;
         DIALOG.aufbauen(document.getElementById("dialog"), document.getElementById("kurzmeldung"));
         APP._fehlerFangen();
@@ -94,7 +95,9 @@ const APP = {
 
         APP.abgleich = new Abgleich(APP.spielerSpeicher, KONFIG.speicher, {
             beiDaten: () => APP._beiSpielerDaten(),
-            beiStatus: (status, text) => APP._beiStatus(status, text)
+            beiStatus: (status, text) => APP._beiStatus(status, text),
+            /* Seit 0.33.0: der Takt der Abfrage je Bildschirm. */
+            takt: () => APP.abfrageTakt()
         });
         ANMELDUNG.verbinden(APP.abgleich, document.getElementById("anmeldung"));
         ANMELDUNG.beiAngemeldet = () => APP._beiAngemeldet();
@@ -107,6 +110,12 @@ const APP = {
         /* Der Fortschritt am Konto (seit 0.15.1, Regel §11b eingespielt):
            dieselben Leute wie beim Aussehen — nur echte Konten. */
         FORTSCHRITT_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
+        /* Der Besitz aus dem Shop (seit 0.31.0, js/besitz.js): auf dem Gerät
+           je Person unter derselben Kennung wie der Fortschritt, am Konto
+           nur für echte Konten (Regel §13). */
+        if (typeof BESITZ !== "undefined") {
+            BESITZ.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
+        }
         /* Die Lieblingswörter (seit 0.28.0): gezählt auf dem Gerät, die
            Top 3 ans Konto nur mit Regel §13 (js/lieblingswoerter.js). */
         if (typeof LIEBLINGSWOERTER !== "undefined") {
@@ -151,6 +160,14 @@ const APP = {
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
         SAMMLUNG_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
+        /* Das Duell (seit 0.34.0): Rückwand, Bildschirm, dritte Art — alles
+           nur, wenn es an ist (APP._duellEinrichten). */
+        APP._duellEinrichten(werkstatt, intern);
+        /* Seit 0.33.0: Die Navigation zeichnet eine Seite des Bandes nur
+           noch neu, wenn sie veraltet ist — woran sie das ausser den
+           Meldungen (`veralten`, `auffrischen`) erkennt, sagt die
+           Stand-Marke (unten, „Veraltet"). */
+        NAVIGATION.frischMarke = () => APP.standMarke();
         /* Seit 0.25.0 mit dem Halter der Blätter (js/upcrew-blatt.js), seit
            0.29.0 mit dem Seiten-Band der Leisten-Tabs (js/upcrew-wischen.js). */
         NAVIGATION.starten(document.getElementById("inhalt"), "start", document.getElementById("leiste"),
@@ -168,6 +185,45 @@ const APP = {
         APP._serviceWorkerAnmelden(werkstatt);
     },
 
+    /*
+     * DAS DUELL (seit 0.34.0, js/duell.js, js/duell-abgleich.js,
+     * js/bildschirm-duell.js). Eine Rückwand gibt es NUR
+     *   - mit eingespielter Regel §14 (KONFIG.REGEL_14_EINGESPIELT === true)
+     *     und Datenbank: `typoluck-intern/duell`, oder
+     *   - in der Werkstatt mit `&duell`: die Attrappe im Gerätespeicher.
+     * Sonst keine — dann fehlt die dritte Art im Quadrat, und kein
+     * Duell-Pfad wird je berührt (tests/test-duell-abgleich.js).
+     */
+    _duellEinrichten(werkstatt, intern) {
+        if (typeof DUELL_ABGLEICH === "undefined" || typeof DUELL_BILDSCHIRM === "undefined") {
+            return;
+        }
+        let rueckwand = null;
+        if (werkstatt) {
+            rueckwand = WERKSTATT.duellRueckwand();
+        } else if (KONFIG.REGEL_14_EINGESPIELT === true && intern) {
+            rueckwand = new SpeicherGemeinsam(KONFIG.speicher.firebaseBasis, DUELL_ABGLEICH.PFAD);
+        }
+        DUELL_ABGLEICH.einrichten({
+            rueckwand: rueckwand,
+            ich: () => APP.duellIch(),
+            freunde: () => DUELL_BILDSCHIRM.freunde(),
+            loesungen: () => WOERTER_DE.loesungen
+        });
+        DUELL_ABGLEICH.beiAenderung = () => DUELL_BILDSCHIRM.auffrischen();
+        DUELL_BILDSCHIRM.anmelden();
+    },
+
+    /* Wer im Duell spielt: ein echtes Passwort-Konto (kein Gast, nicht
+       UP#Plus) mit seiner Konto-Nummer; in der Werkstatt die Person. */
+    duellIch() {
+        if (typeof DUELL !== "undefined" && DUELL._werkstatt === true) {
+            const person = ICH.person();
+            return person ? person.id : null;
+        }
+        return APP._echtesKonto() ? KONTO.uid() : null;
+    },
+
     /* ---------------------------------------------------------------- *
      * Rückrufe
      * ---------------------------------------------------------------- */
@@ -176,6 +232,10 @@ const APP = {
         if (!APP._gestartet) {
             return;
         }
+        /* Seit 0.33.0 (Befund Tabelle 1 Nr. 5): Meldet die Prüfung gleich
+           jemanden an, zeichnet `_beiAngemeldet` schon neu — mit genau
+           diesen Daten. Dann hier nicht noch ein zweites Mal im selben Zug. */
+        const aufgefrischtVorher = NAVIGATION.aufgefrischt;
         ANMELDUNG.pruefen(APP.abgleich.geladen);
 
         const ich = ANMELDUNG.ich();
@@ -186,11 +246,16 @@ const APP = {
         /* Neu zeichnen — ausser mitten im Spiel (die getippten Buchstaben
            gingen verloren), im Tab „Sammlung" (der Entwurf ginge verloren;
            der Tab zeichnet sich selbst, seit 0.8.0) oder während jemand in
-           ein Feld schreibt. */
+           ein Feld schreibt. Seit 0.33.0 gelten dann wenigstens alle Seiten
+           als veraltet (gezeichnet beim nächsten Besuch). */
         const fokus = document.activeElement;
         const schreibt = fokus && (fokus.tagName === "INPUT" || fokus.tagName === "TEXTAREA");
         if (APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1 && !schreibt && !ANMELDUNG.offen) {
-            NAVIGATION.auffrischen();
+            if (NAVIGATION.aufgefrischt === aufgefrischtVorher) {
+                NAVIGATION.auffrischen();
+            }
+        } else {
+            APP._seitenVeralten();
         }
     },
 
@@ -198,6 +263,107 @@ const APP = {
        das laufende Spiel und der Entwurf im Tab „Sammlung" (bis 0.8.1
        „Anpassen"). */
     UNGESTOERT: ["wordle", "sammlung"],
+
+    /* ---------------------------------------------------------------- *
+     * Veraltet (seit 0.33.0, js\navigation.js): Eine Seite des Bandes wird
+     * nur noch neu gezeichnet, wenn sich seit ihrem letzten Zeichnen etwas
+     * geändert haben kann.
+     * ---------------------------------------------------------------- */
+
+    /* Alle Seiten des Bandes als veraltet melden, ohne die offene neu zu
+       zeichnen — nach allem, was Daten ändert, während die offene Seite
+       stehen bleibt (Runden-Ende, Kauf, Entwurf in der Sammlung). Ohne
+       Navigation (Tests laden diese Datei allein) tut das nichts. */
+    _seitenVeralten() {
+        if (typeof NAVIGATION !== "undefined" && typeof NAVIGATION.veralten === "function") {
+            NAVIGATION.veralten();
+        }
+    },
+
+    /*
+     * DIE STAND-MARKE: ein kurzer Text, der sich ändert, sobald eine Seite
+     * anders aussehen könnte — der Tag (Tageswort, Serie), die Person und
+     * der Stand auf dem Gerät (Fortschritt, Besitz, Aussehen, angefangene
+     * Runden, wartende Ergebnisse, Einstellungen: der ROHE Text aus dem
+     * Speicher, nichts wird zerlegt). Das fängt auch, was ein anderes
+     * UPCrew-Spiel im selben Browser geschrieben hat. Die Navigation
+     * vergleicht die Marke beim Wechsel mit der vom letzten Zeichnen der
+     * Seite. Im Zweifel ändert sie sich zu oft — dann wird wie bis 0.32.0
+     * neu gezeichnet. Was NICHT auf dem Gerät liegt (Spielerliste, Stand
+     * vom Konto, eigener Verlauf), melden `auffrischen` und `veralten`.
+     */
+    _standRoh: null,
+    _standZahl: 0,
+
+    _standSchluessel() {
+        const liste = [FORTSCHRITT.SCHLUESSEL, ICH.SCHLUESSEL_PERSON, ICH.SCHLUESSEL_SPIELSTAND,
+            ICH.SCHLUESSEL_AUSSTEHEND, ICH.SCHLUESSEL_EINSTELLUNGEN];
+        if (typeof BESITZ !== "undefined") {
+            liste.push(BESITZ.SCHLUESSEL);
+        }
+        if (typeof UPCREW_AUSSEHEN !== "undefined") {
+            liste.push(UPCREW_AUSSEHEN.SCHLUESSEL);
+        }
+        return liste;
+    },
+
+    _standLesen() {
+        const teile = [];
+        try {
+            const speicher = ICH._speicher();
+            for (const schluessel of APP._standSchluessel()) {
+                teile.push(speicher.getItem(schluessel) || "");
+            }
+        } catch (fehler) {
+            return "";
+        }
+        return teile.join("\n");
+    },
+
+    standMarke() {
+        const roh = APP._standLesen();
+        if (roh !== APP._standRoh) {
+            APP._standRoh = roh;
+            APP._standZahl++;
+        }
+        return WORDLE.datumText(APP.jetzt()) + "|" + APP.fortschrittId() + "|" + APP._standZahl;
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Der Takt der Marke-Abfrage (seit 0.33.0, Befund B): schnell nur, wo
+     * Daten anderer Spieler zu sehen sind. Die Zahlen und die Liste der
+     * Bildschirme stehen allein in js\konfig.js.
+     * ---------------------------------------------------------------- */
+
+    /* Ist gerade etwas von anderen Spielern zu sehen — ein Bildschirm aus
+       `abfrageSchnellAuf` (als Seite oder Blatt) oder das Profil eines
+       anderen? */
+    datenAndererOffen() {
+        const schnell = KONFIG.speicher.abfrageSchnellAuf || [];
+        if (schnell.indexOf(NAVIGATION.aktuell) !== -1) {
+            return true;
+        }
+        const ich = ANMELDUNG.ich();
+        const blaetter = (typeof NAVIGATION.blaetter === "function") ? NAVIGATION.blaetter() : [];
+        return blaetter.some((blatt) => schnell.indexOf(blatt.id) !== -1
+            || (blatt.id === "profil" && !!blatt.parameter && !!blatt.parameter.id
+                && (!ich || blatt.parameter.id !== ich.id)));
+    },
+
+    abfrageTakt() {
+        const e = KONFIG.speicher;
+        return APP.datenAndererOffen() ? e.abfrageIntervallMs : (e.abfrageRuhigMs || e.abfrageIntervallMs);
+    },
+
+    /* Etwas aufs Gerät schreiben, das KEINE Seite anders aussehen lässt
+       (die Spielzeit, alle 30 Sekunden — js\spielzeit.js): Was bis hierher
+       anders war, zählt weiter; das eigene Schreiben nicht. */
+    stillSchreiben(tun) {
+        APP.standMarke();
+        const ergebnis = tun();
+        APP._standRoh = APP._standLesen();
+        return ergebnis;
+    },
 
     /* ---------------------------------------------------------------- *
      * Das gemeinsame Aussehen (seit 0.8.0, js\upcrew-aussehen.js)
@@ -257,8 +423,15 @@ const APP = {
             if (quelle === "selbst") {
                 AUSSEHEN_ABGLEICH.senden();
             }
+            /* Eine Anprobe aus dem Shop (seit 0.31.0) endet, sobald sich das
+               echte Aussehen ändert — der Baustein hat es eben angewendet. */
+            if (typeof SHOP_BILDSCHIRM !== "undefined") {
+                SHOP_BILDSCHIRM.anprobeBeenden(true);
+            }
             if (APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
                 NAVIGATION.auffrischen();
+            } else {
+                APP._seitenVeralten();
             }
         });
         /* Zurück in den Vordergrund: am Konto nachsehen, ob ein anderes
@@ -305,8 +478,12 @@ const APP = {
         /* Das Aussehen vom Konto (seit 0.8.0): hat ein anderes Gerät
            zuletzt umgestellt, gilt das jetzt auch hier. */
         await AUSSEHEN_ABGLEICH.holen();
-        /* Der Fortschritt vom Konto (seit 0.15.1). */
+        /* Der Fortschritt vom Konto (seit 0.15.1), seit 0.31.0 dazu der
+           Besitz aus dem Shop. */
         await APP._fortschrittHolen();
+        /* Ein Kauf, der beim letzten Mal zwischen Besitz und Münzen abbrach
+           (seit 0.31.0): jetzt nachbuchen — Besitz und Fortschritt sind da. */
+        APP.kaufOffenAufloesen();
         /* Lieblingswörter nachreichen, falls ein Senden ausfiel (seit 0.28.0;
            ohne Regel §13 tut das nichts). */
         if (typeof LIEBLINGSWOERTER !== "undefined") {
@@ -317,6 +494,8 @@ const APP = {
 
         const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);
         if (nachgereicht.gesendet > 0) {
+            /* Seit 0.34.1: Die Rangliste kannte diese Ergebnisse noch nicht. */
+            APP._ergebnisGeaendert();
             DIALOG.kurzmeldung(nachgereicht.gesendet === 1 ? "1 Ergebnis nachgereicht"
                 : nachgereicht.gesendet + " Ergebnisse nachgereicht");
         }
@@ -383,6 +562,7 @@ const APP = {
         if (!ich) {
             return;
         }
+        const vorher = JSON.stringify(APP.eigenerVerlauf);
         try {
             APP.eigenerVerlauf = await ERGEBNISSE.verlaufLaden(APP.spielSpeicher, ich.id);
         } catch (fehler) {
@@ -390,8 +570,17 @@ const APP = {
                anderen Gerät gespielt" kann dann nicht erkannt werden. */
             return;
         }
+        /* Seit 0.33.0 (Befund Tabelle 1 Nr. 5): Kam derselbe Verlauf wie
+           zuvor, wird nichts neu gezeichnet. Sonst der Start sofort (wie
+           bisher), und alle anderen Seiten gelten als veraltet (die
+           Aufgaben zeigen das Tageswort auch). */
+        if (JSON.stringify(APP.eigenerVerlauf) === vorher) {
+            return;
+        }
         if (NAVIGATION.aktuell === "start") {
             NAVIGATION.auffrischen();
+        } else {
+            APP._seitenVeralten();
         }
     },
 
@@ -403,12 +592,24 @@ const APP = {
         }
         APP.eigenerVerlauf[runde.datum] = ERGEBNISSE.ausRunde(runde);
         PROFIL_BILDSCHIRM._fuerId = null;
+        /* Seit 0.33.0: Das eigene Tageswort ändert Start, Aufgaben und
+           Rangliste — die Seiten gelten als veraltet, und die Rangliste
+           lädt beim nächsten Öffnen neu (auch vor Ablauf ihrer 60 s). */
+        APP._ergebnisGeaendert();
 
         const antwort = await ERGEBNISSE.melden(APP.spielSpeicher, ich.id, runde);
+        APP._ergebnisGeaendert();
         if (antwort.fehler) {
             DIALOG.kurzmeldung("Ergebnis auf diesem Gerät gemerkt — es wird gesendet, "
                 + "sobald die Verbindung klappt.", 4000);
         }
+    },
+
+    _ergebnisGeaendert() {
+        if (typeof RANGLISTE_BILDSCHIRM !== "undefined" && typeof RANGLISTE_BILDSCHIRM.standVerwerfen === "function") {
+            RANGLISTE_BILDSCHIRM.standVerwerfen();
+        }
+        APP._seitenVeralten();
     },
 
     /* ---------------------------------------------------------------- *
@@ -438,8 +639,14 @@ const APP = {
        zeichnen (ausser mitten im Spiel oder in der Sammlung). */
     async _fortschrittHolen() {
         const geaendert = await FORTSCHRITT_ABGLEICH.holen();
-        if (geaendert && APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
+        /* Der Besitz aus dem Shop (seit 0.31.0) an derselben Stelle: Gerät
+           und Konto vereinigen; kam etwas dazu, zählt das als Änderung. */
+        const besitzNeu = (typeof BESITZ !== "undefined") ? await BESITZ.abgleichen() : false;
+        if ((geaendert || besitzNeu) && APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
             NAVIGATION.auffrischen();
+        } else if (geaendert || besitzNeu) {
+            /* Seit 0.33.0: wenigstens veraltet (beim nächsten Besuch neu). */
+            APP._seitenVeralten();
         }
         /* Die Serien-Flamme (seit 0.16.1) zieht auch ohne Neuzeichnen nach. */
         APP._flammeAktualisieren();
@@ -550,6 +757,8 @@ const APP = {
         });
         FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
         APP._flammeAktualisieren();
+        /* Seit 0.33.0: Nach dem Runden-Ende ist jede Seite veraltet. */
+        APP._seitenVeralten();
 
         /* Level-Aufstieg und neue Stücke aus Taten (seit 0.13.0) als EINE
            Kurzmeldung — die Namen der Stücke kennt das Sammlungs-Modell. */
@@ -942,8 +1151,87 @@ const APP = {
         if (ok) {
             FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
             APP._flammeAktualisieren();
+            /* Seit 0.33.0: Der Shop zeichnet sich selbst; alle Seiten
+               (Münzen im Kopf, Vorrat) gelten als veraltet. */
+            APP._seitenVeralten();
         }
         return { ok: ok, grund: ergebnis.grund };
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Der Shop mit Besitz (seit 0.31.0, js/besitz.js, js/upcrew-besitz.js)
+     * ---------------------------------------------------------------- */
+
+    /* Den Fortschritt nach einem Stück-Kauf speichern: gebucht wird der
+       Stand, den der Baustein gerechnet hat (`r.stand` — der Zähler
+       `muenzenAusgegeben` im eigenen Zweig ist um `r.preis` gewachsen), auf
+       dem Weg des Vorrat-Kaufs: aufs Gerät, dann ans Konto. */
+    _kaufBuchen(r) {
+        const ergebnis = FORTSCHRITT.aendern(APP.fortschrittId(), () => ({ stand: r.stand }));
+        FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        APP._flammeAktualisieren();
+        /* Seit 0.33.0: Nach einem Kauf ist jede Seite veraltet (die
+           Sammlung zeigt das Stück als frei, der Shop die Münzen). */
+        APP._seitenVeralten();
+    },
+
+    /*
+     * Darf JETZT ein Stück gekauft werden? (seit 0.33.1, Prüfung Besitz
+     * Fund 2/3) Nur, wenn die Person feststeht und der Besitz ihres Kontos
+     * in dieser Sitzung abgeglichen ist — sonst zeigte der Shop ein Stück als
+     * kaufbar, das am anderen Gerät oder im anderen Spiel schon bezahlt ist,
+     * und der Kauf landete womöglich unter der falschen Kennung.
+     *   niemand gemerkt (`ICH.person()` leer)  → ja: ein echter Gast kauft
+     *                                            wie bisher aufs Gerät
+     *   gemerkt, Spielerliste noch nicht da     → nein: `fortschrittId()`
+     *     (`ANMELDUNG.ich()` leer)                nimmt dann die Id vom Gerät,
+     *                                            auch für einen Gast
+     *   Gast / ohne Konto-Weg (Werkstatt, Regel) → ja (nur das Gerät)
+     *   echtes Konto                             → erst, wenn `BESITZ` den
+     *                                            Konto-Stand geholt hat
+     * An `fortschrittId()` selbst wird nichts geändert. Anprobieren fragt
+     * hier nicht.
+     */
+    kaufBereit() {
+        if (!ICH.person()) {
+            return true;
+        }
+        if (typeof ANMELDUNG === "undefined" || !ANMELDUNG.ich()) {
+            return false;
+        }
+        return typeof BESITZ === "undefined" || BESITZ.kontoBereit();
+    },
+
+    /* Ein Stück aus dem Katalog kaufen (Design-Reiter des Shops). Erst der
+       Besitz, dann die Münzen (Kopf von js/besitz.js). Liefert
+       { ok, grund, preis, fehlt }; „laedt" = noch nicht bereit
+       (`kaufBereit`), dann ist nichts gebucht. */
+    kaufenStueck(art, wert) {
+        if (typeof BESITZ === "undefined" || typeof UPCREW_BESITZ === "undefined") {
+            return { ok: false, grund: "unbekannt", preis: 0, fehlt: 0 };
+        }
+        if (!APP.kaufBereit()) {
+            return { ok: false, grund: "laedt", preis: 0, fehlt: 0 };
+        }
+        APP.kaufOffenAufloesen();
+        return BESITZ.kaufen({
+            stand: APP.fortschritt(),
+            art: art,
+            wert: wert,
+            heute: WORDLE.datumText(APP.jetzt()),
+            jetzt: Date.now(),
+            buchen: (r) => APP._kaufBuchen(r)
+        });
+    },
+
+    /* Einen gemerkten, nicht zu Ende gebuchten Kauf der Person von jetzt
+       auflösen (nach der Anmeldung und vor jedem neuen Kauf). Liefert die
+       Lage (js/besitz.js `offenAufloesen`). */
+    kaufOffenAufloesen() {
+        if (typeof BESITZ === "undefined" || typeof UPCREW_BESITZ === "undefined") {
+            return "kein";
+        }
+        return BESITZ.offenAufloesen(APP.fortschritt(), Date.now(), (r) => APP._kaufBuchen(r));
     },
 
     /* Ein Stück aus dem Vorrat nehmen (Leben, Tipp). Liefert true/false. */

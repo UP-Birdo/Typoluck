@@ -3,6 +3,146 @@
 Was sich je Version geändert hat, neueste oben. Versionsregel: Haus-Regel
 `0.MINOR.PATCH` (Dev-`CLAUDE.md`, Abschnitt „Versionierung").
 
+## 0.34.5 — 04.10.2026
+
+**Aus der Sammlung direkt in den Shop.**
+
+- Ein Stück, das es zu kaufen gibt, hat in der Sammlung jetzt den Knopf „Im Shop ansehen“: Er bringt dich im Shop genau zu diesem Stück, und nach dem Kauf kannst du es in der Sammlung gleich übernehmen.
+- Auf kleinen Handys siehst du nach einer Runde Ergebnis, Lösung und den Knopf zum Weitergehen, ohne zu rollen.
+
+## 0.34.4 — 04.10.2026
+
+**Kleine Schönheitskorrekturen.**
+
+- Auf schmalen Handys steht die Zeit bis zum nächsten Tageswort wieder ganz im Knopf, und kurze Meldungen passen in eine Zeile, ohne die Reiter zu verdecken.
+- Eine Station der Bibliothek trägt im Verlauf denselben Buchstaben wie auf der Karte.
+
+## 0.34.3 — 04.10.2026
+
+**Mit zwei Geräten sicherer.**
+
+- Spielst du auf zwei Geräten, gehen beim Annehmen eines Freundes oder beim Wählen von Abzeichen keine Münzen mehr verloren, auch wenn eine Uhr nachgeht.
+- Hast du Name oder Nummer auf einem anderen Gerät geändert, springen sie nicht mehr zurück, und das Speichern hängt nicht mehr fest. Was du am Konto gelöscht hast, kommt nicht wieder.
+
+## 0.34.2 — 04.10.2026
+
+**Dein Fortschritt aus dem anderen UPCrew-Spiel bleibt am Konto.**
+
+- Wer in Typoluck einen Freund annahm oder Abzeichen wählte, konnte dabei am Konto den Fortschritt aus dem anderen UPCrew-Spiel verlieren, und Freunde sahen dann ein zu niedriges Level. Das passiert nicht mehr.
+- Was du inzwischen auf einem anderen Gerät gekauft oder erspielt hast, bleibt beim Ändern von Freunden, Abzeichen, Name oder Nummer erhalten.
+
+## 0.34.1 — 04.10.2026
+
+**Kleine Korrekturen.**
+
+- Der Start zeigt die Zeit bis zum nächsten Tageswort wieder richtig, auch wenn du zwischendurch andere Seiten öffnest.
+- Die Rangliste zeigt dein eigenes Tageswort gleich nach dem Senden, auch bei langsamem Netz; nach einem Netzwechsel holt die App wieder neue Stände.
+- Eine Test-Adresse für Entwickler wirkt nur noch auf deren eigenem Rechner und kann auf deinem Gerät nichts mehr löschen.
+
+## 0.34.0 — 04.10.2026
+
+**Duell vorbereitet, noch nicht freigeschaltet.**
+
+- Bald kannst du einen Freund zum Duell herausfordern: dasselbe Wort für
+  beide, höchstens drei Wörter, wer weniger Versuche braucht (bei Gleichstand
+  die kürzere Zeit), holt das Wort. Dein Freund muss dabei nicht online sein —
+  du siehst sein Brett nur in Farben, im Takt seiner Zeiten, nie seine
+  Buchstaben. Ohne Tipp und ohne Extra-Leben, immer nur ein Duell
+  gleichzeitig. Münzen gibt es fürs Duell vorerst nicht.
+- In dieser Version ist davon noch nichts zu sehen: Das Duell wird erst
+  eingeschaltet, wenn die Datenbank dafür bereit ist.
+
+## 0.33.1 — 04.10.2026
+
+**Sicherer kaufen im Shop, auch mit zwei Geräten oder ohne Netz.**
+
+- Bist du angemeldet, geht ein Kauf im Shop erst, wenn dein Konto geladen
+  ist — vorher steht kurz „Kaufen geht, sobald dein Konto geladen ist", und
+  es wird nichts abgebucht. So bezahlst du nie etwas doppelt, das du am
+  anderen Gerät oder in einem anderen UPCrew-Spiel schon gekauft hast. Als Gast kaufst du
+  wie bisher, Anprobieren geht immer.
+- Ein Kauf auf einem Gerät nimmt einem Kauf auf dem anderen Gerät nichts
+  mehr weg.
+- Ist der Speicher des Geräts voll, wird nicht gekauft und nichts abgebucht.
+
+## 0.33.0 — 04.10.2026
+
+**Schneller und ruhiger: Wischen ohne Ruckeln, weniger Laden — und in der Runde passen alle sechs Zeilen aufs kleine Handy.**
+
+- Beim Wischen zwischen den Seiten wird eine Seite nur noch neu aufgebaut,
+  wenn sich etwas geändert hat (eine Runde gespielt, etwas gekauft, neu
+  angemeldet). Sonst steht sie sofort da, so wie du sie verlassen hast —
+  auch mit dem Reiter, den du zuletzt gewählt hattest.
+- Nach einer Änderung zeigt jede Seite schon beim Hinwischen den neuen Stand
+  (vorher war bis zur Hälfte noch der alte zu sehen).
+- Rangliste: Sie lädt höchstens einmal in der Minute neu. Beim Nachladen
+  bleibt die Tabelle stehen, statt kurz zu verschwinden. „Aktualisieren"
+  lädt wie immer sofort, und nach deinem Tageswort auch.
+- Die App fragt seltener nach Neuigkeiten von anderen Spielern, solange du
+  nicht in der Rangliste, bei den Freunden oder in einem fremden Profil bist
+  — das spart Datenvolumen.
+- In der Runde passen auf kleinen Handys jetzt alle sechs Zeilen und die
+  ganze Tastatur auf den Bildschirm; die Kacheln werden dafür etwas kleiner.
+  Vorher war die sechste Zeile angeschnitten und das Brett rollte.
+- Bei sehr langsamem Netz lädt die App beim ersten Start in Ruhe zu Ende,
+  statt sich nach zehn Sekunden selbst neu zu laden.
+- An Regeln, Belohnungen und Texten hat sich nichts geändert.
+
+## 0.32.0 — 04.10.2026
+
+**Der Start ist neu aufgebaut: unten ein grosser Knopf, daneben das Quadrat für die Spielart — und die Bibliothek zeigt ihren Verlauf.**
+
+- Unten auf dem Start steht jetzt ein fester Knopf-Bereich: links der grosse
+  Knopf zum Spielen, rechts ein Quadrat. Ein Tipp auf das Quadrat klappt die
+  Wahl auf: „Bibliothek" oder „Üben". Der Umschalter oben ist dafür weg.
+- Die gewählte Spielart bleibt gemerkt, auch nach dem Schliessen der App.
+- Bibliothek: Die Karte füllt den ganzen Platz und zeigt den Weg des
+  Kapitels, in dem du stehst — nichts mehr abgeschnitten. „Spielen" führt
+  direkt zur Station, die dran ist.
+- Ein Tipp auf die Karte öffnet den Verlauf: was schon war (mit den
+  erspielten Figuren), wo du stehst und was noch kommt — bis zum Boss und zu
+  den nächsten Büchern. Von dort geht es mit „Buch aufschlagen" ins Buch wie
+  bisher.
+- Üben: eine Karte mit dem Tageswort von heute (so weit, wie du es gespielt
+  hast), darunter zwei Knöpfe „Tageswort" und „Übung".
+- Eine angefangene Runde steht im Knopf als „Zurück zur Runde", darunter
+  klein, welche es ist und wie sie steht.
+- Der Start passt auch auf kleine Handys, ohne zu rollen.
+- Die Bilder der Bibliothek-Karte sind vorerst schlichte Platzhalter; die
+  fertigen Grafiken kommen später.
+
+## 0.31.0 — 04.10.2026
+
+**Der Shop hat jetzt einen Reiter „Design": Farbwelten, Schriften, Knöpfe und Kachel-Sets kaufen.**
+
+- Im Shop stehen zwei Reiter: „Design" und „Typoluck". Unter „Typoluck"
+  liegt der Vorrat wie bisher (Extra-Leben, Tipp).
+- „Design" zeigt oben drei Angebote des Tages (20 % günstiger, für alle
+  gleich), darunter Design-Pakete und die Einzelteile als Kacheln. Ein Tipp
+  auf eine Kachel öffnet ein Blatt mit allen Stücken und Preisen.
+- Kaufen: Stück antippen, „Kaufen", kurz bestätigen. Was gekauft ist, gehört
+  dir — es liegt danach in der Sammlung und lässt sich dort übernehmen.
+- „Anprobieren" zeigt ein Stück oder ein ganzes Paket probeweise, ohne etwas
+  zu ändern. Oben erscheint „Anprobe beenden"; ein Wechsel des Tabs beendet
+  sie ebenfalls.
+- Was du schon erspielt hast, steht im Shop als „im Besitz" und wird nicht
+  noch einmal verkauft. Der bisherige Weg bleibt: Alles, was man über Taten
+  und Level bekommt, bekommt man weiter so.
+- In der Sammlung trägt Kaufbares, das man noch nicht hat, jetzt „im Shop".
+- Mit einem UPCrew-Konto reist das Gekaufte mit auf jedes Gerät. Als Gast
+  bleibt es auf diesem Gerät; wer seinen Spielstand später sichert, nimmt es
+  mit ins Konto.
+- Auf der Shop-Seite rollt nichts zur Seite; der gewählte Reiter bleibt
+  beim Tab-Wechsel stehen.
+- Behoben: Wer bei der Frage „Tipp einsetzen?" oder „Extra-Leben einsetzen?"
+  mit der Zurück-Taste wegging und danach „Einsetzen" tippte, stand auf dem
+  Start ohne Leiste da. Jetzt wird dann nichts mehr eingesetzt.
+- Weniger Datenverbrauch: Beim Start wird die Spielerliste nur noch einmal
+  geladen statt zweimal, bei schwachem Netz nicht mehr alle fünf Sekunden,
+  und beim Zurückkommen in die App wird die Seite nur neu aufgebaut, wenn
+  sich wirklich etwas geändert hat. Das Vorschaubild für geteilte Links wird
+  nicht mehr bei jeder neuen Version mitgeladen.
+
 ## 0.30.0 — 04.10.2026
 
 **Die Sammlung ist neu aufgeräumt — und die Leiste zieht beim Wischen früher nach.**

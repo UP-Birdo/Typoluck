@@ -13,7 +13,10 @@
  * js/bildschirm-start.js.
  *
  * WAS ZU SEHEN IST
- *   - Schalter Üben · Bibliothek oben (letzte Wahl auf dem Gerät).
+ *   - Seit 0.32.0 auf dem Start die Vorschau „B" (der Weg des Kapitels
+ *     füllt die Karte, jede Grafik ein Platz `bibliothek/…`) und der
+ *     Verlauf als Blatt; die Art wählt das Quadrat unten
+ *     (js/bildschirm-start.js). Alles Folgende ist das Buch im Vollbild.
  *   - Die Buch-Karte: Nummer, Titel, Regal-Knopf; Kapitel-Punkte und „Boss
  *     in n". Seit 0.21.0 links die Herzen (ab Buch 2; Buch 1 hat keine,
  *     der Platz bleibt leer).
@@ -37,8 +40,6 @@
 
 Object.assign(START, {
 
-    ART_SCHLUESSEL: "typoluck.start-art",
-
     /* Anzeige-Gedächtnis (nicht gespeichert): angesehenes Buch/Kapitel
        (null = wo man steht), Regal offen, Richtung des Umblätterns. */
     buchBlick: null,
@@ -46,39 +47,8 @@ Object.assign(START, {
     regalOffen: false,
     _klapp: "",
 
-    /* Die gemerkte Art: "bibliothek" (Vorgabe) oder "ueben" (bis 0.19.0
-       hiess das „frei"). */
-    art() {
-        try {
-            const wert = window.localStorage.getItem(START.ART_SCHLUESSEL);
-            if (wert === "ueben" || wert === "frei") {
-                return "ueben";
-            }
-        } catch (fehler) {
-            /* ohne Gerätespeicher: die Vorgabe */
-        }
-        return "bibliothek";
-    },
-
-    artSetzen(id) {
-        try {
-            window.localStorage.setItem(START.ART_SCHLUESSEL, id === "ueben" ? "ueben" : "bibliothek");
-        } catch (fehler) {
-            /* dann gilt die Wahl bis zum Neuladen nicht */
-        }
-        START.regalOffen = false;
-        NAVIGATION.auffrischen();
-    },
-
-    /* Der Schalter Üben · Bibliothek (BAUSTEINE.segment). */
-    _artSchalterBauen() {
-        const schalter = BAUSTEINE.segment([
-            { wert: "ueben", text: "Üben" },
-            { wert: "bibliothek", text: BIBLIOTHEK.NAME }
-        ], START.art(), (wert) => START.artSetzen(wert), "Art");
-        schalter.classList.add("start-art-schalter");
-        return schalter;
-    },
+    /* Die gemerkte Art, die Liste der Arten und das Quadrat stehen seit
+       0.32.0 in js/bildschirm-start.js (`START.ARTEN`, `art`, `artSetzen`). */
 
     /* ---------------------------------------------------------------- *
      * Stand und Blick
@@ -189,9 +159,11 @@ Object.assign(START, {
     /*
      * VORSCHAU UND VOLLBILD (seit 0.23.2, Nutzer 28.09.2026 zu 0.23.0 am
      * Handy: „das Buch auf dem Handy passt so nicht"):
-     *   - Auf dem Start steht das Buch nur als VORSCHAU: klein, nicht
-     *     bedienbar — Buch, Fortschritt (Herzen, Tinte, Boss in n) und die
-     *     nächste Station. Antippen (oder „Aufschlagen") öffnet es.
+     *   - Auf dem Start steht nur eine VORSCHAU: nicht bedienbar. Seit
+     *     0.32.0 ist sie die Karte „B" (der Weg des Kapitels füllt sie);
+     *     ein Tipp öffnet den VERLAUF als Blatt, der Knopf darunter
+     *     spielt die Station, die dran ist. Das Vollbild öffnet sich aus
+     *     dem Verlauf („Buch aufschlagen") und von selbst an einer Kreuzung.
      *   - Das VOLLBILD nutzt den ganzen Bildschirm (Leiste unten weg,
      *     Kerbe oben frei) — die bewusste Ausnahme von „keine Vollbild-
      *     Menüs". Stationen antippen, im Blatt bestätigen, spielen;
@@ -232,47 +204,295 @@ Object.assign(START, {
     },
 
     /*
-     * Die Vorschau (seit 0.23.4, Nutzer: „die Vorschau soll nur die halbe
-     * Seite anzeigen; die ganzen Infos zur Karte sollen kommen, wenn man
-     * drauf klickt"): Nummer und Titel, darunter ein Ausschnitt so hoch wie
-     * eine Buchseite um die Stelle, an der man steht — ohne Herzen, Tinte,
-     * „Boss in n" und Stations-Text. Ein Knopf; alles andere im Vollbild.
+     * DIE VORSCHAU „B — DIE KARTE IST DIE SEITE" (seit 0.32.0, Nutzer
+     * 03.10.2026: „Die vorschau bei der Biblithek soll besser aussehen" und
+     * zur Wahl im Entwurf Runde 8: „B aber die pfeile rechts weg man soll
+     * drauf klicken damit man den verlauf sehen kann was kommt / was war").
+     * Der Weg des Kapitels, in dem man steht, füllt die ganze Karte (kein
+     * Buch-Rahmen, kein Ausschnitt, nichts angeschnitten); die Karte füllt
+     * den Platz über dem Knopf-Bereich. Ohne Blätter-Leiste, ohne Herzen,
+     * Tinte und „Boss in n" (die stehen im Verlauf). Die Karte ist EIN
+     * Knopf: ein Tipp öffnet den Verlauf (`bibVerlaufOeffnen`).
+     *
+     * JEDE GRAFIK IST EIN PLATZ (UPCREW_PLATZ, Namen `bibliothek/…`): der
+     * Grund der Karte und jede Station. Bis eine Datei geliefert ist,
+     * steht ein schlichter Platzhalter (Initiale oder Linien-Zeichen). Von
+     * hier kommt nur das Gerüst: wo eine Station liegt, in welchem Zustand
+     * sie ist (fertig, jetzt, wahl, moeglich, blass), welche Wege gegangen
+     * und welche offen sind. Von 0.23.4 bis 0.31.0 zeigte die Vorschau eine
+     * halbe Buchseite.
      */
+    PLATZ_ART: { w: "wort", e: "elite", t: "truhe", h: "haendler", r: "rast", f: "fund", b: "boss",
+        ein: "eingang", aus: "ausgang" },
+
+    /* Der Platz einer Station (`bibliothek/station-<art>`, Ein- und
+       Ausgang `bibliothek/eingang|ausgang`). `b`/`st` nur für die Initiale
+       einer Wort-Station; `art` allein genügt für alles andere. */
+    _stationPlatz(art, b, st, klasse) {
+        const name = "bibliothek/" + (art === "ein" || art === "aus" ? "" : "station-") + START.PLATZ_ART[art];
+        const mass = (art === "ein" || art === "aus") ? "24x24" : "48x48";
+        let inhalt = null;
+        if (art === "w") {
+            inhalt = BAUSTEINE.el("span", "ini", st ? START._initiale(b, st.nr) : "W");
+        } else if (BIBLIOTHEK.ARTEN[art]) {
+            inhalt = BAUSTEINE.zeichen(BIBLIOTHEK.ARTEN[art].zeichen);
+        }
+        const wahl = { klasse: "bib-weg-st bib-weg-" + art + (klasse ? " " + klasse : ""), text: START.PLATZ_ART[art] };
+        if (inhalt) {
+            wahl.inhalt = inhalt;
+        }
+        return UPCREW_PLATZ.bauen(name, mass, wahl);
+    },
+
+    /* Lage einer Stelle auf der Karte in Prozent: die Spalten von unten
+       nach oben gleichmässig über die Höhe, zwei Spuren links und rechts.
+       Rein. */
+    WEG_RAND: 7,
+
+    wegLage(kap, s, i) {
+        const n = kap.length;
+        const y = n === 1 ? 50 : 100 - START.WEG_RAND - (100 - 2 * START.WEG_RAND) * s / (n - 1);
+        return { x: kap[s].length === 1 ? 50 : (i === 0 ? 24 : 76), y: Math.round(y * 100) / 100 };
+    },
+
+    /* Der Weg eines Kapitels als Feld: Linien (gegangen · offen · blass)
+       und Stationen als Plätze. Nur Bild — nichts darin ist bedienbar. */
+    _wegBauen(b, lauf, k) {
+        const kap = BIBLIOTHEK.kapitel(b, k);
+        const z = START._zustaende(b, k, lauf);
+        const feld = BAUSTEINE.el("span", "bib-weg-feld");
+        const ns = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(ns, "svg");
+        svg.setAttribute("class", "bib-weg-linien");
+        svg.setAttribute("viewBox", "0 0 100 100");
+        svg.setAttribute("preserveAspectRatio", "none");
+        svg.setAttribute("aria-hidden", "true");
+        const linien = [];
+        kap.forEach((spalte, s) => spalte.forEach((_, i) => BIBLIOTHEK.nachfolger(b, k, s, i).forEach((j) => {
+            const a = z[s + "-" + i];
+            const c = z[(s + 1) + "-" + j];
+            const A = START.wegLage(kap, s, i);
+            const C = START.wegLage(kap, s + 1, j);
+            const art = (a === "fertig" && (c === "fertig" || c === "jetzt")) ? "weg"
+                : ((a === "fertig" || a === "jetzt" || a === "wahl" || a === "moeglich")
+                    && (c === "jetzt" || c === "wahl" || c === "moeglich")) ? "offen" : "blass";
+            const ym = (A.y + C.y) / 2;
+            linien.push({ art: art, d: "M" + A.x + " " + A.y + " C" + A.x + " " + ym + " " + C.x + " " + ym + " " + C.x + " " + C.y });
+        })));
+        const rang = { blass: 0, offen: 1, weg: 2 };
+        linien.sort((p, q) => rang[p.art] - rang[q.art]).forEach((l) => {
+            const p = document.createElementNS(ns, "path");
+            p.setAttribute("class", "bib-weg-linie " + l.art);
+            p.setAttribute("d", l.d);
+            p.setAttribute("vector-effect", "non-scaling-stroke");
+            svg.appendChild(p);
+        });
+        feld.appendChild(svg);
+        kap.forEach((spalte, s) => spalte.forEach((art, i) => {
+            const L = START.wegLage(kap, s, i);
+            const st = (art === "ein" || art === "aus") ? null : BIBLIOTHEK.stationAn(b, k, s, i);
+            const el = START._stationPlatz(art, b, st, z[s + "-" + i]);
+            el.style.left = L.x + "%";
+            el.style.top = L.y + "%";
+            feld.appendChild(el);
+        }));
+        return feld;
+    },
+
     _vorschauBauen(turm, b, lauf) {
         const buch = BIBLIOTHEK.buch(b);
-        const n = START.naechste(turm, b, lauf);
-        const knopf = BAUSTEINE.knopf({ art: "flach", titel: buch.titel + " aufschlagen · " + n.text,
-            beiKlick: () => START.buchOeffnen() });
-        knopf.classList.add("bib-vorschau", "bib-stil-" + buch.stil);
+        const knopf = BAUSTEINE.knopf({ art: "flach", titel: "Verlauf · " + buch.titel,
+            beiKlick: () => START.bibVerlaufOeffnen() });
+        knopf.classList.add("start-karte", "bib-vorschau", "bib-stil-" + buch.stil);
         knopf.style.setProperty("--th", buch.farbe);
-        const kopf = BAUSTEINE.el("span", "bib-kopf");
-        kopf.appendChild(BAUSTEINE.el("span", "bib-nr", String(b)));
-        kopf.appendChild(BAUSTEINE.el("span", "bib-titel", buch.titel));
-        knopf.appendChild(kopf);
-        const platz = BAUSTEINE.el("span", "bib-buch-platz");
-        const halb = BAUSTEINE.el("span", "bib-halb");
-        const buchEl = START._buchBauen(b, lauf, lauf.kapitel, true);
-        const ab = START.halbAb(b, lauf);
-        buchEl.style.top = ab ? "-100%" : "0";
-        halb.classList.add(ab ? "schnitt-oben" : "schnitt-unten");
-        halb.appendChild(buchEl);
-        platz.appendChild(halb);
-        knopf.appendChild(platz);
+        knopf.appendChild(UPCREW_PLATZ.bauen("bibliothek/kapitel-weg", "366x520", { klasse: "bib-weg-grund" }));
+        knopf.appendChild(START._kartenKopf(b, buch.titel, "Kapitel " + BIBLIOTHEK.ROEM[lauf.kapitel]));
+        const mass = BAUSTEINE.el("span", "bib-weg-mass");
+        mass.appendChild(START._wegBauen(b, lauf, lauf.kapitel));
+        knopf.appendChild(mass);
+        const hinweis = BAUSTEINE.el("span", "bib-weg-hinweis");
+        hinweis.appendChild(BAUSTEINE.zeichen("uhr"));
+        hinweis.appendChild(BAUSTEINE.el("span", null, "Verlauf"));
+        knopf.appendChild(hinweis);
         return knopf;
     },
 
-    /* Wo der Ausschnitt der Vorschau beginnt: 0 (obere Seite) oder 280
-       (untere Seite) — immer eine GANZE Seite, die Schnittkante liegt im
-       Falz, keine Station wird angeschnitten (Nutzer: „besser
-       abschneiden"). Die Seite, auf der man steht (Front, Mitte der
-       Gabelung; durch = oben beim Boss). Rein. */
-    halbAb(b, lauf) {
-        const kap = BIBLIOTHEK.kapitel(b, lauf.kapitel);
-        const nrn = lauf.durch ? [] : (lauf.jetzt !== null ? [lauf.jetzt] : (lauf.gabel || []));
-        const ys = nrn.map((nr) => BIBLIOTHEK.station(b, nr)).filter((st) => st && st.k === lauf.kapitel)
-            .map((st) => START._lage(kap, st.s, st.i).y);
-        const y = ys.length ? ys.reduce((a, c) => a + c, 0) / ys.length : (lauf.durch ? 0 : 280);
-        return y < 280 ? 0 : 280;
+    /* Was der grosse Knopf unten tut (Art Bibliothek): eine offene Runde
+       geht weiter, sonst die Station, die dran ist (ihr Blatt), an der
+       Gabelung die Wahl, nach dem Boss das nächste Buch. */
+    _bibliothekKnoepfe() {
+        const turm = START._turm();
+        const b = START._buchNr();
+        const lauf = BIBLIOTHEK.lauf(turm, b);
+        const offen = START.offeneRunden().bibliothek;
+        if (offen && offen.parameter.buch === b) {
+            return [{ text: "Zurück zur Runde", unter: offen.unter, haupt: true, zurueck: true,
+                tun: () => NAVIGATION.zeigen("wordle", offen.parameter) }];
+        }
+        const aktion = START._aktion(turm, b, lauf, lauf.kapitel);
+        const n = START.naechste(turm, b, lauf);
+        const danach = BIBLIOTHEK.buch(b + 1);
+        const unter = lauf.durch ? ((danach && BIBLIOTHEK.offen(turm, b + 1)) ? danach.titel : BIBLIOTHEK.buch(b).titel)
+            : "Kapitel " + (lauf.gabel ? BIBLIOTHEK.ROEM[lauf.kapitel] : n.text);
+        return [{ text: aktion.text, unter: unter, haupt: true, aus: !!aktion.aus, tun: aktion.tun }];
+    },
+
+    /* ---------------------------------------------------------------- *
+     * DER VERLAUF (seit 0.32.0): ein Blatt (UPCREW_BLATT) über dem Start —
+     * was war, wo man steht, was kommt. Im Blatt rollt nur senkrecht etwas.
+     * ---------------------------------------------------------------- */
+
+    /* Der Name einer Station, wie der Verlauf ihn nennt. */
+    _stationName(b, st) {
+        if (st.art === "e") {
+            return BIBLIOTHEK.elite(b, st.nr).name;
+        }
+        if (st.art === "b") {
+            return BIBLIOTHEK.buch(b).boss.name;
+        }
+        return st.art === "h" ? "Antiquar" : BIBLIOTHEK.ARTEN[st.art].name;
+    },
+
+    /*
+     * Der Verlauf als Daten (rein, aus dem Fortschritt gerechnet):
+     *   { buch, war: […], jetzt: […], kommt: […] } — Einträge
+     *   { was: "buch", nr, titel, figuren, zu }                 ein ganzes Buch
+     *   { was: "station", nr, art, kapitel, name, figuren }     eine Station
+     *   { was: "wahl", kapitel, arten: [a, b], nummern, name }  eine Spalte mit zwei
+     *                                                           möglichen Stationen
+     * war   = die Bücher davor, dann die gegangenen Stationen dieses Buchs
+     * jetzt = die Station, die dran ist (an der Gabelung die Wahl); leer,
+     *         wenn das Buch durch ist
+     * kommt = die Spalten danach bis zum Boss, dann die Bücher danach
+     */
+    verlaufDaten(turm, b) {
+        const lauf = BIBLIOTHEK.lauf(turm, b);
+        const figuren = (turm && turm.figuren) || {};
+        const daten = { buch: b, durch: lauf.durch, war: [], jetzt: [], kommt: [] };
+        const station = (st) => ({ was: "station", nr: st.nr, art: st.art, kapitel: st.k,
+            name: START._stationName(b, st), figuren: BIBLIOTHEK.figurenVon(figuren, b, st.nr) });
+        const wahl = (liste) => (liste.length === 1 ? station(liste[0])
+            : { was: "wahl", kapitel: liste[0].k, arten: liste.map((st) => st.art),
+                nummern: liste.map((st) => st.nr),
+                name: liste.map((st) => START._stationName(b, st)).join(" oder ") });
+        for (let n = 1; n < b; n++) {
+            daten.war.push({ was: "buch", nr: n, titel: BIBLIOTHEK.buch(n).titel, figuren: BIBLIOTHEK.summe(turm, n), zu: false });
+        }
+        lauf.weg.forEach((nr) => daten.war.push(station(BIBLIOTHEK.station(b, nr))));
+        if (!lauf.durch) {
+            const front = lauf.jetzt !== null ? [lauf.jetzt] : (lauf.gabel || []);
+            daten.jetzt.push(wahl(front.map((nr) => BIBLIOTHEK.station(b, nr))));
+            const vorn = BIBLIOTHEK.station(b, front[0]);
+            for (let k = lauf.kapitel; k < BIBLIOTHEK.anzahlKapitel(b); k++) {
+                const z = START._zustaende(b, k, lauf);
+                BIBLIOTHEK.kapitel(b, k).forEach((spalte, s) => {
+                    if (spalte[0] === "ein" || spalte[0] === "aus" || (k === lauf.kapitel && s <= vorn.s)) {
+                        return;
+                    }
+                    const moeglich = spalte.map((_, i) => i).filter((i) => z[s + "-" + i] === "moeglich")
+                        .map((i) => BIBLIOTHEK.stationAn(b, k, s, i));
+                    if (moeglich.length) {
+                        daten.kommt.push(wahl(moeglich));
+                    }
+                });
+            }
+        }
+        for (let n = b + 1; n <= BIBLIOTHEK.anzahlBuecher(); n++) {
+            daten.kommt.push({ was: "buch", nr: n, titel: BIBLIOTHEK.buch(n).titel, figuren: 0,
+                zu: !BIBLIOTHEK.offen(turm, n) });
+        }
+        return daten;
+    },
+
+    bibVerlaufOeffnen() {
+        if (typeof UPCREW_BLATT === "undefined") {
+            START.buchOeffnen();
+            return null;
+        }
+        const turm = START._turm();
+        const b = START._buchNr();
+        return UPCREW_BLATT.oeffnen({
+            titel: BIBLIOTHEK.NAME,
+            klasse: "blatt-bib-verlauf",
+            inhalt: (ort) => START._verlaufFuellen(ort, turm, b)
+        });
+    },
+
+    _verlaufZeile(b, e, lage) {
+        const zeile = BAUSTEINE.el("div", "bib-vl-zeile " + lage + " bib-vl-" + e.was);
+        if (e.was === "buch") {
+            const buch = BIBLIOTHEK.buch(e.nr);
+            zeile.style.setProperty("--th", buch.farbe);
+            zeile.appendChild(UPCREW_PLATZ.bauen("bibliothek/buch-" + buch.stil, "48x64",
+                { klasse: "bib-vl-bild", text: String(e.nr) }));
+        } else if (e.was === "wahl") {
+            const paar = BAUSTEINE.el("span", "bib-vl-paar");
+            /* Mit der Nummer jeder Station (seit 0.34.4): die Initiale einer
+               Wort-Station kommt so wie auf der Karte aus `_initiale` —
+               vorher stand hier ohne Nummer immer „W". */
+            e.arten.forEach((art, i) => paar.appendChild(START._stationPlatz(art, b,
+                { nr: e.nummern[i] }, "bib-vl-bild")));
+            zeile.appendChild(paar);
+        } else {
+            zeile.appendChild(START._stationPlatz(e.art, b, e, "bib-vl-bild"));
+        }
+        const texte = BAUSTEINE.el("span", "bib-vl-texte");
+        texte.appendChild(BAUSTEINE.el("b", null, e.was === "buch" ? e.titel : e.name));
+        texte.appendChild(BAUSTEINE.el("small", null, e.was === "buch" ? "Buch " + e.nr
+            : "Kapitel " + BIBLIOTHEK.ROEM[e.kapitel]));
+        zeile.appendChild(texte);
+        const rechts = BAUSTEINE.el("span", "bib-vl-rechts");
+        if (lage === "war" && e.was === "station" && e.figuren > 0) {
+            rechts.appendChild(BAUSTEINE.figuren(e.figuren, true));
+        } else if (lage === "war") {
+            if (e.was === "buch" && e.figuren > 0) {
+                rechts.appendChild(BAUSTEINE.el("b", null, String(e.figuren)));
+            }
+            rechts.appendChild(BAUSTEINE.zeichen("haken"));
+        } else if (e.was === "buch" && e.zu) {
+            rechts.appendChild(BAUSTEINE.zeichen("schloss"));
+        }
+        zeile.appendChild(rechts);
+        return zeile;
+    },
+
+    _verlaufFuellen(ort, turm, b) {
+        const buch = BIBLIOTHEK.buch(b);
+        const lauf = BIBLIOTHEK.lauf(turm, b);
+        const daten = START.verlaufDaten(turm, b);
+        const inhalt = BAUSTEINE.el("div", "bib-verlauf bib-stil-" + buch.stil);
+        inhalt.style.setProperty("--th", buch.farbe);
+        const kopf = BAUSTEINE.el("div", "bib-vl-kopf");
+        kopf.appendChild(BAUSTEINE.el("b", "bib-vl-buch", "Buch " + b + " · " + buch.titel));
+        kopf.appendChild(START._leisteBauen(turm, b, lauf, lauf.kapitel, true));
+        inhalt.appendChild(kopf);
+        const teil = (titel, liste, lage) => {
+            if (!liste.length) {
+                return null;
+            }
+            const abschnitt = BAUSTEINE.el("section", "bib-vl-teil bib-vl-teil-" + lage);
+            abschnitt.appendChild(BAUSTEINE.el("h3", "bib-vl-titel", titel));
+            liste.forEach((e) => abschnitt.appendChild(START._verlaufZeile(b, e, lage)));
+            inhalt.appendChild(abschnitt);
+            return abschnitt;
+        };
+        teil("War", daten.war, "war");
+        const jetzt = teil("Jetzt", daten.jetzt, "jetzt");
+        teil("Kommt", daten.kommt, "kommt");
+        /* Das Buch selbst (Stationen antippen, Legende, Regal) bleibt
+           einen Tipp entfernt. */
+        const fuss = BAUSTEINE.el("div", "bib-vl-fuss");
+        fuss.appendChild(BAUSTEINE.knopf({ text: "Buch aufschlagen", art: "still", zeichen: "buch", breit: true,
+            beiKlick: () => {
+                UPCREW_BLATT.schliessen("knopf");
+                START.buchOeffnen();
+            } }));
+        inhalt.appendChild(fuss);
+        ort.appendChild(inhalt);
+        /* Wo man steht, soll zu sehen sein — auch nach vielen Stationen. */
+        if (jetzt && typeof jetzt.scrollIntoView === "function") {
+            window.setTimeout(() => jetzt.scrollIntoView({ block: "center" }), 0);
+        }
     },
 
     buchOeffnen() {

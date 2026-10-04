@@ -86,14 +86,29 @@ const SAMMLUNG = {
        reicht (seit 0.15.0). `taten` = Set oder Liste der erfüllten
        Tat-Kennungen (FORTSCHRITT.erfuellteTaten). `alleFrei` (Werkstatt,
        seit 0.14.0): alles Anziehbare ist da — zum Ausprobieren; die Modi
-       bleiben, wie sie sind. `level` = das Level über alle Spiele. */
-    gruppen(taten, alleFrei, level) {
+       bleiben, wie sie sind. `level` = das Level über alle Spiele.
+       `besitz(art, wert)` (seit 0.31.0, wahlfrei): der Haken für Gekauftes —
+       ein Stück eines Regals (Art = `regal`, heute die Kachel-Sets) ist
+       auch da, wenn es im Shop gekauft wurde. Der Weg über Tat und Level
+       bleibt daneben unverändert. */
+    gruppen(taten, alleFrei, level, besitz) {
         const erfuellt = new Set(taten || []);
+        const gekauft = (gruppe, stueck) => {
+            if (!gruppe.regal || typeof besitz !== "function") {
+                return false;
+            }
+            try {
+                return besitz(gruppe.regal, stueck.id) === true;
+            } catch (fehler) {
+                return false;
+            }
+        };
         return SAMMLUNG.GRUPPEN.map((gruppe) => Object.assign({}, gruppe, {
             stuecke: gruppe.stuecke.map((stueck) => Object.assign({}, stueck, {
                 da: stueck.da || (!!stueck.tat && erfuellt.has(stueck.tat))
                     || (typeof stueck.ab === "number" && (level || 0) >= stueck.ab)
                     || (alleFrei === true && stueck.anziehbar === true)
+                    || gekauft(gruppe, stueck)
             }))
         }));
     },
@@ -107,10 +122,11 @@ const SAMMLUNG = {
     /* Die Kachel-Sets als Stücke für das Regal des Anpassen-Bausteins
        (seit 0.30.0): [{ wert, name, frei }] in der Reihenfolge der Anzeige.
        `frei` = was `gruppen` „da" nennt: Papier immer, sonst über die Tat
-       oder das Level; mit `alleFrei` (Werkstatt) alle. */
-    kachelsetStuecke(taten, alleFrei, level) {
+       oder das Level; mit `alleFrei` (Werkstatt) alle; seit 0.31.0 auch,
+       was gekauft ist (`besitz`, wahlfrei). */
+    kachelsetStuecke(taten, alleFrei, level, besitz) {
         const stuecke = [];
-        for (const gruppe of SAMMLUNG.gruppen(taten, alleFrei, level)) {
+        for (const gruppe of SAMMLUNG.gruppen(taten, alleFrei, level, besitz)) {
             if (gruppe.regal !== "kachelset") {
                 continue;
             }
@@ -119,6 +135,28 @@ const SAMMLUNG = {
             }
         }
         return stuecke;
+    },
+
+    /*
+     * Ist ein Stück des Katalogs auf dem HEUTIGEN Weg frei — ohne Kauf
+     * (seit 0.31.0, für den Shop: so ein Stück steht dort als „im Besitz"
+     * und wird nicht noch einmal verkauft)? Kachel-Sets über Tat oder
+     * Level, Farbwelt · Schrift · Knöpfe über die Stufen des Bausteins (nie
+     * hier festgeschrieben). Alles andere: nein. `alleFrei` (Werkstatt)
+     * gibt frei, was auch die Sammlung dann freigibt.
+     */
+    erspielt(art, wert, taten, alleFrei, level) {
+        if (art === "kachelset") {
+            return SAMMLUNG.kachelsetStuecke(taten, alleFrei, level).some((stueck) => stueck.wert === wert && stueck.frei);
+        }
+        if (typeof UPCREW_ANPASSEN === "undefined") {
+            return false;
+        }
+        const stufen = UPCREW_ANPASSEN.STUFEN[art];
+        if (!stufen || !(wert in stufen)) {
+            return false;
+        }
+        return alleFrei === true || UPCREW_ANPASSEN.frei(art, wert, level) === true;
     },
 
     /* Ab welchem Level welches Kachel-Set frei ist — als Tabelle wie

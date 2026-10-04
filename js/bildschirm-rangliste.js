@@ -11,11 +11,20 @@
  * (PROFIL_BILDSCHIRM.profilOeffnen; seit 0.26.1 ohne Vorschau-Karte).
  *
  * Rechnet nichts selbst — Punkte und Plätze kommen aus js\rangliste.js.
- * Geladen wird bei jedem Öffnen und auf Knopfdruck; einen Dauer-Abgleich
- * gibt es hier nicht (die Tageswertung ändert sich selten, und jede Abfrage
- * kostet Datenvolumen). Seit 0.29.0 steht die Rangliste als Seite im Band:
- * Wird sie nur VORBEREITET (Leerlauf, Nachbarseite beim Wischen), zeichnet
- * sie sich, lädt aber nicht — geladen wird erst, wenn sie offen ist.
+ * Einen Dauer-Abgleich gibt es hier nicht (die Tageswertung ändert sich
+ * selten, und jede Abfrage kostet Datenvolumen). Seit 0.29.0 steht die
+ * Rangliste als Seite im Band: Wird sie nur VORBEREITET (Leerlauf,
+ * Nachbarseite beim Wischen), zeichnet sie sich, lädt aber nicht — geladen
+ * wird erst, wenn sie offen ist.
+ *
+ * HÖCHSTENS ALLE 60 SEKUNDEN (seit 0.33.0; bis 0.32.0 lud jedes Öffnen und
+ * jedes Hinwischen neu, „7 Tage" = 7 Anfragen): Ein Stand, der jünger ist
+ * als `KONFIG.speicher.ranglisteFrischMs`, wird beim Öffnen wiederverwendet
+ * — je Zeitraum einer (`_staende`). Immer geladen wird: auf „Aktualisieren"
+ * und „Nochmal", nach dem eigenen Tageswort (`standVerwerfen`, js\app.js)
+ * und an einem neuen Tag. Beim Nachladen bleibt die Tabelle stehen und wird
+ * erst ersetzt, wenn der neue Stand da ist; der Platzhalter kommt nur, wenn
+ * es für den Zeitraum noch gar keinen Stand gibt.
  */
 
 const RANGLISTE_BILDSCHIRM = {
@@ -29,14 +38,19 @@ const RANGLISTE_BILDSCHIRM = {
     ansichtSetzen(id) {
         RANGLISTE_BILDSCHIRM.ansicht = (id === "freunde") ? "freunde" : "wertung";
         RANGLISTE_BILDSCHIRM._zeichnen();
-        if (RANGLISTE_BILDSCHIRM.ansicht === "wertung" && !RANGLISTE_BILDSCHIRM._stand) {
-            RANGLISTE_BILDSCHIRM._laden();
+        if (RANGLISTE_BILDSCHIRM.ansicht === "wertung") {
+            RANGLISTE_BILDSCHIRM._ladenWennAlt();
         }
     },
 
-    /* Die Freunde öffnen (von überall): Rangliste-Seite, Reiter „Freunde". */
+    /* Die Freunde öffnen (von überall): Rangliste-Seite, Reiter „Freunde".
+       Seit 0.33.0 zeichnet ein Wechsel nur Veraltetes neu — der andere
+       Reiter muss darum gemeldet werden. */
     freundeOeffnen() {
         RANGLISTE_BILDSCHIRM.ansicht = "freunde";
+        if (typeof NAVIGATION.veralten === "function") {
+            NAVIGATION.veralten(["rangliste"]);
+        }
         NAVIGATION.zeigen("rangliste", null);
     },
 
@@ -54,9 +68,15 @@ const RANGLISTE_BILDSCHIRM = {
         return reiter;
     },
 
+    /* Der gezeigte Stand { zeitraum, heute, tage, geladenUm } und, seit
+       0.33.0, je Zeitraum der zuletzt geladene. */
     _stand: null,
+    _staende: {},
     _fehler: "",
     _laedt: false,
+    /* Seit 0.34.1: zählt jedes Verwerfen. Ein Laden, das vorher begann,
+       darf seinen Stand zeigen, aber nicht als frisch merken. */
+    _verworfen: 0,
 
     anmelden() {
         NAVIGATION.anmelden({
@@ -65,17 +85,58 @@ const RANGLISTE_BILDSCHIRM = {
             zeichen: "rangliste",
             /* Seit 0.5.0 rechts in der Leiste unten statt im Menü. */
             imMenue: false,
-            zeigen: (behaelter) => RANGLISTE_BILDSCHIRM.zeigen(behaelter)
+            zeigen: (behaelter) => RANGLISTE_BILDSCHIRM.zeigen(behaelter),
+            /* Seit 0.33.0: geöffnet, ohne neu gezeichnet zu werden (die
+               Seite stand frisch im Band) — dann nur nachladen, falls der
+               Stand zu alt ist. */
+            geoeffnet: () => RANGLISTE_BILDSCHIRM._ladenWennAlt()
         });
     },
 
     zeigen(behaelter) {
         RANGLISTE_BILDSCHIRM._behaelter = behaelter;
         RANGLISTE_BILDSCHIRM._zeichnen();
-        /* Nur die offene Seite lädt (seit 0.29.0). */
+        /* Nur die offene Seite lädt (seit 0.29.0) — und seit 0.33.0 nur,
+           wenn ihr Stand älter als 60 Sekunden ist. */
         if (NAVIGATION.aktuell === "rangliste") {
-            RANGLISTE_BILDSCHIRM._laden();
+            RANGLISTE_BILDSCHIRM._ladenWennAlt();
         }
+    },
+
+    /* Wie lange ein geladener Stand als frisch gilt (js\konfig.js). */
+    frischMs() {
+        const wert = (typeof KONFIG !== "undefined" && KONFIG.speicher) ? KONFIG.speicher.ranglisteFrischMs : null;
+        return (typeof wert === "number" && wert >= 0) ? wert : 60000;
+    },
+
+    /* Ist der Stand dieses Zeitraums jung genug (und von heute)? */
+    standFrisch(zeitraum) {
+        const stand = RANGLISTE_BILDSCHIRM._staende[zeitraum];
+        return !!stand && stand.heute === WORDLE.datumText(APP.jetzt())
+            && Date.now() - stand.geladenUm < RANGLISTE_BILDSCHIRM.frischMs();
+    },
+
+    /* Das nächste Öffnen lädt neu (nach dem eigenen Tageswort). Die Tabelle
+       bleibt bis dahin stehen. */
+    standVerwerfen() {
+        RANGLISTE_BILDSCHIRM._verworfen++;
+        for (const zeitraum of Object.keys(RANGLISTE_BILDSCHIRM._staende)) {
+            RANGLISTE_BILDSCHIRM._staende[zeitraum].geladenUm = 0;
+        }
+    },
+
+    /* Beim Öffnen, Hinwischen und Umschalten: einen frischen Stand
+       wiederverwenden, sonst laden. Ein Fehler von vorhin lädt immer. */
+    _ladenWennAlt() {
+        const zeitraum = RANGLISTE_BILDSCHIRM.zeitraum;
+        if (!RANGLISTE_BILDSCHIRM._fehler && RANGLISTE_BILDSCHIRM.standFrisch(zeitraum)) {
+            if (RANGLISTE_BILDSCHIRM._stand !== RANGLISTE_BILDSCHIRM._staende[zeitraum]) {
+                RANGLISTE_BILDSCHIRM._stand = RANGLISTE_BILDSCHIRM._staende[zeitraum];
+                RANGLISTE_BILDSCHIRM._zeichnen();
+            }
+            return;
+        }
+        RANGLISTE_BILDSCHIRM._laden();
     },
 
     _zeichnen() {
@@ -115,8 +176,13 @@ const RANGLISTE_BILDSCHIRM = {
             RANGLISTE_BILDSCHIRM.zeitraum,
             (wert) => {
                 RANGLISTE_BILDSCHIRM.zeitraum = wert;
+                /* Seit 0.33.0: Gibt es für den Zeitraum schon einen Stand,
+                   steht er sofort da; geladen wird nur, wenn er zu alt ist. */
+                if (RANGLISTE_BILDSCHIRM._staende[wert]) {
+                    RANGLISTE_BILDSCHIRM._stand = RANGLISTE_BILDSCHIRM._staende[wert];
+                }
                 RANGLISTE_BILDSCHIRM._zeichnen();
-                RANGLISTE_BILDSCHIRM._laden();
+                RANGLISTE_BILDSCHIRM._ladenWennAlt();
             }, "Zeitraum"));
         auswahl.appendChild(BAUSTEINE.segment(
             [{ wert: false, text: "Alle" }, { wert: true, text: "Nur Freunde" }],
@@ -239,27 +305,59 @@ const RANGLISTE_BILDSCHIRM = {
             return;
         }
         RANGLISTE_BILDSCHIRM._laedt = true;
-        RANGLISTE_BILDSCHIRM._fehler = "";
-        /* Sofort den Lade-Platzhalter zeigen — auch nach „Nochmal". */
-        if (RANGLISTE_BILDSCHIRM._stand && RANGLISTE_BILDSCHIRM._stand.zeitraum === RANGLISTE_BILDSCHIRM.zeitraum) {
-            RANGLISTE_BILDSCHIRM._stand = null;
-        }
-        RANGLISTE_BILDSCHIRM._zeichnen();
-
         const zeitraum = RANGLISTE_BILDSCHIRM.zeitraum;
         const heute = WORDLE.datumText(APP.jetzt());
+        /* Ein Stand von gestern bleibt nicht stehen („Heute" wäre falsch). */
+        if (RANGLISTE_BILDSCHIRM._stand && RANGLISTE_BILDSCHIRM._stand.heute !== heute) {
+            RANGLISTE_BILDSCHIRM._stand = null;
+            RANGLISTE_BILDSCHIRM._staende = {};
+        }
+        /* Seit 0.33.0: Steht für den Zeitraum schon eine Tabelle da, bleibt
+           sie beim Nachladen stehen (kein Platzhalter-Blitzen). Der
+           Lade-Platzhalter kommt nur ohne Stand — und nach einem Fehler
+           („Nochmal") wird neu gezeichnet, damit die Meldung weggeht. */
+        const steht = !!RANGLISTE_BILDSCHIRM._stand && RANGLISTE_BILDSCHIRM._stand.zeitraum === zeitraum;
+        const hatteFehler = !!RANGLISTE_BILDSCHIRM._fehler;
+        RANGLISTE_BILDSCHIRM._fehler = "";
+        if (!steht || hatteFehler) {
+            RANGLISTE_BILDSCHIRM._zeichnen();
+        }
+
         const tage = zeitraum === "tag" ? [heute] : RANGLISTE.letzteTage(heute, 7);
+        const verworfen = RANGLISTE_BILDSCHIRM._verworfen;
+        let veraltetGeladen = false;
         try {
-            RANGLISTE_BILDSCHIRM._stand = {
+            const geladen = await ERGEBNISSE.tageLaden(APP.spielSpeicher, tage);
+            /* Seit 0.34.1: Wurde der Stand verworfen, während dieses Laden
+               lief, fehlt darin vielleicht das eigene Ergebnis — zeigen ja,
+               als frisch merken nein. */
+            veraltetGeladen = verworfen !== RANGLISTE_BILDSCHIRM._verworfen;
+            const stand = {
                 zeitraum: zeitraum,
                 heute: heute,
-                tage: await ERGEBNISSE.tageLaden(APP.spielSpeicher, tage)
+                tage: geladen,
+                geladenUm: veraltetGeladen ? 0 : Date.now()
             };
+            RANGLISTE_BILDSCHIRM._staende[zeitraum] = stand;
+            /* Gezeigt wird der Stand des Zeitraums, der JETZT gewählt ist. */
+            if (RANGLISTE_BILDSCHIRM.zeitraum === zeitraum || !RANGLISTE_BILDSCHIRM._staende[RANGLISTE_BILDSCHIRM.zeitraum]) {
+                RANGLISTE_BILDSCHIRM._stand = stand;
+            }
         } catch (fehler) {
             RANGLISTE_BILDSCHIRM._fehler = fehler.message || "Fehler";
         } finally {
             RANGLISTE_BILDSCHIRM._laedt = false;
         }
         RANGLISTE_BILDSCHIRM._zeichnen();
+        /* Wurde während des Ladens umgeschaltet, fehlt der Stand des neuen
+           Zeitraums noch (bis 0.32.0 blieb dann der Platzhalter stehen). */
+        if (RANGLISTE_BILDSCHIRM.zeitraum !== zeitraum && !RANGLISTE_BILDSCHIRM._fehler
+                && NAVIGATION.aktuell === "rangliste") {
+            RANGLISTE_BILDSCHIRM._ladenWennAlt();
+        } else if (veraltetGeladen && NAVIGATION.aktuell === "rangliste") {
+            /* Seit 0.34.1: verworfen während des Ladens, die Seite ist offen —
+               gleich noch einmal laden. */
+            RANGLISTE_BILDSCHIRM._laden();
+        }
     }
 };

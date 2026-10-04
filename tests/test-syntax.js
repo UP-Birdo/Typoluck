@@ -63,7 +63,10 @@ const KOPIEN = [
        Sammel-Stücke (nur Daten; er nennt die Werte S1 … K6 des Aussehens —
        das ist seine Aufgabe, keine in der App festgeschriebene Stufe) und
        der Platz einer Grafik */
-    "js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css"
+    "js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css",
+    /* seit 0.31.0 (Shop mit Besitz): was ein Spieler gekauft hat, und der
+       Kauf — rein gerechnet (der Shop selbst, upcrew-shop, steht oben) */
+    "js/upcrew-besitz.js"
 ];
 
 /* ------------------------------------------------------------------ *
@@ -125,7 +128,15 @@ for (const datei of NUR_NACHGELADEN) {
     pruefe("Nur nachgeladen, nicht im Service Worker und nicht in index.html: " + datei,
         swListe.indexOf(datei) === -1 && indexSkripte.indexOf(datei.slice(2)) === -1);
 }
-for (const datei of aufPlatte.filter((d) => NUR_NACHGELADEN.indexOf(d) === -1)) {
+/* Seit 0.31.0: das Vorschaubild für geteilte Links (og:image in index.html,
+   160 KB) zeigt die App nie — es wird nicht mehr vorgeladen. */
+const NIE_VORGELADEN = ["./icons/vorschau.png"];
+for (const datei of NIE_VORGELADEN) {
+    pruefe("Nicht im Service Worker, aber auf der Platte und als Link-Vorschau genannt: " + datei,
+        swListe.indexOf(datei) === -1 && aufPlatte.indexOf(datei) !== -1
+            && index.indexOf("og:image\" content=\"https://up-birdo.github.io/Typoluck/" + datei.slice(2) + "\"") !== -1);
+}
+for (const datei of aufPlatte.filter((d) => NUR_NACHGELADEN.indexOf(d) === -1 && NIE_VORGELADEN.indexOf(d) === -1)) {
     pruefe("Im Service Worker eingetragen: " + datei, swListe.indexOf(datei) !== -1);
 }
 for (const eintrag of swListe.filter((e) => e !== "./")) {

@@ -19,16 +19,6 @@
     --bib-holz-kante: #4e3016;
 }
 
-/* Schalter Üben · Bibliothek */
-.start-art-schalter {
-    display: flex;
-    margin: 0 0 12px;
-}
-
-.start-art-schalter .segment-wahl {
-    flex: 1;
-}
-
 /* ---------------------------------------------------------------- *
  * Die Buch-Karte
  * ---------------------------------------------------------------- */
@@ -1032,7 +1022,9 @@ svg.pfad {
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
-    padding-bottom: calc(10px + var(--leiste-hoehe) + env(safe-area-inset-bottom));
+    /* Seit 0.32.0 endet der Knopf-Bereich 16 px über der Leiste (bis
+       0.31.0: 10 px) — die gemeinsame Start-Form des Studios. */
+    padding-bottom: calc(16px + var(--leiste-hoehe) + env(safe-area-inset-bottom));
 }
 
 .inhalt[data-bildschirm="start"] > * {
@@ -1111,10 +1103,6 @@ svg.pfad {
     .inhalt[data-bildschirm="start"] .start-kopf {
         min-height: 52px;
         margin-bottom: 4px;
-    }
-
-    .inhalt[data-bildschirm="start"] .start-art-schalter {
-        margin-bottom: 6px;
     }
 
     .inhalt[data-bildschirm="start"] > .bib-karte {
@@ -1214,25 +1202,16 @@ svg.pfad {
 /* ---------------------------------------------------------------- *
  * VORSCHAU AUF DEM START UND BUCH IM VOLLBILD (seit 0.23.2, Nutzer
  * 28.09.2026: „das Buch auf dem Handy passt so nicht"). Die Vorschau ist
- * ein einziger flacher Knopf (Bild, nicht bedienbar); das Vollbild liegt
- * über allem ausser Blatt und Dialog, die Leiste unten ist dabei weg.
+ * ein einziger flacher Knopf (Bild, nicht bedienbar; seit 0.32.0 die
+ * Karte „B", Regeln ganz unten bei „DER START SEIT 0.32.0"); das Vollbild
+ * liegt über allem ausser Blatt und Dialog, die Leiste unten ist dabei weg.
  * ---------------------------------------------------------------- */
 
 .knopf.bib-vorschau {
-    display: flex;
-    flex-direction: column;
     align-items: stretch;
-    gap: 4px;
-    width: 100%;
-    min-height: 0;
-    margin: 0 0 10px;
-    padding: 10px 10px 12px;
-    background: var(--karte);
-    border: 1px solid var(--rahmen);
-    border-radius: var(--rund-mittel);
-    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
-    color: var(--schrift);
+    justify-content: flex-start;
     text-align: left;
+    white-space: normal;
     --papier: color-mix(in srgb, var(--th) 6%, color-mix(in srgb, var(--karte) 90%, var(--schrift)));
     --papier-rand: color-mix(in srgb, var(--th) 14%, var(--rahmen));
     --tinte: color-mix(in srgb, var(--th) 72%, var(--schrift));
@@ -1242,45 +1221,6 @@ svg.pfad {
 :root[data-darstellung="hell"] .knopf.bib-vorschau {
     --papier: color-mix(in srgb, var(--th) 5%, color-mix(in srgb, var(--karte) 94%, var(--flaeche)));
     --tinte: color-mix(in srgb, var(--th) 78%, #000);
-}
-
-.inhalt[data-bildschirm="start"] > .knopf.bib-vorschau {
-    flex: 1 1 auto;
-    min-height: 0;
-    justify-content: flex-start;
-    height: auto;
-    white-space: normal;
-    overflow: hidden;
-}
-
-.knopf.bib-vorschau > * {
-    flex: none;
-}
-
-.knopf.bib-vorschau > .bib-buch-platz {
-    flex: 1 1 auto;
-    min-height: 0;
-}
-
-.knopf.bib-vorschau .buch,
-.knopf.bib-vorschau .buch * {
-    pointer-events: none;
-}
-
-.bib-naechste {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    margin-top: 4px;
-    color: var(--tinte);
-    font-weight: 800;
-    font-size: 0.9rem;
-}
-
-.bib-naechste .zeichen {
-    width: 18px;
-    height: 18px;
 }
 
 body.buch-offen .leiste.up-leiste {
@@ -1583,54 +1523,6 @@ body.buch-offen .leiste.up-leiste {
     min-width: 40px;
 }
 
-/* Vorschau = halbe Buchhöhe (seit 0.23.4): ein Fenster 400 × 280 über dem
-   ganzen Buch, das Buch darin verschoben (Skript: `top`, START.halbAb). */
-.bib-buch-platz > .bib-halb {
-    position: relative;
-    display: block;
-    width: min(100cqw, calc(100cqh * 400 / 280));
-    aspect-ratio: 400 / 280;
-    overflow: hidden;
-    border-radius: var(--rund-klein);
-}
-
-.bib-halb > .buch {
-    position: absolute;
-    left: 0;
-    width: 100%;
-    height: 200%;
-    aspect-ratio: auto;
-    container-type: size;
-}
-
-.bib-halb > .buch .st {
-    width: 12cqmin;
-    min-width: 22px;
-    max-width: none;
-}
-
-.bib-halb > .buch .st.jetzt {
-    width: 14cqmin;
-}
-
-.bib-halb > .buch .st.st-b {
-    width: 16cqmin;
-}
-
-.bib-halb > .buch .lesezeichen {
-    height: 10cqh;
-}
-
-.bib-halb > .buch .st .ini {
-    font-size: 46cqi;
-}
-
-.bib-halb > .buch .st.st-ein,
-.bib-halb > .buch .st.st-aus {
-    width: 4cqmin;
-    min-width: 10px;
-}
-
 /* Seit 0.23.4: das Buch hat IMMER das Seitenverhältnis 400 : 560 — die
    Stationen liegen aus dem Innenrahmen gerechnet (START._lage) und
    brauchen dafür ein festes Verhältnis von Breite zu Höhe. Bis 0.23.3
@@ -1641,24 +1533,495 @@ body.buch-offen .leiste.up-leiste {
     aspect-ratio: 400 / 560;
 }
 
-/* Vorschau: eine ganze Seite; an der Schnittkante (im Falz) läuft sie weich
-   in die Kartenfarbe aus. */
-.bib-halb::after {
-    content: "";
+/* ---------------------------------------------------------------- *
+ * DER START SEIT 0.32.0 (js/bildschirm-start.js, js/start-bibliothek.js):
+ * Kopf · EINE Karte, die den Platz füllt · Knopf-Bereich fester Höhe.
+ * Nur Gerüst: Lage, Grösse, Zustände. Was Bild ist, ist ein Platz
+ * (css/upcrew-platz.css) mit schlichtem Platzhalter — keine Zier hier.
+ * ---------------------------------------------------------------- */
+
+/* Die Karte: füllt, was zwischen Kopf und Knopf-Bereich frei ist. */
+.start-karte {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    color: var(--schrift);
+}
+
+.inhalt[data-bildschirm="start"] > .start-karte {
+    flex: 1 1 auto;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0 0 16px;
+    padding: 0;
+}
+
+.start-karte-kopf {
+    position: relative;
+    z-index: 3;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 10px 0;
+}
+
+.start-karte-pille {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 4px 14px 4px 4px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-voll);
+    font-weight: 700;
+}
+
+.start-karte-nr {
+    flex: none;
+    display: grid;
+    place-items: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 0 6px;
+    box-sizing: border-box;
+    background: var(--haupt);
+    border-radius: var(--rund-voll);
+    color: var(--haupt-schrift);
+    font-size: 0.85rem;
+}
+
+.start-karte-titel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.start-karte-rechts {
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: var(--rund-klein);
+    color: var(--schrift-leise);
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.start-karte-fuss {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px 10px;
+    color: var(--schrift-leise);
+    font-size: 0.8rem;
+}
+
+/* Art Üben: das Tageswort-Brett, eingepasst in Breite UND Höhe. */
+.start-ueben-mass {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    padding: 10px;
+    container-type: size;
+}
+
+.start-ueben-raster {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    gap: 4px;
+    width: min(100cqw, calc(100cqh * 5 / 6), 260px);
+    aspect-ratio: 5 / 6;
+}
+
+.start-ueben-raster .kachel {
+    width: auto;
+    height: auto;
+    min-width: 0;
+    min-height: 0;
+    font-size: clamp(0.7rem, 9cqh, 1.4rem);
+}
+
+/* Der Knopf-Bereich: 74 px Knöpfe + 8 px Luft (dort liegt die Kante der
+   Knöpfe), Quadrat 74 × 74, Abstand 12 px. */
+.start-unten {
+    position: relative;
+    flex: none;
+    height: 82px;
+}
+
+.start-spielen-zeile {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    height: 74px;
+}
+
+.start-unten .start-spielen {
+    flex: 1 1 0;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    height: 74px;
+    min-height: 0;
+    margin: 0;
+    padding: 6px 8px;
+    overflow: hidden;
+    font-size: 1.25rem;
+    line-height: 1.1;
+    text-align: center;
+    white-space: normal;
+}
+
+.start-spielen-zeile.zwei .start-spielen {
+    padding: 6px 5px;
+    font-size: 0.88rem;
+}
+
+.start-unten .start-spielen.start-zurueck {
+    font-size: 1.05rem;
+}
+
+.start-spielen-zeile.zwei .start-spielen.start-zurueck {
+    font-size: 0.8rem;
+}
+
+.start-spielen-unter {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0.85;
+}
+
+/* „nächstes in 17 h 28 min" braucht im Knopf 140 px (gemessen, 0.74rem).
+   Ist der Platz IM KNOPF kleiner als 150 px (mit Rand für „23 h 59 min"),
+   steht nur „in 17 h 28 min" — die Zeit bleibt ganz (seit 0.34.4). Die
+   Regel hängt am Platz (Container-Abfrage auf den Knopf), nicht an der
+   Bildschirmbreite: 360–430 px gemessen, überall ganz zu sehen. */
+.start-spielen-zeile > .start-spielen {
+    container-type: inline-size;
+}
+
+@container (max-width: 150px) {
+    .start-spielen-vorsatz {
+        display: none;
+    }
+}
+
+.start-art-halter {
+    position: relative;
+    flex: 0 0 74px;
+    display: flex;
+}
+
+.start-art-halter .start-art-knopf {
+    flex-direction: column;
+    gap: 3px;
+    width: 74px;
+    height: 74px;
+    min-height: 0;
+    margin: 0;
+    padding: 4px;
+    font-size: 0.66rem;
+    line-height: 1.1;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.start-art-zeichen {
+    --up-pl-breite: 26px;
+}
+
+.start-art-zeichen .zeichen {
+    width: 100%;
+    height: 100%;
+}
+
+/* Die Wahl klappt nach OBEN auf (verdeckt keinen Knopf). */
+.start-art-menue {
     position: absolute;
-    left: 0;
     right: 0;
-    z-index: 8;
+    bottom: calc(100% + 8px);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 200px;
+    padding: 6px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+    box-shadow: 0 var(--karte-tiefe) 0 var(--still-kante);
+}
+
+.start-art-menue[hidden] {
+    display: none;
+}
+
+.start-art-menue .start-art-eintrag {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    width: 100%;
+    height: auto;
+    min-height: 48px;
+    padding: 8px 12px;
+    border-radius: var(--rund-mittel);
+    color: var(--schrift);
+    font-weight: 700;
+    text-align: left;
+}
+
+.start-art-eintrag small {
+    display: block;
+    color: var(--schrift-leise);
+    font-size: 0.72rem;
+    font-weight: 400;
+}
+
+.start-art-eintrag[aria-checked="true"] {
+    background: var(--karte-leise);
+}
+
+/* Art Bibliothek, Vorschau „B": der Weg des Kapitels füllt die Karte. */
+.up-platz.bib-weg-grund {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    aspect-ratio: auto;
+    border: 0;
+    border-radius: var(--rund-mittel);
+    background: var(--papier);
+    color: transparent;
+}
+
+.bib-weg-mass {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 4px 14px 12px;
+    container-type: size;
+}
+
+.bib-weg-feld {
+    position: absolute;
+    inset: 0;
+}
+
+.bib-weg-linien {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.bib-weg-linie {
+    fill: none;
+    stroke: var(--blass);
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 2 8;
+}
+
+.bib-weg-linie.offen {
+    stroke: var(--schrift-leise);
+}
+
+.bib-weg-linie.weg {
+    stroke: var(--tinte);
+    stroke-width: 3.5;
+    stroke-dasharray: none;
+}
+
+/* Eine Station: ein Platz. Der Zustand ist Gerüst (Rahmen, Deckkraft). */
+.up-platz.bib-weg-st {
+    --up-pl-breite: 40px;
+    background: var(--karte);
+    border: 2.5px solid var(--schrift-leise);
+    border-radius: var(--rund-klein);
+    color: var(--schrift);
+    font-weight: 700;
+}
+
+.bib-weg-feld > .bib-weg-st {
+    --up-pl-breite: clamp(24px, 10cqh, 44px);
+    position: absolute;
+    z-index: 2;
+    transform: translate(-50%, -50%);
+}
+
+.bib-weg-st .ini {
+    font-size: calc(var(--up-pl-breite) * 0.45);
+}
+
+.bib-weg-st .zeichen {
+    width: 60%;
+    height: 60%;
+}
+
+.up-platz.bib-weg-st.fertig {
+    border-color: var(--tinte);
+    color: var(--tinte);
+}
+
+.up-platz.bib-weg-st.jetzt,
+.up-platz.bib-weg-st.wahl {
+    border-width: 3.5px;
+    border-color: var(--haupt);
+}
+
+.up-platz.bib-weg-st.blass {
+    border-color: var(--rahmen);
+    color: var(--schrift-leise);
+    opacity: 0.55;
+}
+
+.up-platz.bib-weg-e {
+    border-color: var(--bib-elite);
+}
+
+.up-platz.bib-weg-b {
+    border-color: var(--bib-boss);
+}
+
+.bib-weg-feld > .bib-weg-ein,
+.bib-weg-feld > .bib-weg-aus {
+    --up-pl-breite: 14px;
+    border-width: 2px;
+    font-size: 0;
+}
+
+.bib-weg-hinweis {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--schrift-leise);
+    font-size: 0.74rem;
+    font-weight: 700;
+}
+
+.bib-weg-hinweis .zeichen {
+    width: 14px;
     height: 14px;
-    pointer-events: none;
 }
 
-.bib-halb.schnitt-unten::after {
-    bottom: 0;
-    background: linear-gradient(to bottom, transparent, var(--karte));
+/* Der Verlauf im Blatt: Zeilen untereinander — nur das Blatt rollt, und
+   nur senkrecht. */
+.bib-verlauf {
+    --th: var(--haupt);
+    --papier: color-mix(in srgb, var(--th) 6%, color-mix(in srgb, var(--karte) 90%, var(--schrift)));
+    --papier-rand: color-mix(in srgb, var(--th) 14%, var(--rahmen));
+    --tinte: color-mix(in srgb, var(--th) 72%, var(--schrift));
+    --blass: color-mix(in srgb, var(--schrift-leise) 45%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+    overflow-x: hidden;
 }
 
-.bib-halb.schnitt-oben::after {
-    top: 0;
-    background: linear-gradient(to top, transparent, var(--karte));
+:root[data-darstellung="hell"] .bib-verlauf {
+    --tinte: color-mix(in srgb, var(--th) 78%, #000);
+}
+
+.bib-vl-kopf {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bib-vl-titel {
+    margin: 0 0 6px;
+    color: var(--schrift-leise);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.bib-vl-zeile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 8px;
+    border-radius: var(--rund-klein);
+}
+
+.bib-vl-zeile + .bib-vl-zeile {
+    margin-top: 2px;
+}
+
+.bib-vl-zeile.jetzt {
+    background: var(--karte-leise);
+    border: 2px solid var(--haupt);
+}
+
+.bib-vl-zeile.kommt {
+    color: var(--schrift-leise);
+}
+
+.bib-vl-paar {
+    flex: none;
+    display: inline-flex;
+    gap: 4px;
+}
+
+.bib-vl-zeile .up-platz.bib-vl-bild {
+    --up-pl-breite: 36px;
+}
+
+.bib-vl-paar .up-platz.bib-vl-bild {
+    --up-pl-breite: 28px;
+}
+
+.bib-vl-texte {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-wrap: anywhere;
+}
+
+.bib-vl-texte small {
+    color: var(--schrift-leise);
+    font-size: 0.74rem;
+}
+
+.bib-vl-rechts {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--tinte);
+}
+
+.bib-vl-rechts .zeichen {
+    width: 18px;
+    height: 18px;
 }

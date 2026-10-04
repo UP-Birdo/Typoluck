@@ -15,7 +15,9 @@
  *   1. Das Band hat genau die Seiten der Leiste, in ihrer Reihenfolge.
  *   2. Ein stiller Tab (Platzhalter) steht nicht im Band.
  *   3. Gezeichnet wird die offene Seite sofort, die anderen im Leerlauf und
- *      spätestens bei `kommt`.
+ *      spätestens bei `kommt`. Seit 0.33.0 zeichnet ein Wechsel nur noch,
+ *      was veraltet ist — das prüft tests\test-veraltet.js; hier stehen
+ *      die Zahlen dazu („#1" = einmal gezeichnet).
  *   4. `wechseln` ruft `band.zu` — beim Tipp wie nach dem Einrasten, über
  *      denselben Weg (NAVIGATION.zeigen).
  *  4b. Seit 0.30.0 zieht die Leiste früher nach (`frueh: true`): losgelassen
@@ -327,8 +329,8 @@ function welt(wahl) {
     gleich("… und das Ziel ist sofort bedienbar", s.bedienbar(), ["shop"]);
     s.rolle(BREITE);
     s.rolle(0, true);
-    gleich("Angekommen: kein zweiter Wechsel, kein zweiter Verlaufseintrag",
-        [N.aktuell, s.anzahl("shop"), s.verlauf.filter((v) => v === "neu:shop").length], ["shop", 2, 1]);
+    gleich("Angekommen: kein zweiter Wechsel, kein zweiter Verlaufseintrag — und (seit 0.33.0) kein Neu-Zeichnen: die Seite stand frisch da",
+        [N.aktuell, s.anzahl("shop"), s.verlauf.filter((v) => v === "neu:shop").length], ["shop", 1, 1]);
 
     /* Das Band rastet auf einer anderen Seite ein → derselbe Weg. Der
        Finger hält es dabei bis zum Schluss (sonst zöge die Leiste seit
@@ -347,7 +349,7 @@ function welt(wahl) {
     /* Zwischen zwei Seiten losgelassen und zurück: nichts */
     s.rolle(BREITE + 60);
     s.rolle(BREITE, true);
-    gleich("Kurz angezogen und zurück: kein Wechsel", [N.aktuell, s.anzahl("sammlung")], ["sammlung", 2]);
+    gleich("Kurz angezogen und zurück: kein Wechsel", [N.aktuell, s.anzahl("sammlung")], ["sammlung", 1]);
 
     /* ersetzen (kein Verlaufseintrag) springt ohne Weg */
     N.zeigen("rangliste", null, true);
@@ -385,17 +387,17 @@ function welt(wahl) {
         [N.aktuell, wechsel("herausforderungen"), N._band.ort()], ["herausforderungen", 1, "start"]);
     gleich("… über denselben Weg wie ein Tipp (NAVIGATION.zeigen → band.zu), aber das Band wird dabei nicht gestellt",
         [zuRufe, s.band.rollen.length, s.band.scrollLeft, s.fenster.gerollt], [["herausforderungen"], 0, 2 * BREITE + 250, 0]);
-    gleich("… die ankommende Seite ist neu gezeichnet, nie leer — bedienbar wird sie erst beim Einrasten (Baustein 04.10.2026)",
+    gleich("… die ankommende Seite ist nie leer (seit 0.33.0 wird sie mitten im Ausrollen nicht neu gezeichnet: sie stand frisch da) — bedienbar wird sie erst beim Einrasten (Baustein 04.10.2026)",
         [s.text("herausforderungen"), s.ort("herausforderungen").kinder.length, s.bedienbar()],
-        ["herausforderungen#2", 1, ["start"]]);
+        ["herausforderungen#1", 1, ["start"]]);
     gleich("… die verlassene Seite steht weiter da (sie ist noch halb zu sehen)", s.text("start"), "start#1");
     s.rolle(2 * BREITE + 340);
     gleich("Das Band rollt allein zu Ende: kein weiterer Wechsel unterwegs",
-        [wechsel("herausforderungen"), s.anzahl("herausforderungen")], [1, 2]);
+        [wechsel("herausforderungen"), s.anzahl("herausforderungen")], [1, 1]);
     s.rolle(3 * BREITE, true);
-    gleich("Eingerastet: KEIN zweiter Wechsel, kein zweites Zeichnen — nur der Ort des Bandes zieht nach",
+    gleich("Eingerastet: KEIN zweiter Wechsel, kein Zeichnen — nur der Ort des Bandes zieht nach",
         [N.aktuell, wechsel("herausforderungen"), s.anzahl("herausforderungen"), N._band.ort(), s.band.rollen.length],
-        ["herausforderungen", 1, 2, "herausforderungen", 0]);
+        ["herausforderungen", 1, 1, "herausforderungen", 0]);
     gleich("… und jetzt ist die neue Seite bedienbar", s.bedienbar(), ["herausforderungen"]);
 
     /* Schwung ohne Finger (das Band rollt nach dem Loslassen von selbst über die Hälfte). */
@@ -462,12 +464,12 @@ function welt(wahl) {
             LEISTE.map((x) => x + ":" + s.ort(x).kinder.length).join(" "));
     }
     gleich("Der gemeinsame Ort blieb dabei leer", s.inhalt.kinder.length, 0);
-    gleich("Beim Einrasten wird die Seite neu gezeichnet (wie bisher beim Öffnen), die anderen bleiben, wie sie sind",
-        LEISTE.map((id) => s.text(id)), ["shop#2", "sammlung#2", "start#2", "herausforderungen#2", "rangliste#2"]);
+    gleich("Seit 0.33.0: Ein Wechsel ohne Änderung zeichnet nichts neu — jede Seite steht, wie sie gezeichnet wurde (bis 0.32.0 baute jedes Öffnen sie neu; tests\\test-veraltet.js)",
+        LEISTE.map((id) => s.text(id)), ["shop#1", "sammlung#1", "start#1", "herausforderungen#1", "rangliste#1"]);
 
     const vorher = LEISTE.map((id) => s.anzahl(id));
     N.auffrischen();
-    gleich("auffrischen trifft nur die eigene Seite",
+    gleich("auffrischen trifft sofort nur die eigene Seite (die Nachbarn zieht der Leerlauf nach)",
         LEISTE.map((id, i) => s.anzahl(id) - vorher[i]), [0, 0, 1, 0, 0]);
     pruefe("… und leert keine andere", voll());
 
@@ -485,11 +487,14 @@ function welt(wahl) {
     const shop = lesen("js/bildschirm-shop.js");
     pruefe("Sammlung: entfernen() beim Verlassen nur noch ohne Band",
         /verlassen: \(\) => \{\s*if \(!NAVIGATION\.imBand\("sammlung"\)\) \{\s*SAMMLUNG_BILDSCHIRM\.entfernen\(\);\s*\}\s*\}/.test(sammlung));
+    /* Seit 0.31.0 in einem eigenen Glied `verlassen()` — dort endet auch
+       die Anprobe (tests\test-shop.js fährt es). */
     pruefe("Shop: der Griff bleibt im Band stehen",
-        /verlassen: \(\) => \{\s*if \(!NAVIGATION\.imBand\("shop"\)\) \{\s*SHOP_BILDSCHIRM\._griff = null;\s*\}\s*\}/.test(shop));
+        /verlassen: \(\) => SHOP_BILDSCHIRM\.verlassen\(\)/.test(shop)
+            && /if \(!NAVIGATION\.imBand\("shop"\)\) \{\s*SHOP_BILDSCHIRM\._griff = null;\s*SHOP_BILDSCHIRM\._wurzel = null;\s*\}/.test(shop));
     const rangliste = lesen("js/bildschirm-rangliste.js");
-    pruefe("Rangliste: zeichnet in ihre Seite, lädt aber nur, wenn sie offen ist",
-        /if \(NAVIGATION\.aktuell === "rangliste"\) \{\s*RANGLISTE_BILDSCHIRM\._laden\(\);/.test(rangliste)
+    pruefe("Rangliste: zeichnet in ihre Seite, lädt aber nur, wenn sie offen ist (seit 0.33.0: und ihr Stand zu alt — tests\\test-rangliste-laden.js)",
+        /if \(NAVIGATION\.aktuell === "rangliste"\) \{\s*RANGLISTE_BILDSCHIRM\._ladenWennAlt\(\);/.test(rangliste)
             && /!NAVIGATION\.zeichenbar\("rangliste"\)/.test(rangliste));
     pruefe("Rangliste: der Platzhalter einer nur vorbereiteten Seite hat keine Uhr",
         /ruht: !RANGLISTE_BILDSCHIRM\._laedt/.test(rangliste)
@@ -622,7 +627,7 @@ function welt(wahl) {
         LEISTE.filter((id) => s.ort(id).classList.contains("up-bl-dahinter")), ["rangliste"]);
     N.auffrischen();
     gleich("auffrischen: die eigene Seite und das Blatt", [s.anzahl("rangliste"), s.anzahl("profil"), s.anzahl("start")],
-        [3, 3, 1]);
+        [2, 3, 1]);
 }
 
 /* ------------------------------------------------------------------ *

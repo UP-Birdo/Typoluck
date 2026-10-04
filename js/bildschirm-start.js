@@ -11,12 +11,82 @@
  * Tageswort (Stand des Tages, danach Zeit bis zum nächsten) und Übung.
  * „Heute bei deinen Freunden" stand bis 0.23.0 darunter, seit 0.23.1 ist
  * es gelöscht (Freunde: Rangliste).
- * Seit 0.18.0 zwei Arten (js/start-bibliothek.js), seit 0.20.0 als
- * Schalter Üben · Bibliothek oben: Bibliothek (das Buch als Doppelseite)
- * oder Üben (die Kachel wie bisher).
+ * Seit 0.18.0 zwei Arten (js/start-bibliothek.js), von 0.20.0 bis 0.31.0
+ * als Schalter Üben · Bibliothek oben.
+ *
+ * SEIT 0.32.0 DIE GEMEINSAME START-FORM DES STUDIOS (Entwurf
+ * Design\3D-Schrift\entwuerfe\TL-Start und Runde-8, Nutzer 03.10.2026):
+ * oben der Kopf, darunter EINE Karte, die den Platz
+ * füllt (was die Art zeigt), unten der Knopf-Bereich fester Höhe —
+ * links der grosse Knopf (Üben: zwei), rechts das Umschalt-Quadrat, das
+ * die Art wählt. Der Schalter oben ist weg. Die Arten stehen an EINER
+ * Stelle (`START.ARTEN`); eine dritte Art ist ein Eintrag dort.
  */
 
 const START = {
+
+    /*
+     * DIE ARTEN DES STARTS — DIE EINE LISTE (seit 0.32.0). Das Quadrat, die
+     * Wahl am Quadrat, die gemerkte Art, die Karte und die Knöpfe lesen
+     * alle hier. Eine weitere Art (Duell) ist EIN Eintrag mehr:
+     *   id        Kennung (so steht sie auf dem Gerät)
+     *   name      Anzeigename (ein Wort)
+     *   info      Stichworte in der Wahl
+     *   zeichen   Platzhalter des Platzes `start/art-<id>` (BAUSTEINE.ZEICHEN)
+     *   karte(ort)   zeichnet, was die Art zeigt, in den Start (die Karte
+     *                füllt den Platz über dem Knopf-Bereich)
+     *   knoepfe()    → [{ text, unter, haupt, aus, tun }] — ein oder zwei
+     *                Knöpfe links vom Quadrat
+     * Die erste Art ist die Vorgabe.
+     */
+    ARTEN: [
+        {
+            id: "bibliothek", name: "Bibliothek", info: "Buch für Buch", zeichen: "bibliothek",
+            karte: (ort) => START._bibliothekBauen(ort),
+            knoepfe: () => START._bibliothekKnoepfe()
+        },
+        {
+            id: "ueben", name: "Üben", info: "Tageswort · Übung", zeichen: "uebung",
+            karte: (ort) => ort.appendChild(START._uebenKarteBauen(START.SPIELE[0])),
+            knoepfe: () => START._uebenKnoepfe(START.SPIELE[0])
+        }
+    ],
+
+    ART_SCHLUESSEL: "typoluck.start-art",
+
+    /* Die Wahl am Quadrat offen? (nur Anzeige) */
+    artMenueOffen: false,
+    _artHorcherAktiv: false,
+
+    artVon(id) {
+        return START.ARTEN.find((eintrag) => eintrag.id === id) || null;
+    },
+
+    /* Die gemerkte Art (Gerät): eine Kennung aus ARTEN, sonst die Vorgabe.
+       „frei" hiess „ueben" bis 0.19.0. */
+    art() {
+        try {
+            const wert = window.localStorage.getItem(START.ART_SCHLUESSEL);
+            const id = wert === "frei" ? "ueben" : wert;
+            if (START.artVon(id)) {
+                return id;
+            }
+        } catch (fehler) {
+            /* ohne Gerätespeicher: die Vorgabe */
+        }
+        return START.ARTEN[0].id;
+    },
+
+    artSetzen(id) {
+        try {
+            window.localStorage.setItem(START.ART_SCHLUESSEL, START.artVon(id) ? id : START.ARTEN[0].id);
+        } catch (fehler) {
+            /* dann gilt die Wahl bis zum Neuladen nicht */
+        }
+        START.artMenueOffen = false;
+        START.regalOffen = false;
+        NAVIGATION.auffrischen();
+    },
 
     /*
      * Die Spiele der Sammlung.
@@ -62,8 +132,29 @@ const START = {
             /* Seit 0.23.2: das Vollbild-Buch geht beim Verlassen zu. Es
                liegt ÜBER der Seite (am <body>), nicht in ihr — die Seite
                selbst bleibt seit 0.29.0 im Band stehen. */
-            verlassen: () => START.buchVerlassen && START.buchVerlassen()
+            verlassen: () => START.buchVerlassen && START.buchVerlassen(),
+            /* Seit 0.34.1: Der Start wird beim Tab-Wechsel nicht neu gezeichnet
+               (0.33.0, die Stand-Marke kennt nur den Tag) — beim Betreten
+               wird darum NUR die Zeit bis zum nächsten Tageswort nachgeführt. */
+            geoeffnet: (ort) => START.zeitNachfuehren(ort)
         });
+    },
+
+    /* Jede Anzeige „nächstes in …" trägt `data-bis-morgen` und bekommt hier
+       die Zeit von jetzt — sonst ändert sich nichts. */
+    zeitNachfuehren(ort) {
+        if (!ort || typeof ort.querySelectorAll !== "function") {
+            return;
+        }
+        const zeit = "in " + START.bisMorgen(APP.jetzt());
+        for (const el of ort.querySelectorAll("[data-bis-morgen]")) {
+            /* `kurz` (seit 0.34.4): nur „in …" — „nächstes " steht davor in
+               einem eigenen Teil, den der Knopf bei wenig Platz weglässt. */
+            const text = el.getAttribute("data-bis-morgen") === "kurz" ? zeit : "nächstes " + zeit;
+            if (el.textContent !== text) {
+                el.textContent = text;
+            }
+        }
     },
 
     zeigen(behaelter, parameter) {
@@ -113,28 +204,20 @@ const START = {
         behaelter.appendChild(kopf);
 
         /*
-         * DIE ART BESTIMMT DEN INHALT (seit 0.20.0 über den Schalter
-         * Üben · Bibliothek oben, wie im Entwurf Bibliothek-Doppelseite; von
-         * 0.18.0 bis 0.19.0 am Quadrat neben „Spielen"): BIBLIOTHEK = das
-         * aufgeschlagene Buch (js/start-bibliothek.js), ÜBEN = die
-         * Spiel-Kachel wie bisher (Tageswort, Übung).
+         * DIE ART BESTIMMT DEN INHALT (seit 0.32.0 über das Quadrat unten,
+         * `START.ARTEN`; von 0.20.0 bis 0.31.0 über einen Schalter oben):
+         * ihre Karte füllt den Platz, darunter der Knopf-Bereich.
          */
-        const mitArt = typeof START.art === "function";
-        if (mitArt) {
-            behaelter.appendChild(START._artSchalterBauen());
-        }
-        if (mitArt && START.art() === "bibliothek") {
-            START._bibliothekBauen(behaelter);
-            if (START._woLang) {
-                START._woLang = false;
-                const b = START._buchNr();
-                const lauf = BIBLIOTHEK.lauf(START._turm(), b);
-                if (lauf.gabel) {
-                    START.gabelBlatt(b, lauf.gabel, "Wo lang?");
-                }
+        const art = START.artVon(START.art());
+        art.karte(behaelter);
+        behaelter.appendChild(START._untenBauen(art));
+        if (art.id === "bibliothek" && START._woLang) {
+            START._woLang = false;
+            const b = START._buchNr();
+            const lauf = BIBLIOTHEK.lauf(START._turm(), b);
+            if (lauf.gabel) {
+                START.gabelBlatt(b, lauf.gabel, "Wo lang?");
             }
-        } else {
-            START.SPIELE.forEach((spiel) => behaelter.appendChild(START._modiBauen(spiel)));
         }
 
         /* „Freunde heute" ist seit 0.23.0 nicht mehr auf dem Start (Nutzer:
@@ -307,22 +390,205 @@ const START = {
         return knopf;
     },
 
+    /* ---------------------------------------------------------------- *
+     * DER KNOPF-BEREICH UNTEN (seit 0.32.0): EINE Zeile fester Höhe
+     * (`.start-unten`, 82 px = 74 px Knöpfe + 8 px Luft):
+     *
+     *   Bibliothek:  [ Spielen · Kapitel … ]                 [Art]
+     *   Üben:        [ Tageswort ] [ Übung ]                 [Art]
+     *
+     * Eine offene (angefangene) Runde der Art steht im Knopf als „Zurück
+     * zur Runde", darunter klein, welche und wie sie steht. Das Quadrat
+     * bleibt dabei stehen: In Typoluck können mehrere Runden zugleich
+     * offen sein (das Tageswort den ganzen Tag) — ohne Quadrat käme man
+     * so lange nicht an die andere Art.
+     * ---------------------------------------------------------------- */
+
+    _untenBauen(art) {
+        const unten = BAUSTEINE.el("div", "start-unten");
+        const zeile = BAUSTEINE.el("div", "start-spielen-zeile");
+        const knoepfe = art.knoepfe();
+        if (knoepfe.length > 1) {
+            zeile.classList.add("zwei");
+        }
+        knoepfe.forEach((k) => zeile.appendChild(START._spielenKnopf(k)));
+        zeile.appendChild(START._artKnopfBauen(art));
+        unten.appendChild(zeile);
+        return unten;
+    },
+
+    /* Ein Knopf des Bereichs: Wort oben, klein darunter, was er startet. */
+    _spielenKnopf(k) {
+        const knopf = BAUSTEINE.knopf({ text: k.text, art: k.haupt ? "haupt" : "still",
+            beiKlick: () => k.tun && k.tun() });
+        knopf.classList.add("start-spielen");
+        if (k.zurueck) {
+            knopf.classList.add("start-zurueck");
+        }
+        if (k.bisMorgen) {
+            /* „nächstes in 17 h 28 min" passt bei 360 px nicht in den Knopf
+               (seit 0.34.4): „nächstes " ist ein eigener Teil, den der Stil
+               bei wenig Platz im Knopf weglässt — die Zeit bleibt ganz. */
+            const unter = BAUSTEINE.el("small", "start-spielen-unter");
+            unter.appendChild(BAUSTEINE.el("span", "start-spielen-vorsatz", "nächstes "));
+            const zeit = BAUSTEINE.el("span", null, "in " + START.bisMorgen(APP.jetzt()));
+            zeit.setAttribute("data-bis-morgen", "kurz");
+            unter.appendChild(zeit);
+            knopf.appendChild(unter);
+        } else if (k.unter) {
+            const unter = BAUSTEINE.el("small", "start-spielen-unter", k.unter);
+            knopf.appendChild(unter);
+        }
+        knopf.disabled = !!k.aus;
+        return knopf;
+    },
+
+    /* Das Zeichen einer Art: ein Platz (`start/art-<id>`), bis zur
+       gelieferten Datei das heutige Linien-Zeichen. */
+    _artZeichen(art) {
+        const zeichen = BAUSTEINE.zeichen(art.zeichen);
+        return (typeof UPCREW_PLATZ !== "undefined")
+            ? UPCREW_PLATZ.bauen("start/art-" + art.id, "26x26", { inhalt: zeichen, klasse: "start-art-zeichen" })
+            : zeichen;
+    },
+
+    /*
+     * DAS UMSCHALT-QUADRAT: zeigt die Art von jetzt; ein Tipp klappt die
+     * Wahl nach OBEN auf (alle Einträge aus START.ARTEN — zwei, drei oder
+     * mehr, ohne Umbau). Die Wahl wird nicht neu gezeichnet, nur gezeigt
+     * und verborgen; ein Tipp daneben klappt sie zu.
+     */
+    _artKnopfBauen(art) {
+        const halter = BAUSTEINE.el("div", "start-art-halter");
+        halter.setAttribute("data-start-art", "");
+
+        const knopf = BAUSTEINE.knopf({ art: "still", text: art.name,
+            beiKlick: () => START._artMenueZeigen(halter, !START.artMenueOffen) });
+        knopf.classList.add("start-art-knopf");
+        knopf.setAttribute("aria-label", "Art wählen · " + art.name);
+        knopf.setAttribute("aria-haspopup", "true");
+        knopf.insertBefore(START._artZeichen(art), knopf.querySelector(".knopf-text"));
+        halter.appendChild(knopf);
+
+        const menue = BAUSTEINE.el("div", "start-art-menue");
+        menue.setAttribute("role", "menu");
+        for (const eintrag of START.ARTEN) {
+            const punkt = BAUSTEINE.knopf({ art: "flach", text: eintrag.name,
+                beiKlick: () => START.artSetzen(eintrag.id) });
+            punkt.classList.add("start-art-eintrag");
+            punkt.setAttribute("role", "menuitemradio");
+            punkt.setAttribute("aria-checked", eintrag.id === art.id ? "true" : "false");
+            punkt.setAttribute("data-art", eintrag.id);
+            punkt.insertBefore(START._artZeichen(eintrag), punkt.firstChild);
+            punkt.querySelector(".knopf-text").appendChild(BAUSTEINE.el("small", null, eintrag.info));
+            menue.appendChild(punkt);
+        }
+        halter.appendChild(menue);
+        START._artMenueZeigen(halter, START.artMenueOffen);
+        return halter;
+    },
+
+    _artMenueZeigen(halter, offen) {
+        START.artMenueOffen = !!offen;
+        const menue = halter.querySelector(".start-art-menue");
+        const knopf = halter.querySelector(".start-art-knopf");
+        if (menue) {
+            menue.hidden = !offen;
+        }
+        if (knopf) {
+            knopf.setAttribute("aria-expanded", offen ? "true" : "false");
+        }
+        if (offen) {
+            START._artHorcherAnmelden();
+        }
+    },
+
+    /* Ein Tipp neben Quadrat und Wahl klappt die Wahl zu — und tut sonst
+       nichts (er öffnet nicht nebenbei die Karte darunter). Ist die Wahl
+       inzwischen anders zugegangen, ist es ein gewöhnlicher Tipp. */
+    _artHorcherAnmelden() {
+        if (START._artHorcherAktiv || typeof document.addEventListener !== "function") {
+            return;
+        }
+        START._artHorcherAktiv = true;
+        const horcher = (ereignis) => {
+            const ziel = ereignis.target;
+            if (ziel && typeof ziel.closest === "function" && ziel.closest("[data-start-art]")) {
+                return;
+            }
+            document.removeEventListener("click", horcher, true);
+            START._artHorcherAktiv = false;
+            if (!START.artMenueOffen) {
+                return;
+            }
+            ereignis.stopPropagation();
+            ereignis.preventDefault();
+            document.querySelectorAll("[data-start-art]").forEach((halter) => START._artMenueZeigen(halter, false));
+        };
+        document.addEventListener("click", horcher, true);
+    },
+
+    /*
+     * DIE OFFENEN RUNDEN (seit 0.32.0): was angefangen und noch nicht
+     * beendet ist — je Runde { unter, parameter } oder null.
+     *   bibliothek  die gemerkte Runde läuft, hat einen Versuch und gehört
+     *               zur Station, die gerade dran ist
+     *   tag         das Tageswort von heute ist angefangen
+     *   uebung      eine Übungsrunde ist angefangen
+     */
+    offeneRunden() {
+        const offen = { bibliothek: null, tag: null, uebung: null };
+        const tag = START.tagesDetail();
+        if (tag.stand === "angefangen") {
+            offen.tag = { unter: "Tageswort · " + tag.versuche + "/" + WORDLE.VERSUCHE, parameter: { modus: "tag" } };
+        }
+        const uebung = WORDLE.normalisieren(ICH.spielstand("wordle-uebung"));
+        if (uebung && uebung.modus === "uebung" && uebung.zustand === "laeuft" && uebung.versuche.length > 0) {
+            offen.uebung = { unter: "Übung · " + uebung.versuche.length + "/" + WORDLE.versucheMax(uebung),
+                parameter: { modus: "uebung" } };
+        }
+        const bib = WORDLE.normalisieren(ICH.spielstand("wordle-bibliothek"));
+        if (bib && bib.modus === "bibliothek" && bib.zustand === "laeuft" && bib.versuche.length > 0
+                && typeof START._turm === "function" && BIBLIOTHEK.spielbar(START._turm(), bib.buch, bib.station)) {
+            const st = BIBLIOTHEK.station(bib.buch, bib.station);
+            offen.bibliothek = {
+                unter: "Kapitel " + BIBLIOTHEK.ROEM[st.k] + " · " + bib.versuche.length + "/" + WORDLE.versucheMax(bib),
+                parameter: { modus: "bibliothek", buch: bib.buch, station: bib.station }
+            };
+        }
+        return offen;
+    },
+
     /*
      * ÜBEN = ZWEI MODI (seit 0.23.4, Nutzer: „bei Typoluck sollen Tageswort
      * und Übung getrennt werden, also schon auf derselben Seite stehen, nur
-     * als zwei Spielmodi"): zwei Karten, je ein Knopf.
+     * als zwei Spielmodi"). Seit 0.32.0 EINE Karte (das Tageswort von
+     * heute) und zwei Knöpfe unten:
      *   Tageswort  einmal am Tag, für alle gleich — offen / angefangen /
      *              gelöst / verloren, danach die Zeit bis zum nächsten.
      *   Übung      beliebig oft.
-     * Zählung, Serie, Aufgaben und XP bleiben, wie sie sind (nur die
-     * Oberfläche ist getrennt). Bis 0.23.3 eine Kachel mit „Spielen" und
-     * „Übung" nebeneinander.
+     * Zählung, Serie, Aufgaben und XP bleiben, wie sie sind. Die eine
+     * Hauptaktion ist das Tageswort; ist es erledigt, die Übung.
      */
-    _modiBauen(spiel) {
-        const teil = document.createDocumentFragment();
-        teil.appendChild(START._tagesKarteBauen(spiel));
-        teil.appendChild(START._uebungKarteBauen(spiel));
-        return teil;
+    _uebenKnoepfe(spiel) {
+        const d = START.tagesDetail();
+        const offen = START.offeneRunden();
+        const fertig = d.stand === "geloest" || d.stand === "verloren";
+        const tag = { haupt: !fertig, tun: () => NAVIGATION.zeigen(spiel.id, { modus: "tag" }) };
+        if (offen.tag) {
+            Object.assign(tag, { text: "Zurück zur Runde", unter: offen.tag.unter, zurueck: true });
+        } else if (fertig) {
+            Object.assign(tag, { text: "Ergebnis", unter: "nächstes in " + START.bisMorgen(APP.jetzt()), bisMorgen: true });
+        } else {
+            Object.assign(tag, { text: "Tageswort", unter: spiel.tagesName().replace("Tageswort ", "") });
+        }
+        const uebung = { haupt: fertig, tun: () => NAVIGATION.zeigen(spiel.id, { modus: "uebung" }) };
+        if (offen.uebung) {
+            Object.assign(uebung, { text: "Zurück zur Runde", unter: offen.uebung.unter, zurueck: true });
+        } else {
+            Object.assign(uebung, { text: "Übung", unter: "neues Wort" });
+        }
+        return [tag, uebung];
     },
 
     /* Stand des heutigen Tagesworts genauer: { stand: offen | angefangen |
@@ -351,51 +617,68 @@ const START = {
         return (h > 0 ? h + " h " : "") + (minuten % 60) + " min";
     },
 
-    _modusKarte(zeichen, name, satz) {
-        const karte = BAUSTEINE.karte(null, "spiel-kachel modus-karte");
-        const kopf = BAUSTEINE.el("div", "spiel-kachel-kopf");
-        const bild = BAUSTEINE.el("span", "spiel-kachel-bild");
-        bild.appendChild(BAUSTEINE.zeichen(zeichen));
-        kopf.appendChild(bild);
-        const texte = BAUSTEINE.el("div", "spiel-kachel-texte");
-        texte.appendChild(BAUSTEINE.el("h2", "spiel-kachel-name", name));
-        texte.appendChild(BAUSTEINE.el("p", "spiel-kachel-satz", satz));
-        kopf.appendChild(texte);
-        karte.appendChild(kopf);
-        return karte;
+    /* Der Kopf einer Start-Karte: Nummer im Kreis, Titel, rechts ein Stand. */
+    _kartenKopf(nr, titel, rechts) {
+        const kopf = BAUSTEINE.el("span", "start-karte-kopf");
+        const pille = BAUSTEINE.el("span", "start-karte-pille");
+        pille.appendChild(BAUSTEINE.el("span", "start-karte-nr", String(nr)));
+        pille.appendChild(BAUSTEINE.el("span", "start-karte-titel", titel));
+        kopf.appendChild(pille);
+        if (rechts) {
+            kopf.appendChild(BAUSTEINE.el("span", "start-karte-rechts", rechts));
+        }
+        return kopf;
     },
 
-    _tagesKarteBauen(spiel) {
+    /*
+     * DIE KARTE DER ART ÜBEN (seit 0.32.0, Entwurf TL-Start): das Tageswort
+     * von heute — Nummer, Stand, darunter das Brett so weit, wie es auf
+     * DIESEM Gerät gespielt ist (Kacheln aus WORDLE_BILDSCHIRM._kachelBauen,
+     * Farben wie die Runde sie zeigt), unten die Zeit bis zum nächsten und
+     * der Stand der Übung. Nur Anzeige; gespielt wird über die Knöpfe.
+     */
+    _uebenKarteBauen(spiel) {
         const d = START.tagesDetail();
-        const nummer = spiel.tagesName().replace("Tageswort ", "");
-        const karte = START._modusKarte("kalender", "Tageswort", nummer + " · für alle gleich");
         const fertig = d.stand === "geloest" || d.stand === "verloren";
-        const text = {
+        const stand = {
             offen: "offen",
             angefangen: "angefangen · " + d.versuche + "/" + WORDLE.VERSUCHE,
             geloest: "gelöst · " + d.versuche + "/" + WORDLE.VERSUCHE,
             verloren: "verloren"
-        }[d.stand] + (fertig ? " · nächstes in " + START.bisMorgen(APP.jetzt()) : "");
-        karte.appendChild(BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + d.stand, text));
-        const knopf = BAUSTEINE.knopf({
-            text: fertig ? "Ergebnis" : (d.stand === "angefangen" ? "Weiter" : "Spielen"),
-            art: fertig ? "still" : "haupt", breit: true, zeichen: fertig ? "rangliste" : "weiter",
-            beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "tag" })
-        });
-        karte.appendChild(knopf);
-        return karte;
-    },
+        }[d.stand];
+        const karte = BAUSTEINE.el("section", "start-karte start-karte-ueben");
+        const nummer = spiel.tagesName().replace("Tageswort Nr. ", "");
+        const kopf = START._kartenKopf(nummer, "Tageswort", stand);
+        kopf.querySelector(".start-karte-rechts").classList.add("spiel-stand-" + d.stand);
+        karte.appendChild(kopf);
 
-    _uebungKarteBauen(spiel) {
-        const karte = START._modusKarte("uebung", "Übung", "beliebig oft · eigenes Wort");
-        const runde = WORDLE.normalisieren(ICH.spielstand("wordle-uebung"));
-        const laeuft = !!runde && runde.modus === "uebung" && runde.zustand === "laeuft" && runde.versuche.length > 0;
-        karte.appendChild(BAUSTEINE.el("p", "spiel-kachel-stand spiel-stand-" + (laeuft ? "angefangen" : "offen"),
-            laeuft ? "angefangen · " + runde.versuche.length + "/" + WORDLE.versucheMax(runde) : "neues Wort"));
-        karte.appendChild(BAUSTEINE.knopf({
-            text: laeuft ? "Weiter" : "Spielen", art: "haupt", breit: true, zeichen: "uebung",
-            beiKlick: () => NAVIGATION.zeigen(spiel.id, { modus: "uebung" })
-        }));
+        const heute = WORDLE.datumText(APP.jetzt());
+        const runde = WORDLE.normalisieren(ICH.spielstand("wordle-tag"));
+        const gilt = !!runde && runde.modus === "tag" && runde.datum === heute;
+        const bewertungen = gilt ? WORDLE.bewertungen(runde) : [];
+        const mass = BAUSTEINE.el("div", "start-ueben-mass");
+        const raster = BAUSTEINE.el("div", "start-ueben-raster");
+        /* Der Stand steht im Kopf; das Brett ist hier nur Bild. */
+        raster.setAttribute("aria-hidden", "true");
+        for (let zeile = 0; zeile < WORDLE.VERSUCHE; zeile++) {
+            const wort = gilt ? Array.from(runde.versuche[zeile] || "") : [];
+            for (let stelle = 0; stelle < WORDLE.LAENGE; stelle++) {
+                raster.appendChild(WORDLE_BILDSCHIRM._kachelBauen(wort[stelle] || "",
+                    bewertungen[zeile] ? bewertungen[zeile][stelle] : null));
+            }
+        }
+        mass.appendChild(raster);
+        karte.appendChild(mass);
+
+        const offen = START.offeneRunden();
+        const fuss = BAUSTEINE.el("div", "start-karte-fuss");
+        const zeit = BAUSTEINE.el("span", null, fertig ? "nächstes in " + START.bisMorgen(APP.jetzt()) : "für alle gleich");
+        if (fertig) {
+            zeit.setAttribute("data-bis-morgen", "");
+        }
+        fuss.appendChild(zeit);
+        fuss.appendChild(BAUSTEINE.el("span", null, offen.uebung ? offen.uebung.unter : "Übung · beliebig oft"));
+        karte.appendChild(fuss);
         return karte;
     }
 };

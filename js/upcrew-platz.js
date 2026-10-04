@@ -20,6 +20,7 @@
  *     UPCREW_PLATZ.pfad = "bilder/plaetze/"                               → wo die Dateien liegen
  *     UPCREW_PLATZ.plaetze()                                              → [{ name, mass, wo, anzahl }]
  *     UPCREW_PLATZ.tabelle()                                              → PLAETZE.md als Text
+ *     UPCREW_PLATZ.SPIEL_PLAETZE                                          → feste Plätze der Spiele (nur Liste)
  *
  * Jeder Platz trägt `data-platz` (Name) und `data-mass` (Liefer-Maß in px bei 1x, Breite x Höhe). Wie groß er
  * im Bild steht, sagt die Stelle, an der er sitzt (CSS: Breite; die Höhe folgt dem Seitenverhältnis des Maßes).
@@ -47,6 +48,35 @@
             anzahl: 2 },
         { name: "vorrat/<spiel>/tipp", mass: "48x48", wo: "Shop, Reiter des Spiels (Platzhalter: heutiges Zeichen)",
             anzahl: 2 }
+    ];
+
+    /* Feste Plätze, die ein SPIEL selbst zeichnet (nicht Sammlung/Shop) — nur für die Liste PLAETZE.md, gelesen aus
+       den Spielen (04.10.2026). Blunderluck ruft außerhalb der Bausteine heute keinen Platz auf. Ein neuer Platz im
+       Spiel wird hier nachgetragen, dann `tabelle()` nach PLAETZE.md schreiben (der Test vergleicht beide). */
+    const SPIEL_PLAETZE = [
+        { spiel: "typoluck", name: "start/art-bibliothek", mass: "26x26", wo: "Start: Zeichen der Art „Bibliothek“ (js\\bildschirm-start.js)" },
+        { spiel: "typoluck", name: "start/art-ueben", mass: "26x26", wo: "Start: Zeichen der Art „Üben“ (js\\bildschirm-start.js)" },
+        { spiel: "typoluck", name: "start/art-duell", mass: "26x26", wo: "Start: Zeichen der Art „Duell“, sobald das Duell eingeschaltet ist (js\\bildschirm-start.js)" },
+        { spiel: "typoluck", name: "bibliothek/kapitel-weg", mass: "366x520", wo: "Bibliothek: Grund der Karte (dehnbar — füllt die ganze Karte; js\\start-bibliothek.js)" },
+        { spiel: "typoluck", name: "bibliothek/station-wort", mass: "48x48", wo: "Bibliothek: Station Wort (Platzhalter: Initiale)" },
+        { spiel: "typoluck", name: "bibliothek/station-elite", mass: "48x48", wo: "Bibliothek: Station Elite" },
+        { spiel: "typoluck", name: "bibliothek/station-truhe", mass: "48x48", wo: "Bibliothek: Station Truhe" },
+        { spiel: "typoluck", name: "bibliothek/station-haendler", mass: "48x48", wo: "Bibliothek: Station Händler" },
+        { spiel: "typoluck", name: "bibliothek/station-rast", mass: "48x48", wo: "Bibliothek: Station Rast" },
+        { spiel: "typoluck", name: "bibliothek/station-fund", mass: "48x48", wo: "Bibliothek: Station Fund" },
+        { spiel: "typoluck", name: "bibliothek/station-boss", mass: "48x48", wo: "Bibliothek: Station Boss" },
+        { spiel: "typoluck", name: "bibliothek/eingang", mass: "24x24", wo: "Bibliothek: Eingang des Kapitel-Wegs" },
+        { spiel: "typoluck", name: "bibliothek/ausgang", mass: "24x24", wo: "Bibliothek: Ausgang des Kapitel-Wegs" },
+        { spiel: "typoluck", name: "bibliothek/buch-lexikon", mass: "48x64", wo: "Bibliothek, Verlauf: Buch „Das Bilderlexikon“" },
+        { spiel: "typoluck", name: "bibliothek/buch-tagebuch", mass: "48x64", wo: "Bibliothek, Verlauf: Buch „Das Tagebuch“" },
+        { spiel: "typoluck", name: "bibliothek/buch-kochbuch", mass: "48x64", wo: "Bibliothek, Verlauf: Buch „Das Kochbuch“" },
+        { spiel: "typoluck", name: "bibliothek/buch-reise", mass: "48x64", wo: "Bibliothek, Verlauf: Buch „Der Reiseführer“" },
+        { spiel: "typoluck", name: "bibliothek/buch-krimi", mass: "48x64", wo: "Bibliothek, Verlauf: Buch „Der Krimi“" },
+        { spiel: "typoluck", name: "bibliothek/buch-woerterbuch", mass: "48x64", wo: "Bibliothek, Verlauf: Buch „Das Wörterbuch“" },
+        { spiel: "typoluck", name: "duell/vs-bild", mass: "390x300", wo: "Duell: Bild „gegen“ (Karte auf dem Start, Duell-Seite mit und ohne Duell; js\\bildschirm-duell.js)" },
+        { spiel: "typoluck", name: "duell/wort-geholt", mass: "120x120", wo: "Duell: du holst ein Wort" },
+        { spiel: "typoluck", name: "duell/sieg", mass: "160x160", wo: "Duell: Ende, gewonnen" },
+        { spiel: "typoluck", name: "duell/niederlage", mass: "160x160", wo: "Duell: Ende, verloren" }
     ];
 
     function kuerzel(name) {
@@ -236,6 +266,15 @@
             + "Spiel).", "");
         zeilen.push("Kein Platz, sondern Gerüst (gezeichnet aus den Farbwelt-Variablen): die Vorschau der Sammlung, "
             + "die Paket-Karte mit „UPCREW“ und Kachel-Vorschau, Bänder, Striche, die Marke am angelegten Stück.", "");
+        zeilen.push("## Plätze der Spiele (von den Spielen selbst gezeichnet)", "");
+        zeilen.push("Aus `UPCREW_PLATZ.SPIEL_PLAETZE` (von Hand nachgetragen, gelesen aus den Spielen). Blunderluck "
+            + "zeichnet außerhalb von Sammlung und Shop heute keinen eigenen Platz.", "");
+        zeilen.push("| Spiel | Platz | Maß | wo zu sehen |", "|---|---|---|---|");
+        for (const p of SPIEL_PLAETZE) {
+            zeilen.push("| " + p.spiel + " | `" + p.name + "` | " + p.mass + " | " + p.wo + " |");
+        }
+        zeilen.push("| **Summe Plätze der Spiele** | | | **" + SPIEL_PLAETZE.length + "** |", "");
+        zeilen.push("Zusammen mit Sammlung und Shop: **" + (stuecke + fest + SPIEL_PLAETZE.length) + " Plätze**.", "");
         zeilen.push("## Alle Stück-Plätze im Einzelnen", "");
         if (K) {
             for (const a of K.ARTEN) {
@@ -250,7 +289,7 @@
     }
 
     const UPCREW_PLATZ = {
-        GELIEFERT: GELIEFERT, FEST: FEST,
+        GELIEFERT: GELIEFERT, FEST: FEST, SPIEL_PLAETZE: SPIEL_PLAETZE,
         get pfad() { return pfad; },
         set pfad(p) { pfad = String(p); },
         bauen: bauen, stueck: stueck, html: html, stueckHtml: stueckHtml, liefern: liefern, kuerzel: kuerzel,

@@ -513,6 +513,57 @@
     color: var(--haupt);
 }
 
+/*
+ * DAS ENDE BEI GERINGER HÖHE (seit 0.34.5; Rauchprobe 0.34.3, Auffällig 3:
+ * bei 360 × 640 war nach dem Sieg nur „2/6 · Lösung" zu sehen, der Knopf
+ * zum Weitergehen 117–237 px unter der Leiste). Gemessen bei 360 × 640:
+ * Brett 395 px hoch, Karte ab 481 px, Leiste ab 576 px. Nur bis 800 px
+ * Höhe (390 × 844 bleibt, wie es war), nur nach der Runde:
+ *   - das Brett richtet sich nach der Höhe (bei 640 px Kacheln von 44 statt
+ *     60 px; nie unter 36 px, nie breiter als bisher);
+ *   - in der Karte stehen Ergebnis, Herzen, Lösung und Punkte oben, dann
+ *     der Knopf zum Weitergehen, der Rückfall („Zurück zur Rast"), darunter
+ *     die Wertung und der Rest. Kein Inhalt fällt weg.
+ */
+@media (max-height: 800px) {
+    body:not(.im-spiel) .wordle > .wordle-brett {
+        width: min(100%, 330px, max(204px, calc((100dvh - 376px) / 6 * 5 + 24px)));
+    }
+
+    .wordle > .wordle-ende {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .wordle > .wordle-ende > * {
+        order: 3;
+    }
+
+    .wordle > .wordle-ende > .wordle-ende-rueck {
+        order: 2;
+    }
+
+    .wordle > .wordle-ende > .wordle-ende-titel,
+    .wordle > .wordle-ende > .bib-herzen,
+    .wordle > .wordle-ende > .wordle-ende-loesung,
+    .wordle > .wordle-ende > .wordle-ende-punkte {
+        order: 0;
+    }
+
+    .wordle > .wordle-ende > .bib-herzen {
+        align-self: center;
+    }
+
+    .wordle > .wordle-ende > button {
+        order: 1;
+    }
+
+    .wordle > .wordle-ende > .wertung,
+    .wordle > .wordle-ende > .wordle-ende-rueck {
+        margin: 12px 0 0;
+    }
+}
+
 /* Feste Felder (seit 0.23.0): aufgedeckt durch Tipp oder Tinte — grün
    (Farbe „richtig") und nicht mehr zu ändern; ein Strich unten zeigt es. */
 .kachel.kachel-fest {
@@ -575,6 +626,30 @@ body.im-spiel .wordle > .wordle-brett {
     overflow-y: auto;
     overscroll-behavior: contain;
     padding: 2px 2px 6px;
+    /* Seit 0.33.0: Das Brett ist ein Mass-Behälter — seine Zeilen kennen so
+       seine HÖHE (cqh), siehe die Regel darunter. Seine Grösse hängt ohnehin
+       nicht am Inhalt: die Breite ist fest, die Höhe ist der Rest zwischen
+       Kopf und Tastatur. */
+    container-type: size;
+}
+
+/*
+ * SECHS ZEILEN PASSEN OHNE ROLLEN (seit 0.33.0; gemessen 04.10.2026 bei
+ * 360 × 640: das Brett bekam 380 px, sechs Zeilen brauchten 398 — die
+ * Kacheln waren allein aus der BREITE gerechnet, (324 − 4·6) / 5 = 60 px).
+ * Jetzt richtet sich die Kachel auch nach der HÖHE: Eine Zeile ist höchstens
+ * so breit, dass sechs Zeilen samt fünf Lücken (6 px) in die Höhe des Bretts
+ * passen (100cqh = die Höhe des Bretts OHNE seinen Innenabstand, abzüglich
+ * 2 px Luft gegen krumme Pixel). Auf hohen Bildschirmen gilt wie bisher die Breite. Unter 36 px
+ * wird keine Kachel gedrückt (5 · 36 + 4 · 6 = 204 px) — dann rollt das
+ * Brett wie früher; ebenso bei einer SIEBTEN Zeile (Extra-Leben), wie es der
+ * Nutzer am 28.09.2026 wollte. Ein Browser ohne cqh nimmt die erste Zeile
+ * (100 %, wie bis 0.32.0).
+ */
+body.im-spiel .wordle > .wordle-brett > .wordle-zeile {
+    justify-self: center;
+    width: 100%;
+    width: min(100%, max(204px, calc((100cqh - 2px - 5 * 6px) / 6 * 5 + 4 * 6px)));
 }
 
 /* Die Besonderheit von Elite und Boss (seit 0.23.4): Chips + „i", ganz oben. */

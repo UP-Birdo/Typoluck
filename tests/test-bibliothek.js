@@ -262,7 +262,12 @@ const loesungen = WOERTER.loesungen;
     pruefe("Kein Siegel auf dem Buch (noch nicht gebaut); Tinte seit 0.23.0", !/Siegel/.test(start) && /"tintenfass"/.test(start));
     pruefe("Herzen, Rast, Fund und Checkpoint auf dem Buch (seit 0.21.0)", /herzenBauen/.test(start)
         && /_rastBauen/.test(start) && /_fundBauen/.test(start) && /st-cp/.test(start));
-    pruefe("Schalter Üben · Bibliothek", /text: "Üben"/.test(start) && /BIBLIOTHEK\.NAME/.test(start));
+    /* Seit 0.32.0 wählt das Quadrat unten die Art (die eine Liste START.ARTEN in js\bildschirm-start.js;
+       tests\test-start.js); bis 0.31.0 ein Schalter oben. */
+    const startSeite = lesen("js/bildschirm-start.js");
+    pruefe("Arten Bibliothek · Üben in der einen Liste, kein Schalter mehr",
+        new RegExp("id: \"bibliothek\", name: \"" + B.NAME + "\",").test(startSeite) && /id: "ueben", name: "Üben",/.test(startSeite)
+            && !/BAUSTEINE\.segment/.test(start + startSeite));
     const wordle = lesen("js/bildschirm-wordle.js");
     pruefe("Runde der Bibliothek: Station, Wort gezogen, Regeln der Station",
         /BIBLIOTHEK\.wortZiehen\(buch, station, Math\.random\(\), zuletzt, BIBLIOTHEK\.wortFilter\(mitnahme\),\s*gebannt\)/.test(wordle)
@@ -464,12 +469,18 @@ const loesungen = WOERTER.loesungen;
     /* Seit 0.23.4 (Nutzer: „Aufschlagen soll raus als Knopf … die Vorschau soll nur die halbe Seite anzeigen"). */
     const bauen = q.slice(q.indexOf("    _bibliothekBauen(behaelter) {"), q.indexOf("    /* Was als Nächstes wartet"))
         .replace(/\/\*[\s\S]*?\*\//g, "");
-    const vorschau = q.slice(q.indexOf("    _vorschauBauen(turm, b, lauf) {"), q.indexOf("    halbAb(b, lauf) {"));
+    const vorschau = q.slice(q.indexOf("    _vorschauBauen(turm, b, lauf) {"), q.indexOf("    /* Was der grosse Knopf unten tut"));
     pruefe("Start: nur die Vorschau (ein Knopf, Stationen als Bild), kein „Aufschlagen“, keine Pfeile ‹ ›",
         /vorschau \? START\._stationBild\(b, st, zustand\) : START\._stationKnopf/.test(q) && bauen.length > 0
             && !/Aufschlagen"/.test(bauen) && !/titel: "Kapitel zurück"/.test(q) && !/titel: "Kapitel vor"/.test(q));
-    pruefe("Vorschau: halbe Seite, ohne Herzen/Tinte/Boss in n/Stations-Text",
-        /bib-halb/.test(vorschau) && !/_leisteBauen|bib-naechste/.test(vorschau));
+    /* Seit 0.32.0 (Nutzer 03.10.2026: „B aber die pfeile rechts weg man soll drauf klicken damit man den verlauf
+       sehen kann"): die Karte ist die Seite — kein Ausschnitt mehr, ein Tipp öffnet den Verlauf. Der echte
+       Bildschirm am kleinen DOM: tests\test-start.js. */
+    pruefe("Vorschau „B“: der Weg füllt die Karte (kein halbes Buch), ohne Herzen/Tinte/Boss in n, Tipp → Verlauf",
+        vorschau.length > 0 && /START\._wegBauen\(b, lauf, lauf\.kapitel\)/.test(vorschau)
+            && /beiKlick: \(\) => START\.bibVerlaufOeffnen\(\)/.test(vorschau)
+            && !/_leisteBauen|bib-naechste|bib-halb|_buchBauen/.test(vorschau) && !/halbAb|bib-halb/.test(q)
+            && !/bib-halb/.test(lesen("css/stil-bibliothek.css")));
     pruefe("Vollbild: Leiste weg (body.buch-offen), unten „Verlassen“ + Hauptaktion",
         /document\.body\.classList\.add\("buch-offen"\)/.test(q) && /text: "Verlassen"/.test(q)
             && /body\.buch-offen \.leiste\.up-leiste \{\s*display: none;/.test(lesen("css/stil-bibliothek.css")));
@@ -560,20 +571,9 @@ const loesungen = WOERTER.loesungen;
         /_gegnerBauen\(\)/.test(bw) && /START\.gegnerErklaeren\(runde\.buch, runde\.station, gebannt\)/.test(bw));
 }
 
-/* 13. Vorschau halb, Kreuzung von selbst (seit 0.23.4) */
+/* 13. Kreuzung von selbst (seit 0.23.4). Die halbe Vorschau (`halbAb`) gibt es seit 0.32.0 nicht mehr — die
+   Karte „B" zeigt das ganze Kapitel (Lage: `wegLage`, tests\test-start.js). */
 {
-    const quelle = lesen("js/start-bibliothek.js");
-    const teil = quelle.slice(quelle.indexOf("    halbAb(b, lauf) {"), quelle.indexOf("    buchOeffnen() {"));
-    const lageTeil = quelle.slice(quelle.indexOf("    LAGE_UNTEN:"), quelle.indexOf("    /* Zustände der Stellen"));
-    const welt = { BIBLIOTHEK: B };
-    const start = vm.runInNewContext("({" + lageTeil + teil + "})", welt);
-    welt.START = start;
-    const lauf = (b, k, jetzt, gabel, durch) => ({ kapitel: k, jetzt: jetzt, gabel: gabel || null, durch: !!durch });
-    const erste = B.stationen(2).find((st) => st.k === 0 && st.art === "w");
-    const ab = start.halbAb(2, lauf(2, 0, erste.nr));
-    pruefe("Vorschau: Ausschnitt 0–280, die Front liegt darin",
-        ab >= 0 && ab <= 280 && (() => { const y = start._lage(B.kapitel(2, 0), erste.s, erste.i).y; return y >= ab && y <= ab + 280; })());
-    gleich("Vorschau: Buch durch → oben (beim Boss)", start.halbAb(2, lauf(2, 3, null, null, true)), 0);
     const bw = lesen("js/bildschirm-wordle.js");
     pruefe("Kreuzung: nach der Runde von selbst ins Buch (Zeit, einmal je Runde, nur direkt nach der Wertung)",
         /if \(kreuzung && bib\) \{\s*WORDLE_BILDSCHIRM\._kreuzungPlanen\(runde, weiter\);/.test(bw)
@@ -628,15 +628,18 @@ const loesungen = WOERTER.loesungen;
 /* 15. Üben = zwei Modi (seit 0.23.4, Nutzer: „Tageswort und Übung getrennt … als zwei Spielmodi") */
 {
     const s = lesen("js/bildschirm-start.js");
-    const teil = s.slice(s.indexOf("    bisMorgen(jetzt) {"), s.indexOf("    _modusKarte("));
-    const start = vm.runInNewContext("({" + teil + "})", {});
+    const teil = s.slice(s.indexOf("    bisMorgen(jetzt) {"), s.indexOf("    /* Der Kopf einer Start-Karte"));
+    const start = vm.runInNewContext("({" + teil.replace(/,\s*$/, "") + "})", {});
     gleich("Bis zum nächsten Tageswort", [start.bisMorgen(new Date(2026, 8, 28, 18, 48)),
         start.bisMorgen(new Date(2026, 8, 28, 23, 59, 30)), start.bisMorgen(new Date(2026, 8, 28, 0, 0))],
     ["5 h 12 min", "1 min", "24 h 0 min"]);
-    pruefe("Üben: zwei Karten Tageswort und Übung, je ein Knopf",
-        /START\.SPIELE\.forEach\(\(spiel\) => behaelter\.appendChild\(START\._modiBauen\(spiel\)\)\);/.test(s)
-            && /_modusKarte\("kalender", "Tageswort"/.test(s) && /_modusKarte\("uebung", "Übung"/.test(s)
-            && !/_spielKachelBauen/.test(s));
+    /* Seit 0.32.0: EINE Karte (das Tageswort) und zwei Knöpfe im Knopf-Bereich unten (tests\test-start.js fährt
+       den echten Bildschirm); bis 0.31.0 zwei Karten mit je einem Knopf. */
+    pruefe("Üben: zwei Modi Tageswort und Übung als zwei Knöpfe, eine Karte",
+        /knoepfe: \(\) => START\._uebenKnoepfe\(START\.SPIELE\[0\]\)/.test(s)
+            && /NAVIGATION\.zeigen\(spiel\.id, \{ modus: "tag" \}\)/.test(s)
+            && /NAVIGATION\.zeigen\(spiel\.id, \{ modus: "uebung" \}\)/.test(s)
+            && !/_spielKachelBauen|_modiBauen|_modusKarte/.test(s));
     const bw = lesen("js/bildschirm-wordle.js");
     pruefe("Ende: „Nächstes Übungswort“ nur in der Übung, kein Übungs-Knopf am Tageswort",
         /text: "Nächstes Übungswort"/.test(bw) && !/text: "Übungsrunde"/.test(bw));

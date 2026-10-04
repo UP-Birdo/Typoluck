@@ -79,8 +79,10 @@
 .upa-strich i { display: block; height: 100%; border-radius: inherit; background: var(--haupt); }
 .upa-kat-bald .upa-kat-bild { opacity: .6; }
 /* Schmale Handys (360 px): Bild und Abstände kleiner, damit „Farbwelten“, „Profilzeichen“, „Darstellung“ in eine
-   Zeile passen (04.10.2026: brach vorher mitten im Wort um). */
+   Zeile passen (04.10.2026: brach vorher mitten im Wort um). Vorschau-Karte und Balken der Seite rücken mit auf
+   10 px — sonst fluchten die Kacheln nicht mit der Karte darüber (04.10.2026 nachts; das Blatt bleibt bei 12). */
 @media (max-width: 379px) {
+  .upa-vorschau-rahmen, .upa-aktion:not(.upa-b-aktion) { padding-left: 10px; padding-right: 10px; }
   .upa-kat-raster { gap: 8px; padding-left: 10px; padding-right: 10px; }
   .upa-kat { gap: 4px 8px; padding: 9px 8px 8px; }
   .upa-kat-bild { width: 40px; height: 40px; }
@@ -138,6 +140,8 @@
 .upa-aktion .up-kn:disabled { --kf: var(--karte-leise); --kk: var(--still-kante); --ks: var(--schrift-leise); opacity: 1; }
 .upa-b-aktion { margin-top: auto; }
 .upa-b-aktion .upa-zufall { flex: none; }
+/* Weg in den Shop (nur mit opt.zumShop): genau einer von „Übernehmen“ und „Im Shop ansehen“ steht da. */
+.upa-aktion .upa-zumshop[hidden], .upa-aktion .upa-uebernehmen[hidden] { display: none; }
 
 /* Rückfall ohne upcrew-blatt.js: das Blatt als eigene Ebene über der Seite. */
 .upa-blatt-eigen { position: fixed; inset: var(--oben-frei, 0px) 0 var(--up-sm-leiste, 0px) 0; z-index: 60; min-height: 0;

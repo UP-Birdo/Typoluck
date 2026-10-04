@@ -457,7 +457,9 @@ const WORDLE_BILDSCHIRM = {
             "Deckt einen richtigen Buchstaben auf"
             + (runde.modus === "tag" ? " · Tageswort dann höchstens ein Bauer" : "")
             + (runde.modus === "bibliothek" ? " · höchstens eine Figur" : ""), "Einsetzen");
-        if (!ja) {
+        /* Seit 0.31.0: Wer bei offener Frage mit Zurück gegangen ist,
+           bekommt nichts eingesetzt und nichts gezeichnet (`_rundeOffen`). */
+        if (!ja || !WORDLE_BILDSCHIRM._rundeOffen(runde)) {
             return;
         }
         const tipp = tinte ? WORDLE.tinteEinsetzen(WORDLE_BILDSCHIRM.runde) : WORDLE.tippEinsetzen(WORDLE_BILDSCHIRM.runde);
@@ -1055,17 +1057,32 @@ const WORDLE_BILDSCHIRM = {
         });
     },
 
+    /* Steht diese Runde noch offen vor dem Spieler? Nach einer Rückfrage
+       (seit 0.31.0): Wer inzwischen mit der Zurück-Taste gegangen ist — der
+       Dialog bleibt dabei offen —, bekommt nichts mehr eingesetzt und
+       nichts mehr in den verborgenen Ort gezeichnet (sonst stünde
+       `body.im-spiel` auf dem Start: Leiste weg, Wischen gesperrt). */
+    _rundeOffen(runde) {
+        return NAVIGATION.aktuell === "wordle" && WORDLE_BILDSCHIRM.runde === runde;
+    },
+
     async _beiRundenende() {
+        const runde = WORDLE_BILDSCHIRM.runde;
+        /* weg = der Spieler ist gegangen, während die Frage offen war. */
+        let weg = false;
         /* Extra-Leben (seit 0.17.0): Der 6. Versuch ging daneben, und es
            ist eins im Vorrat — dann erst fragen, bevor gewertet wird. */
-        if (WORDLE.lebenMoeglich(WORDLE_BILDSCHIRM.runde) && APP.vorrat("leben") > 0) {
+        if (WORDLE.lebenMoeglich(runde) && APP.vorrat("leben") > 0) {
             WORDLE_BILDSCHIRM._sperre = true;
             const ja = await DIALOG.frage("Extra-Leben einsetzen?", "Ein "
-                + (WORDLE.versucheGrund(WORDLE_BILDSCHIRM.runde) + 1) + ". Versuch · Vorrat "
-                + APP.vorrat("leben") + (WORDLE_BILDSCHIRM.runde.modus === "tag"
+                + (WORDLE.versucheGrund(runde) + 1) + ". Versuch · Vorrat "
+                + APP.vorrat("leben") + (runde.modus === "tag"
                     ? " · Tageswort dann höchstens ein Bauer, Rangliste wie X/6" : ""), "Einsetzen");
-            WORDLE_BILDSCHIRM._sperre = false;
-            const neu = ja ? WORDLE.lebenEinsetzen(WORDLE_BILDSCHIRM.runde) : null;
+            weg = !WORDLE_BILDSCHIRM._rundeOffen(runde);
+            if (WORDLE_BILDSCHIRM.runde === runde) {
+                WORDLE_BILDSCHIRM._sperre = false;
+            }
+            const neu = (ja && !weg) ? WORDLE.lebenEinsetzen(runde) : null;
             if (neu && APP.benutzen("leben")) {
                 WORDLE_BILDSCHIRM.runde = neu;
                 WORDLE_BILDSCHIRM._merken();
@@ -1073,10 +1090,16 @@ const WORDLE_BILDSCHIRM = {
                 return;
             }
         }
-        const runde = WORDLE_BILDSCHIRM.runde;
         /* Seit 0.10.0: Wertung, XP, Heute — genau hier, einmal je Runde. Was
            dabei herauskam, zeigt das Ende-Feld (nur für DIESE Runde). */
         const gemeldet = APP.fortschrittMelden(runde);
+        if (weg) {
+            /* Gewertet ist die Runde; gezeichnet wird nichts mehr. */
+            if (runde.modus === "tag") {
+                APP.ergebnisMelden(runde);
+            }
+            return;
+        }
         WORDLE_BILDSCHIRM._gewinn = gemeldet
             ? { loesung: runde.loesung, begonnenAm: runde.begonnenAm, xp: gemeldet.ergebnis.xp,
                 muenzen: gemeldet.ergebnis.muenzen || 0, bibliothek: gemeldet.bibliothek || null }

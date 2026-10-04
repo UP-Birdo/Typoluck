@@ -17,8 +17,9 @@
  *   3. „NN %" = `tab.zaehlen()` plus die eigenen Abschnitte.
  *   4. Im Blatt: ein freies Kachel-Set lässt sich wählen und übernehmen
  *      (ohne Rückfrage), ein gesperrtes nur ansehen.
- *   5. Ohne Shop: gesperrte Stücke tragen „wird erspielt"; kein Level in der
- *      Oberfläche.
+ *   5. Mit Shop (seit 0.31.0): gesperrte, kaufbare Stücke tragen „im Shop";
+ *      kein Level in der Oberfläche. Gekauftes (js\besitz.js, je Person)
+ *      ist frei und lässt sich übernehmen.
  *   6. Die Vorschau zeigt das Kachel-Set des Entwurfs.
  *   7. Einbindung und Stil: nichts rollt waagrecht.
  *
@@ -37,9 +38,12 @@ const lesen = (name) => fs.readFileSync(pfad.join(wurzel, name), "utf8");
 
 /* In der Reihenfolge aus index.html (soweit die Sammlung sie braucht). */
 const DATEIEN = ["js/upcrew-intro.js", "js/upcrew-farbwelten.js", "js/upcrew-aussehen.js", "js/kachelsets.js",
-    "js/upcrew-katalog.js", "js/upcrew-platz.js", "js/upcrew-anpassen.js", "js/upcrew-abzeichen.js",
+    "js/upcrew-katalog.js", "js/upcrew-besitz.js", "js/upcrew-platz.js", "js/upcrew-anpassen.js", "js/upcrew-abzeichen.js",
     "js/upcrew-abzeichen-spiele.js", "js/upcrew-sammlung.js", "js/upcrew-blatt.js", "js/sammlung.js",
-    "js/bildschirm-sammlung.js"];
+    "js/bildschirm-sammlung.js", "js/besitz.js"];
+
+/* Die Person, als die die Welt läuft (Eintrag in `upcrew.besitz`). */
+const ICH_ID = "ich";
 
 /*
  * Eine Welt: Dokument, Gerätespeicher und die Attrappen der App.
@@ -47,6 +51,8 @@ const DATEIEN = ["js/upcrew-intro.js", "js/upcrew-farbwelten.js", "js/upcrew-aus
  *   taten     erfüllte Taten (Vorgabe keine)
  *   alleFrei  Werkstatt: alles frei
  *   gewaehlt  das Kachel-Set, das das Gerät trägt (Vorgabe Papier)
+ *   besitz    was im Gerätespeicher unter `upcrew.besitz` steht (je Person
+ *             eine Menge; die Welt läuft als „ich") — Vorgabe nichts
  */
 function welt(wahl) {
     const o = wahl || {};
@@ -97,10 +103,15 @@ function welt(wahl) {
         vm.runInContext(lesen(datei), umgebung, { filename: datei });
     }
     /* Der Fortschritt als Attrappe — die Abzeichen aus dem echten Baustein (leerer Stand: keins erreicht). */
-    vm.runInContext("globalThis.FORTSCHRITT = { erfuellteTaten: () => " + JSON.stringify(o.taten || [])
+    if (o.besitz) {
+        umgebung.localStorage.setItem("upcrew.besitz", JSON.stringify(o.besitz));
+    }
+    vm.runInContext("globalThis.FORTSCHRITT = { APP: 'typoluck', GAST: 'gast', _speicher: () => localStorage,"
+        + " erfuellteTaten: () => " + JSON.stringify(o.taten || [])
         + ", abzeichen: () => UPCREW_ABZEICHEN.liste({ spiele: {} }, 0) };"
         + "globalThis.SAMMLUNG_BILDSCHIRM = SAMMLUNG_BILDSCHIRM; globalThis.SAMMLUNG = SAMMLUNG;"
-        + "globalThis.KACHELSETS = KACHELSETS;", umgebung);
+        + "globalThis.KACHELSETS = KACHELSETS; globalThis.BESITZ = BESITZ;"
+        + "BESITZ.einrichten(null, null, () => " + JSON.stringify(ICH_ID) + ");", umgebung);
 
     /* Das Gerüst aus index.html: der Ort einer Seite, daneben der Halter der Blätter. */
     s.ort = dokument.createElement("div");
@@ -217,10 +228,10 @@ function welt(wahl) {
         knoepfe.filter((k) => !k.classList.contains("zu")).map((k) => k.dataset.wert), ["papier", "blei"]);
     gleich("Getragen wird Papier", knoepfe.filter((k) => k.classList.contains("aktiv")).map((k) => k.dataset.wert), ["papier"]);
 
-    /* 5. ohne Shop */
+    /* 5. mit Shop (seit 0.31.0; 0.30.0: „wird erspielt“) */
     const baender = knoepfe.filter((k) => k.classList.contains("zu")).map((k) => s.text(k.querySelector(".upa-band")));
-    pruefe("Ohne Shop: jedes gesperrte Set trägt „wird erspielt“ (nicht „im Shop“)",
-        baender.length === 8 && baender.every((b) => b === "wird erspielt"), baender.join(" | "));
+    pruefe("Mit Shop: jedes gesperrte Kachel-Set verweist auf den Shop („im Shop“)",
+        baender.length === 8 && baender.every((b) => b === "im Shop"), baender.join(" | "));
     pruefe("Kein Level in der Oberfläche (kein „ab 6“, kein „Lv“, kein Schloss mit Zahl)",
         !/\bab \d|Lv|Level|Stufe \d/.test(s.text(s.blatt())) && s.blatt().querySelectorAll(".upa-schloss").length === 0);
 
@@ -304,8 +315,48 @@ function welt(wahl) {
         [schriften.length, schriften.filter((k) => !k.classList.contains("zu")).map((k) => k.dataset.wert).sort()],
         [6, Object.keys(s.umgebung.UPCREW_ANPASSEN.STUFEN.schrift)
             .filter((w) => s.umgebung.UPCREW_ANPASSEN.STUFEN.schrift[w] <= 6).sort()]);
-    pruefe("… die gesperrten tragen „wird erspielt“, nie ein Level",
-        schriften.filter((k) => k.classList.contains("zu")).every((k) => s.text(k.querySelector(".upa-band")) === "wird erspielt"));
+    const schriftBaender = schriften.filter((k) => k.classList.contains("zu")).map((k) => s.text(k.querySelector(".upa-band")));
+    pruefe("… die gesperrten tragen „im Shop“ oder „wird erspielt“, nie ein Level",
+        schriftBaender.length > 0 && schriftBaender.every((b) => (b === "im Shop" || b === "wird erspielt") && !/\d/.test(b)),
+        schriftBaender.join(" | "));
+}
+
+/* ------------------------------------------------------------------ *
+ * Gekauftes ist frei (seit 0.31.0): Besitz je Person, neben Tat und Level
+ * ------------------------------------------------------------------ */
+
+{
+    /* „ich“ hat Neon und eine Schrift gekauft; eine andere Person auf demselben Gerät Glas. */
+    const teureSchrift = (() => {
+        const s0 = welt();
+        const stufen = s0.umgebung.UPCREW_ANPASSEN.STUFEN.schrift;
+        return Object.keys(stufen).sort((a, b) => stufen[b] - stufen[a])[0];
+    })();
+    const s = welt({ level: 0, besitz: { ich: { kachelset: ["neon"], schrift: [teureSchrift] }, anders: { kachelset: ["glas"] },
+        gast: { kachelset: ["kupfer"] } } }).zeigen();
+    gleich("Gekauft: die Kachel der Kachel-Sets zählt Papier + Neon", s.text(s.ort.querySelector(".upa-kat[data-kat=\"kachelset\"] small")), "2/10");
+    s.tab.blattOeffnen("kachelset");
+    gleich("… frei sind Papier und das gekaufte Neon — nicht, was eine andere Person oder der Gast gekauft hat",
+        s.setKnoepfe().filter((k) => !k.classList.contains("zu")).map((k) => k.dataset.wert), ["papier", "neon"]);
+    gleich("… das Modell sagt dasselbe (Tat/Level ODER Besitz)",
+        s.SAMMLUNG.kachelsetStuecke([], false, 0, s.S.besitz).filter((st) => st.frei).map((st) => st.wert), ["papier", "neon"]);
+    gleich("… ohne Haken wie bisher nur Papier (der heutige Weg ist unverändert)",
+        s.SAMMLUNG.kachelsetStuecke([], false, 0).filter((st) => st.frei).map((st) => st.wert), ["papier"]);
+    s.setKnopf("neon").click();
+    const uebernehmen = s.blatt().querySelector(".upa-uebernehmen");
+    gleich("Das gekaufte Set lässt sich wählen und übernehmen",
+        [uebernehmen.disabled, uebernehmen.click(), s.KACHELSETS.gewaehlt(), s.dokument.documentElement.dataset.kachelset],
+        [false, true, "neon", "neon"]);
+    s.tab.blattOeffnen("schrift");
+    const schriften = s.ebenen.querySelectorAll(".upa-stueck[data-art=\"schrift\"]");
+    pruefe("Eine gekaufte Schrift ist bei Level 0 frei (die teuerste der Stufen-Tabelle)",
+        schriften.some((k) => k.dataset.wert === teureSchrift && !k.classList.contains("zu")));
+    gleich("Der Haken des Bildschirms fragt die Person von jetzt",
+        [s.S.besitz("kachelset", "neon"), s.S.besitz("kachelset", "glas"), s.S.besitz("kachelset", "kupfer")], [true, false, false]);
+    gleich("SAMMLUNG.erspielt: der heutige Weg ohne Kauf — Papier ja, Neon nein (nur gekauft), mit Tat ja",
+        [s.SAMMLUNG.erspielt("kachelset", "papier", [], false, 0), s.SAMMLUNG.erspielt("kachelset", "neon", [], false, 0),
+            s.SAMMLUNG.erspielt("kachelset", "neon", ["koennen-90"], false, 0), s.SAMMLUNG.erspielt("einband", "x", [], true, 99)],
+        [true, false, true, false]);
 }
 
 /* Werkstatt: alles frei. */
@@ -326,12 +377,13 @@ function welt(wahl) {
 {
     const bildschirm = lesen("js/bildschirm-sammlung.js");
     const ohneKommentar = bildschirm.replace(/\/\*[\s\S]*?\*\//g, "");
-    pruefe("Der Aufruf: ohne Shop (shop: false), mit dem Regal der Kachel-Sets und der eigenen Vorschau",
-        /UPCREW_ANPASSEN\.zeigen\(geruest\.ort, \{[^}]*shop: false,[^}]*regale: \[SAMMLUNG_BILDSCHIRM\._kachelsetRegal\(\)\],[^}]*vorschau: SAMMLUNG_BILDSCHIRM\._vorschau/.test(ohneKommentar));
+    pruefe("Der Aufruf: mit Besitz, ohne `shop: false` (seit 0.31.0), mit dem Regal der Kachel-Sets und der eigenen Vorschau",
+        /UPCREW_ANPASSEN\.zeigen\(geruest\.ort, \{[^}]*besitz: SAMMLUNG_BILDSCHIRM\.besitz,[^}]*regale: \[SAMMLUNG_BILDSCHIRM\._kachelsetRegal\(\)\],[^}]*vorschau: SAMMLUNG_BILDSCHIRM\._vorschau/.test(ohneKommentar)
+            && !/shop: false/.test(ohneKommentar));
     pruefe("Das Regal: Schlüssel kachelset, Wert vom Gerät, Übernehmen = KACHELSETS.waehlen",
         /schluessel: "kachelset",\s*titel: "Kachel-Sets",\s*wert: KACHELSETS\.gewaehlt\(\),\s*stuecke: SAMMLUNG\.kachelsetStuecke\([\s\S]*?uebernehmen: KACHELSETS\.waehlen/.test(ohneKommentar));
-    pruefe("Besitz liefert weiter fest false (der Shop mit Kauf kommt eigens)",
-        /besitz\(art, wert\) \{\s*return false;\s*\}/.test(ohneKommentar));
+    pruefe("Besitz liefert echt (seit 0.31.0): fragt js\\besitz.js",
+        /besitz\(art, wert\) \{\s*return typeof BESITZ !== "undefined" && BESITZ\.hat\(art, wert\);\s*\}/.test(ohneKommentar));
     pruefe("Keine „Anziehen“-Rückfrage mehr, keine Markierung .stueck-aktiv, kein Neuzeichnen nach dem Anziehen",
         !/Anziehen|DIALOG\.frage|stueck-aktiv|NAVIGATION\.auffrischen/.test(ohneKommentar)
             && !/stueck-aktiv/.test(lesen("css/stil-bildschirme.css").replace(/\/\*[\s\S]*?\*\//g, "")));
@@ -346,14 +398,15 @@ function welt(wahl) {
     const stile = (index.match(/<link rel="stylesheet" href="([^"]+)"/g) || []).map((z) => z.match(/href="([^"]+)"/)[1]);
     pruefe("index.html: upcrew-platz.css VOR upcrew-anpassen.css",
         stile.indexOf("css/upcrew-platz.css") !== -1 && stile.indexOf("css/upcrew-platz.css") < stile.indexOf("css/upcrew-anpassen.css"));
-    gleich("index.html: upcrew-katalog.js, dann upcrew-platz.js, direkt vor upcrew-anpassen.js",
-        skripte.slice(skripte.indexOf("js/upcrew-katalog.js"), skripte.indexOf("js/upcrew-katalog.js") + 3),
-        ["js/upcrew-katalog.js", "js/upcrew-platz.js", "js/upcrew-anpassen.js"]);
+    gleich("index.html: upcrew-katalog.js, upcrew-besitz.js (seit 0.31.0), upcrew-platz.js, direkt vor upcrew-anpassen.js",
+        skripte.slice(skripte.indexOf("js/upcrew-katalog.js"), skripte.indexOf("js/upcrew-katalog.js") + 4),
+        ["js/upcrew-katalog.js", "js/upcrew-besitz.js", "js/upcrew-platz.js", "js/upcrew-anpassen.js"]);
     pruefe("… und vor upcrew-sammlung.js", skripte.indexOf("js/upcrew-platz.js") < skripte.indexOf("js/upcrew-sammlung.js"));
-    pruefe("Der neue Shop ist NICHT dabei (kein upcrew-besitz.js)",
-        skripte.indexOf("js/upcrew-besitz.js") === -1 && !fs.existsSync(pfad.join(wurzel, "js", "upcrew-besitz.js")));
+    pruefe("Der Besitz ist dabei (seit 0.31.0): Baustein upcrew-besitz.js und das eigene js/besitz.js vor app.js",
+        fs.existsSync(pfad.join(wurzel, "js", "upcrew-besitz.js")) && skripte.indexOf("js/besitz.js") !== -1
+            && skripte.indexOf("js/besitz.js") < skripte.indexOf("js/app.js"));
     const sw = lesen("sw.js");
-    for (const datei of ["js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css"]) {
+    for (const datei of ["js/upcrew-katalog.js", "js/upcrew-platz.js", "css/upcrew-platz.css", "js/upcrew-besitz.js", "js/besitz.js"]) {
         pruefe("Offline (sw.js): " + datei, sw.indexOf("\"./" + datei + "\"") !== -1);
     }
 

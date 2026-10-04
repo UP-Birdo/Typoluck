@@ -67,7 +67,10 @@
  *                                      Buch 1 durch
  *     &bibliothek=2-7:1                rohe Figuren in turm.figuren (z. B.
  *                                      alte 0.18.x-Schlüssel für den Umzug)
- *     &art=ueben                       Art des Starts (Vorgabe Bibliothek)
+ *     &art=ueben                       Art des Starts (Vorgabe Bibliothek);
+ *     &artwahl &verlauf                seit 0.32.0: &artwahl = die Wahl am
+ *                                      Quadrat offen, &verlauf = der Verlauf
+ *                                      der Bibliothek als Blatt
  *     &buch=3&kap=2                    auf dem Start: dieses Buch / Kapitel
  *     &offen                           (seit 0.23.2) das Buch im Vollbild statt
  *                                      der Vorschau
@@ -92,6 +95,24 @@
  *                                      (gezählt, als wären sie oft der erste
  *                                      Versuch); der Zensor (Buch 4,
  *                                      &station=Boss) bannt sie
+ *     &muenzen=1200                    (seit 0.31.0) so viele Münzen verdient
+ *     &besitz=kachelset-blei,…         (seit 0.31.0) im Shop Gekauftes der
+ *                                      Werkstatt (Kennungen des Katalogs);
+ *                                      zum Kaufen im Shop dazu &gesperrt —
+ *                                      sonst ist in der Werkstatt alles frei
+ *     &duell                           (seit 0.34.0) das Duell NUR hier an
+ *     &duell=einladung                 (die Regel §14 ist nicht eingespielt,
+ *                                      KONFIG.REGEL_14_EINGESPIELT bleibt
+ *                                      false): der Zweig liegt als Attrappe
+ *                                      im Gerätespeicher, Anna, Ben und Clara
+ *                                      spielen den Gegner — sie nehmen eine
+ *                                      Herausforderung nach 3 s an und
+ *                                      spielen jedes Wort, das sie dürfen,
+ *                                      sofort (nur Farben und Zeiten).
+ *                                      =einladung: Ben hat schon eingeladen
+ *                                      (und zwei Wörter vorgelegt). Der Start
+ *                                      steht auf der Art „Duell". Neu laden =
+ *                                      alles von vorn.
  *     &anmeldung&konto=neu             das Formular „Neues UPCrew-Konto"
  *                                      (seit 0.18.5); dazu &eingabe=Name,
  *                                      Passwort,Wiederholung (vorbelegt),
@@ -100,13 +121,34 @@
  *                                      vorhanden (so, wie die Absage vom
  *                                      Server am Feld stünde)
  *
- * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts,
- * und so sieht man auf dem Handy mit derselben Adresse dasselbe wie am Rechner.
+ * Ausgeliefert wird die Datei trotzdem: Ohne `?werkstatt` tut sie nichts.
+ *
+ * NUR AUF EINEM LOKALEN RECHNER (seit 0.34.1, Prüfung der Nacht 04.10.2026
+ * Fund 4): Die Werkstatt samt aller Parameter (auch `&duell`) gibt es nur
+ * auf `localhost`, `127.0.0.1` und `[::1]`. Auf jeder anderen Adresse liest
+ * `_parameter()` — die EINE Stelle, über die jeder Werkstatt-Parameter
+ * kommt — nichts: Die Werkstatt ist aus, nichts wird gelöscht. Bis 0.34.0
+ * löschte ein `?werkstatt`-Link auf der echten Seite alle `typoluck.*`-
+ * Einträge des Geräts samt Konto-Sitzung.
  */
 
 const WERKSTATT = {
 
+    LOKALE_ORTE: ["localhost", "127.0.0.1", "[::1]"],
+
+    /* Läuft die App auf einem lokalen Rechner? */
+    lokal() {
+        try {
+            return WERKSTATT.LOKALE_ORTE.indexOf(window.location.hostname) !== -1;
+        } catch (fehler) {
+            return false;
+        }
+    },
+
     _parameter() {
+        if (!WERKSTATT.lokal()) {
+            return new URLSearchParams("");
+        }
         try {
             return new URLSearchParams(window.location.search);
         } catch (fehler) {
@@ -130,6 +172,10 @@ const WERKSTATT = {
 
     /* Vor dem Start der App: alles frisch anlegen. */
     vorbereiten() {
+        /* Nie ohne aktive Werkstatt löschen (seit 0.34.1). */
+        if (!WERKSTATT.aktiv()) {
+            return;
+        }
         const speicher = window.localStorage;
         for (const schluessel of Object.keys(speicher)) {
             if (schluessel.indexOf("typoluck.") === 0) {
@@ -235,8 +281,18 @@ const WERKSTATT = {
            0.11.0 wird NUR der Eintrag der Werkstatt ersetzt: Auf dem
            gemeinsamen Server (8093) liegt daneben Blunderlucks Stand. */
         WERKSTATT._fortschrittAnlegen(speicher, ids[0], heute);
+        WERKSTATT._besitzAnlegen(speicher, ids[0]);
         WERKSTATT._durchgangAnlegen(ids[0]);
         WERKSTATT._lieblingeAnlegen(ids[0]);
+
+        /* Das Duell (seit 0.34.0): nur mit `&duell`, nur hier. */
+        WERKSTATT._duell = null;
+        if (WERKSTATT._parameter().has("duell") && typeof DUELL !== "undefined" && typeof DUELL_ABGLEICH !== "undefined") {
+            WERKSTATT._duellAnlegen(ids);
+            if (!WERKSTATT.wert("art") && typeof START.ART_SCHLUESSEL === "string") {
+                speicher.setItem(START.ART_SCHLUESSEL, "duell");
+            }
+        }
 
         /* Art des Starts und angesehenes Buch (seit 0.18.0). */
         if (WERKSTATT.wert("art") && typeof START.ART_SCHLUESSEL === "string") {
@@ -291,6 +347,32 @@ const WERKSTATT = {
         }
     },
 
+    /*
+     * Das Duell der Werkstatt (seit 0.34.0): schaltet es NUR hier an
+     * (`DUELL._werkstatt`, KONFIG bleibt unberührt) und legt die Attrappe des
+     * Zweigs `typoluck-intern/duell` frisch im Gerätespeicher an — nie die
+     * Datenbank. Die Freunde Anna, Ben und Clara spielen den Gegner
+     * (DUELL_ABGLEICH.werkstattGegner). js\app.js holt die Rückwand über
+     * `duellRueckwand()`.
+     */
+    _duell: null,
+
+    _duellAnlegen(ids) {
+        DUELL._werkstatt = true;
+        const attrappe = new DuellAttrappe(DUELL_ABGLEICH.SCHLUESSEL_ATTRAPPE);
+        attrappe.baumSetzen({});
+        if (WERKSTATT.wert("duell") === "einladung") {
+            DUELL_ABGLEICH.werkstattEinladung(attrappe, ids[2], ids[0], "WerkstattBenDuell001",
+                WOERTER_DE.loesungen.length);
+        }
+        attrappe.vorDemLesen = DUELL_ABGLEICH.werkstattGegner(ids[0], [ids[1], ids[2], ids[3]]);
+        WERKSTATT._duell = attrappe;
+    },
+
+    duellRueckwand() {
+        return WERKSTATT._duell;
+    },
+
     /* `&lieblinge=a,b,c` (seit 0.28.0): jedes Wort mehrmals als erster
        Versuch gezählt — das erste am öftesten, so bleibt die Reihenfolge. */
     _lieblingeAnlegen(id) {
@@ -340,7 +422,7 @@ const WERKSTATT = {
                 zaehler: { partien: Math.floor(zahl("xp") / 12), tagesaufgaben: zahl("serie"),
                     beideTage: 0, figuren: zahl("serie") * 2, besteSerie: zahl("serie") }
             };
-        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten", "bibliothek", "lauf"].some((name) => parameter.has(name))) {
+        } else if (["xp", "serie", "brett", "wort", "bxp", "turm", "taten", "bibliothek", "lauf", "muenzen"].some((name) => parameter.has(name))) {
             const tage = [];
             let tag = heute;
             for (let i = 0; i < zahl("serie"); i++) {
@@ -355,6 +437,10 @@ const WERKSTATT = {
                 figuren: tage.length * 2, beideTage: zahl("brett") && zahl("wort") ? 1 : 0,
                 koennenSumme: zweig.partien * 64, koennenAnzahl: zweig.partien,
                 koennenBeste: zweig.partien ? 91 : 0 });
+            /* `&muenzen=1200` (seit 0.31.0): so viele Münzen verdient. */
+            if (zahl("muenzen")) {
+                zweig.zaehler.muenzenVerdient = zahl("muenzen");
+            }
             zweig.taten = (WERKSTATT.wert("taten") || "").split(",").filter((id) => id);
             const turm = { figuren: WERKSTATT._bibliothekFiguren(WERKSTATT.wert("bibliothek") || ""), schwuere: {} };
             for (const teil of (WERKSTATT.wert("lauf") || "").split(",").filter((t) => t)) {
@@ -383,6 +469,35 @@ const WERKSTATT = {
             alle[id] = eintrag;
         }
         speicher.setItem(FORTSCHRITT.SCHLUESSEL, JSON.stringify(alle));
+    },
+
+    /* Der Besitz aus dem Shop (seit 0.31.0, js\besitz.js): Der Eintrag der
+       Werkstatt in `upcrew.besitz` wird frisch angelegt — leer, oder mit
+       `&besitz=kachelset-blei,farbwelt-studio` (Kennungen des Katalogs).
+       Fremde Einträge bleiben stehen; ein offener Kauf-Merker verschwindet. */
+    _besitzAnlegen(speicher, id) {
+        if (typeof BESITZ === "undefined" || typeof UPCREW_BESITZ === "undefined") {
+            return;
+        }
+        let alle = {};
+        try {
+            alle = JSON.parse(speicher.getItem(BESITZ.SCHLUESSEL) || "{}") || {};
+        } catch (fehler) {
+            alle = {};
+        }
+        delete alle[id];
+        const menge = {};
+        for (const kennung of (WERKSTATT.wert("besitz") || "").split(",").filter((k) => k)) {
+            const stueck = UPCREW_KATALOG.nachKennung(kennung);
+            if (stueck) {
+                menge[stueck.art] = (menge[stueck.art] || []).concat([stueck.wert]);
+            }
+        }
+        if (Object.keys(menge).length) {
+            alle[id] = UPCREW_BESITZ.lesen(menge);
+        }
+        speicher.setItem(BESITZ.SCHLUESSEL, JSON.stringify(alle));
+        speicher.removeItem(BESITZ.offenSchluessel());
     },
 
     /* Der Durchgang der Bibliothek (seit 0.21.0): &herzen= &effekt= &ueben
@@ -488,6 +603,16 @@ const WERKSTATT = {
         }
         if (WERKSTATT._parameter().has("seriekarte") && typeof START.serieOeffnen === "function") {
             START.serieOeffnen();
+        }
+        /* Seit 0.32.0: der Verlauf der Bibliothek als Blatt, die Wahl am
+           Quadrat offen. */
+        if (WERKSTATT._parameter().has("verlauf") && NAVIGATION.aktuell === "start"
+                && typeof START.bibVerlaufOeffnen === "function") {
+            START.bibVerlaufOeffnen();
+        }
+        if (WERKSTATT._parameter().has("artwahl") && NAVIGATION.aktuell === "start") {
+            START.artMenueOffen = true;
+            NAVIGATION.auffrischen();
         }
         /* Das Blatt von unten (seit 0.20.0): wartende Station, Gabelung
            oder der Boss des angesehenen Buchs. */

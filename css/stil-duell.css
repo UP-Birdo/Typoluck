@@ -1,0 +1,324 @@
+/*
+ * stil-duell.css — das Duell (seit 0.34.0, js\bildschirm-duell.js): die
+ * Karte der Start-Art, die Übersicht, die Runde mit dem Geist, das Wort-
+ * Ergebnis. Schlicht: jede Grafik ist ein Platz (css\upcrew-platz.css) mit
+ * Platzhalter. Nichts rollt waagrecht — alles bricht um oder schrumpft.
+ */
+
+/* ---- Die Karte der Start-Art ---- */
+.start-karte-duell .duell-karte-mitte {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    overflow: hidden;
+    text-align: center;
+}
+
+.start-karte-duell .duell-vs-bild {
+    width: min(100%, 220px);
+    max-height: 34%;
+    flex: 0 1 auto;
+    min-height: 0;
+}
+
+.duell-karte-gegner,
+.duell-karte-zeile {
+    margin: 0;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.duell-karte-zeile {
+    font-size: 0.9rem;
+}
+
+.duell-lage-dran {
+    color: var(--haupt);
+}
+
+.duell-gross {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.duell-leise {
+    color: var(--schrift-leise);
+    font-size: 0.85rem;
+}
+
+/* ---- Der Bildschirm ---- */
+.duell {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    max-width: 480px;
+    margin: 0 auto;
+    min-width: 0;
+}
+
+.duell-vs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.duell .duell-vs-bild {
+    width: min(60%, 200px);
+    /* Ohne Duell steht der Platz direkt im Bildschirm (Eltern `stretch`) —
+       mittig wie in `.duell-vs` (seit 0.34.4, vorher links). */
+    align-self: center;
+}
+
+.duell-vs-zeile {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+}
+
+.duell-vs-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-weight: 700;
+    text-align: center;
+}
+
+.duell-lage {
+    margin: 0;
+    text-align: center;
+    font-weight: 700;
+}
+
+.duell-ende-bild {
+    width: 120px;
+    align-self: center;
+}
+
+.duell-geholt-bild {
+    width: 80px;
+    align-self: center;
+}
+
+.duell-woerter,
+.duell-beendet-liste {
+    display: grid;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.duell-wort,
+.duell-beendet-zeile {
+    display: grid;
+    grid-template-columns: auto 1fr 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-klein);
+    font-variant-numeric: tabular-nums;
+    min-width: 0;
+}
+
+/* Feste Ränder-Spalten, damit der Kopf über denselben Spalten steht wie
+   jede Zeile (seit 0.34.4; vorher `auto`, je Zeile anders breit). */
+.duell-wort {
+    grid-template-columns: 4em 1fr 1fr 4em;
+}
+
+/* Der Kopf: nur Beschriftung, ohne Karte. */
+.duell-wort.duell-wort-kopf {
+    padding-top: 0;
+    padding-bottom: 0;
+    background: none;
+    border-color: transparent;
+}
+
+.duell-wort-kopf .duell-wort-ich,
+.duell-wort-kopf .duell-wort-er,
+.duell-wort-kopf .duell-wort-holt {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--schrift-leise);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.duell-beendet-zeile {
+    grid-template-columns: 1fr auto auto;
+}
+
+.duell-wort-nr {
+    color: var(--schrift-leise);
+    font-size: 0.85rem;
+}
+
+.duell-wort-ich,
+.duell-wort-er {
+    font-weight: 700;
+    text-align: center;
+}
+
+.duell-wort-holt {
+    min-width: 3em;
+    text-align: right;
+    font-size: 0.85rem;
+    color: var(--schrift-leise);
+}
+
+.duell-wort-holt.ich {
+    color: var(--haupt);
+    font-weight: 700;
+}
+
+.duell-titel {
+    margin: 8px 0 6px;
+    font-size: 0.95rem;
+}
+
+.duell-knoepfe {
+    display: grid;
+    gap: 8px;
+}
+
+.duell-knoepfe.zwei {
+    grid-template-columns: 1fr 1fr;
+}
+
+.duell-einladung-karte {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    background: var(--karte);
+    border: 1px solid var(--rahmen);
+    border-radius: var(--rund-mittel);
+}
+
+.duell-einladung-name {
+    margin: 0;
+    font-weight: 700;
+}
+
+.duell-freunde {
+    display: grid;
+    gap: 8px;
+}
+
+/* ---- Die Runde: Uhr und Geist über dem Brett ---- */
+.duell-geist {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+    font-size: 0.85rem;
+}
+
+.duell-geist-name {
+    font-weight: 700;
+}
+
+.duell-geist-text {
+    color: var(--schrift-leise);
+}
+
+/* Noch nicht erreichte Zeilen des Geists: leer (die Farben setzt
+   js\bildschirm-duell.js mit den Klassen muster-richtig/-vorhanden/-falsch). */
+.duell-geist-feld:not(.muster-richtig):not(.muster-vorhanden):not(.muster-falsch) {
+    background: var(--karte-leise, var(--rahmen));
+}
+
+body.im-spiel .inhalt[data-bildschirm="duell"] {
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+body.im-spiel .inhalt[data-bildschirm="duell"] > .kopfzeile {
+    flex: none;
+}
+
+body.im-spiel .inhalt[data-bildschirm="duell"] > .wordle {
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 8px;
+}
+
+body.im-spiel .duell-runde > .wordle-uhr,
+body.im-spiel .duell-runde > .duell-geist,
+body.im-spiel .duell-runde > .tastatur {
+    flex: none;
+    margin: 0;
+}
+
+body.im-spiel .duell-runde > .wordle-brett {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-content: start;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 2px 2px 6px;
+    container-type: size;
+}
+
+/* Sechs Zeilen passen ohne Rollen (wie die normale Runde, stil-wordle.css). */
+body.im-spiel .duell-runde > .wordle-brett > .wordle-zeile {
+    justify-self: center;
+    width: 100%;
+    width: min(100%, max(204px, calc((100cqh - 2px - 5 * 6px) / 6 * 5 + 4 * 6px)));
+}
+
+/* ---- Nach dem Wort: beide Seiten nebeneinander ---- */
+.duell-vergleich {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    min-width: 0;
+}
+
+.duell-seite {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.duell-klein-brett {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    max-width: 160px;
+}
+
+.duell-klein-brett .wordle-zeile {
+    gap: 3px;
+}
+
+.duell-klein-brett .kachel {
+    font-size: 0.9rem;
+    border-width: 1px;
+}
+
+.duell-muster-gross .muster-feld {
+    width: 16px;
+    height: 16px;
+}

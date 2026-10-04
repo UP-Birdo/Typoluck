@@ -36,7 +36,8 @@ In der Ladereihenfolge aus `index.html` (dieselbe steht in `sw.js`):
 | `js\dialog.js` | Oberfläche | Eigene Dialoge und Kurzmeldung |
 | `js\navigation.js` | Oberfläche | Bildschirme; seit 0.29.0 das Seiten-Band der Leisten-Tabs (je Tab eine stehende Seite in `#band`, Baustein `js\upcrew-wischen.js`, seit 0.30.0 mit `frueh: true` — die Leiste zieht schon nach, während das losgelassene Band ausrollt; alles ohne Leisten-Knopf im gemeinsamen Ort `#inhalt`), Menü hinter den drei Balken (seit 0.3.0), Leiste unten (seit 0.5.0; seit 0.9.0 der Baustein `upcrew-leiste.css`: Aufgaben · Sammlung · Start · Rangliste · Bald), Zurück-Taste |
 | `js\anmeldung.js` | Bildschirm | Anmelde-Vollbild, Konto anlegen, Name/Passwort ändern |
-| `js\bildschirm-start.js` | Bildschirm | Start mit Spiel-Kacheln und „Heute bei deinen Freunden" |
+| `js\bildschirm-start.js` | Bildschirm | Start (seit 0.32.0): Kopf · EINE Karte, die den Platz füllt · Knopf-Bereich 82 px mit Umschalt-Quadrat. Die Arten stehen an einer Stelle (`START.ARTEN`: Bibliothek, Üben — eine dritte ist ein Eintrag mit `karte` und `knoepfe`); gemerkte Art `typoluck.start-art`; offene Runden (`offeneRunden`) stehen im Knopf als „Zurück zur Runde" |
+| `js\start-bibliothek.js` | Bildschirm | Bibliothek auf dem Start: Vorschau „B" (der Weg des Kapitels füllt die Karte, jede Grafik ein Platz `bibliothek/…`), Verlauf als Blatt (`verlaufDaten`: war · jetzt · kommt), das Buch im Vollbild, Stations-Blätter |
 | `js\bildschirm-wordle.js` | Bildschirm | Brett, Tastatur, Aufdecken, Ende |
 | `js\bildschirm-rangliste.js` | Bildschirm | Heute / 7 Tage, Alle / Freunde |
 | `js\bildschirm-freunde.js` | Bildschirm | Anfragen, Freunde, Suche |

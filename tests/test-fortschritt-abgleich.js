@@ -238,6 +238,24 @@ spaeter("Abgleich", (async () => {
     pruefe("… Blunderlucks Zweig NICHT aufs Gerät geschrieben", !("blunderluck" in geraetStand.spiele));
     gleich("… aber beim Lesen dabei (Level aus beiden)", FORTSCHRITT.gesamtXp(FORTSCHRITT_ABGLEICH.mitKonto(geraetStand)), 580);
 
+    /* Seit 0.31.0 (Befund der Nacht 04.10.2026, Tabelle 1 Nr. 4): „geändert"
+       heisst, dass sich etwas BEWEGT hat. Bis 0.30.0 genügte ein fremder
+       Zweig am Konto — bei jeder Rückkehr in den Vordergrund wurde die
+       offene Seite samt Blättern neu gezeichnet. */
+    gleich("Rückkehr ohne Änderung: nicht geändert (kein Neu-Zeichnen), obwohl am Konto ein fremder Zweig steht",
+        [await FORTSCHRITT_ABGLEICH.holen(), await FORTSCHRITT_ABGLEICH.holen()], [false, false]);
+    await speicher.teilSchreiben({ "konten/uid-2/fortschritt/spiele/blunderluck": { xp: 95, stand: 8 } });
+    gleich("Der fremde Zweig hat sich bewegt: geändert, und das Lesen zeigt es",
+        [await FORTSCHRITT_ABGLEICH.holen(), FORTSCHRITT.gesamtXp(FORTSCHRITT_ABGLEICH.mitKonto(FORTSCHRITT.laden("uid-2")))], [true, 595]);
+    gleich("… danach wieder Ruhe", await FORTSCHRITT_ABGLEICH.holen(), false);
+    speicher = aufbauen("uid-2b");
+    await speicher.teilSchreiben({ "konten/uid-2b/fortschritt": { version: 1, spiele: { blunderluck: { xp: 80, stand: 7 } } } });
+    gleich("Erstes Holen einer Sitzung mit fremdem Zweig: geändert (er ist für die Anzeige neu), dann nicht mehr",
+        [await FORTSCHRITT_ABGLEICH.holen(), await FORTSCHRITT_ABGLEICH.holen()], [true, false]);
+    speicher = aufbauen("uid-2c");
+    FORTSCHRITT.aendern("uid-2c", (s) => FORTSCHRITT.partie(s, { datum: HEUTE }), 100);
+    gleich("Ohne fremden Zweig: nicht geändert (wie bisher)", await FORTSCHRITT_ABGLEICH.holen(), false);
+
     /* Holen: auf dem Gerät neuer → hinauf */
     speicher = aufbauen("uid-3");
     FORTSCHRITT.aendern("uid-3", (s) => FORTSCHRITT.partie(s, { datum: HEUTE }), 9000);

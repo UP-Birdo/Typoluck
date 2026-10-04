@@ -481,6 +481,11 @@ const ANMELDUNG = {
             if (ergebnis.ok && typeof SPIELZEIT !== "undefined" && ANMELDUNG.ich()) {
                 SPIELZEIT.gastZumKonto(ANMELDUNG.ich().id);
             }
+            /* Der Besitz aus dem Shop zieht genauso mit (seit 0.31.0,
+               js/besitz.js): an derselben Stelle wie der Fortschritt. */
+            if (ergebnis.ok && typeof BESITZ !== "undefined" && ANMELDUNG.ich()) {
+                BESITZ.gastZumKonto(ANMELDUNG.ich().id);
+            }
         });
 
         kasten.appendChild(los);
@@ -517,8 +522,13 @@ const ANMELDUNG = {
             if (name === ich.name) {
                 return;
             }
+            const frisch = await ANMELDUNG._frischZumSchreiben();
+            if (!frisch) {
+                await DIALOG.hinweis("Das geht nicht", KONTO.fehlerText("netz"));
+                return;
+            }
             const ergebnis = await KONTO.nameAendern(ANMELDUNG.abgleich.speicher,
-                ANMELDUNG.abgleich.daten, ich, name);
+                frisch.daten, frisch.ich, name);
             if (!ergebnis.ok) {
                 await DIALOG.hinweis("Das geht nicht", ergebnis.text);
                 return;
@@ -603,8 +613,13 @@ const ANMELDUNG = {
         if (eingabe === null) {
             return;
         }
+        const frisch = await ANMELDUNG._frischZumSchreiben();
+        if (!frisch) {
+            await DIALOG.hinweis("Das geht nicht", KONTO.fehlerText("netz"));
+            return;
+        }
         const ergebnis = await KONTO.tagAendern(ANMELDUNG.abgleich.speicher,
-            ANMELDUNG.abgleich.daten, ich, eingabe.trim());
+            frisch.daten, frisch.ich, eingabe.trim());
         if (!ergebnis.ok) {
             await DIALOG.hinweis("Das geht nicht", ergebnis.text);
             return;
@@ -889,6 +904,34 @@ const ANMELDUNG = {
         if (typeof KONTO.istP12 === "function" && KONTO.istP12()) {
             await ANMELDUNG._nachladen();
         }
+    },
+
+    /*
+     * VOR dem Ändern von Name oder Nummer (seit 0.34.2): js\konto.js schreibt
+     * dabei den GANZEN eigenen Eintrag — genau den, der ihm übergeben wird.
+     * Die Kopie im Abgleich kann aber älter sein als das Konto (die Frage
+     * stand eine Weile offen; ein anderes Gerät oder Spiel hat inzwischen
+     * Fortschritt oder Besitz geschrieben) — dann stünde danach wieder der
+     * alte Stand am Konto. Deshalb wie `Abgleich.schreiben`: erst frisch
+     * laden, dann zusammenführen (`SPIELER.zusammenfuehren`: Eigenes aus der
+     * Kopie, alles andere vom Konto). Seit 0.34.3 kommen dabei auch Name,
+     * Nummer, Kennung, Gast, neuVerbinden und uid vom frisch geladenen Konto
+     * (`SPIELER._kontoFelder`) — so ist `ich` hier der ECHTE alte Platz, den
+     * js\konto.js freigibt; den neuen Namen bzw. die neue Nummer setzt
+     * js\konto.js erst danach. Liefert { daten, ich } — oder null,
+     * wenn das Laden scheitert: Dann wird NICHT geschrieben.
+     */
+    async _frischZumSchreiben() {
+        const abgleich = ANMELDUNG.abgleich;
+        let fremd = null;
+        try {
+            fremd = await abgleich.speicher.laden();
+        } catch (fehler) {
+            return null;
+        }
+        const daten = SPIELER.zusammenfuehren(fremd, abgleich.daten, ANMELDUNG.ichId);
+        const ich = SPIELER.spielerFinden(daten, ANMELDUNG.ichId);
+        return ich ? { daten: daten, ich: ich } : null;
     },
 
     /* Die Spielerliste frisch vom Server — nach jedem Konto-Ablauf. */

@@ -31,6 +31,7 @@
  *         shop: false,                     // optional: false = das Spiel hat den Shop mit Besitz noch nicht —
  *                                          //  gesperrte Stücke tragen dann „wird erspielt“ statt „im Shop“
  *                                          //  (bis dahin ist Erspielen der einzige Weg)
+ *         zumShop({ art, wert }) {…},      // optional (NEU 04.10.2026): der Weg in den Shop, siehe unten
  *         sets: { lesen() {…}, schreiben(liste) {…} },  // optional; Standard: Gerät
  *         regale: [ … ],                   // optional: EIGENE Regale nur dieser App (siehe unten)
  *         vorschau(el, entwurf, app) {…}   // optional: eigene Vorschau nach dem Zeichnen (auch im Blatt)
@@ -50,6 +51,19 @@
  * durchlässt; `UPCREW_ANPASSEN.frei(art, wert, stufe, besitz)` rechnet dasselbe für die App. Bei eigenen Regalen
  * zusätzlich, was die App mit `frei !== false` meldet. Die Oberfläche nennt KEIN Level mehr: Gesperrtes zeigt
  * „im Shop“, „wird erspielt“ oder den Text `ab` der App (ein Ort, kein Level). Der WÜRFEL wählt NUR Freies.
+ *
+ * DER WEG IN DEN SHOP (wahlfrei, seit 04.10.2026): Übergibt das Spiel `zumShop`, zeigt das Blatt für ein Stück
+ * zur Probe, das „im Shop“ trägt (kaufbar, wirksam, nicht frei/besessen, kein eigener `ab`-Text), statt des
+ * gesperrten „Nicht im Besitz“ den Knopf „Im Shop ansehen“. Ein Tipp schließt das Blatt und ruft
+ * `zumShop({ art, wert })` — `art` ist der KATALOG-Schlüssel (wie bei `besitz`: "brett3d", nicht "thema").
+ * Ohne `zumShop`, mit `shop: false`, bei „wird erspielt“, „bald“, eigenem `ab` und Besessenem bleibt alles wie
+ * bisher. `UPCREW_ANPASSEN.shopWeg(st, opt)` rechnet dieselbe Wahl (rein, für Tests). Ein Spiel verbindet so
+ * (der Shop erwartet "stueck:<art>-<wert>" = UPCREW_KATALOG.kennung, ein Paket "paket:<wert>"):
+ *     zumShop({ art, wert }) {
+ *         tabZeigen("shop");                                   // eigener Tab-Wechsel des Spiels (baut den Shop)
+ *         shop.teilSetzen("design");                           // falls der Reiter Vorrat vorn war
+ *         shop.oeffnen("stueck:" + art + "-" + wert);          // öffnet das Stück-Blatt mit Preis und „Kaufen“
+ *     }
  *
  * Braucht: upcrew-intro.js (WELTEN), upcrew-farbwelten.js, upcrew-aussehen.js, upcrew-platz.js (+ css),
  * upcrew-knoepfe.css, upcrew-anpassen.css, die Crew-Schriften. Wahlfrei: upcrew-katalog.js (ohne ihn nur
@@ -79,6 +93,16 @@
     const tabelle = STUFEN[art] || {};
     if (!(w in tabelle)) return false;
     return tabelle[w] <= (Number(stufe) || 0);
+  }
+  /* Der Weg in den Shop (seit 04.10.2026): { art, wert } mit dem KATALOG-Schlüssel der Art, wenn das Spiel
+     `zumShop` übergibt, den Shop hat (`shop !== false`) und das Stück kaufbar, wirksam, ohne eigenen Ort-Text (`ab`)
+     und (noch) nicht frei ist — genau die Stücke mit dem Band „im Shop“. Sonst null. `st` = Stück mit Stand, wie
+     im Blatt: { wert, frei, wirkt, s (Katalog-Stück | null), rs (Stück des eigenen Regals | null) }. Rein. */
+  function shopWeg(st, opt) {
+    const o = opt || {};
+    if (typeof o.zumShop !== "function" || o.shop === false || !st || st.frei || !st.wirkt) return null;
+    if (!st.s || st.s.weg !== "kauf" || (st.rs && st.rs.ab)) return null;
+    return { art: st.s.art, wert: st.s.wert };
   }
   const SETS_SCHLUESSEL = "upcrew.aussehen-sets";
 
@@ -255,6 +279,17 @@
         knopf.querySelector("span").textContent = zu.length ? "Nicht im Besitz" : fertig ? "Übernommen" : "Übernehmen";
       }
       if (zurueck) zurueck.disabled = fertig;
+      // Weg in den Shop (nur im Blatt, nur mit opt.zumShop): steht dort ein kaufbares Stück dieser Kategorie zur
+      // Probe, ersetzt „Im Shop ansehen“ den gesperrten Knopf „Nicht im Besitz“.
+      const shopKnopf = kat ? wurzel.querySelector(".upa-zumshop") : null;
+      if (shopKnopf) {
+        const w = wertIn(kat, entwurf);
+        const weg = (w === null || w === undefined) ? null : shopWeg(stueckeVon(kat).find((x) => x.wert === w), opt);
+        shopKnopf.hidden = !weg;
+        shopKnopf.dataset.art = weg ? weg.art : "";
+        shopKnopf.dataset.wert = weg ? weg.wert : "";
+        if (knopf) knopf.hidden = !!weg;
+      }
       // Würfel aus, wenn es nirgends eine Wahl gibt (z. B. neuer Spieler: nur Grau, S1, K1). Er liegt evtl. schon
       // im Balken (upcrew-sammlung wuerfelUnten) — gesucht wird am ganzen Ort.
       const wuerfel = wurzel.querySelector(".upa-zufall");
@@ -334,6 +369,7 @@
           <button type="button" class="up-kn up-zweit upa-zurueck"><i class="up-led"></i><span>Zurück</span></button>
           ${kat.sets ? "" : `<button type="button" class="up-kn up-zweit up-rund upa-zufall" data-kat="${kat.k}" aria-label="Zufall"><i class="up-led"></i>${P.html("symbol/wuerfel", "24x24", { html: sym("zufall") })}</button>`}
           <button type="button" class="up-kn up-haupt upa-uebernehmen"><i class="up-led"></i><span>Übernehmen</span></button>
+          ${!kat.sets && typeof opt.zumShop === "function" && opt.shop !== false ? '<button type="button" class="up-kn up-haupt upa-zumshop" hidden><i class="up-led"></i><span>Im Shop ansehen</span></button>' : ""}
         </div>`;
       vorschauFuellen(blatt.el.querySelector(".upa-vorschau"));
       aktionSetzen(blatt.el, kat.sets ? null : kat);
@@ -432,6 +468,16 @@
         }
         zeichnen(); return;
       }
+      const zumShop = e.target.closest(".upa-zumshop");
+      if (zumShop) {
+        // Blatt zu, dann das Spiel rufen (es wechselt den Tab und öffnet das Stück im Shop). Ohne offenes Blatt
+        // (zweiter Horcher derselben Berührung im Rückfall ohne upcrew-blatt.js) nichts mehr tun.
+        if (!blatt || zumShop.hidden || !zumShop.dataset.art || typeof opt.zumShop !== "function") return;
+        const weg = { art: zumShop.dataset.art, wert: zumShop.dataset.wert };
+        blattSchliessen();
+        opt.zumShop(weg);
+        return;
+      }
       if (e.target.closest(".upa-zurueck")) { entwurf = uebernommen(); zeichnen(); return; }
       if (e.target.closest(".upa-uebernehmen")) {
         A.setzen(TEILE.reduce((o, k) => (o[k] = entwurf[k], o), {}));
@@ -477,5 +523,5 @@
     };
   }
 
-  window.UPCREW_ANPASSEN = { zeigen, STUFEN, frei: (art, w, stufe, besitz) => freiRechnen(art, w, stufe, besitz, false) };
+  window.UPCREW_ANPASSEN = { zeigen, STUFEN, frei: (art, w, stufe, besitz) => freiRechnen(art, w, stufe, besitz, false), shopWeg };
 })();
