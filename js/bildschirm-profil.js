@@ -7,7 +7,7 @@
  * vorschau profil geben karte die oben ist mit den ausgerüsteten abzeichen
  * titel und level und flammen mit natürlich dem namen -> und halt das
  * ausführliche wenn man draufklickt mit mehr inhalten statistiken und so";
- * Einbau-Notiz Design\3D-Schrift\final\EINBAU-2026-09-29b.md):
+ * Einbau-Notiz Design-Einbau EINBAU-2026-09-29b.md):
  *   Stufe 1  seit 0.26.1 KEINE Vorschau-Karte mehr (Nutzer 29.09.2026
  *            nachts: „nicht erst eine vorschau vom profil … das was hinter
  *            dem pfeil steht soll direkt kommen"): die Kopfzeile auf dem

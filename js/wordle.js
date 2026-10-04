@@ -177,7 +177,7 @@ const WORDLE = {
 
     /* ---------------------------------------------------------------- *
      * DIE REGELN JE RUNDE (seit 0.19.0; Konzept
-     * Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md §3.8 und §9.1)
+     * UPCrew-Konzept BIBLIOTHEK-UND-BELOHNUNGEN.md §3.8 und §9.1)
      *
      * Jede Station der Bibliothek kann ihre Runde anders machen. Die Regeln
      * stehen IN der Runde (`runde.regeln`), geprüft und begrenzt über

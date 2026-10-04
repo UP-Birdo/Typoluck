@@ -15,7 +15,7 @@
  * als Schalter Üben · Bibliothek oben.
  *
  * SEIT 0.32.0 DIE GEMEINSAME START-FORM DES STUDIOS (Entwurf
- * Design\3D-Schrift\entwuerfe\TL-Start und Runde-8, Nutzer 03.10.2026):
+ * Design-Entwurf TL-Start und Runde-8, Nutzer 03.10.2026):
  * oben der Kopf, darunter EINE Karte, die den Platz
  * füllt (was die Art zeigt), unten der Knopf-Bereich fester Höhe —
  * links der grosse Knopf (Üben: zwei), rechts das Umschalt-Quadrat, das

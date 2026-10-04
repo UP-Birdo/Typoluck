@@ -7,9 +7,9 @@
  *
  * SEIT 0.6.1 STECKT DAS INTRO SELBST IN js\upcrew-intro.js (+ css\upcrew-
  * intro.css) — dem gemeinsamen Baustein aller UPCrew-Apps. Quelle ist
- * dev\Apps\UPCrew\bausteine\; dort wird er geändert und in die Apps
+ * den UPCrew-Bausteinen; dort wird er geändert und in die Apps
  * KOPIERT, hier nie abgewandelt (Schnittstelle und Regeln:
- * Design\3D-Schrift\docs\EINBAU-INTRO.md). Diese Datei sagt ihm nur, was
+ * Design-Auftrag EINBAU-INTRO.md). Diese Datei sagt ihm nur, was
  * nur Typoluck weiss: hell oder dunkel, Nummer, Name und Version der App.
  *
  * Die Regeln (Nutzer-Entscheidung 25.09.2026):

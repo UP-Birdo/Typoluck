@@ -18,7 +18,7 @@
  *     spieler/konten/<uid>/aussehenJe/typoluck
  *         { darstellung, farbwelt, schrift, knoepfe, stand }   (`leseschrift` seit 0.26.0 weg)
  *     Geschrieben wird dorthin, wenn `AUSSEHEN_JE_AM_KONTO` true ist — seit
- *     0.18.4 (Regel §11c, Apps\Blunderluck\SICHERHEIT.md, vom Nutzer am
+ *     0.18.4 (Regel §11c, Datenbank-Regel, vom Nutzer am
  *     28.09.2026 eingespielt); bis 0.18.3 blieb das Aussehen auf dem Gerät.
  *     Gelesen wird der eigene Zweig; fehlt er, dient
  *     das alte gemeinsame Feld `aussehen` EINMAL als Umzug (Merker
@@ -41,14 +41,14 @@
  * js\spieler.js). Beim Zusammenführen des ganzen eigenen Eintrags gewinnt
  * je Spiel der neuere `stand` (SPIELER._neueresAussehenJe).
  *
- * GRAU UND DIE EINMALIGE UMSTELLUNG (seit 0.27.0, Design\3D-Schrift\final\
+ * GRAU UND DIE EINMALIGE UMSTELLUNG (seit 0.27.0, Design-Einbau 
  * EINBAU-2026-09-29c.md): Der Baustein stellt jedes Aussehen ohne Merker
  * `umstellung` einmal auf die Farbwelt „grau" um — auf dem Gerät und bei
  * allem, was vom Konto kommt. Trägt das Konto-Objekt den Merker noch nicht
  * (`UPCREW_AUSSEHEN.kontoBraucht`), schreibt `holen()` einmal
  * `fuerKonto()` ans Konto — auch wenn `uebernehmen` nichts geändert hat.
  * Dafür braucht die Datenbank die Regel-Ergänzung (`farbwelt` mit „grau",
- * neues Feld `umstellung`; vorbereitet in Apps\UPCrew\Firebase-Regeln\
+ * neues Feld `umstellung`; vorbereitet in den UPCrew-Regeltexten 
  * „2026-09-29 NEUE Regel mit 13.txt"). Solange `SpeicherKonten.REGEL_GRAU_EINGESPIELT` false ist,
  * gilt der Fall „Regel fehlt" der Einbau-Notiz: beides wird NICHT
  * geschrieben (kein `umstellung`, „grau" fällt weg — ein fehlendes
@@ -67,7 +67,7 @@ const AUSSEHEN_ABGLEICH = {
 
     /* Gilt die Regel mit Grau? Der EINE Schalter steht in der Klasse
        SpeicherKonten (Baustein js\speicher-konten.js aus
-       Apps\UPCrew\bausteine, `REGEL_GRAU_EINGESPIELT`); dieses Feld
+       den UPCrew-Bausteinen, `REGEL_GRAU_EINGESPIELT`); dieses Feld
        überstimmt ihn nur in Tests (true/false), sonst null. */
     REGEL_GRAU: null,
 

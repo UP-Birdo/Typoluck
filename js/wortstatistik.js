@@ -1,7 +1,7 @@
 /*
  * wortstatistik.js — Wortstatistik, Spieler-Stufe, neue Schwierigkeit und
  * Lexikon als reine Rechnung (seit 0.23.1; Konzept
- * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md, Abschnitte 6, 7, 8 und 9).
+ * UPCrew-Konzept DATENBANK-KONZEPT-12.md, Abschnitte 6, 7, 8 und 9).
  * Kein Bildschirm, kein Netz, kein Speicher — das macht
  * js/wortstatistik-abgleich.js bzw. die Verwaltung. Ohne Browser testbar.
  *

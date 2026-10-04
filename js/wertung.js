@@ -1,7 +1,7 @@
 /*
  * wertung.js — wie gut eine Runde gespielt war (seit 0.10.0, UPCrew-Runde 5).
  *
- * Nutzer 27.09.2026 (Apps\UPCrew\docs\FORTSCHRITT.md, „GÜLTIGER STAND"):
+ * Nutzer 27.09.2026 (UPCrew-Konzept FORTSCHRITT.md, „GÜLTIGER STAND"):
  * Jede Runde bekommt eine Wertung wie die Partie-Auswertung bei Chess.com —
  * in Typoluck „Können je Versuch (wie viele Wörter er ausschliesst) + Glück
  * getrennt". Daraus die Figuren: Bauer = gelöst, Springer = gelöst UND

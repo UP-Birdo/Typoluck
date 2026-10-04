@@ -7,7 +7,7 @@
  * Aussehen zum Anziehen (gemeinsamer Baustein js\upcrew-anpassen.js),
  * darunter die „reine Sammlung": Dinge, die man nicht anzieht, sondern
  * einfach hat. In Typoluck sind das die Modi. Auftrag:
- * Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md, Block „Typoluck".
+ * Design-Auftrag AUFTRAEGE-RUNDE-4.md, Block „Typoluck".
  *
  * WAS „DA" HEISST: In dieser Runde ist alles da, was es heute gibt
  * (Tageswort, Übung; der Schwer-Modus seit 0.26.0 nicht mehr). Was noch nicht gebaut ist (Blitzwort,

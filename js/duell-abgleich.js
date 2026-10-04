@@ -28,6 +28,12 @@
  * (`typoluck.duell-runde`), die Warteliste, die letzten zehn beendeten
  * Duelle (`typoluck.duell-beendet`, dort wird das Löschen eines liegen
  * gebliebenen Duells einmal je Sitzung nachgeholt).
+ *
+ * XP (seit 0.35.0): Sieht diese Schicht ein Duell beendet (nach dem Lesen,
+ * nach dem Aufgeben, vor dem Abschluss), ruft sie `beiErgebnis({ id, stand,
+ * rolle })`. Gebucht wird im Spiel (js\app.js `duellZaehlen`), genau einmal
+ * je Kennung (FORTSCHRITT.duellZaehlen) — der Ruf darf sich wiederholen.
+ * Schalter aus = nie ein Ruf.
  */
 
 /* ------------------------------------------------------------------ *
@@ -166,6 +172,10 @@ const DUELL_ABGLEICH = {
     /* Wird nach jeder Änderung der Lage gerufen (die Oberfläche zeichnet). */
     beiAenderung: null,
 
+    /* Wird gerufen, wenn ein Duell beendet zu sehen ist (seit 0.35.0, XP):
+       { id, stand, rolle }. Darf sich wiederholen. */
+    beiErgebnis: null,
+
     /*
      * angaben: { rueckwand, ich() → Konto-Nummer oder null, uhr() → ms,
      *            freunde() → [{ uid, name }], loesungen() → Liste,
@@ -218,6 +228,23 @@ const DUELL_ABGLEICH = {
         return !!fehler && fehler.status === 401;
     },
 
+    /* Ist das Duell `d` für mich beendet: `beiErgebnis` rufen (seit 0.35.0).
+       Nur, wenn die Schicht bereit ist (Schalter oder Werkstatt). */
+    _ergebnisMelden(d) {
+        if (!d || !DUELL_ABGLEICH.bereit() || typeof DUELL_ABGLEICH.beiErgebnis !== "function") {
+            return;
+        }
+        const sicht = DUELL.lage(d, DUELL_ABGLEICH.ich(), DUELL_ABGLEICH.jetzt());
+        if (sicht.art !== "beendet" || !sicht.rolle) {
+            return;
+        }
+        try {
+            DUELL_ABGLEICH.beiErgebnis({ id: d.id, stand: sicht.stand, rolle: sicht.rolle });
+        } catch (fehler) {
+            /* das Buchen darf die Schicht nicht stören */
+        }
+    },
+
     _gemeldet() {
         if (typeof DUELL_ABGLEICH.beiAenderung === "function") {
             try {
@@ -259,6 +286,7 @@ const DUELL_ABGLEICH = {
             await DUELL_ABGLEICH._lageLesen();
             await DUELL_ABGLEICH._aufraeumen();
             await DUELL_ABGLEICH._nachholen();
+            DUELL_ABGLEICH._ergebnisMelden(DUELL_ABGLEICH.lage && DUELL_ABGLEICH.lage.duell);
         } catch (fehler) {
             if (DUELL_ABGLEICH.lage) {
                 DUELL_ABGLEICH.lage.fehler = true;
@@ -566,6 +594,7 @@ const DUELL_ABGLEICH = {
         lage.duell.teil[sicht.rolle].st = "auf";
         lage.aktivId = null;
         DUELL_ABGLEICH._beendetMerken(lage.duell, true);
+        DUELL_ABGLEICH._ergebnisMelden(lage.duell);
         DUELL_ABGLEICH._gemeldet();
         return ergebnis;
     },
@@ -583,6 +612,7 @@ const DUELL_ABGLEICH = {
         }
         const d = lage.duell;
         let offen = false;
+        DUELL_ABGLEICH._ergebnisMelden(d);
         let ergebnis = await DUELL_ABGLEICH._handeln(DUELL.schrittAbschluss(d.id, ich));
         if (!ergebnis.ok && ergebnis.grund === "abgelehnt") {
             offen = true;

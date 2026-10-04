@@ -4,7 +4,7 @@
  * Nutzer 27.09.2026: „Anpassen soll nicht unter einem Knopf liegen, muss
  * zusammenpassen." Album und Anpassen sind deshalb EINE Fläche, und sie
  * ersetzt den Tab „Anpassen" von 0.8.0 (bis dahin js\bildschirm-anpassen.js).
- * Auftrag: Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md.
+ * Auftrag: Design-Auftrag AUFTRAEGE-RUNDE-4.md.
  *
  * SEIT 0.30.0 „VARIANTE A" (UPCrew-Runde 8; Nutzer 03.10.2026: „es soll
  * nicht mehr nach rechts oder links scroll bar sein das hin und her wischen
@@ -14,7 +14,7 @@
  * mehr waagrecht — ein Wisch gehört dem Seiten-Band.
  *
  * DAS GERÜST (seit 0.15.9) ist der gemeinsame Baustein js\upcrew-sammlung.js
- * + css\upcrew-sammlung.css aus Apps\UPCrew\bausteine — in Blunderluck
+ * + css\upcrew-sammlung.css aus den UPCrew-Bausteinen — in Blunderluck
  * derselbe (Nutzer 27.09.2026: „bei beiden Apps soll Sammlung gleich sein
  * und immer gleich bleiben", „1:1 bis auf die spieleigenen Items"). Er baut:
  *   1. den klebenden Kopf „Sammlung" mit „NN %";

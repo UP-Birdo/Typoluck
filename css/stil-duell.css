@@ -105,6 +105,14 @@
     align-self: center;
 }
 
+/* Die XP eines beendeten Duells (seit 0.35.0). */
+.duell-xp {
+    margin: 0;
+    text-align: center;
+    font-weight: 700;
+    color: var(--haupt);
+}
+
 .duell-geholt-bild {
     width: 80px;
     align-self: center;

@@ -254,7 +254,7 @@ SpeicherGemeinsam.tokenGeber = null;
  * Rückwand 3: die UPCrew-Konten — Klasse `SpeicherKonten`
  *
  * Steht seit 0.28.1 NICHT mehr hier, sondern im gemeinsamen Baustein
- * js\speicher-konten.js (Quelle Apps\UPCrew\bausteine\kern, nie hier
+ * js\speicher-konten.js (Quelle: UPCrew-Bausteine, Kern, nie hier
  * abwandeln). Er erbt von `SpeicherGemeinsam` und wird deshalb in
  * index.html direkt NACH dieser Datei geladen. `speicherErzeugen` unten
  * nennt die Klasse trotzdem: Es läuft erst, wenn alle Dateien da sind.

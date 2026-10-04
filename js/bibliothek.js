@@ -2,9 +2,9 @@
  * bibliothek.js — die Bibliothek als DOPPELSEITE (seit 0.20.0; ersetzt die
  * Bibliothek 6 × 8 aus 0.18.0).
  *
- * Nutzer 28.09.2026 zum Entwurf Design\3D-Schrift\entwuerfe\
+ * Nutzer 28.09.2026 zum Design-Entwurf 
  * Bibliothek-Doppelseite\: „das passt fürs Erste so, fertig machen, damit ich
- * hochladen kann". Konzept: Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md,
+ * hochladen kann". Konzept: UPCrew-Konzept BIBLIOTHEK-UND-BELOHNUNGEN.md,
  * Fassung 4 (Abschnitt 0). Die reine Tabelle und Rechnung — kein Bildschirm
  * (js/start-bibliothek.js), kein Speicher (js/fortschritt.js). Ohne Browser
  * testbar; der Zufall kommt von aussen.

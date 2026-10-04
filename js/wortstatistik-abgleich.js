@@ -1,7 +1,7 @@
 /*
  * wortstatistik-abgleich.js — Wortstatistik und Spieler-Stufe auf dem Gerät
  * und (erst unter Regel §12) in der Datenbank (seit 0.23.1; Konzept
- * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md §7.3, §9, Phase A Punkt 5).
+ * UPCrew-Konzept DATENBANK-KONZEPT-12.md §7.3, §9, Phase A Punkt 5).
  * Die Rechnung steht in js/wortstatistik.js.
  *
  * NACH JEDER BEENDETEN RUNDE (`melden`, aus APP.fortschrittMelden — genau

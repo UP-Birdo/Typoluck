@@ -2,7 +2,7 @@
  * lieblingswoerter.js — die Lieblingswörter eines Spielers (seit 0.28.0).
  *
  * WOZU: Der Boss „Der Zensor" (Buch 4, js/bibliothek.js) bannt die Wörter,
- * die man am liebsten rät (Konzept Apps\UPCrew\docs\BIBLIOTHEK-UND-
+ * die man am liebsten rät (UPCrew-Konzept BIBLIOTHEK-UND-
  * BELOHNUNGEN.md §3.5; Koordination 30.09.2026: „Top 3 privat ans Konto,
  * Boss bannt sie"). Nebenbei sieht man sie klein im eigenen Profil.
  *
@@ -32,7 +32,7 @@
  * Werkstatt null). Die Regel ist vorbereitet, aber NICHT eingespielt —
  * deshalb hängt das Schreiben am selben Schalter wie Grau:
  * `SpeicherKonten.REGEL_GRAU_EINGESPIELT` (Baustein js\speicher-konten.js
- * aus Apps\UPCrew\bausteine). Solange
+ * aus den UPCrew-Bausteinen). Solange
  * er false ist, geht NICHTS ans Konto (sonst lehnt die Datenbank ab). Das
  * Feld `REGEL` überstimmt ihn nur in Tests. Die Zählung selbst bleibt
  * immer auf dem Gerät. Still bei Fehler.

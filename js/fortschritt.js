@@ -3,8 +3,8 @@
  * (seit 0.10.0, UPCrew-Runde 5; seit 0.11.0 im gemeinsamen Zweig-Vertrag,
  * Runde 6 Teil A; seit 0.12.0 mit Profil-Werten).
  *
- * Nutzer 27.09.2026 (Apps\UPCrew\docs\FORTSCHRITT.md, „GÜLTIGER STAND";
- * Aufträge Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md und -RUNDE-6.md):
+ * Nutzer 27.09.2026 (UPCrew-Konzept FORTSCHRITT.md, „GÜLTIGER STAND";
+ * Aufträge Design-Auftrag AUFTRAEGE-RUNDE-5.md und -RUNDE-6.md):
  * erstmal SOLO.
  *   Level  Ring ums Profilbild, Zahl daneben; XP aus ALLEN UPCrew-Spielen
  *          (Summe der Zweige, nur gerechnet, nie gespeichert).
@@ -29,7 +29,7 @@
  * unberührt durch.
  *
  * DER DATENVERTRAG (gemeinsam mit Blunderluck, Runde 6 Teil A; Vorlage ist
- * der Kopf von Apps\Blunderluck\js\fortschritt.js):
+ * der Kopf von Blunderluck fortschritt.js):
  *
  *     Browser-Speicher  upcrew.fortschritt = { "<spieler-id oder gast>": FORTSCHRITT }
  *                       (Gäste und Nicht-Angemeldete unter „gast", wie Blunderluck)
@@ -41,7 +41,8 @@
  *         spiele: {
  *             typoluck: {                      // NUR diesen Zweig schreibt Typoluck
  *                 xp, partien,
- *                 gezaehlt: [],                // Form wie Blunderluck (hier ungenutzt)
+ *                 gezaehlt: [],                // Form wie Blunderluck; seit 0.35.0 die schon
+ *                                              // gebuchten Duelle "duell-<Kennung>" (höchstens 100)
  *                 stand,                       // Zeitpunkt der letzten Änderung;
  *                                              // beim Zusammenführen gewinnt der neuere Zweig
  *                 heute: { datum: "YYYY-MM-DD", versuche, figuren },  // figuren 0 = nicht geschafft
@@ -76,8 +77,8 @@
  * das ist nie weniger als der gespeicherte, weil der nur aus denselben
  * Level-Aufstiegen kam. Der alte Stand bleibt wörtlich erhalten — seit
  * 0.14.0 NUR auf dem Gerät, unter einem eigenen Schlüssel
- * (`UMZUG_SCHLUESSEL`), nie im Zweig: Die Datenbank-Regel (Blunderluck
- * `SICHERHEIT.md` §11b) nimmt nur die Felder des Vertrags an, und
+ * (`UMZUG_SCHLUESSEL`), nie im Zweig: Die Datenbank-Regel §11b
+ * nimmt nur die Felder des Vertrags an, und
  * Blunderluck schickt beim Konto-Abgleich ALLE Zweige mit.
  *
  * FÜRS KONTO: `fuerKonto(stand)` liefert genau die Felder, die §11b
@@ -141,7 +142,7 @@
  * Zusammenführen, die Serie, die Erstattung alter Schilde, der öffentliche
  * Auszug, Spielzeit und „dabei seit", die Datums-Helfer, `RAHMEN`/`TITEL` —
  * steht im Baustein js\fortschritt-kern.js (`FORTSCHRITT_KERN`, Quelle
- * Apps\UPCrew\bausteine\kern, nie hier abwandeln; in index.html VOR dieser
+ * den UPCrew-Bausteinen (Kern), nie hier abwandeln; in index.html VOR dieser
  * Datei). Hier steht nur Typolucks Teil; `FORTSCHRITT` ist beides zusammen.
  * Der Kern ruft alles über den Namen `FORTSCHRITT` und braucht von hier
  * `APP`, `_zahl`, `alleTage`, `gesamtXp`, `level`, `levelAus`,
@@ -170,8 +171,24 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
         tagesaufgabe: { 1: 15, 2: 20, 3: 30 },
         serieJeTag: 5,
         serieHoechstens: 7,
-        beideFaktor: 1.5
+        beideFaktor: 1.5,
+        /* Das Duell (seit 0.35.0, Nutzer 04.10.2026: „duell soll xp geben
+           ein wenig mehr wie die bibliothek"). Massstab: eine gewonnene
+           Station der Bibliothek bringt `partie` + je neuer Figur `figur`,
+           also höchstens 10 + 3 × 10 = 40 XP. Im Duell gibt JEDES geholte
+           Wort (ein Punkt, auch „beide") etwas mehr als eine solche Station,
+           ein Sieg legt einen kleinen Zuschlag drauf; Niederlage und
+           Unentschieden bringen nur die Wort-XP. Keine Münzen. Gebucht wird
+           genau einmal je Duell (`duellZaehlen`). */
+        duellWort: 45,
+        duellSieg: 20
     },
+
+    /* Die Liste der gezählten Partien (`gezaehlt`): höchstens so viele
+       Einträge (Regel §13: Stelle 0–99, je Eintrag höchstens 64 Zeichen). */
+    GEZAEHLT_MAX: 100,
+    /* Vorsilbe der Duell-Einträge darin: "duell-" + Kennung (20 Zeichen). */
+    DUELL_VORSILBE: "duell-",
 
     /* Der alte 0.10.0-Stand nach dem Umzug — nur auf dem Gerät (seit
        0.14.0, vorher im Zweig unter `umzug`). Liegt im Namensraum von
@@ -840,7 +857,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
     },
 
     /* Die Felder des Vertrags, wie sie ans Konto dürfen (Regel §11b in
-       Apps\Blunderluck\SICHERHEIT.md, heute §13): `version`, der eigene
+       Datenbank-Regel, heute §13): `version`, der eigene
        Zweig mit nur erlaubten Feldern — `umzug` und alles Unbekannte bleiben
        draussen, die Regel lehnt sonst den GANZEN Konto-Eintrag ab — und
        (seit 0.34.2) die Zweige der anderen Spiele samt `schutz`, unverändert
@@ -1004,6 +1021,78 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
     },
 
     /* ---------------------------------------------------------------- *
+     * Das Duell (seit 0.35.0)
+     * ---------------------------------------------------------------- */
+
+    /*
+     * Die XP eines beendeten Duells aus Sicht von `rolle` ("a" | "b").
+     * `stand` = DUELL.stand(…) ({ ende, a, b, sieger, ohneWertung }).
+     * Liefert { woerter, sieg, xp }; läuft das Duell noch: xp 0. Ein Sieg
+     * „ohne Wertung" (Aufgabe, bevor der Sieger ein Wort begann) bringt
+     * keinen Zuschlag.
+     */
+    duellXp(stand, rolle) {
+        const leer = { woerter: 0, sieg: false, xp: 0 };
+        if (!stand || stand.ende !== true || (rolle !== "a" && rolle !== "b")) {
+            return leer;
+        }
+        const woerter = Math.max(0, Math.min(3, Math.floor(Number(stand[rolle]) || 0)));
+        const sieg = stand.ohneWertung !== true && stand.sieger === rolle;
+        return {
+            woerter: woerter,
+            sieg: sieg,
+            xp: woerter * FORTSCHRITT.XP.duellWort + (sieg ? FORTSCHRITT.XP.duellSieg : 0)
+        };
+    },
+
+    /* Der Eintrag eines Duells in `gezaehlt` — "" bei falscher Kennung
+       (20 Zeichen aus A–Z a–z 0–9 _ -, wie DUELL.KENNUNG_MUSTER). */
+    _duellEintrag(id) {
+        return (typeof id === "string" && /^[A-Za-z0-9_-]{20}$/.test(id)) ? FORTSCHRITT.DUELL_VORSILBE + id : "";
+    },
+
+    /* Ist dieses Duell im Typoluck-Zweig schon gebucht? */
+    duellGezaehlt(stand, id) {
+        const eintrag = FORTSCHRITT._duellEintrag(id);
+        const zweig = FORTSCHRITT.normalisieren(stand).spiele[FORTSCHRITT.APP];
+        return !!eintrag && !!zweig && zweig.gezaehlt.indexOf(eintrag) !== -1;
+    },
+
+    /*
+     * Ein beendetes Duell buchen — GENAU EINMAL je Kennung: Die Kennung
+     * kommt in `gezaehlt` (die jüngsten GEZAEHLT_MAX bleiben), die XP in
+     * den eigenen Zweig. Schon gebucht, falsche Kennung oder 0 XP: nichts
+     * ändert sich (`neu: false`). Keine Partie, keine Münzen.
+     *   angaben.id         Duell-Kennung
+     *   angaben.xp         aus `duellXp`
+     *   angaben.zeitpunkt  für `stand`, wahlfrei
+     * Liefert { stand, xp, neu, levelVorher, levelNachher, belohnungen }.
+     */
+    duellZaehlen(alt, angaben, stufen) {
+        const stand = FORTSCHRITT.normalisieren(alt);
+        const levelVorher = FORTSCHRITT.level(stand).level;
+        const a = angaben || {};
+        const eintrag = FORTSCHRITT._duellEintrag(a.id);
+        const xp = (typeof a.xp === "number" && isFinite(a.xp) && a.xp > 0) ? Math.floor(a.xp) : 0;
+        if (!eintrag || xp === 0 || FORTSCHRITT.duellGezaehlt(stand, a.id)) {
+            return { stand: stand, xp: 0, neu: false, levelVorher: levelVorher, levelNachher: levelVorher,
+                belohnungen: [] };
+        }
+        const zweig = stand.spiele[FORTSCHRITT.APP] || FORTSCHRITT.zweigLeer();
+        zweig.gezaehlt = zweig.gezaehlt.concat([eintrag]).slice(-FORTSCHRITT.GEZAEHLT_MAX);
+        zweig.xp = Math.min(zweig.xp + xp, FORTSCHRITT.XP_MAX);
+        zweig.stand = Math.max(zweig.stand + 1, a.zeitpunkt || 0);
+        stand.spiele[FORTSCHRITT.APP] = zweig;
+        const levelNachher = FORTSCHRITT.level(stand).level;
+        const belohnungen = [];
+        for (let level = levelVorher + 1; level <= levelNachher; level++) {
+            belohnungen.push(...FORTSCHRITT.belohnungen(level, stufen));
+        }
+        return { stand: stand, xp: xp, neu: true, levelVorher: levelVorher, levelNachher: levelNachher,
+            belohnungen: belohnungen };
+    },
+
+    /* ---------------------------------------------------------------- *
      * Taten (seit 0.13.0)
      * ---------------------------------------------------------------- */
 
@@ -1099,7 +1188,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
 
     /*
      * DIE ABZEICHEN (seit 0.15.9) rechnet der gemeinsame Baustein
-     * js\upcrew-abzeichen.js aus Apps\UPCrew\bausteine — gleich in
+     * js\upcrew-abzeichen.js aus den UPCrew-Bausteinen — gleich in
      * Blunderluck, über ALLE Zweige (Rechnung 1:1 aus Typoluck 0.12.0, die
      * eigene Kopie hier ist weg; tests\test-fortschritt.js prüft, dass
      * derselbe Fortschritt dieselben Abzeichen ergibt). Nur die LAUFENDE

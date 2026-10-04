@@ -2,8 +2,8 @@
  * duell.js — das Duell (1 gegen 1) als reines Modell: kein Bildschirm, kein
  * Netz, kein Zufall ohne Auftrag (seit 0.34.0).
  *
- * GRUNDLAGE UND VERBINDLICHER VERTRAG: Apps\UPCrew\docs\DUELL-KONZEPT-14.md
- * (Fassung 2) und die Regel §14 in Apps\UPCrew\Firebase-Regeln (Zweig
+ * GRUNDLAGE UND VERBINDLICHER VERTRAG: UPCrew-Konzept DUELL-KONZEPT-14.md
+ * (Fassung 2) und die Regel §14 in den UPCrew-Regeltexten (Zweig
  * `typoluck-intern/duell`). Fest (Nutzer 03.10.2026): gleiches Wort für
  * beide · weniger Versuche gewinnt das Wort, bei Gleichstand die kürzere
  * Zeit · höchstens drei Wörter, bei 2:0 ist Schluss · lösen beide ein Wort

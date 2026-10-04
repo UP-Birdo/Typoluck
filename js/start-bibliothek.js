@@ -2,7 +2,7 @@
  * start-bibliothek.js — die Bibliothek auf dem Startbildschirm als
  * DOPPELSEITE (seit 0.20.0; ersetzt den Weg 6 × 8 aus 0.18.0).
  *
- * Vorlage: Entwurf Design\3D-Schrift\entwuerfe\Bibliothek-Doppelseite\
+ * Vorlage: Design-Entwurf Bibliothek-Doppelseite\
  * (doppelseite.js/.css), vom Nutzer am 28.09.2026 abgenommen („das passt
  * fürs Erste so"). Regeln und Stand: js/bibliothek.js; geschrieben wird nur
  * über APP (Fortschritt). Jeder Knopf entsteht in BAUSTEINE.knopf, jedes

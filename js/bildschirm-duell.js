@@ -427,6 +427,15 @@ const DUELL_BILDSCHIRM = {
         DUELL_BILDSCHIRM._beendetZeichnen(ort);
     },
 
+    /* „+110 XP" für ein beendetes Duell, sonst "" (seit 0.35.0). */
+    xpText(sicht) {
+        if (typeof FORTSCHRITT === "undefined" || !sicht || sicht.art !== "beendet") {
+            return "";
+        }
+        const xp = FORTSCHRITT.duellXp(sicht.stand, sicht.rolle).xp;
+        return xp > 0 ? "+" + xp + " XP" : "";
+    },
+
     _vsBauen(sicht, stand) {
         const vs = BAUSTEINE.el("div", "duell-vs");
         vs.appendChild(DUELL_BILDSCHIRM._platz("duell/vs-bild", "390x300", "duell-vs-bild"));
@@ -447,6 +456,12 @@ const DUELL_BILDSCHIRM = {
             const ergebnis = DUELL.ergebnisFuer(sicht.stand, sicht.rolle);
             ort.appendChild(DUELL_BILDSCHIRM._platz(ergebnis === "gewonnen" ? "duell/sieg" : "duell/niederlage",
                 "160x160", "duell-ende-bild"));
+            /* Die XP dieses Duells (seit 0.35.0; gerechnet im Modell,
+               gebucht genau einmal in APP.duellZaehlen). */
+            const xp = DUELL_BILDSCHIRM.xpText(sicht);
+            if (xp) {
+                ort.appendChild(BAUSTEINE.el("p", "duell-xp", xp));
+            }
         }
         ort.appendChild(DUELL_BILDSCHIRM._woerterBauen(d, sicht));
 

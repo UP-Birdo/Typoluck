@@ -139,7 +139,7 @@ const BAUSTEINE = {
      * 27.09.2026: „Nimm Schachfiguren als Wertung"): Bauer, Springer,
      * König — die ersten `anzahl` leuchten. Gefüllte Formen, deshalb eigene
      * Pfade (FIGUREN) statt der Linien-Zeichen; Pfade wörtlich aus dem
-     * Entwurf Design\3D-Schrift\entwuerfe\Herausforderungen.
+     * Design-Entwurf Herausforderungen.
      *   anzahl  0..3
      *   klein   true = für Zeilen und Karten
      */
@@ -324,17 +324,17 @@ const BAUSTEINE = {
         /* Der freie Platz 5 der Leiste (seit 0.9.0): eine Uhr — „kommt
            noch". Bis 0.8.1 hielt ein Kästchen mit Plus den Platz frei.
            Pfad wörtlich aus den gemeinsamen Absprachen mit Blunderluck
-           (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-4.md). */
+           (Design-Auftrag AUFTRAEGE-RUNDE-4.md). */
         bald: "M12 7 V12 L15 14 M12 3 A9 9 0 1 0 12.01 3",
         /* Der Tab „Sammlung" (seit 0.9.0): vier Kacheln. Pfad wörtlich aus
            derselben Absprache. */
         sammlung: "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z",
         /* Die Aufgaben / Herausforderungen (seit 0.7.0): ein Weg, der nach
            oben rechts steigt. Pfad wörtlich aus den gemeinsamen Absprachen
-           mit Blunderluck (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-2.md). */
+           mit Blunderluck (Design-Auftrag AUFTRAEGE-RUNDE-2.md). */
         aufgaben: "M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14",
         /* Fortschritt (seit 0.10.0, UPCrew-Runde 5) — Pfade wörtlich aus
-           dem Entwurf Design\3D-Schrift\entwuerfe\Herausforderungen, damit
+           dem Design-Entwurf Herausforderungen, damit
            Blunderluck dieselben zeigt: Flamme (Serie), Schild
            (Serien-Schutz), zwei Karten (beide Spiele), Kalender
            (Tagesaufgabe), Dreieck (Partie). */
@@ -347,7 +347,7 @@ const BAUSTEINE = {
             + "M6 18.5 H18 V21.5 H6 Z",
         /* „Anpassen" (seit 0.8.0): zwei Schieberegler. Pfad wörtlich aus
            den gemeinsamen Absprachen mit Blunderluck
-           (Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-3.md). Seit 0.9.0 kein
+           (Design-Auftrag AUFTRAEGE-RUNDE-3.md). Seit 0.9.0 kein
            eigener Tab mehr, nur noch die Zeile in den Einstellungen. */
         anpassen: "M4 7 H13 M17 7 H20 M15 5 V9 M4 17 H7 M11 17 H20 M9 15 V19",
         /* Ein grosses A mit Grundlinie (bis 0.25.0 „Standard-Schrift" in

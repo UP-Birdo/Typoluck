@@ -304,7 +304,7 @@
  * seit 0.30.0 Kategorie-Kacheln mit Blatt statt der Regal-Reihen (nichts
  * rollt waagrecht), Balken „Zurück · Übernehmen" — aus den gemeinsamen
  * Bausteinen css\upcrew-sammlung.css + css\upcrew-anpassen.css +
- * css\upcrew-platz.css (Apps\UPCrew\bausteine, gleich in Blunderluck).
+ * css\upcrew-platz.css (UPCrew-Baustein, gleich in Blunderluck).
  * Stellschrauben in css\stil.css (`--up-sm-rand`, `--up-sm-leiste`,
  * `--oben-frei`). Hier steht nur, was Typoluck eigen ist: das Bild eines
  * Stücks der reinen Sammlung (Modi).

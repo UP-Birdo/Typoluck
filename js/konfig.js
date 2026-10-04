@@ -11,15 +11,15 @@
 
 const KONFIG = {
 
-    /* Version der App (0.MINOR.PATCH, Haus-Regel in ..\..\CLAUDE.md,
+    /* Version der App (0.MINOR.PATCH, Haus-Regel,
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.34.5",
+    APP_VERSION: "0.35.0",
 
     /*
      * DAS DUELL (1 gegen 1, seit 0.34.0; Vertrag und Regel:
-     * Apps\UPCrew\docs\DUELL-KONZEPT-14.md). Es braucht die Datenbank-Regel
+     * UPCrew-Konzept DUELL-KONZEPT-14.md). Es braucht die Datenbank-Regel
      * §14 (Zweig `typoluck-intern/duell`). Solange sie NICHT eingespielt ist,
      * steht hier `false` — dann ist vom Duell im Spiel nichts zu sehen (keine
      * dritte Art im Umschalt-Quadrat) und keine einzige Anfrage geht an einen
@@ -119,9 +119,9 @@ const KONFIG = {
        (up-birdo.github.io) — dort teilen sie den Fortschritt im Browser.
        Seit 0.11.0 ist die Adresse RELATIV (`../Blunderluck/`, wie
        Blunderlucks Link `../Typoluck/`): live dieselbe Seite, lokal auf dem
-       gemeinsamen Server (Port 8093, Ordner dev\Apps) die Werkstatt-Fassung.
+       gemeinsamen Server (Port 8093, alle Apps) die Werkstatt-Fassung.
        `orte` = die Namen der Turm-Orte, für das Profil („Spiele") —
-       abgelesen aus Apps\Blunderluck\js\turm.js (TURM.ORTE, 27.09.2026);
+       abgelesen aus Blunderluck turm.js (TURM.ORTE, 27.09.2026);
        ändert Blunderluck sie, hier nachziehen. */
     andereSpiele: {
         blunderluck: {

@@ -211,7 +211,45 @@ const APP = {
             loesungen: () => WOERTER_DE.loesungen
         });
         DUELL_ABGLEICH.beiAenderung = () => DUELL_BILDSCHIRM.auffrischen();
+        DUELL_ABGLEICH.beiErgebnis = (e) => APP.duellZaehlen(e);
         DUELL_BILDSCHIRM.anmelden();
+    },
+
+    /*
+     * Ein beendetes Duell gibt XP (seit 0.35.0) — GENAU EINMAL je Kennung,
+     * auch wenn das Ergebnis auf zwei Geräten gesehen wird: Gerechnet wird
+     * mit dem Konto-Stand dazu (dort steht die Kennung schon, wenn das andere
+     * Gerät gebucht hat), die Kennung kommt in `gezaehlt`
+     * (FORTSCHRITT.duellZaehlen). Schon gebucht: nichts schreiben (sonst
+     * zöge `stand` hoch). Schalter aus: nichts. Liefert die gebuchten XP.
+     */
+    duellZaehlen(e) {
+        if (typeof DUELL === "undefined" || !DUELL.an() || !e || !e.stand) {
+            return 0;
+        }
+        const id = APP.fortschrittId();
+        if (!id || id === FORTSCHRITT.GAST) {
+            return 0;
+        }
+        const xp = FORTSCHRITT.duellXp(e.stand, e.rolle).xp;
+        if (xp <= 0 || FORTSCHRITT.duellGezaehlt(FORTSCHRITT_ABGLEICH.mitKonto(FORTSCHRITT.laden(id)), e.id)) {
+            return 0;
+        }
+        const ergebnis = FORTSCHRITT.aendern(id, (stand) =>
+            FORTSCHRITT.duellZaehlen(FORTSCHRITT_ABGLEICH.mitKonto(stand),
+                { id: e.id, xp: xp, zeitpunkt: Date.now() }, APP._stufen()));
+        if (!ergebnis.neu) {
+            return 0;
+        }
+        FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+        APP._flammeAktualisieren();
+        APP._seitenVeralten();
+        const meldung = ["+" + ergebnis.xp + " XP"];
+        if (ergebnis.levelNachher > ergebnis.levelVorher) {
+            meldung.push("Level " + ergebnis.levelNachher);
+        }
+        DIALOG.kurzmeldung(meldung.join(" · "), 2500);
+        return ergebnis.xp;
     },
 
     /* Wer im Duell spielt: ein echtes Passwort-Konto (kein Gast, nicht

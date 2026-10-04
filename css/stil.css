@@ -10,7 +10,7 @@
  * DIE FARBWELT IST DIE VON BLUNDERLUCK (seit 0.3.0, Nutzer 25.09.2026:
  * „hinter der Crew-Anmeldung dieselbe Farbpalette wie Blunderluck, statt
  * Pink und Lila Blau"). Die Werte von --flaeche bis --warnung-flaeche sind
- * 1:1 aus Apps\Blunderluck\css\stil.css übernommen; was Blunderluck nicht
+ * 1:1 aus Blunderluck stil.css übernommen; was Blunderluck nicht
  * kennt (Kanten, Kacheln, Tasten), ist daraus abgeleitet — neutrales Grau,
  * dunkleres Blau. Seit 0.8.0 überschreibt die gewählte Farbwelt diese
  * Werte (js\upcrew-aussehen.js); sie sind nur Rückfall. Seit 0.15.4 folgt
@@ -982,7 +982,7 @@ body.im-spiel .inhalt {
  *
  * Steht seit 0.6.1 NICHT mehr hier, sondern im gemeinsamen Baustein
  * css\upcrew-intro.css (Klassen mit „upi-", kopiert aus
- * Apps\UPCrew\bausteine, hier nie abwandeln). Von diesem Stil liest er
+ * UPCrew-Bausteine, hier nie abwandeln). Von diesem Stil liest er
  * nur --ebene-intro.
  * ------------------------------------------------------------------ */
 
@@ -992,7 +992,7 @@ body.im-spiel .inhalt {
  * SEIT 0.15.4 IN DEN FARBEN DER FARBWELT (Nutzer 27.09.2026: „die Farben
  * stimmen nicht, das ist überall untergegangen"). Bis 0.15.3 setzte
  * `.anmeldung` hier ein festes UPCrew-Violett (seit 0.3.0) — überholt seit
- * der Entscheidung vom 26.09.2026 (Apps\UPCrew\docs\OBERFLAECHE.md):
+ * der Entscheidung vom 26.09.2026 (UPCrew-Konzept OBERFLAECHE.md):
  * Werkstatt-Orange ist Standard, Violett gibt es nur als freischaltbare
  * Farbwelt „Studio" (js\upcrew-intro.js). Die Anmeldung erbt deshalb
  * --haupt, --karte, --flaeche … wie jeder Bildschirm;

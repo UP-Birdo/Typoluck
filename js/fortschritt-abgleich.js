@@ -9,7 +9,7 @@
  *     spieler/konten/<uid>/fortschritt
  *         { version: 1, spiele: { typoluck: {…}, blunderluck: {…} } }
  *
- * Die Regel dafür steht in Apps\Blunderluck\SICHERHEIT.md §11b; der Nutzer
+ * Die Regel dafür steht in der Datenbank-Regel §11b; der Nutzer
  * hat sie am 27.09.2026 eingespielt (zusammen mit §11 und §11a). Sie nimmt
  * NUR die Felder des Vertrags an, jede Zahl begrenzt — `FORTSCHRITT.fuerKonto`
  * liefert genau diese (tests\test-fortschritt-abgleich.js prüft jede Grenze

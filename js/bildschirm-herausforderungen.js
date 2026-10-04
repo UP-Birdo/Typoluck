@@ -2,11 +2,11 @@
  * bildschirm-herausforderungen.js — die Herausforderungen: „Heute" (seit
  * 0.10.0, UPCrew-Runde 5; von 0.7.0 bis 0.9.0 ein Platzhalter).
  *
- * Nutzer 27.09.2026 (Apps\UPCrew\docs\FORTSCHRITT.md, „GÜLTIGER STAND"):
+ * Nutzer 27.09.2026 (UPCrew-Konzept FORTSCHRITT.md, „GÜLTIGER STAND"):
  * Der Aufgaben-Tab zeigt nur HEUTE — je Spiel eine Tagesaufgabe mit
  * Figuren-Wertung, beide geschafft = ×1,5 XP (die Serie steht seit 0.25.0
  * als Kapsel im Kopf des Starts). Die jeweils andere App steht als Karte
- * mit „Zu …" darunter. Auftrag: Design\3D-Schrift\docs\AUFTRAEGE-RUNDE-5.md.
+ * mit „Zu …" darunter. Auftrag: Design-Auftrag AUFTRAEGE-RUNDE-5.md.
  *
  *   1. Tageswort (Typoluck) — offen: „Raten"; gespielt: Figuren.
  *   2. Tagesbrett (Blunderluck) — was Blunderluck im selben Browser

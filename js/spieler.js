@@ -7,7 +7,7 @@
  * DER DATENVERTRAG GEHÖRT NICHT TYPOLUCK ALLEIN. Die Liste liegt unter
  * `spieler` in der UPCrew-Datenbank; jedes UPCrew-Spiel liest und schreibt
  * sie. Den Aufbau hat Blunderluck erfunden, das mit seinen Konten zu UPCrew
- * umzieht (Stand 24.09.2026, abgelesen aus Apps\Blunderluck\js\spieler.js):
+ * umzieht (Stand 24.09.2026, abgelesen aus Blunderluck spieler.js):
  *
  *     {
  *         "datenVersion": 1,
@@ -205,7 +205,7 @@ const SPIELER = {
     /* Das Verteiler-Konto UP#Plus (Nutzer 25.09.2026: „reiner Admin-Rollen-
        Verteiler-Account"): keine Rangliste, keine Suche, keine Freunde. Die
        Nummer „Plus" hat nur dieses Konto — alle anderen haben vier Ziffern
-       (Regeln, Apps\Blunderluck\SICHERHEIT.md §11). Wie in Blunderluck. */
+       (Datenbank-Regel §11). Wie in Blunderluck. */
     istVerteiler(spieler) {
         if (!spieler) {
             return false;
