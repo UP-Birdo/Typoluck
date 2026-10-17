@@ -1,6 +1,6 @@
 /*
  * upcrew-flamme.js — die Serien-Flamme oben im Kurzprofil, gleich in Blunderluck und Typoluck
- * (gehört zu css\upcrew-flamme.css). Quelle künftig Design\3D-Schrift\final — KOPIEREN, nie abwandeln.
+ * (gehört zu css\upcrew-flamme.css). Gemeinsamer Baustein — KOPIEREN, nie abwandeln.
  *
  * Nutzer, 27.09.2026: „die Flamme soll oben in deinem Profil bei beiden Spielen sein — ein Kreis mit einer Flamme
  * und in der Flamme die Anzeige, ausgelegt für 3 Stellen, alles drüber 1k+ … Die Flamme soll sync mit deinem Profil

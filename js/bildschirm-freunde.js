@@ -201,7 +201,7 @@ const FREUNDE_BILDSCHIRM = {
         name.className = "freunde-name";
         name.appendChild(BAUSTEINE.kreis(spieler.name));
         const text = BAUSTEINE.el("span", null, ANMELDUNG.anzeigeName(spieler));
-        /* Die Nummer nur leise und nur bei gleichen Namen (seit 0.15.6). */
+        /* Die Nummer nur leise und nur bei gleichen Namen. */
         const nummer = SPIELER.nummerZusatz(ANMELDUNG.abgleich.daten, spieler);
         if (nummer) {
             text.appendChild(BAUSTEINE.el("span", "name-nummer", " " + nummer));

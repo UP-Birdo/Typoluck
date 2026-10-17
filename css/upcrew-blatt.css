@@ -1,5 +1,5 @@
 /* upcrew-blatt.css — Blätter und Karten über dem sichtbaren Hauptmenü (gehört zu js/upcrew-blatt.js).
-   Vorschlag für Design\3D-Schrift\final, entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7).
+   Entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7).
    Die App setzt: --up-bl-oben (wo das Blatt beginnt, unter dem Kopf), --up-bl-unten (Höhe der Leiste),
    --up-bl-ebene (z-index; die Leiste der App liegt darüber und bleibt bedienbar). Farben aus der Farbwelt.
 
@@ -73,11 +73,9 @@ html.up-bl-offen body {
   animation: up-bl-hoch 260ms cubic-bezier(.3, 1.2, .5, 1);
 }
 
-.up-bl-oben-drauf .up-bl-blatt {
-  top: calc(var(--up-bl-oben, 92px) + 14px);
-  left: max(14px, calc((100% - 808px) / 2));
-  right: max(14px, calc((100% - 808px) / 2));
-}
+/* Runde 13 (Nutzer 12.10.2026, gilt in jeder Crew-App): „Nur weil in einem Popup ein anderes Popup geöffnet
+   wird, heißt es nicht, dass das zweite Popup kleiner wird“ — ein Blatt über einem Blatt hat GENAU dieselbe
+   Größe und Lage wie das erste (bis Runde 12: 14 px tiefer und schmaler). Der leichtere Grund bleibt. */
 
 .up-bl-kopf { display: flex; align-items: center; gap: 8px; padding: 12px 12px 8px; flex: none; }
 .up-bl-titel { flex: 1; min-width: 0; margin: 0; font-size: 1.12rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -1,6 +1,6 @@
 /*
  * speicher-konten.js — die Rückwand der UPCrew-Konten, gleich in jedem UPCrew-Spiel.
- * Quelle: Apps\UPCrew\bausteine\kern — in die Apps KOPIEREN, nie abwandeln (Liste: BAUSTEINE.json).
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln (Liste: BAUSTEINE.json).
  *
  * Seit 03.10.2026 eine eigene Datei. Bis dahin stand die Klasse zweimal, in Blunderlucks und in
  * Typolucks js\speicher.js, Zeile für Zeile gleich; Typolucks Tests verglichen sie gegen
@@ -140,9 +140,8 @@ class SpeicherKonten extends SpeicherGemeinsam {
     }
 
     /*
-     * DIE REGEL MIT GRAU (seit v0.159.0, Design\3D-Schrift\final\
-     * EINBAU-2026-09-29c.md, Regeltext SICHERHEIT.md Abschnitt 15 =
-     * `Apps\UPCrew\Firebase-Regeln\2026-09-29 NEUE Regel mit 13.txt`):
+     * DIE REGEL MIT GRAU (seit v0.159.0,
+     * Regeltext SICHERHEIT.md Abschnitt 15 = Regel mit 13):
      * Sie erlaubt `farbwelt: "grau"` und das Feld `umstellung` (Merker der
      * einmaligen Umstellung, 0–9). EINGESPIELT am 30.09.2026 (Regel §13,
      * Entscheid „REGEL §13 LIVE") — der Schalter steht deshalb AN. Aus
@@ -183,7 +182,7 @@ class SpeicherKonten extends SpeicherGemeinsam {
 
     /*
      * LADEN — UNTER BEIDEN REGELN (seit v0.154.0, Regel §12 Phase A,
-     * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md Abschnitt 4).
+     * Datenbank-Konzept 12, Abschnitt 4).
      *
      * Beim ersten Laden fragt `KONTO.regelErkennen`, welche Regel gilt.
      *   alt  — wie bisher: der ganze Knoten `spieler`.
@@ -198,13 +197,27 @@ class SpeicherKonten extends SpeicherGemeinsam {
      * `fortschritt`, `tag`, `kennung` nur `auszug`.
      */
     async laden() {
+        /* Nur das ERSTE Laden darf den früh geholten Eintrag nehmen (kern\wer-spielt.js); danach ist er weg. */
+        const start = !this._startGeladen;
+        this._startGeladen = true;
+        try {
+            return await this._ladenInnen(start);
+        } finally {
+            const merker = start ? SpeicherKonten._merker() : null;
+            if (merker) {
+                merker.verwerfen();
+            }
+        }
+    }
+
+    async _ladenInnen(start) {
         const regeln = (typeof KONTO !== "undefined" && typeof KONTO.regelErkennen === "function");
         if (regeln && !KONTO.regelBekannt) {
             await KONTO.regelErkennen();
         }
         let roh;
         try {
-            roh = await this._rohLaden();
+            roh = await this._rohLaden(start);
         } catch (fehler) {
             if (!regeln || !fehler || fehler.status !== 401) {
                 throw fehler;
@@ -214,7 +227,7 @@ class SpeicherKonten extends SpeicherGemeinsam {
             if (KONTO.regel === vorher) {
                 throw fehler;
             }
-            roh = await this._rohLaden();
+            roh = await this._rohLaden(false);
         }
         const daten = this.aufbereiten(SpeicherKonten.alsListe(roh));
         this._merken(daten);
@@ -224,9 +237,9 @@ class SpeicherKonten extends SpeicherGemeinsam {
         return daten;
     }
 
-    async _rohLaden() {
+    async _rohLaden(start) {
         if (typeof KONTO !== "undefined" && typeof KONTO.istP12 === "function" && KONTO.istP12()) {
-            return this._ladenP12();
+            return this._ladenP12(start);
         }
         const antwort = await this._rufen({ cache: "no-store" },
             SpeicherGemeinsam.ZEITLIMIT_LADEN_MS, "Das Laden");
@@ -242,6 +255,42 @@ class SpeicherKonten extends SpeicherGemeinsam {
         return fehler;
     }
 
+    /*
+     * KEIN DOPPELTES LADEN, NIE EIN ALTER STAND (seit 04.10.2026,
+     * kern\wer-spielt.js): Hat das Spiel beim Intro den eigenen Eintrag
+     * schon früh geholt, nimmt NUR das ERSTE `laden()` dieser Rückwand
+     * `konten/<eigene uid>` daraus — läuft der frühe Abruf noch, wartet es
+     * auf ihn statt ein zweites Mal zu holen. Nach diesem ersten Laden und
+     * bei JEDEM Schreiben ist der Merker weg; `teilLaden`, `_teilHolen` und
+     * jedes spätere `laden()` (auch das vor dem Schreiben) holen immer
+     * frisch. Ohne den Baustein ändert sich nichts.
+     */
+    static _merker() {
+        return (typeof UPCREW_WER_SPIELT !== "undefined" && UPCREW_WER_SPIELT
+            && typeof UPCREW_WER_SPIELT.uebernehmen === "function") ? UPCREW_WER_SPIELT : null;
+    }
+
+    async _eigenenHolen(uid, start) {
+        const merker = start ? SpeicherKonten._merker() : null;
+        if (merker) {
+            const geholt = await merker.uebernehmen("konten/" + uid, uid);
+            if (geholt) {
+                return geholt.wert;
+            }
+        }
+        return this._teilHolen("konten/" + uid);
+    }
+
+    /* Jedes Schreiben über diese Rückwand (auch `speichern`, `eintragSetzen`,
+       der eigene Auszug) macht den frühen Eintrag ungültig. */
+    async teilSchreiben(aenderungen) {
+        const merker = SpeicherKonten._merker();
+        if (merker) {
+            merker.verwerfen();
+        }
+        return super.teilSchreiben(aenderungen);
+    }
+
     /* Einen Unterknoten holen — null, wenn es ihn nicht gibt; wirft mit
        `status` bei einer Absage (401 = Regel lässt es nicht zu). */
     async _teilHolen(unterpfad) {
@@ -254,10 +303,15 @@ class SpeicherKonten extends SpeicherGemeinsam {
         return antwort.json();
     }
 
-    async _ladenP12() {
+    async _ladenP12(start) {
         const uid = this.eigeneUid ? this.eigeneUid() : null;
+        /* OHNE KONTO NUR DIE MARKE (seit 13.10.2026, Sicherheits-Befund B2):
+           `rollen` braucht nur, wer angemeldet ist (Admin-Frage), und die
+           Regel gibt den Knoten künftig nur Angemeldeten — ein Abruf ohne
+           Token liefe dann auf 401 und risse das ganze Laden mit. Mit Konto
+           wie bisher beide zugleich. */
         const [marke, rollen] = await Promise.all([this._teilHolen(SpeicherGemeinsam.MARKEN_FELD),
-            this._teilHolen("rollen")]);
+            uid ? this._teilHolen("rollen") : Promise.resolve(null)]);
         const roh = { rollen: (rollen && typeof rollen === "object") ? rollen : {} };
         if (typeof marke === "number") {
             roh[SpeicherGemeinsam.MARKEN_FELD] = marke;
@@ -272,13 +326,15 @@ class SpeicherKonten extends SpeicherGemeinsam {
             roh.konten = (konten && typeof konten === "object") ? konten : {};
             roh.namen = (namen && typeof namen === "object") ? namen : {};
             this._oeffentlichVomServer = meinAuszug || null;
+            this._auszugMerken(this._oeffentlichVomServer);
             return roh;
         }
         const [oeffentlich, eigen] = await Promise.all([this._teilHolen("oeffentlich"),
-            this._teilHolen("konten/" + uid)]);
+            this._eigenenHolen(uid, start)]);
         roh.konten = {};
         const fremde = (oeffentlich && typeof oeffentlich === "object") ? oeffentlich : {};
         this._oeffentlichVomServer = fremde[uid] || null;
+        this._auszugMerken(this._oeffentlichVomServer);
         for (const andere of Object.keys(fremde)) {
             if (fremde[andere] && typeof fremde[andere] === "object") {
                 roh.konten[andere] = fremde[andere];
@@ -288,6 +344,29 @@ class SpeicherKonten extends SpeicherGemeinsam {
             roh.konten[uid] = eigen;
         }
         return roh;
+    }
+
+    /*
+     * APPS OHNE FORTSCHRITT (Kaffekasse, seit 09.10.2026): `KONTO.oeffentlichVon` kann den
+     * Level-Auszug (`auszug`: Level, Serie, Spielzeit) nur mit `FORTSCHRITT` rechnen. Ohne ihn
+     * schrieb die App den eigenen öffentlichen Eintrag OHNE `auszug` — Level und Serie verschwanden
+     * in Rangliste, Freunden und Profil der Spiele, bis man wieder ein Spiel öffnete. Deshalb: den
+     * zuletzt vom Server gelesenen eigenen `auszug` merken und unverändert mitschreiben. Spiele mit
+     * `FORTSCHRITT` rechnen ihn wie bisher selbst.
+     */
+    _auszugMerken(eintrag) {
+        if (eintrag && typeof eintrag === "object" && eintrag.auszug && typeof eintrag.auszug === "object") {
+            this._auszugVomServer = eintrag.auszug;
+        }
+    }
+
+    _auszugBewahren(pfade, uid) {
+        const ohneFortschritt = typeof FORTSCHRITT === "undefined" || typeof FORTSCHRITT.auszug !== "function";
+        const ziel = pfade && pfade["oeffentlich/" + uid];
+        if (ohneFortschritt && ziel && typeof ziel === "object" && this._auszugVomServer) {
+            ziel.auszug = this._auszugVomServer;
+        }
+        return pfade;
     }
 
     /* Den eigenen Auszug sofort neu schreiben (seit v0.155.0: nach dem
@@ -321,7 +400,7 @@ class SpeicherKonten extends SpeicherGemeinsam {
         this._eingetragen = true;
         try {
             const eintrag = Object.assign(SpeicherKonten.eintragFuerServer(eigener), { uid: eigener.uid });
-            const pfade = KONTO.oeffentlichePfade(eintrag, null);
+            const pfade = this._auszugBewahren(KONTO.oeffentlichePfade(eintrag, null), eintrag.uid);
             const soll = KONTO.anmeldungVon(eintrag);
             const verzeichnis = soll ? await KONTO.verzeichnisLesen(eintrag.name) : [];
             if (verzeichnis === null) {
@@ -382,7 +461,8 @@ class SpeicherKonten extends SpeicherGemeinsam {
            der Auszug ändert"). Unter der alten Regel wie bisher. */
         let oeffentlichText = null;
         if (typeof KONTO !== "undefined" && typeof KONTO.istP12 === "function" && KONTO.istP12()) {
-            const pfade = KONTO.oeffentlichePfade(Object.assign({}, eintrag, { uid: eigener.uid }), null);
+            const pfade = this._auszugBewahren(
+                KONTO.oeffentlichePfade(Object.assign({}, eintrag, { uid: eigener.uid }), null), eigener.uid);
             oeffentlichText = JSON.stringify(pfade);
             if (oeffentlichText !== this.zuletztOeffentlich) {
                 Object.assign(aenderungen, pfade);

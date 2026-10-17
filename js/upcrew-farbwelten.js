@@ -1,5 +1,5 @@
 /* UPCrew-Farbwelten — macht aus einer Farbwelt die Farb-Platzhalter (CSS-Variablen) der Apps.
-   Quelle: dev\Design\3D-Schrift\final\ (Ansicht: farbwelten-ansicht.html). In die Apps KOPIEREN, nicht abwandeln.
+   Gemeinsamer Baustein: in die Apps KOPIEREN, nicht abwandeln.
    Braucht upcrew-intro.js (dort stehen die sieben Grundfarben je Welt in UPCREW_INTRO.WELTEN).
 
    - Jede Welt gibt es dunkel UND hell.

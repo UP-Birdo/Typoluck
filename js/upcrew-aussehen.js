@@ -1,5 +1,5 @@
 /*
- * upcrew-aussehen.js — das Aussehen der UPCrew-Spiele (Blunderluck, Typoluck; NICHT Trainer).
+ * upcrew-aussehen.js — das Aussehen der UPCrew-Apps (Blunderluck, Typoluck, seit 09.10.2026 Kaffekasse; NICHT Trainer).
  *
  * DER SCHALTER `GETEILT` (Entwickler-Schalter, nichts für Spieler; Nutzer 27.09.2026: „mach es doch so, dass es
  * nicht sync ist, also die Designs — wenn man auf Übernehmen drückt, soll sich nur das Spiel ändern. Aber mach einen
@@ -21,7 +21,7 @@
  * Was hier liegt (ein JSON unter `upcrew.aussehen`, bei GETEILT = false unter `<app>.aussehen`):
  *     darstellung  "geraet" | "hell" | "dunkel"
  *     farbwelt     "grau" | "werkstatt" | "studio" | "feld" | "tiefsee" | "gold"   (Standard seit 29.09.2026c: "grau")
- *     schrift      "S1" … "S6"   (Crew-Schnitte, docs\SCHRIFT-KNOEPFE.md)
+ *     schrift      "S1" … "S6"   (Crew-Schnitte)
  *     knoepfe      "K1" … "K6"
  *     (leseschrift — seit 29.09.2026 WEG, Nutzer: „was macht standart schrift? brauchen wir eigentlich nicht“. Ein
  *      alter Wert im Gerät oder am Konto wird still übergangen und beim nächsten Speichern nicht mehr geschrieben;
@@ -61,7 +61,7 @@
  *     UPCREW_AUSSEHEN.beobachten(() => neuZeichnen);  andere App hat umgestellt
  *     UPCREW_AUSSEHEN.setzen({ darstellung: "hell" });
  *
- * Quelle NUR hier (Design\3D-Schrift\final), verteilt mit tools\Intro-Verteilen.cmd — nie in einer App abwandeln.
+ * Gemeinsamer Baustein — nie in einer App abwandeln.
  */
 (function () {
   "use strict";
@@ -69,7 +69,8 @@
   // ENTWICKLER-SCHALTER (siehe Kopf): false = jedes Spiel sein eigenes Aussehen, true = eins für alle.
   const GETEILT = false;
   const GEMEINSAM = "upcrew.aussehen";
-  const SPIELE = ["blunderluck", "typoluck"];
+  // Die Apps mit eigenem Aussehen (seit 09.10.2026 auch Kaffekasse — kein Spiel, derselbe Baustein).
+  const SPIELE = ["blunderluck", "typoluck", "kaffekasse"];
   const ALT_FARBWELT = "upcrew.farbwelt";   // liest das Intro; nur bei GETEILT mitgeschrieben
 
   let app = (function () {

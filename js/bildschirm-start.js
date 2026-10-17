@@ -7,7 +7,7 @@
  * Bildschirm, der sich bei NAVIGATION anmeldet — der Start selbst ändert
  * sich dafür nicht.
  *
- * Auf dem Start: Begrüssung, je Spiel (seit 0.23.4) ZWEI Karten —
+ * Auf dem Start: Begrüssung, je Spiel ZWEI Karten —
  * Tageswort (Stand des Tages, danach Zeit bis zum nächsten) und Übung.
  * „Heute bei deinen Freunden" stand bis 0.23.0 darunter, seit 0.23.1 ist
  * es gelöscht (Freunde: Rangliste).
@@ -26,7 +26,7 @@
 const START = {
 
     /*
-     * DIE ARTEN DES STARTS — DIE EINE LISTE (seit 0.32.0). Das Quadrat, die
+     * DIE ARTEN DES STARTS — DIE EINE LISTE. Das Quadrat, die
      * Wahl am Quadrat, die gemerkte Art, die Karte und die Knöpfe lesen
      * alle hier. Eine weitere Art (Duell) ist EIN Eintrag mehr:
      *   id        Kennung (so steht sie auf dem Gerät)
@@ -148,7 +148,7 @@ const START = {
         }
         const zeit = "in " + START.bisMorgen(APP.jetzt());
         for (const el of ort.querySelectorAll("[data-bis-morgen]")) {
-            /* `kurz` (seit 0.34.4): nur „in …" — „nächstes " steht davor in
+            /* `kurz`: nur „in …" — „nächstes " steht davor in
                einem eigenen Teil, den der Knopf bei wenig Platz weglässt. */
             const text = el.getAttribute("data-bis-morgen") === "kurz" ? zeit : "nächstes " + zeit;
             if (el.textContent !== text) {
@@ -158,7 +158,7 @@ const START = {
     },
 
     zeigen(behaelter, parameter) {
-        /* Aus einer Bibliothek-Runde zurück (seit 0.20.0): in die Bibliothek,
+        /* Aus einer Bibliothek-Runde zurück: in die Bibliothek,
            dorthin, wo man steht. */
         if (parameter && parameter.bibliothek && typeof START.artSetzen === "function") {
             try {
@@ -202,6 +202,7 @@ const START = {
             START._flammeBauen(kopf, START._kopfFlamme);
         }
         behaelter.appendChild(kopf);
+        START._offlineAnheften(kopf.querySelector(".up-pf-kz-feld"));
 
         /*
          * DIE ART BESTIMMT DEN INHALT (seit 0.32.0 über das Quadrat unten,
@@ -322,6 +323,27 @@ const START = {
         return werte;
     },
 
+    /*
+     * DER OFFLINE-HINWEIS AM PROFILBILD (seit 0.36.0, Baustein
+     * js\upcrew-offline.js, Variante A; wie Blunderluck): ein ruhiges Zeichen
+     * unten links am Kreis der Kopfzeile, Tipp → kleine Sprechblase. Baut
+     * sich der Kopf neu, wird der alte Griff gelöst und am neuen Kreis wieder
+     * angeheftet; den Zustand hält der Baustein selbst. Ohne Kreis (Rückfall
+     * ohne Baustein, niemand angemeldet) steht kein Zeichen.
+     */
+    _offlineGriff: null,
+
+    _offlineAnheften(anker) {
+        if (START._offlineGriff) {
+            START._offlineGriff.aus();
+            START._offlineGriff = null;
+        }
+        if (anker && typeof UPCREW_OFFLINE !== "undefined") {
+            START._offlineGriff = UPCREW_OFFLINE.an(anker, { ecke: "unten-links" });
+        }
+        return START._offlineGriff;
+    },
+
     /* Das eigene Profil (seit 0.25.0 ein Blatt über dem Start). */
     profilOeffnen() {
         NAVIGATION.zeigen("profil", null);
@@ -391,7 +413,7 @@ const START = {
     },
 
     /* ---------------------------------------------------------------- *
-     * DER KNOPF-BEREICH UNTEN (seit 0.32.0): EINE Zeile fester Höhe
+     * DER KNOPF-BEREICH UNTEN: EINE Zeile fester Höhe
      * (`.start-unten`, 82 px = 74 px Knöpfe + 8 px Luft):
      *
      *   Bibliothek:  [ Spielen · Kapitel … ]                 [Art]
@@ -529,7 +551,7 @@ const START = {
     },
 
     /*
-     * DIE OFFENEN RUNDEN (seit 0.32.0): was angefangen und noch nicht
+     * DIE OFFENEN RUNDEN: was angefangen und noch nicht
      * beendet ist — je Runde { unter, parameter } oder null.
      *   bibliothek  die gemerkte Runde läuft, hat einen Versuch und gehört
      *               zur Station, die gerade dran ist

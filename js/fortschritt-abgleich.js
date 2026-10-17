@@ -1,5 +1,5 @@
 /*
- * fortschritt-abgleich.js — der Fortschritt am UPCrew-Konto (seit 0.15.1).
+ * fortschritt-abgleich.js — der Fortschritt am UPCrew-Konto.
  *
  * WOZU: js\fortschritt.js hält Level, XP, Serie und Heute im Browser-
  * Speicher (`upcrew.fortschritt`); Blunderluck im SELBEN Browser sieht es
@@ -102,7 +102,7 @@ const FORTSCHRITT_ABGLEICH = {
         return aenderungen;
     },
 
-    /* Der Stand des letzten Sendens für die Status-Lampe (seit 0.26.0):
+    /* Der Stand des letzten Sendens für die Status-Lampe:
        "" (nichts gesendet) | "wartet" | "gespeichert" | "fehler";
        `beiZustand` ruft die App nach jedem Wechsel. */
     zustand: "",
@@ -177,7 +177,7 @@ const FORTSCHRITT_ABGLEICH = {
             return false;
         }
         const konto = FORTSCHRITT.normalisieren(vomKonto);
-        /* Die fremden Zweige von vorher (seit 0.31.0) — zum Vergleich unten. */
+        /* Die fremden Zweige von vorher — zum Vergleich unten. */
         const fremdVorher = (FORTSCHRITT_ABGLEICH._kontoUid === uid)
             ? FORTSCHRITT_ABGLEICH._fremdText(FORTSCHRITT_ABGLEICH._konto) : "{}";
         FORTSCHRITT_ABGLEICH._konto = konto;
@@ -191,11 +191,40 @@ const FORTSCHRITT_ABGLEICH = {
         if (dort && standVon(dort) > standVon(hier)) {
             /* Am Konto neuer: aufs Gerät — nur der eigene Zweig, Zeitpunkt
                wie am Konto (sonst ginge er beim nächsten Mal wieder hinauf). */
-            FORTSCHRITT.aendern(id, (stand) => ({ stand: FORTSCHRITT.zusammenfuehren(stand, konto) }), standVon(dort));
+            const ergebnis = FORTSCHRITT.aendern(id,
+                (stand) => ({ stand: FORTSCHRITT.zusammenfuehren(stand, konto) }), standVon(dort));
+            /* VEREINIGUNG STATT ERSETZEN (seit 0.36.0, offline Erspieltes):
+               Brachte das Gerät beim Zusammenführen etwas mit, das am Konto
+               fehlt (ein Zähler wie Münzen, offline verdient), geht die
+               Vereinigung EINMAL hinauf — mit dem `stand` des Kontos, also ohne
+               Schleife (beim nächsten Holen sind beide Seiten gleich). */
+            if (ergebnis && ergebnis.stand && !FORTSCHRITT_ABGLEICH._wieAmKonto(ergebnis.stand, konto)) {
+                await FORTSCHRITT_ABGLEICH.senden(ergebnis.stand);
+            }
             return true;
         }
-        if (hier && standVon(hier) > standVon(dort)) {
-            await FORTSCHRITT_ABGLEICH.senden(geraet);
+        /* Gerät neuer oder gleich alt (seit 0.36.0, Gegenprüfung Befund 1
+           und 2): NIE den rohen Geräte-Zweig hinauf — sonst überschriebe ein
+           offline gespieltes Gerät die Münzen und Zähler eines anderen Geräts
+           am Konto. Erst mit dem Konto-Zweig vereinigen (neuere Fassung,
+           Zähler je Name das Maximum), dann EINMAL senden, wenn das Konto
+           davon abweicht. Auch bei GLEICHEM `stand` (die frühe Vereinigung in
+           js\wer-spielt.js legt den Stand des Kontos aufs Gerät, samt offline
+           verdienter Münzen): Sonst gingen diese erst mit dem nächsten
+           Spielzug hinauf. Verglichen wird in der Form, die am Konto ankommt
+           (`fuerKonto`) — so schreibt das nächste Holen nichts mehr. */
+        if (hier && !FORTSCHRITT_ABGLEICH._wieAmKonto(FORTSCHRITT.zusammenfuehren(geraet, konto), konto)) {
+            let stand = FORTSCHRITT.zusammenfuehren(geraet, konto);
+            let geraetNeu = false;
+            if (!FORTSCHRITT_ABGLEICH._gleich(FORTSCHRITT.zweig(stand), FORTSCHRITT.zweig(geraet))) {
+                stand = FORTSCHRITT.aendern(id, (s) => ({ stand: FORTSCHRITT.zusammenfuehren(s, konto) }),
+                    Math.max(standVon(hier), standVon(dort))).stand;
+                geraetNeu = true;
+            }
+            await FORTSCHRITT_ABGLEICH.senden(stand);
+            if (geraetNeu) {
+                return true;
+            }
         }
         /* Neues aus Blunderluck am Konto zeigt sich über `mitKonto`. Seit
            0.31.0 gilt das nur als Änderung, wenn sich an den fremden Zweigen
@@ -203,6 +232,31 @@ const FORTSCHRITT_ABGLEICH = {
            fremden Zweig" schon „geändert", und bei jeder Rückkehr in den
            Vordergrund wurde die offene Seite samt Blättern neu gezeichnet. */
         return FORTSCHRITT_ABGLEICH._fremdText(konto) !== fremdVorher;
+    },
+
+    /* Stünde am Konto schon genau das, was `stand` dort hinterliesse? (Der
+       eigene Zweig in der Form des Datenvertrags, `fuerKonto`.) */
+    _wieAmKonto(stand, konto) {
+        const hinauf = FORTSCHRITT.zweig(FORTSCHRITT.normalisieren(FORTSCHRITT.fuerKonto(stand)));
+        return FORTSCHRITT_ABGLEICH._gleich(hinauf, FORTSCHRITT.zweig(konto));
+    },
+
+    /* Zwei Werte gleich, unabhängig von der Reihenfolge der Schlüssel. */
+    _gleich(a, b) {
+        const ordnen = (w) => {
+            if (Array.isArray(w)) {
+                return w.map(ordnen);
+            }
+            if (w && typeof w === "object") {
+                const aus = {};
+                for (const k of Object.keys(w).sort()) {
+                    aus[k] = ordnen(w[k]);
+                }
+                return aus;
+            }
+            return w;
+        };
+        return JSON.stringify(ordnen(a)) === JSON.stringify(ordnen(b));
     },
 
     /* Die Zweige der anderen Spiele als Text (zum Vergleichen). */

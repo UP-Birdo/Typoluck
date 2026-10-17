@@ -1,6 +1,6 @@
 /*
  * upcrew-abzeichen-spiele.js — die Abzeichen der einzelnen UPCrew-Spiele als DATEN, gleich in allen Apps (gehört zu
- * js/upcrew-abzeichen.js, danach laden). Entstanden in Blunderluck v0.156.0 als Vorschlag für Design\3D-Schrift\final.
+ * js/upcrew-abzeichen.js, danach laden). Entstanden in Blunderluck v0.156.0.
  *
  * Nutzer, 28.09.2026: „wenn ich in dem einen Spiel ein Abzeichen bekomme, soll es fix im Profil liegen; man soll 3
  * ausrüsten können, egal aus welchem Spiel“ → EINE Liste für alle Spiele. Jedes Spiel steht hier mit seinen

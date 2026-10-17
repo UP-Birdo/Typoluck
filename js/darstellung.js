@@ -1,6 +1,6 @@
 /*
  * darstellung.js — wie die App aussieht: Typolucks Anschluss an das
- * gemeinsame UPCrew-Aussehen, und die Sperre für Kachelfarben (seit 0.6.2).
+ * gemeinsame UPCrew-Aussehen, und die Sperre für Kachelfarben.
  *
  *     DARSTELLUNG.thema()                "geraet" | "hell" | "dunkel"
  *     DARSTELLUNG.themaSetzen(wert)

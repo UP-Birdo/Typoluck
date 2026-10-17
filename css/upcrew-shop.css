@@ -1,9 +1,9 @@
 /*
  * upcrew-shop.css — der Tab „Shop“ und die Münze (zu upcrew-shop.js und upcrew-muenzen.js), gleich in Blunderluck
- * und Typoluck. Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln. Seit Runde 8
+ * und Typoluck. Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln. Seit Runde 8
  * (04.10.2026): neu gebaut.
  *
- * Aussehen der früheren Vorschau (Design\3D-Schrift\entwuerfe\Bibliothek): Schalter, „Heute im Angebot“ (drei
+ * Aussehen der früheren Shop-Vorschau: Schalter, „Heute im Angebot“ (drei
  * Kacheln), Paket-Karten in der eigenen Farbwelt mit großem „UPCREW“, Bänder. Die Einzelteile als
  * Kategorie-Kacheln wie in der Sammlung. NICHTS ROLLT WAAGRECHT (kein overflow-x).
  *

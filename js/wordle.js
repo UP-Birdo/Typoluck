@@ -12,7 +12,7 @@
  * wiederherstellen):
  *
  *     {
- *         modus:    "tag" | "uebung" | "bibliothek" (seit 0.18.0),
+ *         modus:    "tag" | "uebung" | "bibliothek",
  *         buch, level:  nur "bibliothek" — Buch ab 1, Level ab 0
  *         grund:    Versuche ohne Extra-Leben (0.18.1–0.18.5; nur noch als
  *                   Rückfall gespeicherter Runden gelesen)
@@ -42,7 +42,7 @@ const WORDLE_WOERTER = (typeof WOERTER_DE !== "undefined")
 
 const WORDLE = {
 
-    /* DER NAME, DEN DER SPIELER SIEHT — steht nur hier (seit 0.6.2).
+    /* DER NAME, DEN DER SPIELER SIEHT — steht nur hier.
        „Wordle" ist eine Marke der New York Times und darf NIE sichtbar sein
        (Nutzer-Entscheidung 25.09.2026, tests\test-syntax.js wacht darüber).
        Die inneren Namen (WORDLE, "wordle" als Bildschirm-Id und als Pfad in
@@ -163,16 +163,43 @@ const WORDLE = {
 
     /* Ein Wort für die Übung. `zufall` ist eine Zahl in [0, 1) — sie kommt
        von aussen, damit das Modell selbst nie würfelt (und testbar bleibt). */
-    uebungswort(zufall) {
+    uebungswort(zufall, stufe) {
         /* Seit 0.16.0: Wörter, die von Hand als „ungeeignet" markiert sind
            (js/wortbewertung-korrektur.js), kommen in der Übung nicht dran.
            Das Tageswort bleibt unberührt — Datum → Wort ändert sich nie. */
         const alle = WORDLE_WOERTER.loesungen;
         const wb = (typeof WORTBEWERTUNG !== "undefined") ? WORTBEWERTUNG : null;
         const geeignet = wb ? alle.filter((wort) => !wb.ungeeignet(wort)) : alle;
-        const liste = geeignet.length ? geeignet : alle;
+        const liste = WORDLE.uebungsBereich(geeignet.length ? geeignet : alle, stufe, wb);
         const stelle = Math.min(liste.length - 1, Math.max(0, Math.floor(zufall * liste.length)));
         return liste[stelle];
+    },
+
+    /*
+     * ÜBEN NACH SPIELER-STUFE (seit 0.36.0): Mit einer Stufe (0–100, js\
+     * wortstatistik.js — dieselbe Skala wie WORTBEWERTUNG.schwierigkeit)
+     * kommen in der Übung Wörter, deren Schwierigkeit nah an der Stufe liegt:
+     * erst ± UEBUNG_BREITE; sind das weniger als UEBUNG_MIN Wörter, wird der
+     * Bereich in Schritten von 5 breiter (höchstens ± 50), sonst alle. Ohne
+     * Stufe (null — zu wenig gespielt) oder ohne Bewertung: die ganze Liste
+     * wie bisher. Rein; die Reihenfolge der Liste bleibt.
+     */
+    UEBUNG_BREITE: 10,
+    UEBUNG_MIN: 40,
+
+    uebungsBereich(liste, stufe, wb) {
+        if (typeof stufe !== "number" || !isFinite(stufe) || !wb || typeof wb.schwierigkeit !== "function") {
+            return liste;
+        }
+        const mitZahl = liste.map((wort) => ({ wort: wort, d: wb.schwierigkeit(wort) }))
+            .filter((e) => typeof e.d === "number" && isFinite(e.d));
+        for (let breite = WORDLE.UEBUNG_BREITE; breite <= 50; breite += 5) {
+            const bereich = mitZahl.filter((e) => Math.abs(e.d - stufe) <= breite);
+            if (bereich.length >= WORDLE.UEBUNG_MIN) {
+                return bereich.map((e) => e.wort);
+            }
+        }
+        return liste;
     },
 
     /* ---------------------------------------------------------------- *
@@ -313,7 +340,7 @@ const WORDLE = {
                 runde.mitnahme = { effekt: effekt, ueben: m.ueben === 1 ? 1 : 0 };
             }
         }
-        /* Die Regeln je Runde (seit 0.19.0) — nur, wenn angegeben. */
+        /* Die Regeln je Runde — nur, wenn angegeben. */
         if (angaben.regeln && typeof angaben.regeln === "object") {
             runde.regeln = WORDLE.regelnNormalisieren(angaben.regeln);
             if (runde.regeln.hart) {
@@ -328,7 +355,7 @@ const WORDLE = {
         return runde;
     },
 
-    /* Die Versuche ohne Extra-Leben: `regeln.versuche` (seit 0.19.0), sonst
+    /* Die Versuche ohne Extra-Leben: `regeln.versuche`, sonst
        das alte Feld `grund` (gespeicherte Runden 0.18.1–0.18.5), sonst 6. */
     versucheGrund(runde) {
         if (runde && runde.regeln) {
@@ -460,7 +487,7 @@ const WORDLE = {
             buch: roh.buch, level: roh.level, grund: roh.grund, station: roh.station,
             regeln: roh.regeln, mitnahme: roh.mitnahme, gebannt: roh.gebannt
         });
-        /* Die Uhr (seit 0.19.0) bleibt, samt „Zeit um". */
+        /* Die Uhr bleibt, samt „Zeit um". */
         if (runde.regeln && typeof roh.uhrAb === "number" && roh.uhrAb > 0) {
             runde.uhrAb = roh.uhrAb;
         }
@@ -471,7 +498,7 @@ const WORDLE = {
         runde.tipps = (Array.isArray(roh.tipps) ? roh.tipps : [])
             .filter((i, stelle, liste) => Number.isInteger(i) && i >= 0 && i < WORDLE.LAENGE
                 && liste.indexOf(i) === stelle);
-        /* Tinte (seit 0.23.0) — nur, wenn welche eingesetzt ist. */
+        /* Tinte — nur, wenn welche eingesetzt ist. */
         if (Array.isArray(roh.tinte) && roh.tinte.length) {
             runde.tinte = roh.tinte.filter((i, stelle, liste) => Number.isInteger(i) && i >= 0
                 && i < WORDLE.LAENGE && liste.indexOf(i) === stelle && runde.tipps.indexOf(i) === -1);
@@ -520,11 +547,13 @@ const WORDLE = {
      *   fehler "vorbei"      die Runde ist schon entschieden
      *   fehler "zu-kurz"     weniger als fünf Buchstaben
      *   fehler "unbekannt"   kein Wort aus der Liste
+     *   fehler "doppelt"     dieses Wort steht in der Runde schon (seit
+     *                        0.37.0: kein verschenkter Versuch)
      *   fehler "schwer"      Schwer-Modus: ein gefundener Buchstabe fehlt;
-     *                        `hinweis` sagt welcher (seit 0.6.0)
-     *   fehler "zensiert"    Regel `lieblingeBannen` (seit 0.28.0): ein
+     *                        `hinweis` sagt welcher
+     *   fehler "zensiert"    Regel `lieblingeBannen`: ein
      *                        gebanntes Lieblingswort
-     *   fehler "zeit"        Regel `zeit` (seit 0.19.0): die Zeit ist um —
+     *   fehler "zeit"        Regel `zeit`: die Zeit ist um —
      *                        `runde` ist dann die VERLORENE Runde
      * Bei einem anderen Fehler ist `runde` unverändert.
      */
@@ -550,6 +579,9 @@ const WORDLE = {
         }
         if (WORDLE.istGebannt(runde, eingabe)) {
             return { runde: runde, fehler: "zensiert" };
+        }
+        if (runde.versuche.indexOf(eingabe) !== -1) {
+            return { runde: runde, fehler: "doppelt" };
         }
         if (runde.schwer) {
             const hinweis = WORDLE.schwerPruefen(runde, eingabe);
@@ -618,7 +650,7 @@ const WORDLE = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Die Eingabe — die Zeile, in die gerade getippt wird (seit 0.3.0)
+     * Die Eingabe — die Zeile, in die gerade getippt wird
      *
      * Nutzer 25.09.2026: „dass man auf die Felder klicken kann in der Zeile,
      * wo man gerade schreiben soll, dass man schon vor-eintragen kann".
@@ -643,7 +675,7 @@ const WORDLE = {
     },
 
     /*
-     * FESTE FELDER (seit 0.23.0): Aufgedeckte Buchstaben aus Tipp und Tinte
+     * FESTE FELDER: Aufgedeckte Buchstaben aus Tipp und Tinte
      * (`festeBuchstaben`) stehen fest in der Eingabe — `fest` je Stelle
      * true/false, nur vorhanden, wenn es feste gibt. Ein festes Feld lässt
      * sich nicht überschreiben, nicht löschen und nicht markieren; Tippen,
@@ -765,6 +797,53 @@ const WORDLE = {
         return WORDLE._eingabeKopie(eingabe).felder.join("");
     },
 
+    /*
+     * EINFÜGEN UND TIPPEN AM RECHNER (seit 0.37.0, Komfort): Aus beliebigem
+     * Text die Buchstaben des Spiels — klein, „ß“ wird „ss“ (die Tastatur hat
+     * kein ß, die Wortlisten schreiben „ss“), alles andere fällt weg.
+     */
+    textZuBuchstaben(text) {
+        return Array.from(String(text || "").toLowerCase().replace(/ß/g, "ss"))
+            .filter((z) => WORDLE.BUCHSTABEN.indexOf(z) !== -1);
+    },
+
+    /* Was beim Einfügen übernommen wird: der Text nach dem Trimmen, wenn er
+       genau EIN Wort aus Buchstaben des Spiels ist (ß zählt als ss) — sonst
+       null (Sätze, Zahlen, Satzzeichen: nichts zusammenziehen). */
+    einfuegeWort(text) {
+        const wort = String(text || "").trim().toLowerCase().replace(/ß/g, "ss");
+        if (!wort || !Array.from(wort).every((z) => WORDLE.BUCHSTABEN.indexOf(z) !== -1)) {
+            return null;
+        }
+        return wort;
+    },
+
+    /* Wie viele Felder der Zeile noch leer sind (feste zählen nicht). */
+    freieFelder(eingabe) {
+        const e = WORDLE._eingabeKopie(eingabe);
+        return e.felder.filter((f, i) => f === "" && !WORDLE._istFest(e, i)).length;
+    },
+
+    /* Ein eingefügtes Wort (Strg+V) füllt die Zeile von vorn: Buchstabe i
+       kommt in Feld i; feste Felder bleiben und verbrauchen ihre Stelle.
+       Markiert ist danach das erste leere Feld (voll: nichts). Kein Wort
+       (`einfuegeWort` null): null. Rein. */
+    eingabeEinfuegen(runde, text) {
+        const wort = WORDLE.einfuegeWort(text);
+        if (wort === null) {
+            return null;
+        }
+        const neu = WORDLE.eingabeFuer(runde);
+        const buchstaben = Array.from(wort).slice(0, WORDLE.LAENGE);
+        buchstaben.forEach((b, i) => {
+            if (!WORDLE._istFest(neu, i)) {
+                neu.felder[i] = b;
+            }
+        });
+        neu.stelle = neu.felder[0] === "" ? 0 : WORDLE._naechstesLeeres(neu.felder, 0);
+        return neu;
+    },
+
     /* Hilfen der Eingabe */
 
     _eingabeKopie(eingabe) {
@@ -803,7 +882,8 @@ const WORDLE = {
         return {
             "vorbei": "Runde vorbei",
             "zu-kurz": "Zu kurz",
-            "unbekannt": "Unbekanntes Wort",
+            "unbekannt": "Nicht in der Wortliste",
+            "doppelt": "Schon versucht",
             "schwer": "Harter Modus",
             "zensiert": "Zensiert",
             "zeit": "Zeit um"

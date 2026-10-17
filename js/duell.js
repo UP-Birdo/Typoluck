@@ -1,6 +1,6 @@
 /*
  * duell.js — das Duell (1 gegen 1) als reines Modell: kein Bildschirm, kein
- * Netz, kein Zufall ohne Auftrag (seit 0.34.0).
+ * Netz, kein Zufall ohne Auftrag.
  *
  * GRUNDLAGE UND VERBINDLICHER VERTRAG: UPCrew-Konzept DUELL-KONZEPT-14.md
  * (Fassung 2) und die Regel §14 in den UPCrew-Regeltexten (Zweig

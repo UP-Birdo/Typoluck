@@ -1,6 +1,6 @@
 /* upcrew-profil.css — Profil zweistufig: Vorschau-Karte + ausführliches Profil (Blatt; seit 29.09.2026 spät schlank)
-   (seit 29.09.2026; gehört zu js/upcrew-profil.js, dazu css/upcrew-levelpfad.css). Vorschlag für
-   Design\3D-Schrift\final, entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7). Farben aus der Farbwelt,
+   (seit 29.09.2026; gehört zu js/upcrew-profil.js, dazu css/upcrew-levelpfad.css). Entstanden
+   in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7). Farben aus der Farbwelt,
    Rundungen nur über die Variablen, harte Schatten. */
 
 .up-pf-zeichen { width: 22px; height: 22px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }

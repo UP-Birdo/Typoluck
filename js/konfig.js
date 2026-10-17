@@ -15,7 +15,7 @@ const KONFIG = {
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.35.0",
+    APP_VERSION: "0.37.0",
 
     /*
      * DAS DUELL (1 gegen 1, seit 0.34.0; Vertrag und Regel:
@@ -26,9 +26,11 @@ const KONFIG = {
      * Duell-Pfad. Nach dem Einspielen (Konzept Abschnitt 8) hier `true`.
      * Ausprobieren ohne Regel: nur in der Werkstatt (`?werkstatt&duell`,
      * Kopf von js\werkstatt.js) mit einer Attrappe im Gerätespeicher.
-     * tests\test-duell-abgleich.js hält den Wert fest.
+     * tests\test-duell-abgleich.js hält den Wert fest. Seit 0.36.0 true:
+     * Nutzer 04.10.2026, 13:50 „ja ist eingespielt“ (UPCrew
+     * docs\entscheidungen\entschieden.md).
      */
-    REGEL_14_EINGESPIELT: false,
+    REGEL_14_EINGESPIELT: true,
 
     speicher: {
 
@@ -114,7 +116,7 @@ const KONFIG = {
         domain: "konten.upcrew.invalid"
     },
 
-    /* Die anderen UPCrew-Spiele (seit 0.10.0): Der Tab „Heute" zeigt ihre
+    /* Die anderen UPCrew-Spiele: Der Tab „Heute" zeigt ihre
        Tagesaufgabe als Karte mit „Zu …". Gleicher Ursprung
        (up-birdo.github.io) — dort teilen sie den Fortschritt im Browser.
        Seit 0.11.0 ist die Adresse RELATIV (`../Blunderluck/`, wie

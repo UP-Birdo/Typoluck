@@ -1,7 +1,7 @@
 /*
  * upcrew-blatt.js — Blätter und Karten über dem sichtbaren Hauptmenü, gleich in allen UPCrew-Spielen
- * (gehört zu css/upcrew-blatt.css). Entstanden in Blunderluck v0.156.0 als Vorschlag für
- * Design\3D-Schrift\final (Entwurf Oberfläche Runde 7, vom Nutzer abgenommen).
+ * (gehört zu css/upcrew-blatt.css). Entstanden in Blunderluck v0.156.0
+ * (Entwurf Oberfläche Runde 7, vom Nutzer abgenommen).
  *
  * Nutzer, 28.09.2026: „in beiden spielen soll es keine menüs geben in dem sinn das der ganze screen bedeckt ist dafür
  * soll alles was nicht im spiel ist popups sein welche im hintergrund noch das hauptmenü zeigt außer im spiel selbst

@@ -1,5 +1,5 @@
 /*
- * lieblingswoerter.js — die Lieblingswörter eines Spielers (seit 0.28.0).
+ * lieblingswoerter.js — die Lieblingswörter eines Spielers.
  *
  * WOZU: Der Boss „Der Zensor" (Buch 4, js/bibliothek.js) bannt die Wörter,
  * die man am liebsten rät (UPCrew-Konzept BIBLIOTHEK-UND-
@@ -156,6 +156,31 @@ const LIEBLINGSWOERTER = {
         return LIEBLINGSWOERTER._kuerzen(neu);
     },
 
+    /*
+     * Zwei Stände vereinigen (seit 0.36.0, Gast → Konto): `a` ist der Stand
+     * der Person, `b` der des Gasts. Die Runden des Gasts zählen, als kämen
+     * sie NACH denen der Person (n und „zuletzt“ des Gasts um a.n
+     * verschoben); ein Wort in beiden summiert seine Zähler. `k` (zuletzt
+     * gesendet) bleibt das der Person — so geht eine neue Top 3 ans Konto.
+     * Rein, liefert einen NEUEN Stand.
+     */
+    vereinigen(a, b) {
+        const eins = LIEBLINGSWOERTER.normalisieren(a);
+        const zwei = LIEBLINGSWOERTER.normalisieren(b);
+        const neu = { n: eins.n + zwei.n, w: {}, k: eins.k };
+        for (const wort of Object.keys(eins.w)) {
+            neu.w[wort] = eins.w[wort].slice();
+        }
+        for (const wort of Object.keys(zwei.w)) {
+            const e = zwei.w[wort];
+            const da = neu.w[wort];
+            neu.w[wort] = da
+                ? [da[0] + e[0], da[1] + e[1], Math.max(da[2], e[2] + eins.n)]
+                : [e[0], e[1], e[2] + eins.n];
+        }
+        return LIEBLINGSWOERTER._kuerzen(neu);
+    },
+
     /* Die Top 3 — die Lieblingswörter (höchstens TOP, vielleicht keine). */
     top(stand) {
         const s = LIEBLINGSWOERTER.normalisieren(stand);
@@ -206,6 +231,26 @@ const LIEBLINGSWOERTER = {
     /* Die Lieblingswörter eines Spielers auf diesem Gerät. */
     woerter(id) {
         return LIEBLINGSWOERTER.top(LIEBLINGSWOERTER.stand(id));
+    },
+
+    /* GAST → KONTO (seit 0.36.0; bis 0.35.0 blieben die Lieblingswörter des
+       Gasts unter „gast“ liegen): nach „Spielstand sichern“, an derselben
+       Stelle wie Fortschritt und Besitz — der Gast-Eintrag wandert in den
+       Eintrag der Person und verschwindet. Liefert, ob etwas umgezogen ist. */
+    gastZumKonto(id) {
+        if (!id || id === "gast") {
+            return false;
+        }
+        const alle = LIEBLINGSWOERTER._alle();
+        if (!Object.prototype.hasOwnProperty.call(alle.je, "gast")) {
+            return false;
+        }
+        alle.je[String(id)] = LIEBLINGSWOERTER.vereinigen(alle.je[String(id)], alle.je.gast);
+        delete alle.je.gast;
+        if (typeof ICH !== "undefined") {
+            ICH._schreiben(LIEBLINGSWOERTER.SCHLUESSEL, alle);
+        }
+        return true;
     },
 
     /* Eine beendete Runde zählen (js/app.js, genau einmal je Runde). */

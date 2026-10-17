@@ -175,7 +175,7 @@ const SHOP_BILDSCHIRM = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Design: Besitz, frei, Kauf (seit 0.31.0)
+     * Design: Besitz, frei, Kauf
      * ---------------------------------------------------------------- */
 
     /* Die Menge der Person von jetzt (Gerät + Konto vereinigt). */
@@ -219,18 +219,12 @@ const SHOP_BILDSCHIRM = {
     /* Ein Stück (oder Paket) kaufen: kurz fragen, dann rechnen und speichern
        (APP.kaufenStueck: erst Besitz, dann Münzen), Kurzmeldung. Gebucht
        wird der Preis, den der Baustein beim Kauf rechnet. */
-    /* Seit 0.33.1 (Prüfung Besitz Fund 2/3): Ist ein Konto gemerkt, aber
-       sein Besitz noch nicht abgeglichen (`APP.kaufBereit`), führt der
-       Kauf-Knopf nur zu dieser Kurzmeldung — gebucht wird nichts. Ein
-       echter Gast kauft wie bisher; Anprobieren geht immer. */
-    KAUF_WARTET: "Kaufen geht, sobald dein Konto geladen ist",
-
+    /* Seit 0.36.0 ohne Kauf-Sperre: Die Person steht schon beim Intro fest
+       (js\wer-spielt.js) — ein gemerktes Konto kauft auch vor dem Laden und
+       ohne Netz unter seiner eigenen Kennung; das Konto bekommt den Kauf
+       beim nächsten Abgleich als Vereinigung. Anprobieren geht immer. */
     async kaufenStueck(stueck, preis) {
         if (!stueck || typeof APP.kaufenStueck !== "function") {
-            return false;
-        }
-        if (typeof APP.kaufBereit === "function" && !APP.kaufBereit()) {
-            DIALOG.kurzmeldung(SHOP_BILDSCHIRM.KAUF_WARTET);
             return false;
         }
         const waehrung = UPCREW_MUENZEN.WAEHRUNG.name;
@@ -241,12 +235,10 @@ const SHOP_BILDSCHIRM = {
         const r = APP.kaufenStueck(stueck.art, stueck.wert);
         SHOP_BILDSCHIRM._lage = null;
         if (!r.ok) {
-            /* „laedt": während der Rückfrage unbereit geworden; „speicher":
-               das Gerät nahm den Besitz nicht an (Fund 6). Beides: nichts
+            /* „speicher": das Gerät nahm den Besitz nicht an — nichts
                gebucht. */
-            DIALOG.kurzmeldung(r.grund === "laedt" ? SHOP_BILDSCHIRM.KAUF_WARTET
-                : r.grund === "speicher" ? "Nicht gekauft · Speicher voll"
-                    : r.grund === "zuWenig" ? "Zu wenig " + waehrung : "Nicht kaufbar");
+            DIALOG.kurzmeldung(r.grund === "speicher" ? "Nicht gekauft · Speicher voll"
+                : r.grund === "zuWenig" ? "Zu wenig " + waehrung : "Nicht kaufbar");
             return false;
         }
         DIALOG.kurzmeldung(stueck.name + " gekauft");
@@ -254,7 +246,7 @@ const SHOP_BILDSCHIRM = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Die Anprobe (seit 0.31.0): zeigen, nichts speichern
+     * Die Anprobe: zeigen, nichts speichern
      * ---------------------------------------------------------------- */
 
     /* Rückruf des Bausteins: ein Stück oder der Inhalt eines Pakets. Gezeigt

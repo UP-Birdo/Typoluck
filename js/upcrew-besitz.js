@@ -1,7 +1,7 @@
 /*
  * upcrew-besitz.js — was ein Spieler aus dem Shop BESITZT, und der Kauf (rein: ohne Bildschirm, ohne Speicher).
  * Braucht upcrew-katalog.js (Stücke, Preise) und upcrew-muenzen.js (Guthaben).
- * Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln. Neu seit Runde 8 (04.10.2026).
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln. Neu seit Runde 8 (04.10.2026).
  *
  * WO ES LIEGT — am Konto im Feld `besitz` (Regel §13, live seit 29.09.2026, keine neue Regel nötig):
  *     konten/<uid>/besitz/<art> = EIN Text, höchstens 2000 Zeichen aus [A-Za-z0-9_-]; <art> = ^[a-z][a-z0-9]{1,23}$

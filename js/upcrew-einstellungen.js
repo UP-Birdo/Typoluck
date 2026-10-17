@@ -1,6 +1,6 @@
 /*
  * upcrew-einstellungen.js — Einstellungen UND Verwaltung im selben Aufbau, gleich in allen UPCrew-Spielen (gehört zu
- * css/upcrew-einstellungen.css). Entstanden in Blunderluck v0.156.0 als Vorschlag für Design\3D-Schrift\final
+ * css/upcrew-einstellungen.css). Entstanden in Blunderluck v0.156.0
  * (Entwurf Oberfläche Runde 7, vom Nutzer abgenommen 28.09.2026).
  *
  * Nutzer, 28.09.2026 (nachts): „verwalten und die einstellungen sollen in beiden spielen gleich aussehen“ →
@@ -25,7 +25,7 @@
  * Nutzer 29.09.2026: „bei speicher mache eine status lampe rein · das einstellungs symbol ist kein zahnrad · zu viele
  * texte sätze im profil / einstellungen“ →
  *   STATUS-LAMPE:  const l = UPCREW_EINSTELLUNGEN.lampe("gespeichert" | "wartet" | "offline");  l.setzen("wartet");
- *                  grün „Gespeichert“ · gelb „Wartet“ · rot „Keine Verbindung“ (Wort daneben, auch als aria-label).
+ *                  grün „Gespeichert“ · gelb „Wartet“ · grau „Offline · später“ (Wort daneben, auch als aria-label).
  *                  Kurzform für die Zeile im Abschnitt „ueber“ (bzw. wo die App „Speicher“ zeigt):
  *                  zeilen.push(UPCREW_EINSTELLUNGEN.speicherZeile(zustand));  → { zeichen, titel: "Speicher",
  *                  rechts: lampe }; die Lampe hängt an `zeile.lampe`, damit die App sie später umstellen kann.
@@ -98,7 +98,7 @@
     const LAMPE = {
         gespeichert: "Gespeichert",
         wartet: "Wartet",
-        offline: "Keine Verbindung"
+        offline: "Offline · später"
     };
     const LAMPE_ALIAS = { gruen: "gespeichert", ok: "gespeichert", gelb: "wartet", rot: "offline", aus: "offline" };
 

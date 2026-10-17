@@ -24,7 +24,7 @@
  * (js\upcrew-katalog.js, Art „kachelset") — tests\test-sammlung.js hält
  * beide gleich.
  *
- * DER ANTEIL „NN %" oben rechts (seit 0.30.0): was der Anpassen-Baustein
+ * DER ANTEIL „NN %" oben rechts: was der Anpassen-Baustein
  * über alle Sammel-Kacheln zählt (`tab.zaehlen()`, samt Kachel-Sets) plus
  * die eigenen Abschnitte der reinen Sammlung (Abzeichen, Modi). Die eigene
  * Rechnung über die Stufen-Tabelle des Bausteins gibt es nicht mehr. Ab
@@ -113,7 +113,7 @@ const SAMMLUNG = {
         }));
     },
 
-    /* Die Gruppen der REINEN Sammlung (seit 0.30.0): alle ohne `regal` —
+    /* Die Gruppen der REINEN Sammlung: alle ohne `regal` —
        heute die Modi. Mit dem Stand des Spielers wie `gruppen`. */
     restGruppen(taten, alleFrei, level) {
         return SAMMLUNG.gruppen(taten, alleFrei, level).filter((gruppe) => !gruppe.regal);
@@ -210,7 +210,7 @@ const SAMMLUNG = {
     },
 
     /*
-     * Der Anteil über alles (seit 0.30.0):
+     * Der Anteil über alles:
      *   zahl        { hat, alle } aus dem Anpassen-Baustein (`tab.zaehlen()`:
      *               alle Sammel-Kacheln samt Kachel-Sets)
      *   abschnitte  [{ hat, alle }, …] — die eigenen Abschnitte der reinen

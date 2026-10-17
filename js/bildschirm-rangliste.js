@@ -32,7 +32,7 @@ const RANGLISTE_BILDSCHIRM = {
     /* Die Auswahl überlebt das Neuzeichnen und den Bildschirmwechsel. */
     zeitraum: "tag",
     nurFreunde: false,
-    /* Der Reiter: "wertung" | "freunde" (seit 0.26.0). */
+    /* Der Reiter: "wertung" | "freunde". */
     ansicht: "wertung",
 
     ansichtSetzen(id) {
@@ -96,7 +96,7 @@ const RANGLISTE_BILDSCHIRM = {
     zeigen(behaelter) {
         RANGLISTE_BILDSCHIRM._behaelter = behaelter;
         RANGLISTE_BILDSCHIRM._zeichnen();
-        /* Nur die offene Seite lädt (seit 0.29.0) — und seit 0.33.0 nur,
+        /* Nur die offene Seite lädt — und seit 0.33.0 nur,
            wenn ihr Stand älter als 60 Sekunden ist. */
         if (NAVIGATION.aktuell === "rangliste") {
             RANGLISTE_BILDSCHIRM._ladenWennAlt();
@@ -154,7 +154,7 @@ const RANGLISTE_BILDSCHIRM = {
         }
         behaelter.innerHTML = "";
 
-        /* Kein „Zurück" (seit 0.5.0): Die Rangliste ist ein Ziel der Leiste
+        /* Kein „Zurück": Die Rangliste ist ein Ziel der Leiste
            unten, wie der Start — zurück geht es über die Leiste. Den Knopf
            „Freunde" rechts (0.25.0) ersetzt seit 0.26.0 der Reiter. */
         const wertung = RANGLISTE_BILDSCHIRM.ansicht !== "freunde";
@@ -253,7 +253,7 @@ const RANGLISTE_BILDSCHIRM = {
             knopf.appendChild(BAUSTEINE.kreis(zeile.name));
             const mitte = BAUSTEINE.el("span", "rangliste-mitte");
             const name = BAUSTEINE.el("span", "rangliste-name", zeile.name);
-            /* Die Nummer nur leise und nur bei gleichen Namen (seit 0.15.6). */
+            /* Die Nummer nur leise und nur bei gleichen Namen. */
             if (zeile.nummer) {
                 name.appendChild(BAUSTEINE.el("span", "name-nummer", " " + zeile.nummer));
             }

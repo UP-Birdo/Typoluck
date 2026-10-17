@@ -34,6 +34,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
 
     zeigen(behaelter) {
         EINSTELLUNGEN_BILDSCHIRM._lampe = null;
+        EINSTELLUNGEN_BILDSCHIRM._lampeLoesen();
         if (!NAVIGATION.imBlatt(behaelter)) {
             behaelter.appendChild(BAUSTEINE.kopfzeile("Einstellungen", {
                 zurueck: () => NAVIGATION.zurueck()
@@ -148,30 +149,47 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     },
 
     /*
-     * 5. Über Typoluck — Version, Speicher mit Status-Lampe (seit 0.26.0),
+     * 5. Über Typoluck — Version, Speicher mit Status-Lampe,
      * nicht gesendete Ergebnisse.
      *
      * DIE LAMPE rechnet `lampeZustand` (rein) aus dem ECHTEN Zustand:
-     *   rot „Keine Verbindung"  offline (navigator.onLine false) oder der
-     *                           letzte Abgleich der Konten bzw. des
-     *                           Fortschritts ist gescheitert
-     *   gelb „Wartet"           es wird gerade geladen/geschrieben, oder
-     *                           Ergebnisse warten noch auf dem Gerät
+     *   grau „Offline · später" ohne Netz — seit 0.36.0 heisst das: der
+     *                           Offline-Hinweis steht (`APP.speicherLage`,
+     *                           Baustein js\upcrew-offline.js; bis 0.35.0 rot
+     *                           „Keine Verbindung", sofort)
+     *   gelb „Wartet"           es wird gerade geladen/geschrieben, Ergebnisse
+     *                           warten noch auf dem Gerät, oder der letzte
+     *                           Abgleich scheiterte MIT Netz (die Änderung
+     *                           bleibt offen und wird wiederholt)
      *   grün „Gespeichert"      sonst
      * Die Zeile stellt sich bei jedem Speicher-Ereignis um
-     * (`lampeAuffrischen`, gerufen aus js\app.js).
+     * (`lampeAuffrischen`, gerufen aus js\app.js); seit 0.36.0 führt der
+     * Offline-Hinweis sie zusätzlich mit (`UPCREW_OFFLINE.lampe`).
      */
     _lampe: null,
 
     lampeZustand(lage) {
         const l = lage || {};
-        if (l.online === false || l.status === "fehler" || l.fortschritt === "fehler") {
+        if (l.online === false) {
             return "offline";
         }
-        if (l.status === "laedt" || l.status === "schreibt" || l.fortschritt === "wartet" || l.ausstehend > 0) {
+        if (l.status === "laedt" || l.status === "schreibt" || l.status === "fehler"
+                || l.fortschritt === "wartet" || l.fortschritt === "fehler" || l.ausstehend > 0) {
             return "wartet";
         }
         return "gespeichert";
+    },
+
+    /* Die Löse-Funktion aus `UPCREW_OFFLINE.lampe`: beim
+       Neuzeichnen gerufen, damit nur die aktuelle Lampe angemeldet ist. */
+    _lampeLoeser: null,
+
+    _lampeLoesen() {
+        const loesen = EINSTELLUNGEN_BILDSCHIRM._lampeLoeser;
+        EINSTELLUNGEN_BILDSCHIRM._lampeLoeser = null;
+        if (typeof loesen === "function") {
+            loesen();
+        }
     },
 
     lampeAuffrischen() {
@@ -186,6 +204,10 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         const speicher = UPCREW_EINSTELLUNGEN.speicherZeile(
             EINSTELLUNGEN_BILDSCHIRM.lampeZustand(APP.speicherLage()));
         EINSTELLUNGEN_BILDSCHIRM._lampe = speicher.lampe;
+        EINSTELLUNGEN_BILDSCHIRM._lampeLoesen();
+        if (typeof UPCREW_OFFLINE !== "undefined" && speicher.lampe) {
+            EINSTELLUNGEN_BILDSCHIRM._lampeLoeser = UPCREW_OFFLINE.lampe(speicher.lampe);
+        }
         const zeilen = [
             { zeichen: "info", titel: "Typoluck", unter: "von UPCrew",
                 rechts: UPCREW_EINSTELLUNGEN.wert(KONFIG.APP_VERSION) },
@@ -199,7 +221,7 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         return { art: "ueber", zeilen: zeilen };
     },
 
-    /* 6. Ganz unten, rot: das Konto selbst löschen (seit v0.2.0) — gilt für
+    /* 6. Ganz unten, rot: das Konto selbst löschen — gilt für
        alle Spiele von UPCrew, die Rückfrage stellt die Anmeldung. */
     _gefahrAbschnitt() {
         if (!KONTO.aktiv() || !ANMELDUNG.ich()) {

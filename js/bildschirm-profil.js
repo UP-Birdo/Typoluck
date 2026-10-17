@@ -329,7 +329,7 @@ const PROFIL_BILDSCHIRM = {
     },
 
     /*
-     * SPIELZEIT (seit 0.24.0): im EIGENEN Profil je Spiel und gesamt, dazu
+     * SPIELZEIT: im EIGENEN Profil je Spiel und gesamt, dazu
      * „dabei seit" — auch als Gast (gezählt auf dem Gerät, js/spielzeit.js).
      * Im fremden Profil nur, wenn er sie veröffentlicht hat (Auszug), und
      * nur die Summe. Anzeige `FORTSCHRITT.spielzeitText` („N min", „Nh+").

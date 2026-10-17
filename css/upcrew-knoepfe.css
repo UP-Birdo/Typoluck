@@ -1,6 +1,6 @@
 /*
  * upcrew-knoepfe.css — die Knopf-Familien K1–K6 für Blunderluck und Typoluck.
- * Quelle NUR hier (Design\3D-Schrift\final), verteilt mit tools\Intro-Verteilen.cmd — nie in einer App abwandeln.
+ * Gemeinsamer Baustein — nie in einer App abwandeln.
  *
  * WIE ES WIRKT: `data-knoepfe="K1".."K6"` an einem Element (upcrew-aussehen.js setzt es an <html>, die Vorschau im
  * Anpassen-Tab an sich selbst) setzt NUR Variablen. Variablen erben vom nächsten Vorfahren — deshalb kann die

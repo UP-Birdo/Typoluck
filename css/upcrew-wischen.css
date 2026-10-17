@@ -1,6 +1,6 @@
 /*
  * upcrew-wischen.css — zu upcrew-wischen.js (Tabs wechseln durch Wischen: das Seiten-Band), gleich in Blunderluck
- * und Typoluck. Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln.
+ * und Typoluck. Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Das Band ist ein Behälter, den der Browser selbst waagrecht rollt und an jeder Seite einrastet. Jede Seite ist
  * so breit wie das Band und rollt senkrecht für sich. Das Spiel legt fest, wo das Band steht und wie hoch es ist

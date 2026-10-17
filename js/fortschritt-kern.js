@@ -1,6 +1,6 @@
 /*
  * fortschritt-kern.js — der Teil des gemeinsamen Fortschritts, der in JEDEM UPCrew-Spiel gleich ist.
- * Quelle: Apps\UPCrew\bausteine\kern — in die Apps KOPIEREN, nie abwandeln (Liste: BAUSTEINE.json).
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln (Liste: BAUSTEINE.json).
  *
  * Seit 03.10.2026. Bis dahin stand jedes dieser Glieder zweimal: in Blunderlucks und in Typolucks
  * js\fortschritt.js, Zeile für Zeile gleich, und Typolucks Tests verglichen sie gegen Blunderluck.
@@ -14,7 +14,7 @@
  * WAS BEIM SPIEL BLEIBT: alles, was eine Partie ist und was sie gibt (XP-Quellen, Turm, Bibliothek,
  * Taten), das Prüfen des eigenen Zweigs (`normalisieren`), die Form fürs Konto (`fuerKonto`) und
  * vorerst die Level-Rechnung. Diese Teile sind in den Spielen noch verschieden gebaut; sie werden in
- * einer eigenen Runde angeglichen (Apps\UPCrew\ROADMAP.md, Schritt e).
+ * einer eigenen Runde angeglichen.
  *
  * SO BAUT EIN SPIEL SEINEN FORTSCHRITT (js\fortschritt.js, geladen NACH dieser Datei):
  *
@@ -391,7 +391,7 @@ const FORTSCHRITT_KERN = {
 
     /* ---------------------------------------------------------------- *
      * DER ÖFFENTLICHE AUSZUG (seit v0.154.0, Regel §12 —
-     * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md, Abschnitt 3 und K3)
+     * Datenbank-Konzept 12, Abschnitt 3 und K3)
      *
      * Unter §12 lesen andere nur noch `spieler/oeffentlich/<uid>`, nicht mehr
      * den ganzen Fortschritt. Was fremde Bildschirme davon brauchen (Level-

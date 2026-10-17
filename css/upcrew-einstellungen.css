@@ -1,5 +1,5 @@
 /* upcrew-einstellungen.css — Einstellungen und Verwaltung im selben Aufbau (gehört zu js/upcrew-einstellungen.js).
-   Vorschlag für Design\3D-Schrift\final, entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7).
+   Entstanden in Blunderluck v0.156.0 (Entwurf Oberfläche Runde 7).
    Farben aus der Farbwelt (--gefahr mit Rückfall), Rundungen nur über die Variablen. */
 
 .up-es-abschnitt { margin-top: 14px; }
@@ -51,14 +51,14 @@ button.up-es-zeile:focus-visible { outline: 2px solid var(--haupt); outline-offs
   background: none; color: var(--schrift); box-shadow: none; }
 .up-es-zahnrad:focus-visible { outline: 2px solid var(--haupt); outline-offset: 2px; }
 
-/* Status-Lampe (Speicher): grün gespeichert · gelb wartet · rot keine Verbindung. */
+/* Status-Lampe (Speicher): grün gespeichert · gelb wartet · grau offline (ruhig, keine Warnfarbe). */
 .up-es-lampe { gap: 7px; color: var(--schrift); }
 .up-es-lampe i { width: 10px; height: 10px; flex: none; border-radius: var(--rund-voll); background: var(--up-es-lampe-farbe);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--up-es-lampe-farbe) 28%, transparent); }
 .up-es-lampe[data-zustand="gespeichert"] { --up-es-lampe-farbe: var(--gut, #2fa84f); }
 .up-es-lampe[data-zustand="wartet"] { --up-es-lampe-farbe: var(--warnung, #e2a300); }
 .up-es-lampe[data-zustand="wartet"] i { animation: up-es-lampe-puls 1.2s ease-in-out infinite; }
-.up-es-lampe[data-zustand="offline"] { --up-es-lampe-farbe: var(--gefahr, #d93a2f); }
+.up-es-lampe[data-zustand="offline"] { --up-es-lampe-farbe: var(--schrift-leise, #8a8a8a); }
 @keyframes up-es-lampe-puls { 50% { opacity: .45; } }
 
 @media (prefers-reduced-motion: reduce) { .up-es-schalter::after { transition: none; } .up-es-lampe i { animation: none !important; } }

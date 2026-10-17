@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.35.0";
+const SPEICHER_NAME = "typoluck-v0.37.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -61,6 +61,7 @@ const DATEIEN = [
     "./css/upcrew-levelpfad.css",
     "./css/upcrew-profil.css",
     "./css/upcrew-einstellungen.css",
+    "./css/upcrew-offline.css",
     "./css/stil-blatt.css",
 
     /* Die Crew-Schriften (seit 0.8.0) — alle zwölf, damit jede Wahl im
@@ -93,6 +94,7 @@ const DATEIEN = [
     "./js/upcrew-besitz.js",
     "./js/upcrew-platz.js",
     "./js/upcrew-anpassen.js",
+    "./js/upcrew-offline.js",
     "./js/upcrew-abzeichen.js",
     "./js/upcrew-abzeichen-spiele.js",
     "./js/upcrew-sammlung.js",
@@ -123,6 +125,7 @@ const DATEIEN = [
     "./js/wertung.js",
     "./js/fortschritt-kern.js",
     "./js/fortschritt.js",
+    "./js/wer-spielt.js",
     "./js/bausteine.js",
     "./js/zustand.js",
     "./js/dialog.js",

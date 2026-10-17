@@ -1,6 +1,6 @@
 /*
  * upcrew-anpassen.css — Tab „Anpassen“ (zu upcrew-anpassen.js). Alles unter .upa, nichts Globales.
- * Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln. Seit Runde 8: VARIANTE A.
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln. Seit Runde 8: VARIANTE A.
  * NICHTS ROLLT WAAGRECHT (kein overflow-x): Kategorie-Kacheln im 2er-Raster, Stücke im Blatt im 3er-Raster.
  * Farben: Farbwelt-Variablen der App; die Vorschau trägt eigene. Braucht upcrew-platz.css.
  * --upa-oben: wie weit die klebende Vorschau oben Abstand hält (Höhe einer festen App-Kopfzeile), Standard 0.
@@ -57,6 +57,18 @@
 .upa-schach i { font-style: normal; }
 .upa-schach .weiss { color: #fbfaf7; text-shadow: 0 1px 0 #111, 1px 0 0 #111, -1px 0 0 #111, 0 -1px 0 #111; }
 .upa-schach .schwarz { color: #16171a; }
+/* ---- Vorschau Kaffekasse (seit 09.10.2026, app: "kaffekasse"): Produktkarten mit Zähler und „Dran: <Name>“,
+   aus Bordmitteln wie die Kacheln von Typoluck — kein Bild, kein Platz. Im Blatt (kompakt) nur die erste Karte. ---- */
+.upa-kasse { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.upa-produkt { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; min-width: 0;
+  padding: 8px 10px; background: var(--karte); border-radius: var(--upa-klein); box-shadow: 0 3px 0 var(--still-kante); }
+.upa-produkt-bild { width: 36px; height: 36px; display: grid; place-items: center; font-weight: 700; font-size: 1.05rem;
+  border-radius: var(--upa-klein); background: var(--karte-leise); color: var(--schrift-leise); }
+.upa-produkt-text { display: grid; gap: 2px; min-width: 0; }
+.upa-produkt-text b { font-size: .95rem; line-height: 1.15; overflow-wrap: anywhere; }
+.upa-produkt-text small { font-size: .74rem; font-weight: 700; color: var(--schrift-leise); overflow-wrap: anywhere; }
+.upa-zaehler { font-weight: 700; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.upa-kompakt .upa-produkt:nth-child(n+2) { display: none; }
 
 /* ---- Kategorie-Kacheln: 2er-Raster. `upa-kat-eigen` zeichnet der Baustein neu; weitere Kacheln (die reine
    Sammlung der App, upcrew-sammlung.js) hängen dahinter im selben Raster. ---- */
@@ -105,6 +117,15 @@
 .upa-b-vorschau { position: sticky; top: 0; z-index: 2; padding: 0 12px 10px; background: var(--flaeche); border-bottom: 1px solid var(--rahmen); }
 .upa-b-text { margin: 10px 14px 0; font-size: .8rem; color: var(--schrift-leise); }
 .upa-vorschau.upa-kompakt { min-height: 0; padding: 8px 10px; gap: 8px; }
+/* Runde 13, `kompakt: true`: die Seite selbst mit kleiner Vorschau (Anpassen als Blatt, z. B. Kaffekasse). */
+.upa-seite-kompakt .upa-vorschau-rahmen { padding: 4px 12px 10px; }
+.upa-seite-kompakt .upa-kat-raster { gap: 8px; padding-top: 10px; }
+.upa-seite-kompakt .upa-kat { padding: 7px 8px 6px; }
+.upa-seite-kompakt .upa-kat-bild { width: 40px; height: 40px; }
+.upa-seite-kompakt .upa-kat-bild .up-platz { --up-pl-breite: 40px; }
+.upa-seite-kompakt .upa-kat-bild .upa-darst { width: 30px; height: 30px; }
+.upa-seite-kompakt .upa-strich { display: none; }   /* die Zahl n/m bleibt; der Strich kostet je Reihe 8 px */
+.upa-seite-kompakt .upa-aktion { margin-top: 0; padding-top: 8px; padding-bottom: 10px; }
 .upa-kompakt .upa-v-kopf b { font-size: 1rem; }
 .upa-kompakt .upa-tasten, .upa-kompakt .upa-brett div:nth-child(n+2) { display: none; }
 .upa-kompakt .upa-schach { width: 124px; }
@@ -142,6 +163,9 @@
 .upa-b-aktion .upa-zufall { flex: none; }
 /* Weg in den Shop (nur mit opt.zumShop): genau einer von „Übernehmen“ und „Im Shop ansehen“ steht da. */
 .upa-aktion .upa-zumshop[hidden], .upa-aktion .upa-uebernehmen[hidden] { display: none; }
+/* Runde 13: Würfel von Anfang an unten im Balken (vorn); „Zurück“ erst nach einer Änderung. */
+.upa-aktion .upa-zufall { flex: none; margin-bottom: var(--kn-tiefe); }
+.upa-aktion .upa-zurueck[hidden] { display: none; }
 
 /* Rückfall ohne upcrew-blatt.js: das Blatt als eigene Ebene über der Seite. */
 .upa-blatt-eigen { position: fixed; inset: var(--oben-frei, 0px) 0 var(--up-sm-leiste, 0px) 0; z-index: 60; min-height: 0;

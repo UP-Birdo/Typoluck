@@ -13,7 +13,7 @@
  * BLATT mit den Stücken (rollt nur senkrecht). Nichts auf der Seite rollt
  * mehr waagrecht — ein Wisch gehört dem Seiten-Band.
  *
- * DAS GERÜST (seit 0.15.9) ist der gemeinsame Baustein js\upcrew-sammlung.js
+ * DAS GERÜST ist der gemeinsame Baustein js\upcrew-sammlung.js
  * + css\upcrew-sammlung.css aus den UPCrew-Bausteinen — in Blunderluck
  * derselbe (Nutzer 27.09.2026: „bei beiden Apps soll Sammlung gleich sein
  * und immer gleich bleiben", „1:1 bis auf die spieleigenen Items"). Er baut:
@@ -35,7 +35,7 @@
  * Dokument) — sonst kleben Kopf, Vorschau und Balken am iPhone versetzt
  * (Nutzer-Bild 27.09.2026).
  *
- * „NN %" (seit 0.30.0): `tab.zaehlen()` des Anpassen-Bausteins (alle
+ * „NN %": `tab.zaehlen()` des Anpassen-Bausteins (alle
  * Sammel-Kacheln samt Kachel-Sets) plus die eigenen Abschnitte (Abzeichen,
  * Modi) — zusammengezählt in `SAMMLUNG.anteil`. Die eigene Rechnung über
  * die Stufen-Tabelle des Bausteins ist weg.
@@ -170,7 +170,7 @@ const SAMMLUNG_BILDSCHIRM = {
         geruest.obenSetzen();
     },
 
-    /* Die erfüllten Taten (seit 0.13.0) — aus dem Fortschritt. */
+    /* Die erfüllten Taten — aus dem Fortschritt. */
     _taten() {
         return FORTSCHRITT.erfuellteTaten(APP.fortschritt(), WORDLE.datumText(APP.jetzt()));
     },

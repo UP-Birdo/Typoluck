@@ -31,9 +31,9 @@
  *
  * DER KAUF (`kaufen`) — in dieser Reihenfolge, alles in EINEM Zug ohne
  * Warten (Begründung: Kopf von js\upcrew-besitz.js):
- *     0. nur, wenn die Person feststeht und ihr Konto-Besitz in dieser
- *        Sitzung abgeglichen ist (`APP.kaufBereit`, seit 0.33.1) — sonst
- *        wird nichts gebucht
+ *     (Seit 0.36.0 ohne Sperre „erst nach dem Laden des Kontos": die Person
+ *     steht beim Intro fest, ein gemerktes Konto kauft unter seiner Kennung,
+ *     das Konto bekommt den Kauf beim nächsten Abgleich als Vereinigung.)
  *     1. rechnen (`UPCREW_BESITZ.kaufen`) — speichert nichts
  *     2. Merker „Kauf offen" aufs Gerät
  *     3. Besitz speichern: Gerät (steht er dort nicht — Speicher voll —,
@@ -271,16 +271,6 @@ const BESITZ = {
         return !!BESITZ._uid() && !!BESITZ._id() && BESITZ.regelDa()
             && typeof BESITZ._rueckwand.teilLaden === "function"
             && typeof BESITZ._rueckwand.teilSchreiben === "function";
-    },
-
-    /* Für den Kauf (seit 0.33.1, `APP.kaufBereit`): true, wenn es kein
-       Konto abzugleichen gibt (Gast, Werkstatt, ohne Regel) oder der Besitz
-       des Kontos von JETZT in dieser Sitzung geholt ist. */
-    kontoBereit() {
-        if (!BESITZ._kontoMoeglich()) {
-            return true;
-        }
-        return BESITZ._kontoUid === BESITZ._uid();
     },
 
     /* Gerät und Konto vereinigen: holen, zusammenführen, zurückschreiben, wo

@@ -1,6 +1,6 @@
 /*
  * upcrew-muenzen.js — die Währung über beide UPCrew-Spiele (rein, ohne Bildschirm und Speicher).
- * Quelle künftig Design\3D-Schrift\final — in die Apps KOPIEREN, nie abwandeln.
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer, 27.09.2026: „wir brauchen eine In-Game-Währung, die über beide Spiele geht; mit denen kann man sich
  * Extra-Leben, Tipps und Schild für Flammen kaufen in einem Shop“ · „Name → Münzen“.

@@ -1,6 +1,6 @@
 /*
  * upcrew-abzeichen.js — die fünf Abzeichen, gleich in Blunderluck und Typoluck (gehört zu css\upcrew-abzeichen.css).
- * Quelle künftig Design\3D-Schrift\final — in die Apps KOPIEREN, nie abwandeln.
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer, 27.09.2026: „es fehlen die Abzeichen, die sollen kopiert werden“. Vorlage: Typoluck 0.12.0
  * (js\fortschritt.js `ABZEICHEN`, `abzeichenWerte`, `abzeichen`; js\bausteine.js `abzeichen`;

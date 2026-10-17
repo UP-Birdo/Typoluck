@@ -1,6 +1,6 @@
 /*
  * upcrew-platz.css — der Platz einer Grafik (zu js\upcrew-platz.js).
- * Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln.
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * <span class="up-platz [up-platz-leer | up-platz-eigen | up-platz-geliefert]" data-platz="…" data-mass="96x96">
  *   up-platz-leer        schlichter Platzhalter: gestrichelter Rahmen, Kürzel

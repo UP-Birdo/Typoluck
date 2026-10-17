@@ -48,6 +48,9 @@ const INTRO = {
     /* Nummer und Name im Studio (Blunderluck 01, Typoluck 02, Trainer 03). */
     APP_NR: "02",
     APP_NAME: "Typoluck",
+    /* Ohne Intro so lange höchstens auf „wer spielt“ warten (seit 0.36.0;
+       dieselbe Zahl wie die Frist des Studio-Intros nach seiner Animation). */
+    OHNE_INTRO_MS: 3000,
 
     /* So lange nach dem Merker der Aktualisierung gilt ein Laden als deren
        automatisches Neuladen. */
@@ -161,10 +164,18 @@ const INTRO = {
     },
 
     /* Zeigt das Intro im Behälter und liefert ein Versprechen, das nach dem
-       Ausblenden erfüllt ist (mit { art, welt, modus } oder null). */
-    zeigen(behaelter) {
+       Ausblenden erfüllt ist (mit { art, welt, modus, wer, frist } oder null).
+       SEIT 0.36.0: `wer` ist das Versprechen von `UPCREW_WER_SPIELT.starten`
+       (js\app.js). Das Studio-Intro verbirgt das Laden: Es endet erst, wenn
+       die Animation durch ist UND feststeht, wer spielt — spätestens zur
+       Frist des Bausteins; das letzte Bild bleibt dabei stehen. Kommt kein
+       Intro (nach dem automatischen Neuladen, Werkstatt), wird höchstens
+       3 s auf dasselbe Ergebnis gewartet. Das Glied `danach` (späteres
+       Spiel-Intro) bleibt leer. */
+    zeigen(behaelter, wer) {
         if (!behaelter || !INTRO.faellig() || typeof UPCREW_INTRO === "undefined") {
-            return Promise.resolve(null);
+            return (typeof UPCREW_WER_SPIELT !== "undefined" && wer)
+                ? UPCREW_WER_SPIELT.abwarten(INTRO.OHNE_INTRO_MS).then(() => null) : Promise.resolve(null);
         }
         const optionen = {
             modus: INTRO.modus(),
@@ -172,7 +183,8 @@ const INTRO = {
                Jedes Spiel hat sein eigenes Aussehen, der gemeinsame Merker
                upcrew.farbwelt wird nicht mehr geschrieben. */
             welt: INTRO.welt(),
-            app: { nr: INTRO.APP_NR, name: INTRO.APP_NAME, version: KONFIG.APP_VERSION }
+            app: { nr: INTRO.APP_NR, name: INTRO.APP_NAME, version: KONFIG.APP_VERSION },
+            werSpielt: wer || undefined
         };
         if (typeof WERKSTATT !== "undefined" && WERKSTATT.aktiv()) {
             const art = (WERKSTATT.wert("intro") || "").toUpperCase();

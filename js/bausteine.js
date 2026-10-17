@@ -41,7 +41,7 @@
 
 const BAUSTEINE = {
 
-    /* Welche Knopf-Art welche UPCrew-Klasse bekommt (seit 0.8.0). Arten,
+    /* Welche Knopf-Art welche UPCrew-Klasse bekommt. Arten,
        die hier fehlen, bleiben ohne `up-kn`. */
     UP_KLASSEN: {
         haupt: "up-haupt",
@@ -101,7 +101,7 @@ const BAUSTEINE = {
     },
 
     /*
-     * Ein Tab der Leiste unten (seit 0.9.0) — Markup genau wie im Kopf von
+     * Ein Tab der Leiste unten — Markup genau wie im Kopf von
      * css\upcrew-leiste.css, gleich in Blunderluck:
      *     <button type="button" class="up-tab" aria-label="Start">
      *         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="…"/></svg><span>Start</span>
@@ -170,13 +170,13 @@ const BAUSTEINE = {
     },
 
     /*
-     * Der Namens-Kreis mit Level-Ring (seit 0.10.0): Der Ring füllt sich mit
+     * Der Namens-Kreis mit Level-Ring: Der Ring füllt sich mit
      * den XP im laufenden Level, unten rechts steht die Level-Zahl.
      *   name     für den Anfangsbuchstaben
      *   anteil   0..1 (XP im Level / Kosten des Levels)
      *   level    Zahl
      *   gross    true = für das Profil
-     *   rahmen   wahlfrei (seit 0.12.0): FORTSCHRITT.rahmenVon(level) —
+     *   rahmen   wahlfrei: FORTSCHRITT.rahmenVon(level) —
      *            der erreichte Rahmen als äussere Kante (Kupfer, Silber,
      *            Glanz, Gold)
      */
@@ -298,11 +298,11 @@ const BAUSTEINE = {
             + "M16 4.3 A3.3 3.3 0 0 1 16 10.7 M18 14.4 C20 15.2 21.5 17.2 21.5 20",
         profil: "M12 12 A4 4 0 1 0 12 4 A4 4 0 0 0 12 12 Z M4 21 C4 17 7.6 14 12 14 C16.4 14 20 17 20 21",
         zurueck: "M15 5 L8 12 L15 19",
-        /* Shop (seit 0.17.0): eine Einkaufstasche. */
+        /* Shop: eine Einkaufstasche. */
         shop: "M5 8 H19 L18 20 H6 Z M9 8 V6.5 A3 3 0 0 1 15 6.5 V8",
         /* Verwaltung (seit 0.16.3, nur für Admins): ein Schild. */
         schild: "M12 3 L19 6 V11 C19 16 16 19 12 21 C8 19 5 16 5 11 V6 Z M9 12 L11 14 L15 10",
-        /* Drei gleich lange Balken wie in Blunderluck (seit 0.3.0) —
+        /* Drei gleich lange Balken wie in Blunderluck —
            ungleiche Striche sähen nach Aufzählung aus, nicht nach Menü. */
         menue: "M4.2 7 H19.8 M4.2 12 H19.8 M4.2 17 H19.8",
         weiter: "M9 5 L16 12 L9 19",
@@ -321,15 +321,15 @@ const BAUSTEINE = {
         leer: "M3 13 L6 5 H18 L21 13 V19 H3 Z M3 13 H8 L9.5 15.5 H14.5 L16 13 H21",
         "kein-netz": "M2.5 9 A14 14 0 0 1 21.5 9 M5.5 12.5 A9.5 9.5 0 0 1 18.5 12.5 "
             + "M8.8 16 A4.8 4.8 0 0 1 15.2 16 M12 19.5 V19.6 M4 4 L20 20",
-        /* Der freie Platz 5 der Leiste (seit 0.9.0): eine Uhr — „kommt
+        /* Der freie Platz 5 der Leiste: eine Uhr — „kommt
            noch". Bis 0.8.1 hielt ein Kästchen mit Plus den Platz frei.
            Pfad wörtlich aus den gemeinsamen Absprachen mit Blunderluck
            (Design-Auftrag AUFTRAEGE-RUNDE-4.md). */
         bald: "M12 7 V12 L15 14 M12 3 A9 9 0 1 0 12.01 3",
-        /* Der Tab „Sammlung" (seit 0.9.0): vier Kacheln. Pfad wörtlich aus
+        /* Der Tab „Sammlung": vier Kacheln. Pfad wörtlich aus
            derselben Absprache. */
         sammlung: "M4 4 H10 V10 H4 Z M14 4 H20 V10 H14 Z M4 14 H10 V20 H4 Z M14 14 H20 V20 H14 Z",
-        /* Die Aufgaben / Herausforderungen (seit 0.7.0): ein Weg, der nach
+        /* Die Aufgaben / Herausforderungen: ein Weg, der nach
            oben rechts steigt. Pfad wörtlich aus den gemeinsamen Absprachen
            mit Blunderluck (Design-Auftrag AUFTRAEGE-RUNDE-2.md). */
         aufgaben: "M3 18 L9 12 L13 16 L21 8 M15 8 H21 V14",
@@ -345,7 +345,7 @@ const BAUSTEINE = {
         partie: "M8 5 L19 12 L8 19 Z",
         koenig: "M11 1.5 H13 V3.5 H15 V5.5 H13 V7.5 H11 V5.5 H9 V3.5 H11 Z M7.5 9 C9 8 15 8 16.5 9 L15 17.5 H9 Z "
             + "M6 18.5 H18 V21.5 H6 Z",
-        /* „Anpassen" (seit 0.8.0): zwei Schieberegler. Pfad wörtlich aus
+        /* „Anpassen": zwei Schieberegler. Pfad wörtlich aus
            den gemeinsamen Absprachen mit Blunderluck
            (Design-Auftrag AUFTRAEGE-RUNDE-3.md). Seit 0.9.0 kein
            eigener Tab mehr, nur noch die Zeile in den Einstellungen. */
@@ -353,7 +353,7 @@ const BAUSTEINE = {
         /* Ein grosses A mit Grundlinie (bis 0.25.0 „Standard-Schrift" in
            den Einstellungen). */
         schrift: "M5 19 L12 4 L19 19 M8 13 H16 M3 21 H21",
-        /* Hell/dunkel in den Einstellungen (seit 0.6.0): ein Kreis, halb
+        /* Hell/dunkel in den Einstellungen: ein Kreis, halb
            geteilt, mit Strichen in der dunklen Hälfte. */
         darstellung: "M12 21 A9 9 0 1 0 12 3 A9 9 0 0 0 12 21 Z M12 3 V21 "
             + "M12 7 H16.5 M12 11 H18.5 M12 15 H18 M12 18.5 H15.5",
@@ -395,7 +395,7 @@ const BAUSTEINE = {
         lesezeichen: "M8 3 H16 V21 L12 17 L8 21 Z",
         herz: "M12 20 C6 15 3 12 3 8.5 A4.5 4.5 0 0 1 12 6 A4.5 4.5 0 0 1 21 8.5 C21 12 18 15 12 20 Z",
         uhr: "M12 3 A9 9 0 1 1 12 21 A9 9 0 1 1 12 3 M12 7 V12 L15.5 14.5",
-        /* Tinte der Bibliothek (seit 0.23.0): ein Tintenfass mit Feder. */
+        /* Tinte der Bibliothek: ein Tintenfass mit Feder. */
         tintenfass: "M6 12 H15 V20 H6 Z M8 12 V9.5 H13 V12 M8.5 16 H12.5 M14 9 L20 3 M17.5 4 L19 5.5"
     },
 

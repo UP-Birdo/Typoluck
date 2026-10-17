@@ -752,3 +752,21 @@ body.im-spiel .wordle > .wordle-gegner {
     text-transform: uppercase;
     pointer-events: none;
 }
+/*
+ * DER PLATZ DES OFFLINE-HINWEISES IN DER RUNDE (seit 0.36.0, Baustein
+ * css\upcrew-offline.css, Ecke „rechts"; wie Blunderluck `.partie-offline`):
+ * links neben „So wird gespielt", immer gleich breit — das Zeichen kommt und
+ * geht, ohne dass etwas springt, und liegt nie über dem Knopf. Die beiden
+ * Seiten-Spalten des Kopfs werden gleich breiter, damit der Titel mittig
+ * bleibt (22 px Platz + 4 px Abstand + 44 px Knopf = 70 px).
+ */
+.kopfzeile.kopfzeile-offline {
+    grid-template-columns: 74px 1fr 74px;
+}
+
+.kopfzeile-rechts .wordle-offline {
+    flex: none;
+    align-self: stretch;
+    width: 22px;
+    margin-right: 4px;
+}

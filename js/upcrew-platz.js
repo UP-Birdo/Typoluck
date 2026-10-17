@@ -1,6 +1,6 @@
 /*
  * upcrew-platz.js — der PLATZ: jede sichtbare Grafik ist ein benannter, austauschbarer Platz (zu
- * css\upcrew-platz.css). Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln.
+ * css\upcrew-platz.css). Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer, 03.10.2026: „alle disings die du erstellt hats muss man später manuell mal nach bauen oder ich gebe dir
  * passende dateien damit nur das gerüst … von ki gebaut ist“. Darum: Kein Baustein vergräbt eine Grafik im Code.
@@ -33,7 +33,7 @@
     const GELIEFERT = {};
     let pfad = "bilder/plaetze/";
 
-    /* Feste Plätze der Bausteine Sammlung und Shop (alles außer den Stück-Bildern des Katalogs). */
+    /* Feste Plätze der Bausteine (alles außer den Stück-Bildern des Katalogs). */
     const FEST = [
         { name: "symbol/muenze", mass: "24x24", wo: "Shop: Guthaben und Preise (Platzhalter: heutige Münze)" },
         { name: "symbol/wuerfel", mass: "24x24", wo: "Sammlung: Würfel-Knopf (Platzhalter: heutiger Würfel)" },
@@ -47,7 +47,10 @@
         { name: "vorrat/<spiel>/leben", mass: "48x48", wo: "Shop, Reiter des Spiels (Platzhalter: heutiges Zeichen)",
             anzahl: 2 },
         { name: "vorrat/<spiel>/tipp", mass: "48x48", wo: "Shop, Reiter des Spiels (Platzhalter: heutiges Zeichen)",
-            anzahl: 2 }
+            anzahl: 2 },
+        { name: "symbol/offline", mass: "16x16",
+            wo: "Offline-Hinweis: Zeichen am Profilbild und im Spiel-Kopf, beide Spiele (Platzhalter: Wolke mit Strich)" },
+        { name: "symbol/hochgeladen", mass: "16x16", wo: "Offline-Hinweis: kurzer Haken nach dem Hochladen, beide Spiele" }
     ];
 
     /* Feste Plätze, die ein SPIEL selbst zeichnet (nicht Sammlung/Shop) — nur für die Liste PLAETZE.md, gelesen aus

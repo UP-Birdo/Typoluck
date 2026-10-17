@@ -1,6 +1,6 @@
 /*
  * upcrew-wischen.js — Tabs wechseln durch Wischen: das SEITEN-BAND, gleich in Blunderluck und Typoluck
- * (gehört zu css\upcrew-wischen.css). Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln.
+ * (gehört zu css\upcrew-wischen.css). Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer 03.10.2026 (nach der Probe der Fassung „Zeiger folgen“): „generell viel zu anstregend zu wischen es soll
  * schon kleine swip bewegung ausreichen. wenn man in eine richtung wischt soll dort schon die nächste seite zu

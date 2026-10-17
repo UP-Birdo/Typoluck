@@ -486,6 +486,12 @@ const ANMELDUNG = {
             if (ergebnis.ok && typeof BESITZ !== "undefined" && ANMELDUNG.ich()) {
                 BESITZ.gastZumKonto(ANMELDUNG.ich().id);
             }
+            /* Seit 0.36.0 auch die Lieblingswörter (bis dahin blieben sie
+               unter „gast“ liegen), danach die Top 3 ans Konto. */
+            if (ergebnis.ok && typeof LIEBLINGSWOERTER !== "undefined" && ANMELDUNG.ich()) {
+                LIEBLINGSWOERTER.gastZumKonto(ANMELDUNG.ich().id);
+                LIEBLINGSWOERTER.senden(ANMELDUNG.ich().id);
+            }
         });
 
         kasten.appendChild(los);
@@ -741,7 +747,7 @@ const ANMELDUNG = {
             await KONTO.eintragEntfernen(ANMELDUNG.abgleich.speicher, ich);
             await KONTO.loeschen();
         }
-        /* Auch die UPCrew-Sitzung vergessen (seit v0.2.0). */
+        /* Auch die UPCrew-Sitzung vergessen. */
         KONTO.abmelden();
         ANMELDUNG.ichId = null;
         ANMELDUNG.abgleich.eigeneIdSetzen(null);
@@ -878,7 +884,7 @@ const ANMELDUNG = {
         return { feld: { focus() { } }, fehler: zeile };
     },
 
-    /* `felder` (seit 0.18.5): { name, passwort, wiederholung, allgemein } —
+    /* `felder`: { name, passwort, wiederholung, allgemein } —
        die Absage steht am Feld aus `ergebnis.feld`, sonst an `meldungFeld`. */
     async _kontoFertig(ergebnis, meldungFeld, pruefen, gruss, felder) {
         if (!ergebnis.ok) {
@@ -892,7 +898,7 @@ const ANMELDUNG = {
         ANMELDUNG._fertig();
         /* Die Meldung ist ein Stichwort mit Namen, keine Begrüßung. (Die
            Vibration dazu ist seit 0.8.1 raus.) */
-        /* Nur der Name (seit 0.15.6): Die Nummer ist zufällig und muss niemand
+        /* Nur der Name: Die Nummer ist zufällig und muss niemand
            kennen — zu sehen und zu ändern in den Einstellungen. */
         DIALOG.kurzmeldung(gruss + ergebnis.eintrag.name);
     },
@@ -907,7 +913,7 @@ const ANMELDUNG = {
     },
 
     /*
-     * VOR dem Ändern von Name oder Nummer (seit 0.34.2): js\konto.js schreibt
+     * VOR dem Ändern von Name oder Nummer: js\konto.js schreibt
      * dabei den GANZEN eigenen Eintrag — genau den, der ihm übergeben wird.
      * Die Kopie im Abgleich kann aber älter sein als das Konto (die Frage
      * stand eine Weile offen; ein anderes Gerät oder Spiel hat inzwischen

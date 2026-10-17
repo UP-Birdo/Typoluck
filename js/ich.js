@@ -87,7 +87,7 @@ const ICH = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Einstellungen dieses Geräts (seit 0.4.0). Alt und nicht mehr
+     * Einstellungen dieses Geräts. Alt und nicht mehr
      * gelesen: „schwer" (bis 0.25.0), „vibration" (bis 0.8.0), „thema" (bis 0.7.0,
      * nur noch beim einmaligen Umzug ins gemeinsame Aussehen).
      * Ein fehlender Wert liefert die Vorgabe; so bekommt jede neue

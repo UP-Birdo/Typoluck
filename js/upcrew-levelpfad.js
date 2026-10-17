@@ -11,7 +11,7 @@
  * `FORTSCHRITT.levelAus(gesamtXp)` ohnehin liefert: { level, imLevel, kosten, anteil }. Die Kosten je Level rechnet
  * `kosten(L)` wie `FORTSCHRITT.levelKosten` beider Apps: min(100 + 25 (L − 1), 500) XP.
  *
- * BELOHNUNGEN: Tabelle aus Apps\UPCrew\docs\BIBLIOTHEK-UND-BELOHNUNGEN.md §5 (samt Nachtrag 28.09. nachts: Lv 7
+ * BELOHNUNGEN: Tabelle der Belohnungen (samt Nachtrag 28.09. nachts: Lv 7
  * 100 Münzen, Lv 32 Profil-Banner, ab 51 „Rest 2“ Truhe). PLATZHALTER (platzhalter: true, schlicht „100 Münzen“),
  * weil der Serien-Schutz am 29.09.2026 ganz wegfiel („serien schild raus“): Lv 13, 19, 29, 37, 44, 49 und ab 51
  * jedes Level mit Rest 0 bei Teilung durch 3 (nicht durch 5). Ebenfalls Platzhalter: ab 51 jedes zehnte Level

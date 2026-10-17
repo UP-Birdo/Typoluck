@@ -101,7 +101,7 @@ const AUSSEHEN_ABGLEICH = {
         return "konten/" + uid + "/" + AUSSEHEN_ABGLEICH.FELD;
     },
 
-    /* Der Pfad dieses Spiels (seit 0.15.13). */
+    /* Der Pfad dieses Spiels. */
     pfadJe(uid) {
         return "konten/" + uid + "/" + AUSSEHEN_ABGLEICH.FELD_JE + "/" + AUSSEHEN_ABGLEICH.APP;
     },

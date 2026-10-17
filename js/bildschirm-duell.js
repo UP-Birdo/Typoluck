@@ -1,5 +1,5 @@
 /*
- * bildschirm-duell.js — das Duell auf dem Bildschirm (seit 0.34.0).
+ * bildschirm-duell.js — das Duell auf dem Bildschirm.
  *
  * NUR WENN DAS DUELL AN IST (`DUELL.an()`: KONFIG.REGEL_14_EINGESPIELT oder
  * die Werkstatt mit `&duell`): dann steht „Duell" als dritte Art im
@@ -427,7 +427,7 @@ const DUELL_BILDSCHIRM = {
         DUELL_BILDSCHIRM._beendetZeichnen(ort);
     },
 
-    /* „+110 XP" für ein beendetes Duell, sonst "" (seit 0.35.0). */
+    /* „+110 XP" für ein beendetes Duell, sonst "". */
     xpText(sicht) {
         if (typeof FORTSCHRITT === "undefined" || !sicht || sicht.art !== "beendet") {
             return "";

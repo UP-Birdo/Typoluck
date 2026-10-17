@@ -3,7 +3,6 @@ Crew S1–S6 — Schriften der UPCrew-Spiele (Blunderluck, Typoluck)
 Abwandlungen freier Schriften unter der SIL Open Font License 1.1 (Text unten, je Vorlage).
 Geändert 2026 für UPCrew: Gewichte, gleich breite Ziffern, runde größere Punkte, Buchstabenabstand;
 umbenannt, weil die OFL abgewandelten Schriften den Vorlagennamen verbietet (Quicksand: Reserved Font Name).
-Werkzeug: Design\3D-Schrift\tools\schrift\schrift_schnitt.py
 
 ========================================================================
 Crew S1 — Vorlage Nunito

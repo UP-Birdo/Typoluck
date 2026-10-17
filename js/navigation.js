@@ -8,11 +8,11 @@
  *         id:        "rangliste",
  *         titel:     "Rangliste",        // Titel (im Blatt oben)
  *         zeichen:   "rangliste",        // Name aus BAUSTEINE.ZEICHEN
- *         alsBlatt:  true,               // wahlfrei: öffnet als Blatt (seit 0.25.0)
+ *         alsBlatt:  true,               // wahlfrei: öffnet als Blatt
  *         blattTitel(parameter),         // wahlfrei: Titel des Blatts je Parameter
  *         blattRechts(parameter),        // wahlfrei: Knöpfe rechts im Blatt-Kopf (Zahnrad)
  *         zeigen(behaelter, parameter),  // baut seinen Inhalt in den Behälter
- *         geoeffnet(behaelter),          // wahlfrei (seit 0.33.0): die Seite im Band wurde geöffnet,
+ *         geoeffnet(behaelter),          // wahlfrei: die Seite im Band wurde geöffnet,
  *                                        // OHNE neu gezeichnet zu werden (sie stand frisch da)
  *         verlassen()                    // optional: aufräumen (Tastatur usw.)
  *     }
@@ -71,7 +71,7 @@
  * Kurzprofil oben links, Einstellungen = das Zahnrad im Profil, Freunde =
  * der Knopf in der Rangliste (samt Zahl offener Anfragen, `markeSetzen`).
  *
- * DIE LEISTE UNTEN (seit 0.5.0) wird EINMAL gebaut (`leisteBauen`) und steht
+ * DIE LEISTE UNTEN wird EINMAL gebaut (`leisteBauen`) und steht
  * fest am unteren Rand — auf JEDEM Bildschirm ausser in der Runde. Beim
  * Wechsel wird nur neu markiert (`_leisteMarkieren`). Seit 0.9.0 der
  * gemeinsame Baustein css\upcrew-leiste.css; die Tabs baut `BAUSTEINE.tab`,
@@ -94,7 +94,7 @@ const NAVIGATION = {
     aktuell: null,
     _parameter: null,
 
-    /* Das Seiten-Band (seit 0.29.0): das Element, der Griff des Bausteins
+    /* Das Seiten-Band: das Element, der Griff des Bausteins
        (zu, auffrischen …), je Leisten-Bildschirm der Ort in seiner Seite,
        welche Seiten schon gezeichnet sind, und der Rollbereich um den
        gemeinsamen Ort. */
@@ -408,7 +408,7 @@ const NAVIGATION = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Die Leiste unten (seit 0.5.0)
+     * Die Leiste unten
      * ---------------------------------------------------------------- */
 
     /* Baut die Einträge aus `LEISTE` in das feste Element aus index.html.
@@ -849,7 +849,7 @@ const NAVIGATION = {
         bildschirm.zeigen(inhalt, parameter);
         if (seite) {
             NAVIGATION._gebaut[id] = true;
-            /* Frisch (seit 0.33.0): Merker weg, Stand-Marke NACH dem
+            /* Frisch: Merker weg, Stand-Marke NACH dem
                Zeichnen gemerkt (was die Seite beim Zeichnen selbst
                speichert, macht sie nicht gleich wieder veraltet). */
             delete NAVIGATION._veraltet[id];

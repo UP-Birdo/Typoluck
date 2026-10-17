@@ -1,11 +1,11 @@
 /*
  * upcrew-shop.js — der Tab „Shop“ (Platz 5 der Leiste), gleich in Blunderluck und Typoluck, zu css\upcrew-shop.css.
- * Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln. Seit Runde 8 (04.10.2026): neu
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln. Seit Runde 8 (04.10.2026): neu
  * gebaut — Design-Reiter mit Besitz; der alte Aufruf gilt weiter (dann zeigt der Tab nur den Vorrat).
  *
  * Nutzer, 27.09.2026: „Shop auf dem Platz von Bald soll der kommen“. Nutzer, 03.10.2026: „Der shop soll endlich
  * mal gemacht werden“ · zur Wahl im Entwurf: „es gab früher schon shop vorschau die fand ich super“ → Aussehen
- * der früheren Vorschau (Design\3D-Schrift\entwuerfe\Bibliothek, ?tab=shop).
+ * der früheren Shop-Vorschau.
  *
  * AUFBAU: Kopf mit Guthaben · Schalter „Design · <Spielname>“.
  *   DESIGN (aus upcrew-katalog.js, in beiden Spielen gleich; dazu die Stücke nur dieses Spiels):

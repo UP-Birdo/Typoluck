@@ -136,6 +136,9 @@ const ERGEBNISSE = {
         let liste = ICH.ausstehend();
         let gesendet = 0;
         let fehler = "";
+        /* Seit 0.36.0 auch das Fehler-Objekt selbst — daran erkennt die App
+           „kein Netz“ (UPCREW_OFFLINE.istNetzFehler), nicht am Text. */
+        let fehlerObjekt = null;
 
         for (const auftrag of liste.slice()) {
             try {
@@ -145,11 +148,12 @@ const ERGEBNISSE = {
                 liste = liste.filter((alt) => alt !== auftrag);
                 ICH.ausstehendSetzen(liste);
             } catch (ausnahme) {
-                fehler = ausnahme.message;
+                fehler = (ausnahme && ausnahme.message) || String(ausnahme);
+                fehlerObjekt = ausnahme || null;
                 break;
             }
         }
-        return { gesendet: gesendet, offen: liste.length, fehler: fehler };
+        return { gesendet: gesendet, offen: liste.length, fehler: fehler, fehlerObjekt: fehlerObjekt };
     },
 
     /* ---------------------------------------------------------------- *

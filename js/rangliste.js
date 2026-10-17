@@ -55,7 +55,7 @@ const RANGLISTE = {
      * Die Tabelle eines Tages. `tag` = { spielerId: ERGEBNIS }.
      * Zeilen: { id, name, punkte, versuche, geloest, muster, platz }.
      * Reihenfolge: Punkte absteigend, bei Gleichstand wer früher fertig war.
-     * Gleiche Punkte = gleicher Platz. `ichId` (seit 0.15.3): Gäste stehen
+     * Gleiche Punkte = gleicher Platz. `ichId`: Gäste stehen
      * nicht in der Tabelle — ausser der eigene Eintrag (SPIELER.inListen).
      */
     tagesTabelle(tag, spielerDaten, auswahl, ichId) {
@@ -118,7 +118,7 @@ const RANGLISTE = {
     /*
      * Die Statistik eines Spielers aus seinem Verlauf { datum: ERGEBNIS }:
      * { gespielt, geloest, quote (0–100), verteilung [6 Zahlen],
-     *   serie, besteSerie, punkte, durchschnitt (seit 0.12.0) }.
+     *   serie, besteSerie, punkte, durchschnitt }.
      *
      * SERIE = gelöste Tage am Stück bis heute. Ist heute noch nicht gespielt,
      * zählt die Serie bis gestern — sie reisst erst, wenn ein Tag vorbeigeht.

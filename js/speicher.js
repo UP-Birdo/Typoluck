@@ -226,10 +226,18 @@ class SpeicherGemeinsam {
         try {
             return await fetch(ziel, Object.assign({}, einstellungen, { signal: abbruch.signal }));
         } catch (fehler) {
+            /* Seit 0.36.0 erkennbar als „kein Netz“ (UPCREW_OFFLINE.istNetzFehler,
+               js\app.js `istNetzFehler`): das Zeitlimit heisst „TimeoutError“,
+               der Fehler von fetch reist als `ursache` mit. Die Meldung bleibt
+               deutsch. */
             if (fehler && fehler.name === "AbortError") {
-                throw new Error(was + " hat zu lange gedauert. Die Verbindung ist gerade zu schlecht.");
+                const zuLang = new Error(was + " hat zu lange gedauert. Die Verbindung ist gerade zu schlecht.");
+                zuLang.name = "TimeoutError";
+                throw zuLang;
             }
-            throw new Error(was + " ging nicht — keine Verbindung zum Netz.");
+            const ohneNetz = new Error(was + " ging nicht — keine Verbindung zum Netz.");
+            ohneNetz.ursache = fehler;
+            throw ohneNetz;
         } finally {
             clearTimeout(uhr);
         }
@@ -279,7 +287,7 @@ function speicherErzeugen(einstellung, pfad, lokalerSchluessel, modusErzwingen, 
                 hinweis: "In js\\konfig.js fehlt die Datenbank-Adresse. Es wird nur auf diesem Gerät gespeichert."
             };
         }
-        /* Die Spielerliste mit UPCrew-Konten (seit v0.2.0): `konten` =
+        /* Die Spielerliste mit UPCrew-Konten: `konten` =
            { eigeneUid, aufbereiten }. Seit 0.22.0 in der Reihenfolge des
            Bausteins (basis, pfad, aufbereiten, eigeneUid). */
         if (konten) {

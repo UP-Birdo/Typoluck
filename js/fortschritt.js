@@ -287,7 +287,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
         }
         zweig.zaehler = zaehler;
         zweig.taten = Array.isArray(quelle.taten) ? quelle.taten.filter((t) => typeof t === "string") : [];
-        /* Die Bibliothek (seit 0.18.0): nur Schlüssel „Zahl-Zahl" mit 1 bis
+        /* Die Bibliothek: nur Schlüssel „Zahl-Zahl" mit 1 bis
            3 Figuren (wie Blunderluck). Andere Felder unter `turm` bleiben. */
         if ("turm" in quelle) {
             zweig.turm = Object.assign({}, FORTSCHRITT._istObjekt(quelle.turm) ? FORTSCHRITT._kopie(quelle.turm) : {},
@@ -802,7 +802,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
     },
 
     /*
-     * Der Zweig eines ANDEREN Spiels, wie er ans Konto darf (seit 0.34.2).
+     * Der Zweig eines ANDEREN Spiels, wie er ans Konto darf.
      * Typoluck ändert ihn nie — er wird durchgereicht, weil der Konto-Eintrag
      * als Ganzes geschrieben wird. Deshalb: jedes Feld, das die Regel §13
      * kennt, bleibt, wie es ist (nichts gerundet, nichts gekürzt, was die
@@ -880,7 +880,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
             zaehler: zaehler,
             taten: zweig.taten.filter((id) => id.length <= 64).slice(-1000)
         };
-        /* Die Bibliothek (seit 0.18.0): `turm.figuren`, seit 0.20.0 auch
+        /* Die Bibliothek: `turm.figuren`, seit 0.20.0 auch
            `turm.schwuere` (Merker) — je nur mit Inhalt. */
         const figuren = FORTSCHRITT._turmTabelle(zweig.turm);
         const merker = FORTSCHRITT._merkerTabelle(zweig.turm);
@@ -921,7 +921,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
      *   angaben.figuren       0..3 (0 = nicht geschafft)
      *   angaben.koennen       0..100, wahlfrei (Statistik, seit 0.12.0)
      *   angaben.zeitpunkt     für `stand`, wahlfrei
-     *   angaben.geloest, .versuche, .schwer   für die Taten (seit 0.13.0)
+     *   angaben.geloest, .versuche, .schwer   für die Taten
      *   angaben.stufe         Schwierigkeit der Tagesaufgabe 1..3 (seit
      *                         0.14.0; fehlt sie, gilt mittel)
      *   angaben.hilfe         true = Tipp oder Extra-Leben aus dem Shop
@@ -985,7 +985,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
             zweig.heute = heute;
         }
 
-        /* Die Bibliothek (seit 0.18.0). */
+        /* Die Bibliothek. */
         const bib = angaben.bibliothek;
         if (bib && /^\d{1,2}-\d{1,2}$/.test(bib.schluessel)
                 && Number.isInteger(bib.figuren) && bib.figuren > 0) {
@@ -1003,7 +1003,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
         zweig.stand = Math.max(zweig.stand + 1, angaben.zeitpunkt || 0);
         stand.spiele[FORTSCHRITT.APP] = zweig;
 
-        /* Taten (seit 0.13.0): was diese Runde neu erfüllt — gemerkt wird,
+        /* Taten: was diese Runde neu erfüllt — gemerkt wird,
            was die Runde selbst zeigt; die Serie ist ohnehin gerechnet. */
         zweig.taten = zweig.taten.concat(FORTSCHRITT._tatenDerRunde(stand, angaben)
             .filter((id) => zweig.taten.indexOf(id) === -1));
@@ -1021,7 +1021,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
     },
 
     /* ---------------------------------------------------------------- *
-     * Das Duell (seit 0.35.0)
+     * Das Duell
      * ---------------------------------------------------------------- */
 
     /*
@@ -1093,7 +1093,7 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
     },
 
     /* ---------------------------------------------------------------- *
-     * Taten (seit 0.13.0)
+     * Taten
      * ---------------------------------------------------------------- */
 
     /* Welche Taten diese eine Runde erfüllt. `angaben` wie bei `partie`,
@@ -1183,11 +1183,11 @@ const FORTSCHRITT = Object.assign({}, FORTSCHRITT_KERN, {
     },
 
     /* ---------------------------------------------------------------- *
-     * Profil: Abzeichen, Statistik, Spiele (seit 0.12.0)
+     * Profil: Abzeichen, Statistik, Spiele
      * ---------------------------------------------------------------- */
 
     /*
-     * DIE ABZEICHEN (seit 0.15.9) rechnet der gemeinsame Baustein
+     * DIE ABZEICHEN rechnet der gemeinsame Baustein
      * js\upcrew-abzeichen.js aus den UPCrew-Bausteinen — gleich in
      * Blunderluck, über ALLE Zweige (Rechnung 1:1 aus Typoluck 0.12.0, die
      * eigene Kopie hier ist weg; tests\test-fortschritt.js prüft, dass

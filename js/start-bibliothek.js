@@ -338,7 +338,7 @@ Object.assign(START, {
     },
 
     /* ---------------------------------------------------------------- *
-     * DER VERLAUF (seit 0.32.0): ein Blatt (UPCREW_BLATT) über dem Start —
+     * DER VERLAUF: ein Blatt (UPCREW_BLATT) über dem Start —
      * was war, wo man steht, was kommt. Im Blatt rollt nur senkrecht etwas.
      * ---------------------------------------------------------------- */
 
@@ -427,7 +427,7 @@ Object.assign(START, {
                 { klasse: "bib-vl-bild", text: String(e.nr) }));
         } else if (e.was === "wahl") {
             const paar = BAUSTEINE.el("span", "bib-vl-paar");
-            /* Mit der Nummer jeder Station (seit 0.34.4): die Initiale einer
+            /* Mit der Nummer jeder Station: die Initiale einer
                Wort-Station kommt so wie auf der Karte aus `_initiale` —
                vorher stand hier ohne Nummer immer „W". */
             e.arten.forEach((art, i) => paar.appendChild(START._stationPlatz(art, b,
@@ -560,7 +560,7 @@ Object.assign(START, {
         const regal = BAUSTEINE.knopf({ art: "flach", zeichen: "regal", titel: "Bücherregal",
             beiKlick: () => { START.regalOffen = true; NAVIGATION.auffrischen(); } });
         regal.classList.add("bib-regal-knopf");
-        /* Die Legende (seit 0.23.4): alle Symbole erklärt. */
+        /* Die Legende: alle Symbole erklärt. */
         const legende = BAUSTEINE.knopf({ art: "flach", text: "?", titel: "Legende",
             beiKlick: () => START.legendeZeigen() });
         legende.classList.add("bib-regal-knopf", "bib-legende-knopf");
@@ -677,7 +677,7 @@ Object.assign(START, {
                 el = BAUSTEINE.el("span", "st st-" + art + " " + zustand);
             } else {
                 const st = BIBLIOTHEK.stationAn(b, k, s, i);
-                /* In der Vorschau (seit 0.23.2) nur ein Bild: kein Knopf. */
+                /* In der Vorschau nur ein Bild: kein Knopf. */
                 el = vorschau ? START._stationBild(b, st, zustand) : START._stationKnopf(b, st, zustand);
             }
             el.style.left = (L.x / 4) + "%";
@@ -805,7 +805,7 @@ Object.assign(START, {
             tun: () => START.stationBlatt(b, st.nr) };
     },
 
-    /* Unten im Vollbild (seit 0.23.2): „Verlassen" zurück zur Vorschau,
+    /* Unten im Vollbild: „Verlassen" zurück zur Vorschau,
        daneben die Hauptaktion. Die Pfeile ‹ › neben „Spielen" sind weg —
        geblättert wird mit Wischen hoch/runter oder über die Kapitel-Punkte. */
     _vollbildReiheBauen(turm, b, lauf, k) {
@@ -937,7 +937,7 @@ Object.assign(START, {
             if (buch.nurNomen) {
                 chips.push("Nomen");
             }
-            /* Die Besonderheit des Gegners (seit 0.23.4) steht als eigene
+            /* Die Besonderheit des Gegners steht als eigene
                Reihe mit „i" darüber (START.gegnerChips). */
             if (st.art === "e" || st.art === "b") {
                 blatt.appendChild(START.gegnerChips(b, nr));
@@ -977,7 +977,7 @@ Object.assign(START, {
             los.disabled = !spielbar;
             knoepfe.push(los);
         } else if (st.art === "t") {
-            /* Nach einem Rückfall (seit 0.21.0) ist die Truhe schon leer. */
+            /* Nach einem Rückfall ist die Truhe schon leer. */
             const leer = BIBLIOTHEK.erledigt(APP.bibliothekStand(true), b, nr);
             const muenzen = leer ? 0 : BIBLIOTHEK.truheMuenzen(b, nr);
             const inhalt = BAUSTEINE.el("div", "bib-wahl");
@@ -1250,7 +1250,7 @@ Object.assign(START, {
     },
 
     /* Kurz am Gegner im Buch: die erste Besonderheit, bei mehr „+n". */
-    /* Die Lieblingswörter für den Zensor (seit 0.28.0) — undefined, wenn
+    /* Die Lieblingswörter für den Zensor — undefined, wenn
        APP fehlt (dann nennt die Erklärung die Regel allgemein). */
     _lieblinge() {
         return (typeof APP !== "undefined" && typeof APP.lieblingswoerter === "function")

@@ -24,8 +24,11 @@ class Abgleich {
     /*
      * speicher     — Rückwand aus speicher.js
      * einstellung  — KONFIG.speicher
-     * rueckrufe    — { beiDaten(daten), beiStatus(status, text),
-     *                  takt() — wahlfrei (seit 0.33.0): wie viele
+     * rueckrufe    — { beiDaten(daten), beiStatus(status, text, fehler) —
+     *                  seit 0.36.0 mit dem Fehler-Objekt (erkennt „kein
+     *                  Netz“), beiGeschrieben() — wahlfrei, seit 0.36.0:
+     *                  nach jedem BESTÄTIGTEN Schreiben,
+     *                  takt() — wahlfrei: wie viele
      *                  Millisekunden JETZT zwischen zwei Abfragen liegen
      *                  sollen (je Bildschirm, js\app.js `abfrageTakt`);
      *                  jetzt() — wahlfrei: die Uhr (für Tests) }
@@ -35,6 +38,7 @@ class Abgleich {
         this.einstellung = einstellung;
         this.beiDaten = rueckrufe.beiDaten || (() => {});
         this.beiStatus = rueckrufe.beiStatus || (() => {});
+        this.beiGeschrieben = rueckrufe.beiGeschrieben || (() => {});
         this.takt = (typeof rueckrufe.takt === "function") ? rueckrufe.takt : null;
         this.jetzt = (typeof rueckrufe.jetzt === "function") ? rueckrufe.jetzt : (() => Date.now());
         /* Wann zuletzt wirklich gefragt wurde (für den Takt). */
@@ -47,7 +51,7 @@ class Abgleich {
         this.schreibtGerade = false;
         this.schreibZeitgeber = null;
         this.abfrageZeitgeber = null;
-        /* Fehlschläge beim Schreiben in Folge (seit 0.34.3) — bestimmt die
+        /* Fehlschläge beim Schreiben in Folge — bestimmt die
            Wartezeit bis zum nächsten Versuch (`_wiederholungMs`). */
         this.schreibFehlschlaege = 0;
 
@@ -56,7 +60,7 @@ class Abgleich {
            überholt ist. */
         this.vorgangsZaehler = 0;
         this.markeGesehen = null;
-        /* Läuft gerade eine Abfrage nach fremden Änderungen? (seit 0.31.0) */
+        /* Läuft gerade eine Abfrage nach fremden Änderungen? */
         this.holtGerade = false;
         this.holtSeit = 0;
         this.holNummer = 0;
@@ -90,7 +94,7 @@ class Abgleich {
             }
             this.beiStatus("bereit", this.speicher.beschreibung);
         } catch (fehler) {
-            this.beiStatus("fehler", fehler.message);
+            this.beiStatus("fehler", fehler.message, fehler);
         }
         this.beiDaten(this.daten);
 
@@ -184,9 +188,10 @@ class Abgleich {
             this.markeGesehen = this.daten.geaendertAm;
             this.beiDaten(this.daten);
             this.beiStatus("bereit", this.speicher.beschreibung);
+            this.beiGeschrieben();
         } catch (fehler) {
             this.schreibFehlschlaege++;
-            this.beiStatus("fehler", "Nicht gespeichert: " + fehler.message);
+            this.beiStatus("fehler", "Nicht gespeichert: " + fehler.message, fehler);
             this._schreibenPlanen(this._wiederholungMs());
         } finally {
             this.schreibtGerade = false;
@@ -271,7 +276,7 @@ class Abgleich {
             this.markeGesehen = marke;
             this.beiStatus("bereit", this.speicher.beschreibung);
         } catch (fehler) {
-            this.beiStatus("fehler", fehler.message);
+            this.beiStatus("fehler", fehler.message, fehler);
         }
     }
 

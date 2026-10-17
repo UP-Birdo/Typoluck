@@ -1,5 +1,5 @@
 /*
- * wortbewertung.js — wie schwer ein Lösungswort ist (seit 0.16.0).
+ * wortbewertung.js — wie schwer ein Lösungswort ist.
  *
  * Nutzer 27.09.2026: „ein Bewertungssystem, von dem ich öfters sprach, in
  * Typoluck. Was es machen soll: Wörter bewerten, wie schwierig diese sind,
@@ -630,7 +630,7 @@ const WORTBEWERTUNG = {
         return e ? e.skala : 5;
     },
 
-    /* DIE Schwierigkeit 0–100 (seit 0.18.0) — die EINE Lesestelle für
+    /* DIE Schwierigkeit 0–100 — die EINE Lesestelle für
        Tageswort und Bibliothek (siehe Kopf). Heute: vorgerechnet, Korrektur
        gewinnt; unbekannt: null (dann kommt das Wort in keinen Bereich). */
     schwierigkeit(wort) {
@@ -643,7 +643,7 @@ const WORTBEWERTUNG = {
         return !!(e && e.ungeeignet);
     },
 
-    /* Aus der vollen Bewertung (Werkzeug) die App-Daten (seit 0.18.1):
+    /* Aus der vollen Bewertung (Werkzeug) die App-Daten:
        die Schwellen von Stufe und Skala und `kodiert` (je Wort die Zahl,
        verschleiert). Keine lesbaren Werte je Wort. */
     appDaten(voll, loesungen) {

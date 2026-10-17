@@ -1,5 +1,5 @@
 /*
- * aktualisierung.js — die neue Version auch wirklich zeigen (seit 0.15.2).
+ * aktualisierung.js — die neue Version auch wirklich zeigen.
  *
  * DER FEHLER (Nutzer 27.09.2026: „ich bekomme die neuste Version nicht mehr
  * aufgerufen"; live nachgemessen an Blunderluck, dasselbe Muster hier): Der

@@ -43,16 +43,12 @@ const APP = {
     },
 
     async starten() {
-        /* Für den Notfall-Weg in index.html (seit 0.15.4): „die App hat
+        /* Für den Notfall-Weg in index.html: „die App hat
            gestartet". Fehlt das nach 10 s (seit 0.33.0: und ist fertig
            geladen, spätestens nach 30 s), räumt er Worker und Speicher. */
         window.TYPOLUCK_GESTARTET = true;
         DIALOG.aufbauen(document.getElementById("dialog"), document.getElementById("kurzmeldung"));
         APP._fehlerFangen();
-
-        /* Das UPCrew-Intro legt sich über alles; die App lädt darunter
-           weiter, deshalb wird hier NICHT darauf gewartet. */
-        INTRO.zeigen(document.getElementById("intro"));
 
         /* 2. Speicher */
         const werkstatt = WERKSTATT.aktiv();
@@ -93,16 +89,35 @@ const APP = {
             APP.hinweisZeigen(spieler.hinweis);
         }
 
+        /*
+         * WER SPIELT (seit 0.36.0, UPCrew-Baustein js\wer-spielt.js, Einbau
+         * „Intro wartet auf wer spielt“). Nutzer 04.10.2026: „Das laden
+         * können wir ja schon beginnen beim UPcrew intro?“ — und: nur das
+         * Studio-Intro verbirgt das Laden, die Animation läuft flüssig, der
+         * letzte Bild-Stand bleibt stehen. Im selben Takt wie bisher, gleich
+         * nach Konto und Spieler-Speicher: den EIGENEN Konto-Eintrag früh
+         * holen, mit dem Gerät vereinigen; das Intro wartet darauf (Frist im
+         * Baustein). Das erste Laden der Konten-Rückwand übernimmt genau
+         * diesen Abruf (`konten/<uid>` beim Start einmal). Der Abgleich
+         * wartet NICHT auf das Intro. Bis 0.35.0 kam das Intro als Erstes.
+         */
+        const wer = APP.werSpieltStarten();
+        INTRO.zeigen(document.getElementById("intro"), wer)
+            .then(() => APP.werSpieltDa(typeof UPCREW_WER_SPIELT !== "undefined" ? UPCREW_WER_SPIELT.stand() : null));
+
         APP.abgleich = new Abgleich(APP.spielerSpeicher, KONFIG.speicher, {
             beiDaten: () => APP._beiSpielerDaten(),
-            beiStatus: (status, text) => APP._beiStatus(status, text),
+            beiStatus: (status, text, fehler) => APP._beiStatus(status, text, fehler),
+            /* Seit 0.36.0: bestätigt geschrieben — der Haken des
+               Offline-Hinweises (nur, wenn vorher ein Zeichen stand). */
+            beiGeschrieben: () => APP._hochgeladen(),
             /* Seit 0.33.0: der Takt der Abfrage je Bildschirm. */
             takt: () => APP.abfrageTakt()
         });
         ANMELDUNG.verbinden(APP.abgleich, document.getElementById("anmeldung"));
         ANMELDUNG.beiAngemeldet = () => APP._beiAngemeldet();
 
-        /* Das gemeinsame Aussehen (seit 0.8.0): am Konto mitführen und auf
+        /* Das gemeinsame Aussehen: am Konto mitführen und auf
            Änderungen horchen — auch auf die aus Blunderluck. */
         AUSSEHEN_ABGLEICH.einrichten(APP.spielerSpeicher, () => APP._aussehenUid());
         APP._aussehenBeobachten();
@@ -116,16 +131,34 @@ const APP = {
         if (typeof BESITZ !== "undefined") {
             BESITZ.einrichten(APP.spielerSpeicher, () => APP._aussehenUid(), () => APP.fortschrittId());
         }
-        /* Die Lieblingswörter (seit 0.28.0): gezählt auf dem Gerät, die
+        /* Die Lieblingswörter: gezählt auf dem Gerät, die
            Top 3 ans Konto nur mit Regel §13 (js/lieblingswoerter.js). */
         if (typeof LIEBLINGSWOERTER !== "undefined") {
             LIEBLINGSWOERTER.einrichten(APP.spielerSpeicher, () => APP._aussehenUid());
         }
-        /* Die Status-Lampe der Einstellungen (seit 0.26.0) folgt jedem
-           Speicher-Ereignis: Konten-Abgleich, Fortschritt, Netz an/aus. */
-        FORTSCHRITT_ABGLEICH.beiZustand = () => APP._lampeAuffrischen();
-        window.addEventListener("online", () => APP._lampeAuffrischen());
-        window.addEventListener("offline", () => APP._lampeAuffrischen());
+        /* Die Status-Lampe der Einstellungen folgt jedem
+           Speicher-Ereignis: Konten-Abgleich, Fortschritt. Ein bestätigt
+           hochgeladener Fortschritt zeigt seit 0.36.0 den Haken des
+           Offline-Hinweises. */
+        FORTSCHRITT_ABGLEICH.beiZustand = (zustand) => {
+            if (zustand === "gespeichert") {
+                APP._hochgeladen();
+            }
+            APP._lampeAuffrischen();
+        };
+        /* Netz an/aus (seit 0.36.0, EINBAU-OFFLINE.md): Der Offline-Hinweis
+           horcht selbst und führt die Lampe mit (grau „Offline · später“,
+           erst nach 1,2 s). Kommt das Netz zurück, geht SOFORT hinauf, was
+           offline entstand (`APP.wiederOnline`) — genau einmal je Ereignis. */
+        if (typeof UPCREW_OFFLINE !== "undefined") {
+            UPCREW_OFFLINE.lauschen();
+        } else {
+            window.addEventListener("offline", () => APP._lampeAuffrischen());
+        }
+        window.addEventListener("online", () => {
+            APP._lampeAuffrischen();
+            APP.wiederOnline();
+        });
 
         /* Spielzeit und „dabei seit" (seit 0.24.0, wie Blunderluck v0.155.0):
            gezählt, solange die Seite sichtbar ist — auch als Gast. */
@@ -160,7 +193,7 @@ const APP = {
         HERAUSFORDERUNGEN_BILDSCHIRM.anmelden();
         SAMMLUNG_BILDSCHIRM.anmelden();
         WORDLE_BILDSCHIRM.anmelden();
-        /* Das Duell (seit 0.34.0): Rückwand, Bildschirm, dritte Art — alles
+        /* Das Duell: Rückwand, Bildschirm, dritte Art — alles
            nur, wenn es an ist (APP._duellEinrichten). */
         APP._duellEinrichten(werkstatt, intern);
         /* Seit 0.33.0: Die Navigation zeichnet eine Seite des Bandes nur
@@ -176,7 +209,7 @@ const APP = {
         /* 4. Spielerliste */
         APP._gestartet = true;
         await APP.abgleich.starten();
-        /* Werkstatt (seit 0.18.5): das Formular „Neues UPCrew-Konto" mit
+        /* Werkstatt: das Formular „Neues UPCrew-Konto" mit
            Fehleingaben ansehen (&anmeldung&konto=neu, js/werkstatt.js). */
         if (werkstatt && WERKSTATT.wert("konto") === "neu") {
             WERKSTATT._kontoFormularZeigen();
@@ -216,7 +249,7 @@ const APP = {
     },
 
     /*
-     * Ein beendetes Duell gibt XP (seit 0.35.0) — GENAU EINMAL je Kennung,
+     * Ein beendetes Duell gibt XP — GENAU EINMAL je Kennung,
      * auch wenn das Ergebnis auf zwei Geräten gesehen wird: Gerechnet wird
      * mit dem Konto-Stand dazu (dort steht die Kennung schon, wenn das andere
      * Gerät gebucht hat), die Kennung kommt in `gezaehlt`
@@ -461,7 +494,7 @@ const APP = {
             if (quelle === "selbst") {
                 AUSSEHEN_ABGLEICH.senden();
             }
-            /* Eine Anprobe aus dem Shop (seit 0.31.0) endet, sobald sich das
+            /* Eine Anprobe aus dem Shop endet, sobald sich das
                echte Aussehen ändert — der Baustein hat es eben angewendet. */
             if (typeof SHOP_BILDSCHIRM !== "undefined") {
                 SHOP_BILDSCHIRM.anprobeBeenden(true);
@@ -486,14 +519,148 @@ const APP = {
        fehler) — für die Status-Lampe (seit 0.26.0). */
     _status: "",
 
-    _beiStatus(status, text) {
+    /* Seit 0.36.0 mit dem Fehler-Objekt (`fehler`): Scheitert Laden oder
+       Schreiben am Netz (keine Antwort, Zeitlimit), zeigt der dezente
+       Offline-Hinweis das (EINBAU-OFFLINE.md) — KEIN Streifen „… keine
+       Verbindung zum Netz“ mehr. Andere Fehler (Antwort mit Status, Regel)
+       stehen wie bisher oben. Eine Antwort des Servers beweist Netz. */
+    _beiStatus(status, text, fehler) {
         APP._status = status;
-        APP._lampeAuffrischen();
-        if (status === "fehler") {
+        if (status === "fehler" && APP.istNetzFehler(fehler)) {
+            UPCREW_OFFLINE.setzen(true);
+            APP.hinweisZeigen("");
+        } else if (status === "fehler") {
             APP.hinweisZeigen(text);
         } else if (status === "bereit") {
             APP.hinweisZeigen("");
+            if (typeof UPCREW_OFFLINE !== "undefined"
+                    && !(typeof navigator !== "undefined" && navigator.onLine === false)) {
+                UPCREW_OFFLINE.setzen(false);
+            }
         }
+        APP._lampeAuffrischen();
+    },
+
+    /* Kein Netz = der Server hat gar nicht geantwortet — die Regel des
+       Bausteins (`UPCREW_OFFLINE.istNetzFehler`). js\speicher.js gibt den
+       Fehler von fetch als `ursache` mit (die Meldung selbst ist deutsch). */
+    istNetzFehler(fehler) {
+        if (typeof UPCREW_OFFLINE === "undefined" || typeof UPCREW_OFFLINE.istNetzFehler !== "function") {
+            return false;
+        }
+        return UPCREW_OFFLINE.istNetzFehler(fehler)
+            || (!!fehler && typeof fehler === "object" && UPCREW_OFFLINE.istNetzFehler(fehler.ursache));
+    },
+
+    /* Bestätigt hochgeladen (Konten-Abgleich, Fortschritt, Ergebnisse):
+       der kurze Haken — nur, wenn vorher ein Zeichen stand. */
+    _hochgeladen() {
+        if (typeof UPCREW_OFFLINE !== "undefined") {
+            UPCREW_OFFLINE.hochgeladen();
+        }
+    },
+
+    /*
+     * WER SPIELT — DER FRÜHE ABRUF (seit 0.36.0, Baustein js\wer-spielt.js).
+     * Die Person ist `APP.gemerktePerson()` — die Kennung nur bei echter
+     * Konto-Sitzung, nach derselben Regel, nach der Typoluck Fortschritt und
+     * Besitz auf dem Gerät ablegt (`fortschrittId`). Geholt wird NUR
+     * `konten/<uid>` über die Konten-Rückwand; ohne UPCrew-Konto (Werkstatt,
+     * lokal) gar nichts. Ohne Baustein: null (das Intro läuft wie bisher).
+     */
+    werSpieltStarten() {
+        if (typeof UPCREW_WER_SPIELT === "undefined") {
+            return null;
+        }
+        const speicher = APP.spielerSpeicher;
+        const holen = (KONTO.aktiv() && speicher && typeof speicher._teilHolen === "function")
+            ? (uid) => speicher._teilHolen("konten/" + uid) : null;
+        return UPCREW_WER_SPIELT.starten({
+            wer: { id: APP.gemerktePerson(), uid: KONTO.uid(), gast: KONTO.istGastSitzung() },
+            holen: holen
+        });
+    },
+
+    /*
+     * Nach dem Intro: Der Stand liegt schon auf dem Gerät (der
+     * Baustein hat Fortschritt und Besitz des Kontos mit dem Geräte-Eintrag
+     * vereinigt). Kopf, Level-Ring, Flamme und Münzen zeichnen einmal neu:
+     * die offene Seite sofort (ausser in Runde und Sammlung), die übrigen
+     * gelten als veraltet. `e` darf null sein; WER spielt, sagt
+     * `fortschrittId()` aus dem Zustand von jetzt. Liefert `e`.
+     */
+    werSpieltDa(e) {
+        if (typeof NAVIGATION === "undefined" || !APP._gestartet) {
+            return e || null;
+        }
+        if (e && e.art === "konto" && APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
+            NAVIGATION.auffrischen();
+        } else {
+            APP._seitenVeralten();
+        }
+        APP._flammeAktualisieren();
+        return e || null;
+    },
+
+    /*
+     * DAS NETZ IST ZURÜCK (seit 0.36.0; Nutzer 04.10.2026: „beim nächsten
+     * internet kontakt sollen die spieler daten vortschrit hochgeladen
+     * werden“). Bis 0.35.0 frischte `online` nur die Lampe auf; hochgeladen
+     * wurde beim nächsten geplanten Versuch oder beim nächsten Start. Jetzt
+     * EINMAL je Ereignis (läuft schon einer: derselbe, keine Schleife):
+     * offene Änderung der Spielerliste sofort schreiben, dann Fortschritt
+     * (`FORTSCHRITT_ABGLEICH.holen`: holt frisch und schickt den Geräte-Zweig
+     * hinauf, wenn er neuer ist), Besitz (Vereinigung) und die Warteschlange
+     * der Ergebnisse. Den Haken zeigt erst das bestätigte Schreiben. Liefert
+     * { fortschritt, besitz, ergebnisse } (für Tests).
+     */
+    _wiederOnlineLauf: null,
+
+    wiederOnline() {
+        if (APP._wiederOnlineLauf) {
+            return APP._wiederOnlineLauf;
+        }
+        const lauf = APP._hochladen().then((r) => {
+            APP._wiederOnlineLauf = null;
+            return r;
+        }, () => {
+            APP._wiederOnlineLauf = null;
+            return { fortschritt: false, besitz: false, ergebnisse: 0 };
+        });
+        APP._wiederOnlineLauf = lauf;
+        return lauf;
+    },
+
+    async _hochladen() {
+        const r = { fortschritt: false, besitz: false, ergebnisse: 0 };
+        if (APP.abgleich) {
+            try {
+                await APP.abgleich.sofortSchreiben();
+            } catch (fehler) {
+                /* bleibt offen; der Abgleich versucht es selbst weiter */
+            }
+        }
+        if (!ANMELDUNG.ich()) {
+            return r;
+        }
+        r.fortschritt = await FORTSCHRITT_ABGLEICH.holen();
+        if (typeof BESITZ !== "undefined") {
+            r.besitz = await BESITZ.abgleichen();
+        }
+        if (APP.spielSpeicher && ICH.ausstehend().length > 0) {
+            const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);
+            r.ergebnisse = nachgereicht.gesendet;
+            if (nachgereicht.gesendet > 0) {
+                APP._ergebnisGeaendert();
+                APP._hochgeladen();
+            }
+        }
+        if (r.fortschritt || r.besitz) {
+            APP._seitenVeralten();
+            APP._flammeAktualisieren();
+        }
+        APP._lampeAuffrischen();
+        return r;
     },
 
     async _beiAngemeldet() {
@@ -513,10 +680,10 @@ const APP = {
             WERKSTATT.nachDemZeigen();
         }
 
-        /* Das Aussehen vom Konto (seit 0.8.0): hat ein anderes Gerät
+        /* Das Aussehen vom Konto: hat ein anderes Gerät
            zuletzt umgestellt, gilt das jetzt auch hier. */
         await AUSSEHEN_ABGLEICH.holen();
-        /* Der Fortschritt vom Konto (seit 0.15.1), seit 0.31.0 dazu der
+        /* Der Fortschritt vom Konto, seit 0.31.0 dazu der
            Besitz aus dem Shop. */
         await APP._fortschrittHolen();
         /* Ein Kauf, der beim letzten Mal zwischen Besitz und Münzen abbrach
@@ -527,13 +694,14 @@ const APP = {
         if (typeof LIEBLINGSWOERTER !== "undefined") {
             LIEBLINGSWOERTER.senden(APP.fortschrittId());
         }
-        /* Danach einmal alte Flammen-Schilde erstatten (seit 0.26.0). */
+        /* Danach einmal alte Flammen-Schilde erstatten. */
         APP.schildeErstatten();
 
         const nachgereicht = await ERGEBNISSE.nachreichen(APP.spielSpeicher);
         if (nachgereicht.gesendet > 0) {
             /* Seit 0.34.1: Die Rangliste kannte diese Ergebnisse noch nicht. */
             APP._ergebnisGeaendert();
+            APP._hochgeladen();
             DIALOG.kurzmeldung(nachgereicht.gesendet === 1 ? "1 Ergebnis nachgereicht"
                 : nachgereicht.gesendet + " Ergebnisse nachgereicht");
         }
@@ -556,8 +724,13 @@ const APP = {
         } catch (fehler) {
             ausstehend = 0;
         }
+        /* Seit 0.36.0: „ohne Netz“ heisst, der Offline-Hinweis steht (nach
+           1,2 s, `UPCREW_OFFLINE.sichtbar`) — sonst wie bisher das Gerät. */
+        const online = (typeof UPCREW_OFFLINE !== "undefined" && typeof UPCREW_OFFLINE.sichtbar === "function")
+            ? !UPCREW_OFFLINE.sichtbar()
+            : (typeof navigator === "undefined" || navigator.onLine !== false);
         return {
-            online: typeof navigator === "undefined" || navigator.onLine !== false,
+            online: online,
             status: APP._status,
             fortschritt: FORTSCHRITT_ABGLEICH.zustand || "",
             ausstehend: ausstehend
@@ -637,9 +810,16 @@ const APP = {
 
         const antwort = await ERGEBNISSE.melden(APP.spielSpeicher, ich.id, runde);
         APP._ergebnisGeaendert();
-        if (antwort.fehler) {
-            DIALOG.kurzmeldung("Ergebnis auf diesem Gerät gemerkt — es wird gesendet, "
-                + "sobald die Verbindung klappt.", 4000);
+        /* Seit 0.36.0: Ohne Netz sagt das der dezente Offline-Hinweis — die
+           Kurzmeldung „Ergebnis auf diesem Gerät gemerkt …“ kommt nur noch
+           bei anderen Fehlern (etwa einer Absage der Datenbank). Gesendet
+           wird beim nächsten Netz (`wiederOnline`) oder Start. */
+        if (antwort.fehler && APP.istNetzFehler(antwort.fehlerObjekt)) {
+            UPCREW_OFFLINE.setzen(true);
+        } else if (antwort.fehler) {
+            DIALOG.kurzmeldung("Ergebnis auf diesem Gerät gemerkt · wird später gesendet", 4000);
+        } else if (antwort.gesendet > 0) {
+            APP._hochgeladen();
         }
     },
 
@@ -677,7 +857,7 @@ const APP = {
        zeichnen (ausser mitten im Spiel oder in der Sammlung). */
     async _fortschrittHolen() {
         const geaendert = await FORTSCHRITT_ABGLEICH.holen();
-        /* Der Besitz aus dem Shop (seit 0.31.0) an derselben Stelle: Gerät
+        /* Der Besitz aus dem Shop an derselben Stelle: Gerät
            und Konto vereinigen; kam etwas dazu, zählt das als Änderung. */
         const besitzNeu = (typeof BESITZ !== "undefined") ? await BESITZ.abgleichen() : false;
         if ((geaendert || besitzNeu) && APP.UNGESTOERT.indexOf(NAVIGATION.aktuell) === -1) {
@@ -686,7 +866,7 @@ const APP = {
             /* Seit 0.33.0: wenigstens veraltet (beim nächsten Besuch neu). */
             APP._seitenVeralten();
         }
-        /* Die Serien-Flamme (seit 0.16.1) zieht auch ohne Neuzeichnen nach. */
+        /* Die Serien-Flamme zieht auch ohne Neuzeichnen nach. */
         APP._flammeAktualisieren();
     },
 
@@ -707,13 +887,58 @@ const APP = {
     },
 
     /* Unter welchem Eintrag der Fortschritt steht — wie Blunderluck
-       (js\fortschritt-konto.js `_person`, seit v0.150.0): die Spieler-Id
-       des eigenen Kontos, für Gäste und Nicht-Angemeldete „gast". Nur so
-       sehen beide Spiele im selben Browser denselben Eintrag. */
+       (js\fortschritt-konto.js `_person`): die Spieler-Id des eigenen
+       Kontos, für Gäste und Nicht-Angemeldete „gast". Nur so sehen beide
+       Spiele im selben Browser denselben Eintrag.
+       Seit 0.36.0 (Einbau „wer spielt“, Punkt 4): Ein gemerktes Konto zählt
+       NIE als „gast“ — auch bevor die Spielerliste da ist und ohne Netz. Ein
+       echter Gast bleibt „gast“, und zwar schon VOR dem Laden der Liste: Die
+       Gast-Sitzung des UPCrew-Kontos verrät ihn (bis 0.35.0 stand er so
+       lange unter seiner Spieler-Id). */
     fortschrittId() {
         const ich = ICH.person();
-        const gast = typeof ANMELDUNG !== "undefined" && ANMELDUNG.istGast();
-        return (ich && ich.id && !gast) ? ich.id : FORTSCHRITT.GAST;
+        if (!ich || !ich.id || ich.id === FORTSCHRITT.GAST) {
+            return FORTSCHRITT.GAST;
+        }
+        return APP._gastSitzung() ? FORTSCHRITT.GAST : ich.id;
+    },
+
+    /* Spielt hier ein echter Gast? Die Gast-Sitzung des UPCrew-Kontos
+       (gilt sofort, ohne Netz) oder der geladene eigene Eintrag. */
+    _gastSitzung() {
+        if (typeof KONTO !== "undefined" && typeof KONTO.aktiv === "function" && KONTO.aktiv()
+                && typeof KONTO.istGastSitzung === "function" && KONTO.istGastSitzung()) {
+            return true;
+        }
+        return typeof ANMELDUNG !== "undefined" && ANMELDUNG.istGast();
+    },
+
+    /*
+     * DIE GEMERKTE PERSON FÜR DEN FRÜHEN ABRUF (seit 0.36.0, wie Blunderluck
+     * `FORTSCHRITT_KONTO.gemerktePerson`): die gemerkte Spieler-Id NUR mit
+     * echter Konto-Sitzung (UPCrew-Konto an, angemeldet, keine Gast-Sitzung).
+     * Sonst null — dann holt `UPCREW_WER_SPIELT` nichts.
+     */
+    gemerktePerson() {
+        if (typeof KONTO === "undefined" || !KONTO.aktiv() || !KONTO.angemeldet() || KONTO.istGastSitzung()) {
+            return null;
+        }
+        const id = APP.fortschrittId();
+        return id === FORTSCHRITT.GAST ? null : id;
+    },
+
+    /* Üben nach Spieler-Stufe (seit 0.36.0, WORDLE.uebungsBereich): die
+       Stufe dieses Spielers auf dem Gerät (js/wortstatistik-abgleich.js) —
+       erst ab UEBUNG_STUFE_AB gewerteten Runden, vorher ist sie noch zu
+       ungenau (dann null = die ganze Liste wie bisher). */
+    UEBUNG_STUFE_AB: 5,
+
+    uebungsStufe() {
+        if (typeof WORTSTATISTIK_ABGLEICH === "undefined" || typeof WORTSTATISTIK_ABGLEICH.stufe !== "function") {
+            return null;
+        }
+        const s = WORTSTATISTIK_ABGLEICH.stufe();
+        return (s && s.runden >= APP.UEBUNG_STUFE_AB) ? s.wert : null;
     },
 
     /* Die Lieblingswörter (seit 0.28.0, js/lieblingswoerter.js): die Top 3
@@ -756,7 +981,7 @@ const APP = {
         const tagesaufgabe = runde.modus === "tag" && runde.datum === datum;
         APP._gastUmzug();
         APP._lieblingeZaehlen(runde);
-        /* Bibliothek (seit 0.21.0): die Sicht vor dem Schreiben (Front?)
+        /* Bibliothek: die Sicht vor dem Schreiben (Front?)
            und die Belohnung der Mitnahme (Fund). */
         const imBuch = runde.modus === "bibliothek" && typeof BIBLIOTHEK !== "undefined";
         const vorherSicht = imBuch ? APP.bibliothekStand() : null;
@@ -779,7 +1004,7 @@ const APP = {
                 schwer: runde.schwer === true,
                 /* Tipp oder Extra-Leben aus dem Shop: höchstens ein Bauer. */
                 hilfe: WORDLE.hilfeGenutzt(runde),
-                /* Ein Level der Bibliothek (seit 0.18.0): seine Figuren. */
+                /* Ein Level der Bibliothek: seine Figuren. */
                 bibliothek: APP._bibliothekAngaben(runde, wertung)
             }, APP._stufen());
             /* Münzen (seit 0.17.0, wie Blunderluck v0.152.0). */
@@ -798,7 +1023,7 @@ const APP = {
         /* Seit 0.33.0: Nach dem Runden-Ende ist jede Seite veraltet. */
         APP._seitenVeralten();
 
-        /* Level-Aufstieg und neue Stücke aus Taten (seit 0.13.0) als EINE
+        /* Level-Aufstieg und neue Stücke aus Taten als EINE
            Kurzmeldung — die Namen der Stücke kennt das Sammlungs-Modell. */
         const meldung = [];
         if (ergebnis.levelNachher > ergebnis.levelVorher) {
@@ -807,7 +1032,7 @@ const APP = {
         for (const stueck of SAMMLUNG.stueckeZuTaten(ergebnis.taten)) {
             meldung.push("Neu: " + stueck.name);
         }
-        /* Kachel-Sets, die mit dem Level kamen (seit 0.15.0). */
+        /* Kachel-Sets, die mit dem Level kamen. */
         const namen = SAMMLUNG.kachelsetNamen();
         for (const belohnung of ergebnis.neu.filter((b) => b.art === "kachelset")) {
             meldung.push("Neu: " + (namen[belohnung.name] || belohnung.name));
@@ -815,11 +1040,11 @@ const APP = {
         if (ergebnis.muenzen > 0) {
             meldung.push("+" + ergebnis.muenzen + " " + UPCREW_MUENZEN.WAEHRUNG.name);
         }
-        /* Wortstatistik und Stufe (seit 0.23.1) — im Hintergrund. */
+        /* Wortstatistik und Stufe — im Hintergrund. */
         if (typeof WORTSTATISTIK_ABGLEICH !== "undefined") {
             WORTSTATISTIK_ABGLEICH.melden(runde, datum, Date.now());
         }
-        /* Herzen und Rückfall (seit 0.21.0). */
+        /* Herzen und Rückfall. */
         const bibliothek = imBuch ? APP._bibliothekNachRunde(runde, vorherSicht) : null;
         if (bibliothek && bibliothek.voll) {
             meldung.push("Herzen voll");
@@ -831,7 +1056,7 @@ const APP = {
         } else if (bibliothek && bibliothek.verlust > 0) {
             meldung.push("−" + bibliothek.verlust + (bibliothek.verlust === 1 ? " Herz" : " Herzen"));
         }
-        /* Typoluck-Abzeichen (seit 0.25.0) — verdiente fest in den Zweig. */
+        /* Typoluck-Abzeichen — verdiente fest in den Zweig. */
         if (APP.abzeichenBuchen() > 0) {
             meldung.push("Neues Abzeichen");
         }
@@ -906,7 +1131,7 @@ const APP = {
     },
 
     /*
-     * Nach einer Bibliothek-Runde (seit 0.21.0): Herzen und Rückfall bei
+     * Nach einer Bibliothek-Runde: Herzen und Rückfall bei
      * Scheitern an der Front, Mitnahme verbraucht, Herz aus der Belohnung.
      * `vorherSicht` = die Sicht VOR dem Schreiben (war die Station die
      * Front?). Schreibt nur den Durchgang (Gerät). Liefert
@@ -955,7 +1180,7 @@ const APP = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Der Durchgang (seit 0.21.0): Herzen, neu zu spielende Stationen,
+     * Der Durchgang: Herzen, neu zu spielende Stationen,
      * Rast, Fund-Wirkung — NUR auf diesem Gerät (Spielstand
      * „bibliothek-durchgang", je Spieler-Id und Buch). Die heutige Regel
      * §11b hat dafür kein Feld; mit §12 zieht es ans Konto.
@@ -1036,7 +1261,7 @@ const APP = {
         return true;
     },
 
-    /* Tinte einsetzen (seit 0.23.0): ein Stück aus dem Vorrat des Buchs.
+    /* Tinte einsetzen: ein Stück aus dem Vorrat des Buchs.
        Liefert true, wenn eins da war. */
     tinteNutzen(buch) {
         const dg = APP.durchgang(buch);
@@ -1213,43 +1438,16 @@ const APP = {
         APP._seitenVeralten();
     },
 
-    /*
-     * Darf JETZT ein Stück gekauft werden? (seit 0.33.1, Prüfung Besitz
-     * Fund 2/3) Nur, wenn die Person feststeht und der Besitz ihres Kontos
-     * in dieser Sitzung abgeglichen ist — sonst zeigte der Shop ein Stück als
-     * kaufbar, das am anderen Gerät oder im anderen Spiel schon bezahlt ist,
-     * und der Kauf landete womöglich unter der falschen Kennung.
-     *   niemand gemerkt (`ICH.person()` leer)  → ja: ein echter Gast kauft
-     *                                            wie bisher aufs Gerät
-     *   gemerkt, Spielerliste noch nicht da     → nein: `fortschrittId()`
-     *     (`ANMELDUNG.ich()` leer)                nimmt dann die Id vom Gerät,
-     *                                            auch für einen Gast
-     *   Gast / ohne Konto-Weg (Werkstatt, Regel) → ja (nur das Gerät)
-     *   echtes Konto                             → erst, wenn `BESITZ` den
-     *                                            Konto-Stand geholt hat
-     * An `fortschrittId()` selbst wird nichts geändert. Anprobieren fragt
-     * hier nicht.
-     */
-    kaufBereit() {
-        if (!ICH.person()) {
-            return true;
-        }
-        if (typeof ANMELDUNG === "undefined" || !ANMELDUNG.ich()) {
-            return false;
-        }
-        return typeof BESITZ === "undefined" || BESITZ.kontoBereit();
-    },
-
     /* Ein Stück aus dem Katalog kaufen (Design-Reiter des Shops). Erst der
        Besitz, dann die Münzen (Kopf von js/besitz.js). Liefert
-       { ok, grund, preis, fehlt }; „laedt" = noch nicht bereit
-       (`kaufBereit`), dann ist nichts gebucht. */
+       { ok, grund, preis, fehlt }. Seit 0.36.0 ohne Sperre bis zum Laden
+       des Kontos (Einbau „wer spielt“, Punkt 5): Die Person steht schon beim
+       Intro fest — ein gemerktes Konto kauft unter seiner eigenen Kennung,
+       ein echter Gast unter „gast“ (`fortschrittId`). Der Merker „Kauf
+       offen“ verhindert weiter doppeltes Bezahlen auf DIESEM Gerät. */
     kaufenStueck(art, wert) {
         if (typeof BESITZ === "undefined" || typeof UPCREW_BESITZ === "undefined") {
             return { ok: false, grund: "unbekannt", preis: 0, fehlt: 0 };
-        }
-        if (!APP.kaufBereit()) {
-            return { ok: false, grund: "laedt", preis: 0, fehlt: 0 };
         }
         APP.kaufOffenAufloesen();
         return BESITZ.kaufen({

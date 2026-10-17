@@ -20,7 +20,7 @@
  * STUFE 1 — die VORSCHAU-KARTE — UNGENUTZT/OPTIONAL seit 29.09.2026 nachts (kein Zwischenschritt mehr; bleibt nur
  * als Baustein-Teil stehen, keine App ruft sie auf):
  *     UPCREW_PROFIL.vorschau(ort, {
- *         name: "Jonas", tag: "#4821", titel: "Stammgast",           // titel wahlfrei
+ *         name: "Anna", tag: "#4821", titel: "Stammgast",           // titel wahlfrei
  *         level: 14, imLevel: 264, kosten: 425, anteil: 0.62,         // gemeinsames Level (FORTSCHRITT.levelAus)
  *         serie: 12, heute: true,                                     // Flamme/Serie über alle Spiele
  *         abzeichen: [eintrag, …], plaetze: 3                         // die ausgerüsteten, egal aus welchem Spiel

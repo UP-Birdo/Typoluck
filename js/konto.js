@@ -8,7 +8,7 @@
  *
  * WARUM ES DAS GIBT (UPCrew-Umzug, Nutzer-Aufträge 25.09.2026): Bis dahin
  * stand die Prüfsumme jedes Passworts öffentlich lesbar in der Spielerliste
- * (Apps\Blunderluck\SICHERHEIT.md, Befund 2). Jetzt prüft Firebase das
+ * (Sicherheits-Befund 2). Jetzt prüft Firebase das
  * Passwort; in der Datenbank steht keines mehr, und die Regeln lassen jedes
  * Konto nur seinen EIGENEN Eintrag schreiben.
  *
@@ -18,7 +18,7 @@
  *
  * NAME MIT NUMMER (Nutzer 25.09.2026, „#____-System"): Namen dürfen mehrfach
  * vorkommen; eindeutig ist erst „Name#Nummer" (vier Ziffern, z. B.
- * Jonas#0001). Den Anspruch sichert die DATENBANK selbst ab: Unter
+ * Anna#0001). Den Anspruch sichert die DATENBANK selbst ab: Unter
  * `spieler/namen/<name klein>/<nummer>` steht die Konto-Nummer, und die
  * Regeln lassen einen besetzten Platz nicht überschreiben.
  *
@@ -70,7 +70,7 @@ const KONTO = {
     OBER_TAG: "Plus",
 
     /* Wer aus der alten Blunderluck-Datenbank umzieht, bekommt diese Nummer,
-       wenn sie für seinen Namen noch frei ist (Jonas → Jonas#0001). */
+       wenn sie für seinen Namen noch frei ist (Anna → Anna#0001). */
     UMZUG_TAG: "0001",
 
     /* Anmelden nur mit Name (ohne Nummer), wenn es den Namen mehrmals gibt:
@@ -187,7 +187,7 @@ const KONTO = {
     },
 
     /* Der Schlüssel des Namens in `spieler/namen` — klein geschrieben, damit
-       „Jonas" und „jonas" derselbe Name sind. */
+       „Anna" und „anna" derselbe Name sind. */
     nameSchluessel(name) {
         return String(name || "").toLowerCase();
     },
@@ -245,7 +245,7 @@ const KONTO = {
             + " Zeichen, mit Gross- und Kleinbuchstaben, Ziffer und Sonderzeichen (z. B. ! ? # %)";
     },
 
-    /* „Jonas#0001" → { name: "Jonas", tag: "0001" }; ohne # ist tag null.
+    /* „Anna#0001" → { name: "Anna", tag: "0001" }; ohne # ist tag null.
        Der Name wird gesäubert, die Nummer auf Buchstaben/Ziffern gekürzt. */
     eingabeZerlegen(text) {
         const roh = String(text || "");
@@ -432,6 +432,13 @@ const KONTO = {
     abmelden() {
         KONTO.sitzung = null;
         KONTO._erneuerung = null;
+        /* Der früh geholte Eintrag (kern\wer-spielt.js, seit 04.10.2026) gehört
+           dem alten Konto: weg damit — ein noch laufender Abruf schreibt
+           danach nichts mehr aufs Gerät. */
+        if (typeof UPCREW_WER_SPIELT !== "undefined" && UPCREW_WER_SPIELT
+                && typeof UPCREW_WER_SPIELT.vergessen === "function") {
+            UPCREW_WER_SPIELT.vergessen();
+        }
         try {
             window.localStorage.removeItem(KONTO.SCHLUESSEL);
         } catch (fehler) {
@@ -1055,7 +1062,7 @@ const KONTO = {
 
     /* ---------------------------------------------------------------- *
      * REGEL §12 — „Apps, die beides können" (seit Blunderluck v0.154.0,
-     * Apps\UPCrew\docs\DATENBANK-KONZEPT-12.md, Phase A)
+     * Datenbank-Konzept 12, Phase A)
      *
      * Unter der Regel §12 ist `spieler` nicht mehr als Ganzes lesbar: Konten
      * sind privat, andere sehen nur den öffentlichen Auszug

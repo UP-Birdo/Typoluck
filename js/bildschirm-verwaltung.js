@@ -1,5 +1,5 @@
 /*
- * bildschirm-verwaltung.js — „Verwaltung" für Admins (seit 0.16.3).
+ * bildschirm-verwaltung.js — „Verwaltung" für Admins.
  *
  * Nutzer 27.09.2026: „der Admin soll in Typoluck das Lexikon sehen mit den
  * Wörtern, und in beiden generell eine Spielerliste mit Statistiken und co —

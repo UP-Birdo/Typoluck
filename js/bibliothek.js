@@ -43,7 +43,7 @@
  *   Station, Tutorial. Scheitern ohne Herzen (Buch 1) oder mit Herzen
  *   übrig = dieselbe Station nochmal mit neuem Wort.
  *
- * DER DURCHGANG (seit 0.21.0) — NUR AUF DEM GERÄT (js/app.js
+ * DER DURCHGANG — NUR AUF DEM GERÄT (js/app.js
  *   `durchgang`): { herzen, wieder: [nr], geheilt: [nr], ueben: 0/1,
  *   effekt: "" | Fund-Wirkung für die nächste Kampf-Station }. Die heutige
  *   Regel §11b hat dafür kein Feld (`turm` kennt nur figuren/schwuere) —
@@ -65,7 +65,7 @@
  *     höchstens 9 Büchern und nr ≤ 99 passt das. So zählen sie nicht als
  *     Figuren (Profil, Abzeichen).
  *   Erledigt ist eine Station, wenn EINER der beiden Einträge da ist —
- *     gleich welcher Art (seit 0.21.0): Die Vorlagen bekamen Rast und Fund
+ *     gleich welcher Art: Die Vorlagen bekamen Rast und Fund
  *     an Stellen, an denen in 0.20.0 ein Wort oder eine Truhe stand; die
  *     Form (Spalten und Spuren) und damit jede Nummer blieb. So bleibt
  *     jeder in 0.20.0 gegangene Weg gegangen, und ein durchgespieltes Buch
@@ -634,7 +634,7 @@ const BIBLIOTHEK = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Herzen, Checkpoint, Rast, Fund (seit 0.21.0) — der Durchgang liegt
+     * Herzen, Checkpoint, Rast, Fund — der Durchgang liegt
      * nur auf dem Gerät (Kopf „DER DURCHGANG"); alles hier ist rein.
      * ---------------------------------------------------------------- */
 

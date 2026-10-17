@@ -227,7 +227,7 @@ const SPIELER = {
 
     /*
      * Steht dieser Spieler in Listen, die ANDERE sehen (Rangliste, „Freunde
-     * heute", Suche)? Nicht das Verteiler-Konto (seit 0.2.1) und seit 0.15.3
+     * heute", Suche)? Nicht das Verteiler-Konto und seit 0.15.3
      * keine Gäste (Nutzer 27.09.2026: „Gäste sollen nicht in Rangliste
      * angezeigt werden"; gleich in Blunderluck). Ausnahme: `ichId` — wer
      * selbst Gast ist, sieht seine eigene Zeile weiter.
@@ -239,7 +239,7 @@ const SPIELER = {
         return !SPIELER.istGast(spieler) || (!!ichId && spieler.id === ichId);
     },
 
-    /* Die Spielerliste ohne das Verteiler-Konto und (seit 0.15.3) ohne
+    /* Die Spielerliste ohne das Verteiler-Konto und ohne
        Gäste — für die Suche nach Mitspielern. */
     mitspieler(daten) {
         return SPIELER.normalisieren(daten).spieler
@@ -403,7 +403,7 @@ const SPIELER = {
     },
 
     /*
-     * WAS IM EIGENEN EINTRAG NICHT VON DIESEM GERÄT KOMMT (seit 0.34.2).
+     * WAS IM EIGENEN EINTRAG NICHT VON DIESEM GERÄT KOMMT.
      *
      * „Der eigene Eintrag gewinnt" gilt für das, was Typoluck in seiner Kopie
      * selbst ändert: Name, Freunde, Abgelehnte, Abzeichen und die Felder des

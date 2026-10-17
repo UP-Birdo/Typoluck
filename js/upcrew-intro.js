@@ -1,5 +1,5 @@
 /* UPCrew-Studio-Intro — gemeinsamer Baustein fuer Blunderluck, Typoluck und Trainer.
-   Quelle: dev\Design\3D-Schrift\final\ (Gestaltung: docs\GESTALTUNG.md Abschnitt 10, Einbau: docs\EINBAU-INTRO.md).
+   Gemeinsamer Baustein.
    In die Apps KOPIEREN, nicht dort abwandeln - Aenderungen hier machen und neu verteilen.
 
    - Bei jedem Start die naechste von sechs Arten (A-F); EIN Zaehler fuer alle Apps (localStorage, gleicher Ursprung).
@@ -11,13 +11,30 @@
 
    Nutzung:  UPCREW_INTRO.zeigen(behaelter, { modus: "dunkel" | "hell",
                                              app: { nr: "01", name: "Blunderluck", version: "0.140.2" } })
-             -> Promise, erfuellt nach dem Ausblenden mit { art, welt, modus }. */
+             -> Promise, erfuellt nach dem Ausblenden mit { art, welt, modus }.
+
+   WER SPIELT (seit 04.10.2026, Runde 10 Teil 3; Einbau: EINBAU-INTRO-WER-SPIELT.md):
+             UPCREW_INTRO.zeigen(behaelter, { ..., werSpielt: versprechen })
+   Mit `werSpielt` (ein Promise des Spiels, z. B. UPCREW_WER_SPIELT.starten(...)) endet das Intro erst, wenn die
+   Animation fertig ist (oder uebersprungen wurde) UND das Versprechen erfuellt/abgelehnt ist - spaetestens aber
+   zur FRIST = Laenge der Animation + WARTEN_MS ab Beginn. Dann erfuellt es mit { art, welt, modus, wer, frist }:
+   `wer` = Wert des Versprechens (null bei Ablehnung oder Frist), `frist` = true, wenn die Frist entschieden hat.
+   Reicht die Zeit nicht, bleibt der letzte Bild-Stand der Animation stehen (alle Animationen halten ihr Endbild,
+   `both`) - kein Spinner, kein Neustart. Waehrend des Wartens traegt der Behaelter nur die Klasse `upi-wartet` und
+   aria-busy="true" (keine Grafik). Ohne `werSpielt` (Trainer) alles wie bisher. Endet in jedem Fall genau einmal.
+   SPIEL-INTRO (Nutzer 04.10.2026, 13:50: "spaeter noch ein intro fuer das jeweilige spiel ... nach dem studio
+   intro"): `danach: (behaelter, ergebnis) => Promise` laeuft nach dem Ausblenden; erst wenn es fertig ist (oder
+   scheitert), erfuellt zeigen(). Heute uebergibt kein Spiel etwas - kein sichtbarer Unterschied. */
 (function () {
   "use strict";
 
   const SCHLUESSEL_ZAEHLER = "upcrew.intro-zaehler";
   const SCHLUESSEL_WELT = "upcrew.farbwelt";
   const HALTEN_MS = 700, AUSBLENDEN_MS = 400, RUHIG_MS = 1200;
+  // Frist fuer "wer spielt": so lange wartet das Intro hoechstens NACH seiner Animation auf das Versprechen des
+  // Spiels. Annahme der Koordination 04.10.2026 (offen beim Nutzer) - EINE Zahl, nur hier. Laengste Art (B) mit
+  // Frist und Ausblenden: rund 8,8 s, also vor dem Notfall-Weg der Spiele (10 s; tests\test-intro-wer-spielt.js).
+  const WARTEN_MS = 3000;
   const MONO = 'ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace';
   const ARTEN = ["A", "B", "C", "D", "E", "F"];
 
@@ -268,12 +285,18 @@
       behaelter.hidden = false;
       plusLauf(behaelter, ruhig);
 
-      let vorbei = false, ausUhr = 0;
+      // "wer spielt": ohne Versprechen gilt es als erfuellt - dann ist alles wie bisher
+      const wer = opt.werSpielt && typeof opt.werSpielt.then === "function" ? opt.werSpielt : null;
+      let werDa = !wer, werWert = null, animDa = false, durchFrist = false;
+
+      let vorbei = false, ausUhr = 0, fristUhr = 0;
       const loesen = () => {
         vorbei = true;
         clearTimeout(uhr);
-        behaelter.removeEventListener("click", beenden);
-        document.removeEventListener("keydown", beenden);
+        clearTimeout(fristUhr);
+        behaelter.removeEventListener("click", animEnde);
+        document.removeEventListener("keydown", animEnde);
+        if (wer) { behaelter.classList.remove("upi-wartet"); behaelter.removeAttribute("aria-busy"); }
         if (laufend === abbrechen) laufend = null;
       };
       const abbrechen = () => { if (vorbei) { clearTimeout(ausUhr); } else { loesen(); } fertig(null); };
@@ -288,15 +311,34 @@
           behaelter.classList.remove("upi-weg");
           behaelter.innerHTML = "";
           behaelter.style.background = "";
-          fertig({ art, welt, modus });
+          const wert = wer ? { art, welt, modus, wer: werDa ? werWert : null, frist: durchFrist } : { art, welt, modus };
+          // Glied fuer ein spaeteres Spiel-Intro NACH dem Studio-Intro (heute leer): erst danach erfuellt es
+          if (typeof opt.danach !== "function") { fertig(wert); return; }
+          let glied;
+          try { glied = Promise.resolve(opt.danach(behaelter, wert)); } catch (e) { glied = Promise.resolve(); }
+          glied.then(() => fertig(wert), () => fertig(wert));
         }, AUSBLENDEN_MS);
       };
-      const uhr = setTimeout(beenden, ruhig ? RUHIG_MS : Math.round(ende * 1000) + HALTEN_MS);
-      behaelter.addEventListener("click", beenden);
-      document.addEventListener("keydown", beenden);
+      // Endet erst, wenn beides da ist: Animation fertig (oder uebersprungen) UND wer spielt
+      const pruefen = () => {
+        if (vorbei || !animDa) return;
+        if (werDa) { beenden(); return; }
+        behaelter.classList.add("upi-wartet");
+        behaelter.setAttribute("aria-busy", "true");
+      };
+      const animEnde = () => { animDa = true; pruefen(); };
+      const dauer = ruhig ? RUHIG_MS : Math.round(ende * 1000) + HALTEN_MS;
+      const uhr = setTimeout(animEnde, dauer);
+      if (wer) {
+        const da = w => { if (vorbei || werDa) return; werDa = true; werWert = w === undefined ? null : w; pruefen(); };
+        wer.then(da, () => da(null));
+        fristUhr = setTimeout(() => { if (vorbei) return; durchFrist = !werDa; animDa = true; beenden(); }, dauer + WARTEN_MS);
+      }
+      behaelter.addEventListener("click", animEnde);
+      document.addEventListener("keydown", animEnde);
       laufend = abbrechen;
     });
   }
 
-  window.UPCREW_INTRO = { zeigen, WELTEN, ARTEN, SCHLUESSEL_ZAEHLER, SCHLUESSEL_WELT, AUSBLENDEN_MS };
+  window.UPCREW_INTRO = { zeigen, WELTEN, ARTEN, SCHLUESSEL_ZAEHLER, SCHLUESSEL_WELT, AUSBLENDEN_MS, WARTEN_MS };
 })();

@@ -973,3 +973,18 @@ body:has(#werkstatt-kachelwahl) .inhalt {
     color: var(--schrift-leise);
     font-size: 0.85rem;
 }
+
+/* Erledigt: unter den Figuren, wie das Tageswort ausging (seit 0.37.0) —
+   „Gelöst · 3/6“ oder „Nicht gelöst“, leise und klein. */
+.heute-erledigt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+
+.heute-ergebnis {
+    color: var(--schrift-leise);
+    font-size: 0.82rem;
+    font-weight: 600;
+}

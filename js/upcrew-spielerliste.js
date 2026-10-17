@@ -1,7 +1,7 @@
 /*
  * upcrew-spielerliste.js — die Spielerliste für Admins, gleich in Blunderluck und Typoluck
- * (gehört zu css\upcrew-spielerliste.css). VORSCHLAG aus Typoluck 0.16.3 für Design\3D-Schrift\final —
- * dort liegt künftig die Quelle, in die Apps KOPIEREN, nie abwandeln.
+ * (gehört zu css\upcrew-spielerliste.css). Entstanden in Typoluck 0.16.3 —
+ * gemeinsamer Baustein, in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer, 27.09.2026: „… in beiden generell eine Spielerliste mit Statistiken und co — aber nur der
  * Admin-Account“. NUR LESEN: keine Knöpfe, die Spieler ändern (Rechte, Umbenennen, Entfernen hat Blunderluck in

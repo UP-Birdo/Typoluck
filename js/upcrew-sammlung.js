@@ -1,6 +1,6 @@
 /*
  * upcrew-sammlung.js — das GERÜST des Tabs „Sammlung", gleich in Blunderluck und Typoluck.
- * Gehört zu css\upcrew-sammlung.css. Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln.
+ * Gehört zu css\upcrew-sammlung.css. Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer, 27.09.2026: „bei beiden Apps soll Sammlung gleich sein und immer gleich bleiben“.
  * Nutzer, 03.10.2026: Sammlung = Variante A — Kategorie-Kacheln, ein Tipp öffnet ein Blatt; nichts rollt waagrecht.

@@ -71,7 +71,7 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
         const texte = BAUSTEINE.el("div", "heute-texte");
         texte.appendChild(BAUSTEINE.el("span", "heute-spiel", angaben.spiel));
         const name = BAUSTEINE.el("strong", "heute-name", angaben.name);
-        /* Die Schwierigkeit als 1–3 Punkte (seit 0.14.0) — sie bestimmt die
+        /* Die Schwierigkeit als 1–3 Punkte — sie bestimmt die
            Grund-XP (leicht 15, mittel 20, schwer 30, js\fortschritt.js). */
         if (angaben.stufe) {
             const punkte = BAUSTEINE.el("span", "heute-stufe");
@@ -103,7 +103,8 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
            es nicht gelöst wurde (oder vor 0.10.0 bzw. auf einem anderen
            Gerät gespielt; dann weiss dieses Gerät keine Wertung). */
         const unten = stand === "erledigt"
-            ? BAUSTEINE.figuren(figuren, true)
+            ? HERAUSFORDERUNGEN_BILDSCHIRM._erledigtBauen(figuren,
+                APP.eigenesErgebnis(WORDLE.datumText(APP.jetzt())), HERAUSFORDERUNGEN_BILDSCHIRM._heutigeRunde())
             : BAUSTEINE.knopf({
                 text: stand === "angefangen" ? "Weiter" : "Raten", art: "haupt", klein: true,
                 beiKlick: () => NAVIGATION.zeigen("wordle", { modus: "tag" })
@@ -114,6 +115,51 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
             zusatz: spiel.tagesName().replace("Tageswort ", ""),
             unten: unten, erledigt: stand === "erledigt"
         });
+    },
+
+    /*
+     * ERLEDIGT — GELÖST ODER NICHT (seit 0.37.0; aus der Rauchprobe 0.34.3:
+     * ein verlorenes Tageswort sah unter Aufgaben aus wie „nicht gespielt“ —
+     * leere Figuren, sonst nichts). Unter den Figuren steht jetzt, wie es
+     * ausging: „Gelöst · 3/6“ oder „Nicht gelöst“. Weiss das Gerät kein
+     * Ergebnis (anderes Gerät, Verlauf noch nicht geladen), nur die Figuren.
+     *
+     * EXTRA-LEBEN: Das gespeicherte Ergebnis zählt eine Lösung im 7. Versuch
+     * als „nicht gelöst“ (Rangliste fair, jsrgebnisse.js `ausRunde`) — das
+     * bleibt so. Für die Anzeige gilt deshalb zuerst die beendete Runde des
+     * Tages auf DIESEM Gerät (`runde`): gewonnen in 7 = „Gelöst · 7 mit
+     * Extra-Leben“. Wertung, Serie und XP ändern sich dadurch nicht.
+     */
+    ergebnisText(ergebnis, runde) {
+        if (runde && typeof runde === "object" && runde.zustand === "gewonnen" && Array.isArray(runde.versuche)) {
+            const n = runde.versuche.length;
+            return n > WORDLE.VERSUCHE ? "Gelöst · " + n + " mit Extra-Leben" : "Gelöst · " + n + "/" + WORDLE.VERSUCHE;
+        }
+        if (!ergebnis || typeof ergebnis !== "object") {
+            return "";
+        }
+        return ergebnis.geloest === true
+            ? "Gelöst · " + ergebnis.versuche + "/" + WORDLE.VERSUCHE
+            : "Nicht gelöst";
+    },
+
+    /* Die beendete Tagesrunde von heute auf diesem Gerät, sonst null. */
+    _heutigeRunde() {
+        const runde = WORDLE.normalisieren(ICH.spielstand("wordle-tag"));
+        return (runde && runde.datum === WORDLE.datumText(APP.jetzt()) && runde.zustand !== "laeuft") ? runde : null;
+    },
+
+    _erledigtBauen(figuren, ergebnis, runde) {
+        const reihe = BAUSTEINE.figuren(figuren, true);
+        const text = HERAUSFORDERUNGEN_BILDSCHIRM.ergebnisText(ergebnis, runde);
+        if (!text) {
+            return reihe;
+        }
+        const unten = BAUSTEINE.el("span", "heute-erledigt");
+        unten.appendChild(reihe);
+        unten.appendChild(BAUSTEINE.el("span", "heute-ergebnis"
+            + (text === "Nicht gelöst" ? " heute-ergebnis-verloren" : ""), text));
+        return unten;
     },
 
     _tagesbrettBauen(figuren) {

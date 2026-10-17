@@ -1,5 +1,5 @@
 /*
- * duell-abgleich.js — die Speicher-Schicht des Duells (seit 0.34.0).
+ * duell-abgleich.js — die Speicher-Schicht des Duells.
  *
  * EINE Schnittstelle, zwei Rückwände (beide mit `teilLaden(pfad)` und
  * `teilSchreiben({ pfad: wert })`, null löscht, alles oder nichts):
@@ -29,7 +29,7 @@
  * Duelle (`typoluck.duell-beendet`, dort wird das Löschen eines liegen
  * gebliebenen Duells einmal je Sitzung nachgeholt).
  *
- * XP (seit 0.35.0): Sieht diese Schicht ein Duell beendet (nach dem Lesen,
+ * XP: Sieht diese Schicht ein Duell beendet (nach dem Lesen,
  * nach dem Aufgeben, vor dem Abschluss), ruft sie `beiErgebnis({ id, stand,
  * rolle })`. Gebucht wird im Spiel (js\app.js `duellZaehlen`), genau einmal
  * je Kennung (FORTSCHRITT.duellZaehlen) — der Ruf darf sich wiederholen.
@@ -228,7 +228,7 @@ const DUELL_ABGLEICH = {
         return !!fehler && fehler.status === 401;
     },
 
-    /* Ist das Duell `d` für mich beendet: `beiErgebnis` rufen (seit 0.35.0).
+    /* Ist das Duell `d` für mich beendet: `beiErgebnis` rufen.
        Nur, wenn die Schicht bereit ist (Schalter oder Werkstatt). */
     _ergebnisMelden(d) {
         if (!d || !DUELL_ABGLEICH.bereit() || typeof DUELL_ABGLEICH.beiErgebnis !== "function") {

@@ -1,6 +1,6 @@
 /*
  * upcrew-leiste.js — die wandernde Kapsel der Tab-Leiste (zu upcrew-leiste.css), gleich in Blunderluck und Typoluck.
- * Quelle NUR hier (Design\3D-Schrift\final), in die Apps KOPIEREN, nie abwandeln.
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
  *
  * Nutzer 27.09.2026: „die Animation beim Tab-Wechseln unten muss besser werden“ → Fassung „C · Gleiten + Hüpfen“
  * aus `entwuerfe\Leiste-Schrift\wechsel.html`: EINE Kapsel fährt gefedert vom alten zum neuen Tab, das Symbol hüpft

@@ -36,23 +36,23 @@
  *                                      in die getippt wird, vorbelegt
  *                                      („." = leer) und Feld 3 markiert
  *     &regel                           beim Bildschirm wordle: die
- *                                      Spielregel offen (seit 0.4.0)
+ *                                      Spielregel offen
  *     &intro / &intro=C                das UPCrew-Intro zeigen (sonst nie
  *                                      in der Werkstatt); mit Buchstabe
- *                                      A-F genau diese Art (seit 0.6.1)
+ *                                      A-F genau diese Art
  *     &schrift=S6 &knoepfe=K3          das gemeinsame Aussehen vorgeben
  *     &farbwelt=studio                 (seit 0.8.0; sonst der Standard des
  *                                      Bausteins). Im Tab „Sammlung" ist in
  *                                      der Werkstatt alles freigeschaltet;
  *                                      &bildschirm=sammlung zeigt ihn (bis
  *                                      0.8.1 hiess er „anpassen").
- *     &gesperrt                        (seit 0.27.0) die Sammlung wie beim
+ *     &gesperrt                        die Sammlung wie beim
  *                                      Spieler: frei nur nach Level (&xp),
  *                                      der Würfel nur mit Wahl
- *     &kachelset=neon                  das Kachel-Set (seit 0.14.0);
+ *     &kachelset=neon                  das Kachel-Set;
  *     &kachelwahl                      &kachelwahl = Leiste oben zum
  *                                      Durchschalten aller Sets + hell/dunkel
- *     &xp=640&serie=4                  der Fortschritt (seit 0.10.0): XP,
+ *     &xp=640&serie=4                  der Fortschritt: XP,
  *     &wort=3&brett=2                  Serie, heute geschaffte Figuren je
  *     &bxp=300&turm=1-0:3,2-1:2        Tagesaufgabe; seit 0.11.0 als
  *     &umzug                           Zweige (Blunderluck-XP und -Turm
@@ -60,7 +60,7 @@
  *                                      Stand zum Umziehen; `&schutz` gibt
  *                                      es nicht mehr (Schutz = aus dem
  *                                      Level gerechnet)
- *     &lauf=1:12:01,2:3                die Bibliothek (seit 0.20.0): je Buch
+ *     &lauf=1:12:01,2:3                die Bibliothek: je Buch
  *                                      so viele Stationen gegangen, an den
  *                                      Gabelungen die Spur aus „01…"
  *                                      (js/bibliothek.js `gehen`); 1:99 =
@@ -72,7 +72,7 @@
  *                                      Quadrat offen, &verlauf = der Verlauf
  *                                      der Bibliothek als Blatt
  *     &buch=3&kap=2                    auf dem Start: dieses Buch / Kapitel
- *     &offen                           (seit 0.23.2) das Buch im Vollbild statt
+ *     &offen                           das Buch im Vollbild statt
  *                                      der Vorschau
  *                                      (ab 1) ansehen; &regal = das Regal;
  *                                      &blatt=station|gabel|boss = das
@@ -91,16 +91,16 @@
  *       zeit90,ohneTipp,                 0.19.0, js/wordle.js „DIE REGELN JE
  *       ohneLeben,ersteZeileBlind,      RUNDE"); mit &bildschirm=wordle
  *       ohneGrau                        &modus=uebung, dazu &versuche=…
- *     &lieblinge=adler,raten,blume     (seit 0.28.0) diese Lieblingswörter
+ *     &lieblinge=adler,raten,blume     diese Lieblingswörter
  *                                      (gezählt, als wären sie oft der erste
  *                                      Versuch); der Zensor (Buch 4,
  *                                      &station=Boss) bannt sie
- *     &muenzen=1200                    (seit 0.31.0) so viele Münzen verdient
- *     &besitz=kachelset-blei,…         (seit 0.31.0) im Shop Gekauftes der
+ *     &muenzen=1200                    so viele Münzen verdient
+ *     &besitz=kachelset-blei,…         im Shop Gekauftes der
  *                                      Werkstatt (Kennungen des Katalogs);
  *                                      zum Kaufen im Shop dazu &gesperrt —
  *                                      sonst ist in der Werkstatt alles frei
- *     &duell                           (seit 0.34.0) das Duell NUR hier an
+ *     &duell                           das Duell NUR hier an
  *     &duell=einladung                 (die Regel §14 ist nicht eingespielt,
  *                                      KONFIG.REGEL_14_EINGESPIELT bleibt
  *                                      false): der Zweig liegt als Attrappe
@@ -113,8 +113,12 @@
  *                                      (und zwei Wörter vorgelegt). Der Start
  *                                      steht auf der Art „Duell". Neu laden =
  *                                      alles von vorn.
+ *     &offline / &offline=haken        der Offline-Hinweis:
+ *                                      das Zeichen am Profilbild bzw. rechts
+ *                                      im Kopf der Runde (nach 1,2 s);
+ *                                      =haken: nach 3 s der Haken
  *     &anmeldung&konto=neu             das Formular „Neues UPCrew-Konto"
- *                                      (seit 0.18.5); dazu &eingabe=Name,
+ *                                     ; dazu &eingabe=Name,
  *                                      Passwort,Wiederholung (vorbelegt),
  *                                      &senden (Knopf drücken: alle
  *                                      Meldungen), &absage=doppelt|netz|
@@ -172,7 +176,7 @@ const WERKSTATT = {
 
     /* Vor dem Start der App: alles frisch anlegen. */
     vorbereiten() {
-        /* Nie ohne aktive Werkstatt löschen (seit 0.34.1). */
+        /* Nie ohne aktive Werkstatt löschen. */
         if (!WERKSTATT.aktiv()) {
             return;
         }
@@ -207,7 +211,7 @@ const WERKSTATT = {
         }
         DARSTELLUNG.anwenden();
 
-        /* `&kerbe` (seit 0.15.8): der iPhone-Streifen oben zum Ansehen am
+        /* `&kerbe`: der iPhone-Streifen oben zum Ansehen am
            Rechner — 47 px statt env(safe-area-inset-top), das der Browser
            hier mit 0 liefert (css\stil.css `--oben-frei`). */
         if (WERKSTATT._parameter().has("kerbe")) {
@@ -285,7 +289,7 @@ const WERKSTATT = {
         WERKSTATT._durchgangAnlegen(ids[0]);
         WERKSTATT._lieblingeAnlegen(ids[0]);
 
-        /* Das Duell (seit 0.34.0): nur mit `&duell`, nur hier. */
+        /* Das Duell: nur mit `&duell`, nur hier. */
         WERKSTATT._duell = null;
         if (WERKSTATT._parameter().has("duell") && typeof DUELL !== "undefined" && typeof DUELL_ABGLEICH !== "undefined") {
             WERKSTATT._duellAnlegen(ids);
@@ -294,7 +298,7 @@ const WERKSTATT = {
             }
         }
 
-        /* Art des Starts und angesehenes Buch (seit 0.18.0). */
+        /* Art des Starts und angesehenes Buch. */
         if (WERKSTATT.wert("art") && typeof START.ART_SCHLUESSEL === "string") {
             speicher.setItem(START.ART_SCHLUESSEL, WERKSTATT.wert("art"));
         }
@@ -314,7 +318,7 @@ const WERKSTATT = {
         }
         const versuche = WERKSTATT.wert("versuche");
         if (WERKSTATT.wert("regeln") !== null && WERKSTATT.wert("modus") === "uebung") {
-            /* Eine Übungsrunde mit Regeln (seit 0.19.0). */
+            /* Eine Übungsrunde mit Regeln. */
             let runde = WORDLE.neueRunde({ modus: "uebung", loesung: WORDLE.uebungswort(0.37), zeitpunkt: 1,
                 regeln: WERKSTATT.regelnLesen(WERKSTATT.wert("regeln")) });
             for (const wort of (versuche || "").split(",").filter((w) => w)) {
@@ -344,11 +348,19 @@ const WERKSTATT = {
                 runde = WORDLE.raten(runde, wort, 2).runde;
             }
             ICH.spielstandSetzen("wordle-tag", runde);
+            /* Seit 0.37.0: Ist die Runde damit zu Ende (gelöst oder sechs
+               Fehlversuche), liegt ihr Ergebnis wie nach einem echten Ende
+               in der Warteliste — so zeigt „Aufgaben“ „Gelöst · N/6“ bzw.
+               „Nicht gelöst“ (Werkstatt-Speicher, lokal). */
+            if (runde.zustand !== "laeuft") {
+                ICH.ausstehendSetzen(ICH.ausstehend().filter((a) => !(a.spielerId === ids[0] && a.datum === heute))
+                    .concat([{ spielerId: ids[0], datum: heute, ergebnis: ERGEBNISSE.ausRunde(runde) }]));
+            }
         }
     },
 
     /*
-     * Das Duell der Werkstatt (seit 0.34.0): schaltet es NUR hier an
+     * Das Duell der Werkstatt: schaltet es NUR hier an
      * (`DUELL._werkstatt`, KONFIG bleibt unberührt) und legt die Attrappe des
      * Zweigs `typoluck-intern/duell` frisch im Gerätespeicher an — nie die
      * Datenbank. Die Freunde Anna, Ben und Clara spielen den Gegner
@@ -373,7 +385,7 @@ const WERKSTATT = {
         return WERKSTATT._duell;
     },
 
-    /* `&lieblinge=a,b,c` (seit 0.28.0): jedes Wort mehrmals als erster
+    /* `&lieblinge=a,b,c`: jedes Wort mehrmals als erster
        Versuch gezählt — das erste am öftesten, so bleibt die Reihenfolge. */
     _lieblingeAnlegen(id) {
         const roh = WERKSTATT.wert("lieblinge");
@@ -398,7 +410,7 @@ const WERKSTATT = {
      *   &brett=2     heute geschafftes Tagesbrett — als Blunderluck-Zweig,
      *                wie Blunderluck ihn schreibt (dazu &bxp= und &turm=
      *                „Ort-Stufe:Figuren,…", z. B. 1-0:3,2-1:2)
-     *   &taten=zweiter-versuch,schwer-geloest   erfüllte Taten (seit 0.13.0)
+     *   &taten=zweiter-versuch,schwer-geloest   erfüllte Taten
      *   &umzug       statt allem: ein FLACHER 0.10.0-Stand, den die App
      *                beim Start umziehen lässt (zum Ansehen des Umzugs)
      */
@@ -437,7 +449,7 @@ const WERKSTATT = {
                 figuren: tage.length * 2, beideTage: zahl("brett") && zahl("wort") ? 1 : 0,
                 koennenSumme: zweig.partien * 64, koennenAnzahl: zweig.partien,
                 koennenBeste: zweig.partien ? 91 : 0 });
-            /* `&muenzen=1200` (seit 0.31.0): so viele Münzen verdient. */
+            /* `&muenzen=1200`: so viele Münzen verdient. */
             if (zahl("muenzen")) {
                 zweig.zaehler.muenzenVerdient = zahl("muenzen");
             }
@@ -500,7 +512,7 @@ const WERKSTATT = {
         speicher.removeItem(BESITZ.offenSchluessel());
     },
 
-    /* Der Durchgang der Bibliothek (seit 0.21.0): &herzen= &effekt= &ueben
+    /* Der Durchgang der Bibliothek: &herzen= &effekt= &ueben
        &wieder= für das Buch &buch (Vorgabe 2) — wie APP ihn ablegt. */
     _durchgangAnlegen(id) {
         const p = WERKSTATT._parameter();
@@ -522,7 +534,7 @@ const WERKSTATT = {
         ICH.spielstandSetzen(APP.DURCHGANG, alle);
     },
 
-    /* `&regeln=` lesen (seit 0.19.0): Liste von Stichworten → Regel-Objekt. */
+    /* `&regeln=` lesen: Liste von Stichworten → Regel-Objekt. */
     regelnLesen(text) {
         const regeln = {};
         for (const teil of String(text || "").split(",").map((t) => t.trim()).filter((t) => t)) {
@@ -601,6 +613,17 @@ const WERKSTATT = {
         if (auch) {
             NAVIGATION.zeigen(auch, null, true);
         }
+        /* Seit 0.36.0: der dezente Offline-Hinweis zum Ansehen — `&offline`
+           = das Zeichen steht (nach 1,2 s, wie echt), `&offline=haken` =
+           danach kurz der Haken „Hochgeladen“ (nach 3 s). Ändert nichts am
+           Speicher; das Netz bleibt, wie es ist. */
+        const offline = WERKSTATT.wert("offline");
+        if (offline !== null && typeof UPCREW_OFFLINE !== "undefined") {
+            UPCREW_OFFLINE.setzen(true);
+            if (offline === "haken") {
+                setTimeout(() => UPCREW_OFFLINE.hochgeladen(), 3000);
+            }
+        }
         if (WERKSTATT._parameter().has("seriekarte") && typeof START.serieOeffnen === "function") {
             START.serieOeffnen();
         }
@@ -614,7 +637,7 @@ const WERKSTATT = {
             START.artMenueOffen = true;
             NAVIGATION.auffrischen();
         }
-        /* Das Blatt von unten (seit 0.20.0): wartende Station, Gabelung
+        /* Das Blatt von unten: wartende Station, Gabelung
            oder der Boss des angesehenen Buchs. */
         const blatt = WERKSTATT.wert("blatt");
         if (blatt && NAVIGATION.aktuell === "start" && typeof START.stationBlatt === "function") {
@@ -648,7 +671,7 @@ const WERKSTATT = {
         }
     },
 
-    /* Das Formular „Neues UPCrew-Konto" mit Fehleingaben (seit 0.18.5) —
+    /* Das Formular „Neues UPCrew-Konto" mit Fehleingaben —
        über dieselben Wege wie ein Tipp: Felder füllen (input-Ereignis),
        Knopf drücken; die Server-Absage über ANMELDUNG._kontoFertig. */
     _kontoFormularZeigen() {

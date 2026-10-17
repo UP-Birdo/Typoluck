@@ -3,9 +3,8 @@
  * kein Bildschirm, kein Speicher). Sammlung (upcrew-anpassen.js) und Shop (upcrew-shop.js) zeichnen aus dieser
  * Liste, upcrew-besitz.js rechnet Preise und Käufe daraus.
  *
- * Quelle NUR hier (Apps\UPCrew\bausteine), in die Apps KOPIEREN, nie abwandeln.
- * Vorlage: Design\3D-Schrift\entwuerfe\Runde-8\
- * katalog-entwurf.js (vom Nutzer gesehen), Konzept docs\BIBLIOTHEK-UND-BELOHNUNGEN.md Abschnitt 6.
+ * Gemeinsamer Baustein: in die Apps KOPIEREN, nie abwandeln.
+ * Vorlage: der Katalog-Entwurf der Runde 8 (vom Nutzer gesehen).
  *
  * EINE ART (Kategorie):
  *     schluessel   passt auf die Konto-Regel `besitz/<art>`: ^[a-z][a-z0-9]{1,23}$
@@ -38,7 +37,7 @@
  * gemeinsam“). "erspielt" heißt nur „wird erspielt“. Was heute über das Level frei wird, steht weiter allein in
  * UPCREW_ANPASSEN.STUFEN und bleibt in seiner Wirkung unangetastet.
  *
- * PREISE (docs\BIBLIOTHEK-UND-BELOHNUNGEN.md Abschnitt 6, Tabelle): Design-Paket 900 · Farbwelt 400 ·
+ * PREISE: Design-Paket 900 · Farbwelt 400 ·
  * Material 250 · Schrift 200 · Knöpfe 150 · Sieg-Effekt 120 · Profilzeichen 120 · Flammen-Farbe 100 · Intro 100.
  * ANNAHME (steht NICHT in Abschnitt 6, aus dem Entwurf Runde 8 übernommen, der Nutzer entscheidet):
  *     Kachel-Set 250 · Brett-Design 2D 250 · Brett-Design 3D 250 · Figuren-Stil 250 · Einband 150 · Brettform 150.

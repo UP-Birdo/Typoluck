@@ -63,7 +63,7 @@ const WORDLE_BILDSCHIRM = {
      * ---------------------------------------------------------------- */
 
     zeigen(behaelter, parameter) {
-        /* UP#Plus verwaltet nur und spielt nicht (seit v0.2.0). */
+        /* UP#Plus verwaltet nur und spielt nicht. */
         if (typeof ANMELDUNG !== "undefined" && ANMELDUNG.istOberAdmin && ANMELDUNG.istOberAdmin()) {
             behaelter.innerHTML = "";
             behaelter.appendChild(BAUSTEINE.kopfzeile(WORDLE.NAME, { zurueck: () => NAVIGATION.zurueck() }));
@@ -99,15 +99,26 @@ const WORDLE_BILDSCHIRM = {
             WORDLE_BILDSCHIRM._tastenHoerer = (ereignis) => WORDLE_BILDSCHIRM._beiTaste(ereignis);
             document.addEventListener("keydown", WORDLE_BILDSCHIRM._tastenHoerer);
         }
+        /* Seit 0.37.0: ein Wort einfügen (Strg+V / Cmd+V) füllt die Zeile. */
+        if (!WORDLE_BILDSCHIRM._einfuegeHoerer) {
+            WORDLE_BILDSCHIRM._einfuegeHoerer = (ereignis) => WORDLE_BILDSCHIRM._beiEinfuegen(ereignis);
+            document.addEventListener("paste", WORDLE_BILDSCHIRM._einfuegeHoerer);
+        }
     },
 
+    _einfuegeHoerer: null,
+
     verlassen() {
-        /* Die Leiste kommt auf jedem anderen Bildschirm zurück (seit 0.15.3). */
+        /* Die Leiste kommt auf jedem anderen Bildschirm zurück. */
         document.body.classList.remove("im-spiel");
         WORDLE_BILDSCHIRM._uhrAnhalten();
         if (WORDLE_BILDSCHIRM._tastenHoerer) {
             document.removeEventListener("keydown", WORDLE_BILDSCHIRM._tastenHoerer);
             WORDLE_BILDSCHIRM._tastenHoerer = null;
+        }
+        if (WORDLE_BILDSCHIRM._einfuegeHoerer) {
+            document.removeEventListener("paste", WORDLE_BILDSCHIRM._einfuegeHoerer);
+            WORDLE_BILDSCHIRM._einfuegeHoerer = null;
         }
     },
 
@@ -135,13 +146,15 @@ const WORDLE_BILDSCHIRM = {
             return WORDLE_BILDSCHIRM.ohneSchwer(gemerkt);
         }
         return WORDLE.neueRunde({
-            modus: "uebung", loesung: WORDLE.uebungswort(Math.random()),
+            /* Seit 0.36.0 nach Spieler-Stufe (WORDLE.uebungsBereich). */
+            modus: "uebung", loesung: WORDLE.uebungswort(Math.random(),
+                typeof APP.uebungsStufe === "function" ? APP.uebungsStufe() : null),
             zeitpunkt: APP.jetzt().getTime()
         });
     },
 
     /*
-     * Eine Runde der Bibliothek (seit 0.18.0): Läuft eine angefangene Runde
+     * Eine Runde der Bibliothek: Läuft eine angefangene Runde
      * GENAU dieses Levels, geht sie weiter (so lässt sich ein Wort nicht
      * durch Verlassen neu würfeln). Sonst ein neues Wort aus dem festen
      * Bereich — die zuletzt gespielten Wörter (Gerät, „bibliothek-zuletzt")
@@ -160,7 +173,7 @@ const WORDLE_BILDSCHIRM = {
         const mitnahme = APP.bibliothekMitnahme(buch, station);
         const zuletzt = ICH.spielstand("bibliothek-zuletzt");
         const regeln = BIBLIOTHEK.rundeRegeln(buch, station, mitnahme) || {};
-        /* Der Zensor (seit 0.28.0) bannt die Lieblingswörter — sie werden
+        /* Der Zensor bannt die Lieblingswörter — sie werden
            nie die Lösung (`wortZiehen`, letztes Argument). */
         const gebannt = regeln.lieblingeBannen ? APP.lieblingswoerter() : [];
         const wort = BIBLIOTHEK.wortZiehen(buch, station, Math.random(), zuletzt, BIBLIOTHEK.wortFilter(mitnahme),
@@ -202,6 +215,32 @@ const WORDLE_BILDSCHIRM = {
      * Zeichnen
      * ---------------------------------------------------------------- */
 
+    /* Der Offline-Hinweis im Spiel (seit 0.36.0, Baustein
+       js\upcrew-offline.js): rechts im Kopf, LINKS NEBEN „So wird gespielt“ —
+       nie über dem Brett und nie über dem Knopf. Wie in Blunderluck ein fester
+       schmaler Platz (`.wordle-offline`, 22 px, css\stil-wordle.css), damit
+       nichts springt, wenn das Zeichen kommt; der Kopf bekommt dafür breitere
+       Seiten-Spalten (`.kopfzeile-offline`). Jedes Neuzeichnen löst den alten
+       Griff und heftet neu an. */
+    _offlineGriff: null,
+
+    _offlineAnheften(kopf) {
+        if (WORDLE_BILDSCHIRM._offlineGriff) {
+            WORDLE_BILDSCHIRM._offlineGriff.aus();
+            WORDLE_BILDSCHIRM._offlineGriff = null;
+        }
+        const rechts = kopf ? kopf.querySelector(".kopfzeile-rechts") : null;
+        if (!rechts || typeof UPCREW_OFFLINE === "undefined") {
+            return null;
+        }
+        const platz = document.createElement("span");
+        platz.className = "wordle-offline";
+        rechts.insertBefore(platz, rechts.firstChild);
+        kopf.classList.add("kopfzeile-offline");
+        WORDLE_BILDSCHIRM._offlineGriff = UPCREW_OFFLINE.an(platz, { ecke: "rechts" });
+        return WORDLE_BILDSCHIRM._offlineGriff;
+    },
+
     /* `tastaturBehalten` = auch bei beendeter Runde noch die Tastatur zeigen
        (solange die letzte Zeile aufgedeckt wird). */
     _zeichnen(tastaturBehalten) {
@@ -228,19 +267,20 @@ const WORDLE_BILDSCHIRM = {
         /* „schwer" unter dem Titel (0.6.0 bis 0.25.0) ist weg: den harten
            Modus gibt es nur noch als Regel einer Bibliothek-Station, und die
            zeigt ihre Chips. */
-        /* Der Boss eines Buchs (seit 0.18.0): rote Kopfzeile mit „BOSS". */
+        /* Der Boss eines Buchs: rote Kopfzeile mit „BOSS". */
         if (runde.modus === "bibliothek" && BIBLIOTHEK.istBoss(runde.buch, runde.station)) {
             kopf.classList.add("kopfzeile-boss");
         }
         behaelter.appendChild(kopf);
+        WORDLE_BILDSCHIRM._offlineAnheften(kopf);
 
         const spiel = BAUSTEINE.el("div", "wordle");
-        /* Elite und Boss (seit 0.23.4): die Besonderheit als Chips + „i". */
+        /* Elite und Boss: die Besonderheit als Chips + „i". */
         const gegner = WORDLE_BILDSCHIRM._gegnerBauen();
         if (gegner) {
             spiel.appendChild(gegner);
         }
-        /* Die Uhr einer Runde mit Regel `zeit` (seit 0.21.0). */
+        /* Die Uhr einer Runde mit Regel `zeit`. */
         const uhr = WORDLE_BILDSCHIRM._uhrBauen();
         if (uhr) {
             spiel.appendChild(uhr);
@@ -270,7 +310,7 @@ const WORDLE_BILDSCHIRM = {
         if (runde.modus !== "bibliothek" || typeof START === "undefined" || !START.gegnerErklaeren) {
             return null;
         }
-        /* Zensor (seit 0.28.0): gebannt ist, was in DIESER Runde steht. */
+        /* Zensor: gebannt ist, was in DIESER Runde steht. */
         const gebannt = Array.isArray(runde.gebannt) ? runde.gebannt : [];
         const g = BIBLIOTHEK.gegner(runde.buch, runde.station, gebannt);
         if (!g || !g.besonderheiten.length) {
@@ -410,7 +450,7 @@ const WORDLE_BILDSCHIRM = {
         const vorrat = (typeof APP !== "undefined" && APP.vorrat) ? APP.vorrat("tipp") : 0;
         /* Seit 0.19.0 fragt der Knopf das Modell (Regel ohneTipp). */
         const knopfDa = vorrat > 0 && WORDLE.tippMoeglich(runde);
-        /* Tinte (seit 0.23.0): der Gratis-Tipp des Buchs, nur in der
+        /* Tinte: der Gratis-Tipp des Buchs, nur in der
            Bibliothek, Vorrat im Durchgang (js/app.js `durchgang`). */
         const tinte = (runde.modus === "bibliothek" && typeof APP !== "undefined" && APP.durchgang)
             ? APP.durchgang(runde.buch).tinte : 0;
@@ -529,7 +569,7 @@ const WORDLE_BILDSCHIRM = {
                 richtig: "an der richtigen Stelle",
                 vorhanden: "kommt vor, andere Stelle",
                 falsch: "kommt nicht vor",
-                /* Regel farben: ersteZeileBlind (seit 0.19.0). */
+                /* Regel farben: ersteZeileBlind. */
                 verdeckt: "verdeckt"
             }[bewertung]);
         }
@@ -645,7 +685,7 @@ const WORDLE_BILDSCHIRM = {
         return karte;
     },
 
-    /* Das Ende eines Bibliothek-Levels (seit 0.18.0): gelöst → „Weiter"
+    /* Das Ende eines Bibliothek-Levels: gelöst → „Weiter"
        zum nächsten offenen Level; nicht gelöst → „Nochmal" mit einem neuen
        Wort aus demselben Bereich. Darunter immer zurück zur Bibliothek. */
     _bibliothekEndeBauen(karte, runde, gewonnen) {
@@ -666,7 +706,7 @@ const WORDLE_BILDSCHIRM = {
             }
         }
         const sicht = APP.bibliothekStand();
-        /* Nur vorwärts (seit 0.21.1): „Nochmal" nur, solange die Station
+        /* Nur vorwärts: „Nochmal" nur, solange die Station
            die Front ist. */
         const nochmalGeht = BIBLIOTHEK.spielbar(sicht, runde.buch, runde.station);
         if (!gewonnen && ((bib && bib.rueck) || !nochmalGeht)) {
@@ -758,7 +798,7 @@ const WORDLE_BILDSCHIRM = {
         return reihe;
     },
 
-    /* Was die gerade beendete Runde an XP brachte (seit 0.10.0) — gesetzt
+    /* Was die gerade beendete Runde an XP brachte — gesetzt
        in _beiRundenende, gilt nur für genau diese Runde. */
     _gewinn: null,
 
@@ -820,8 +860,10 @@ const WORDLE_BILDSCHIRM = {
     _schonGespieltZeigen(ergebnis) {
         const behaelter = WORDLE_BILDSCHIRM._behaelter;
         behaelter.innerHTML = "";
-        behaelter.appendChild(BAUSTEINE.kopfzeile("Tageswort Nr. " + WORDLE_BILDSCHIRM.runde.nummer,
-            { zurueck: () => NAVIGATION.zurueck() }));
+        const kopf = BAUSTEINE.kopfzeile("Tageswort Nr. " + WORDLE_BILDSCHIRM.runde.nummer,
+            { zurueck: () => NAVIGATION.zurueck() });
+        behaelter.appendChild(kopf);
+        WORDLE_BILDSCHIRM._offlineAnheften(kopf);
 
         const karte = BAUSTEINE.karte(null, "wordle-ende");
         karte.appendChild(BAUSTEINE.el("p", "wordle-ende-titel",
@@ -892,9 +934,26 @@ const WORDLE_BILDSCHIRM = {
         if (taste === "Enter") {
             ereignis.preventDefault();
             WORDLE_BILDSCHIRM._eingeben("eingabe");
-        } else if (taste === "Backspace") {
+        } else if (taste === "Backspace" || taste === "Delete") {
+            /* Seit 0.37.0 auch Entf — beides löscht wie die Löschtaste. */
             ereignis.preventDefault();
             WORDLE_BILDSCHIRM._eingeben("loeschen");
+        } else if (taste === "Escape") {
+            /* Seit 0.37.0: Esc leert die Zeile (feste Felder bleiben) — nur, wenn
+               nichts darüber liegt (Blatt, Anmeldung, Buch, Dialog: dort gehört
+               Esc dem, was oben liegt). */
+            if (!WORDLE_BILDSCHIRM._ueberlagert(ereignis.target) && !WORDLE_BILDSCHIRM._sperre
+                    && WORDLE_BILDSCHIRM.runde.zustand === "laeuft") {
+                WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeFuer(WORDLE_BILDSCHIRM.runde);
+                WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
+            }
+        } else if (taste === "ß") {
+            /* Seit 0.37.0: ß tippt „ss“ (die Wortlisten schreiben ss) — nur, wenn
+               dafür zwei Felder frei sind; sonst nichts (kein halbes „s“). */
+            if (WORDLE.freieFelder(WORDLE_BILDSCHIRM.eingabe) >= 2) {
+                WORDLE_BILDSCHIRM._eingeben("s");
+                WORDLE_BILDSCHIRM._eingeben("s");
+            }
         } else if (taste === "ArrowLeft" || taste === "ArrowRight") {
             /* Am Rechner: die Markierung mit den Pfeiltasten verschieben —
                dasselbe wie ein Feld antippen. */
@@ -907,6 +966,49 @@ const WORDLE_BILDSCHIRM = {
         } else if (taste.length === 1 && WORDLE.BUCHSTABEN.indexOf(taste.toLowerCase()) !== -1) {
             WORDLE_BILDSCHIRM._eingeben(taste.toLowerCase());
         }
+    },
+
+    /* Strg+V / Cmd+V (seit 0.37.0): der eingefügte Text füllt die Zeile
+       (WORDLE.eingabeEinfuegen). Nur, wenn nichts darüber liegt
+       (`_ueberlagert`), nur in einer laufenden Runde, und nur, wenn der Text
+       genau EIN Wort aus Buchstaben ist (sonst bleibt alles, wie es ist). */
+    /* Liegt etwas über der Runde, oder kommt das Ereignis aus einem Feld zum
+       Schreiben? Dann gehören Esc und Einfügen nicht der Runde (seit 0.37.0). */
+    _ueberlagert(ziel) {
+        const html = document.documentElement;
+        const body = document.body;
+        const hat = (el, klasse) => !!(el && el.classList && el.classList.contains(klasse));
+        if (hat(html, "up-bl-offen") || ["dialog-offen", "anmeldung-offen", "buch-offen", "up-bl-offen"]
+            .some((k) => hat(body, k))) {
+            return true;
+        }
+        return !!(ziel && (ziel.tagName === "INPUT" || ziel.tagName === "TEXTAREA" || ziel.isContentEditable === true));
+    },
+
+    _beiEinfuegen(ereignis) {
+        const ziel = ereignis && ereignis.target;
+        if (NAVIGATION.aktuell !== "wordle" || WORDLE_BILDSCHIRM._ueberlagert(ziel)
+                || WORDLE_BILDSCHIRM._sperre || !WORDLE_BILDSCHIRM.runde
+                || WORDLE_BILDSCHIRM.runde.zustand !== "laeuft") {
+            return false;
+        }
+        const daten = ereignis.clipboardData || (typeof window !== "undefined" ? window.clipboardData : null);
+        const text = daten && typeof daten.getData === "function" ? daten.getData("text") : "";
+        if (WORDLE.einfuegeWort(text) === null) {
+            return false;
+        }
+        if (typeof ereignis.preventDefault === "function") {
+            ereignis.preventDefault();
+        }
+        /* Wie der erste Buchstabe: startet die Uhr einer Runde mit Regel `zeit`. */
+        const mitUhr = WORDLE.uhrStarten(WORDLE_BILDSCHIRM.runde, APP.jetzt().getTime());
+        if (mitUhr !== WORDLE_BILDSCHIRM.runde) {
+            WORDLE_BILDSCHIRM.runde = mitUhr;
+            WORDLE_BILDSCHIRM._merken();
+        }
+        WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeEinfuegen(WORDLE_BILDSCHIRM.runde, text);
+        WORDLE_BILDSCHIRM._aktiveZeileAuffrischen();
+        return true;
     },
 
     _eingeben(taste) {
@@ -965,7 +1067,7 @@ const WORDLE_BILDSCHIRM = {
         }
     },
 
-    /* DER ZENSOR (seit 0.28.0): Steht in der Zeile ein gebanntes
+    /* DER ZENSOR: Steht in der Zeile ein gebanntes
        Lieblingswort (`WORDLE.istGebannt`), liegt ein Balken „Zensiert"
        quer über den Feldern — schon beim Tippen, nicht erst beim Senden.
        Senden meldet dazu kurz „Zensiert" (kurz, passt bei 360 px). */
@@ -987,7 +1089,7 @@ const WORDLE_BILDSCHIRM = {
         const antwort = WORDLE.raten(WORDLE_BILDSCHIRM.runde,
             WORDLE.eingabeWort(WORDLE_BILDSCHIRM.eingabe), APP.jetzt().getTime());
 
-        /* Regel `zeit` (seit 0.19.0): Zeit um → die Runde ist verloren. */
+        /* Regel `zeit`: Zeit um → die Runde ist verloren. */
         if (antwort.fehler === "zeit") {
             WORDLE_BILDSCHIRM._uhrAnhalten();
             WORDLE_BILDSCHIRM._zeitUm(antwort);
@@ -1008,7 +1110,7 @@ const WORDLE_BILDSCHIRM = {
         WORDLE_BILDSCHIRM.runde = antwort.runde;
         WORDLE_BILDSCHIRM.eingabe = WORDLE.eingabeFuer(antwort.runde);
         WORDLE_BILDSCHIRM._merken();
-        /* Serie ab Rundenstart (seit 0.17.0): heute ein Versuch abgegeben
+        /* Serie ab Rundenstart: heute ein Versuch abgegeben
            = heute gespielt (js/app.js `rundeGestartet`, einmal je Tag). */
         if (typeof APP !== "undefined" && APP.rundeGestartet) {
             APP.rundeGestartet();
@@ -1070,7 +1172,7 @@ const WORDLE_BILDSCHIRM = {
         const runde = WORDLE_BILDSCHIRM.runde;
         /* weg = der Spieler ist gegangen, während die Frage offen war. */
         let weg = false;
-        /* Extra-Leben (seit 0.17.0): Der 6. Versuch ging daneben, und es
+        /* Extra-Leben: Der 6. Versuch ging daneben, und es
            ist eins im Vorrat — dann erst fragen, bevor gewertet wird. */
         if (WORDLE.lebenMoeglich(runde) && APP.vorrat("leben") > 0) {
             WORDLE_BILDSCHIRM._sperre = true;
