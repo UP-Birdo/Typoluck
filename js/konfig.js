@@ -15,7 +15,7 @@ const KONFIG = {
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.39.0",
+    APP_VERSION: "0.39.1",
 
     /*
      * DER FREIGABE-KANAL (seit 0.38.0, Baustein js\freigabe.js, Einbau:
