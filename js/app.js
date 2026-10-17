@@ -128,6 +128,9 @@ const APP = {
         });
         ANMELDUNG.verbinden(APP.abgleich, document.getElementById("anmeldung"));
         ANMELDUNG.beiAngemeldet = () => APP._beiAngemeldet();
+        /* Seit 0.39.0: Konto und Verwaltung aus den Bausteinen js\upcrew-konto.js
+           und js\upcrew-verwaltung.js — EIN Haken-Objekt (EINBAU-VERWALTUNG.md). */
+        EINSTELLUNGEN_BILDSCHIRM.kontoEinrichten();
 
         /* Das gemeinsame Aussehen: am Konto mitführen und auf
            Änderungen horchen — auch auf die aus Blunderluck. */
@@ -719,8 +722,9 @@ const APP = {
         }
         await APP._eigenenVerlaufLaden();
 
-        /* Ein Gast wird hin und wieder gefragt, ob er sichern will (v0.2.0). */
-        await ANMELDUNG.gastErinnern();
+        /* Ein Gast wird hin und wieder gefragt, ob er sichern will (v0.2.0;
+           seit 0.39.0 der Baustein js\upcrew-konto.js). */
+        await UPCREW_KONTO.gastErinnern();
     },
 
     /*

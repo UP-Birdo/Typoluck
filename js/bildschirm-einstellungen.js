@@ -18,6 +18,13 @@
  * Die Verwaltung (nur Admins) hat EINEN Weg: die Zeile im Abschnitt Admin
  * (seit 0.17.1, Nutzer 27.09.2026: „nur in den einstellungen … und nicht
  * doppelt irgendwo"; wie Blunderluck). Sie öffnet als Blatt darüber.
+ *
+ * SEIT 0.39.0 KOMMEN DIE ABSCHNITTE KONTO, ADMIN UND GEFAHR AUS DEM
+ * BAUSTEIN js\upcrew-konto.js (`UPCREW_KONTO.abschnitte()`; Nutzer
+ * 17.10.2026: „bei allen crew up apps soll verwaltung der benutzer und alles
+ * über all gleich sein"). Hier stehen nur noch Aussehen, Privatsphäre,
+ * Hilfe und „Über Typoluck" — und `kontoEinrichten`, das EINE Haken-Objekt
+ * für Konto und Verwaltung (UPCrew bausteine\EINBAU-VERWALTUNG.md).
  */
 
 const EINSTELLUNGEN_BILDSCHIRM = {
@@ -47,51 +54,52 @@ const EINSTELLUNGEN_BILDSCHIRM = {
     },
 
     abschnitte() {
-        return [
-            EINSTELLUNGEN_BILDSCHIRM._kontoAbschnitt(),
+        /* konto · admin · gefahr aus dem Baustein, die Reihenfolge legt
+           UPCREW_EINSTELLUNGEN fest. */
+        return UPCREW_KONTO.abschnitte().concat([
             EINSTELLUNGEN_BILDSCHIRM._aussehenAbschnitt(),
             EINSTELLUNGEN_BILDSCHIRM._privatAbschnitt(),
             { art: "hilfe", zeilen: [
                 { zeichen: "hilfe", titel: "Wunsch oder Fehler", rechts: "pfeil",
                     beiKlick: () => WUNSCH.oeffnen() }
             ] },
-            EINSTELLUNGEN_BILDSCHIRM._adminAbschnitt(),
-            EINSTELLUNGEN_BILDSCHIRM._ueberAbschnitt(),
-            EINSTELLUNGEN_BILDSCHIRM._gefahrAbschnitt()
-        ];
+            EINSTELLUNGEN_BILDSCHIRM._ueberAbschnitt()
+        ]);
     },
 
     /*
-     * 1. Das UPCrew-Konto — gilt in allen Spielen. Nur HIER steht die
-     * Nummer (seit 0.15.6, wie Blunderluck v0.151.8). Ein Gast (seit
-     * v0.2.0) sichert hier seinen Spielstand.
+     * Die Haken für js\upcrew-konto.js und js\upcrew-verwaltung.js (seit
+     * 0.39.0) — EIN Objekt für beide, beim Start aus js\app.js gerufen.
+     * `nachladen` liefert den frischen Stand oder null (dann schreibt der
+     * Baustein nichts). Die Verwaltung öffnet Typolucks eigener Bildschirm
+     * (Blatt „verwaltung", js\bildschirm-verwaltung.js), der die Haken an
+     * UPCREW_VERWALTUNG.zeigen weitergibt.
      */
-    _kontoAbschnitt() {
-        const ich = ANMELDUNG.ich();
-        if (!ich) {
-            return { art: "konto", zeilen: [{ zeichen: "person", titel: "Nicht angemeldet" }] };
+    kontoEinrichten() {
+        UPCREW_KONTO.einrichten({
+            app: "Typoluck",
+            daten: () => ANMELDUNG.abgleich.daten,
+            speicher: () => ANMELDUNG.abgleich.speicher,
+            nachladen: () => ANMELDUNG._nachladen(),
+            nachAbmelden: () => ANMELDUNG._nachAbmelden(),
+            ich: () => ANMELDUNG.ich(),
+            frisch: () => ANMELDUNG._frischZumSchreiben(),
+            vorAbmelden: () => ANMELDUNG.abgleich.sofortSchreiben(),
+            nachLoeschen: () => ANMELDUNG._nachLoeschen(),
+            nachGastSichern: (eintrag) => ANMELDUNG._nachGastSichern(eintrag),
+            nachKonto: (art, eintrag) => ANMELDUNG._nachKonto(art, eintrag),
+            adminErlaubt: () => VERWALTUNG_BILDSCHIRM._werkstattAdmin(),
+            verwaltungSichtbar: () => VERWALTUNG_BILDSCHIRM.sichtbar(),
+            verwaltungOeffnen: () => NAVIGATION.zeigen("verwaltung", null),
+            spalten: VERWALTUNG_BILDSCHIRM.spalten(),
+            spielerWerte: VERWALTUNG_BILDSCHIRM.spielerWerte(),
+            details: (zeile, daten) => VERWALTUNG_BILDSCHIRM.details(zeile, daten),
+            spiel: () => VERWALTUNG_BILDSCHIRM.spielAbschnitt()
+        });
+        /* Die Kurzmeldung unten bleibt die von Typoluck (erlaubt laut Einbau). */
+        if (typeof DIALOG !== "undefined" && typeof DIALOG.kurzmeldung === "function") {
+            UPCREW_KONTO.dialog.kurzmeldung = (text) => DIALOG.kurzmeldung(text);
         }
-        const gast = ANMELDUNG.istGast();
-        const mitNummer = KONTO.aktiv() && ich.gast !== true && !!ich.tag;
-        const zeilen = [{
-            zeichen: "person", titel: ich.name, tag: mitNummer ? "#" + ich.tag : "",
-            unter: gast ? "Gast · nur Gerät" : "Alle Spiele",
-            klasse: "einstellungen-ich"
-        }];
-        if (gast) {
-            zeilen.push({ zeichen: "hoch", titel: "Spielstand sichern", unter: "Konto anlegen",
-                rechts: "pfeil", beiKlick: () => ANMELDUNG.gastSichernOeffnen() });
-        }
-        zeilen.push({ zeichen: "person", titel: "Name ändern", rechts: "pfeil",
-            beiKlick: () => ANMELDUNG.nameAendern() });
-        if (mitNummer) {
-            zeilen.push({ zeichen: "liste", titel: "Nummer ändern", rechts: "pfeil",
-                beiKlick: () => ANMELDUNG.nummerAendern() });
-        }
-        zeilen.push({ zeichen: "schloss", titel: "Passwort ändern", rechts: "pfeil",
-            beiKlick: () => ANMELDUNG.passwortAendern() });
-        zeilen.push({ zeichen: "verlassen", titel: "Abmelden", beiKlick: () => ANMELDUNG.abmelden(false) });
-        return { art: "konto", zeilen: zeilen };
     },
 
     /*
@@ -135,17 +143,6 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                     });
                 }, "Spielzeit") }
         ], hinweis: "Nur sichtbar gezählt" };
-    },
-
-    /* 4. Admin — die Verwaltung, nur für Admins. */
-    _adminAbschnitt() {
-        if (typeof VERWALTUNG_BILDSCHIRM === "undefined" || !VERWALTUNG_BILDSCHIRM.erlaubt()) {
-            return { art: "admin", zeilen: [] };
-        }
-        return { art: "admin", zeilen: [
-            { zeichen: "werkzeug", titel: "Verwaltung", rechts: "pfeil",
-                beiKlick: () => NAVIGATION.zeigen("verwaltung", null) }
-        ] };
     },
 
     /*
@@ -236,16 +233,5 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                 rechts: UPCREW_EINSTELLUNGEN.wert(offen === 1 ? "1 Ergebnis" : offen + " Ergebnisse") });
         }
         return { art: "ueber", zeilen: zeilen };
-    },
-
-    /* 6. Ganz unten, rot: das Konto selbst löschen — gilt für
-       alle Spiele von UPCrew, die Rückfrage stellt die Anmeldung. */
-    _gefahrAbschnitt() {
-        if (!KONTO.aktiv() || !ANMELDUNG.ich()) {
-            return { art: "gefahr", zeilen: [] };
-        }
-        return { art: "gefahr", zeilen: [
-            { titel: "UPCrew-Konto löschen", gefahr: true, beiKlick: () => ANMELDUNG.kontoLoeschen() }
-        ] };
     }
 };

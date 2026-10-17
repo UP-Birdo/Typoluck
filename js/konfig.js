@@ -15,7 +15,7 @@ const KONFIG = {
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.38.0",
+    APP_VERSION: "0.39.0",
 
     /*
      * DER FREIGABE-KANAL (seit 0.38.0, Baustein js\freigabe.js, Einbau:
@@ -40,7 +40,8 @@ const KONFIG = {
         "ueben-nach-stufe": "alle",  /* 0.36.0 Übung passt sich der Spieler-Stufe an */
         "schon-versucht": "alle",    /* 0.37.0 doppeltes Wort kostet keinen Versuch */
         "ausgang-aufgaben": "alle",  /* 0.37.0 „Gelöst · 3/6“ / „Nicht gelöst“ unter Aufgaben */
-        "tastatur-pc": "alle"        /* 0.37.0 Strg+V, Esc, Entf, ß → ss am Rechner */
+        "tastatur-pc": "alle",       /* 0.37.0 Strg+V, Esc, Entf, ß → ss am Rechner */
+        "verwaltung": "admin"        /* 0.39.0 volle Verwaltung (Baustein upcrew-verwaltung; sieht ohnehin nur ein Admin) */
     },
 
     /*

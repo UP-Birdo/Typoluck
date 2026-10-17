@@ -40,6 +40,18 @@
  *            Funktionen `lexikonZeilen`/`lexikonFiltern` bleiben für dann;
  *            die Quelle trägt `LEXIKON_QUELLE` ein (heute null).
  *   Spieler  der gemeinsame Baustein js/upcrew-spielerliste.js — nur lesen.
+ *
+ * SEIT 0.39.0 DIE VOLLE VERWALTUNG (Nutzer 17.10.2026: „bei allen crew up
+ * apps soll verwaltung der benutzer und alles über all gleich sein";
+ * UPCrew bausteine\EINBAU-VERWALTUNG.md): Konten-Tabelle, Rollen inkl.
+ * Beta, Neu verbinden, Entfernen, Spielerliste und „§12 nachziehen" zeichnet
+ * der Baustein js\upcrew-verwaltung.js (`UPCREW_VERWALTUNG.zeigen`). Hier
+ * steht nur noch, was Typoluck dazu gibt (Haken): die Spalte Spielzeit, die
+ * Werte der Spielerliste (`spielerWerte`), die Typoluck-Statistik unter den
+ * Details (`details`) und der Abschnitt „Nur in Typoluck" (`spielAbschnitt`:
+ * Typoluck-Daten — Lexikon einspielen, Schwierigkeit neu rechnen, Statistik
+ * aufräumen — und das Lexikon). Bis 0.38.0 war der Spieler-Teil „Nur lesen ·
+ * Rechte und Umbenennen in der Blunderluck-Verwaltung".
  */
 
 const VERWALTUNG_BILDSCHIRM = {
@@ -77,16 +89,21 @@ const VERWALTUNG_BILDSCHIRM = {
             && WERKSTATT._parameter().has("admin");
     },
 
-    /* Darf dieses Gerät die Verwaltung sehen? */
+    /* Darf dieses Gerät die Verwaltung sehen? Seit 0.39.0 entscheidet der
+       Baustein (`UPCREW_KONTO.istAdmin`: UP#Plus oder Rolle „admin", dazu
+       der Werkstatt-Schalter `adminErlaubt` = `_werkstattAdmin`). */
     erlaubt() {
+        return typeof UPCREW_KONTO !== "undefined" && UPCREW_KONTO.istAdmin();
+    },
+
+    /* Freigabe-Kanal (seit 0.39.0, KONFIG.FREIGABEN „verwaltung": „admin"):
+       die Zeile „Verwaltung" in den Einstellungen. Der Werkstatt-Schalter
+       `&admin` (nur localhost) zeigt sie auch ohne Rolle. */
+    sichtbar() {
         if (VERWALTUNG_BILDSCHIRM._werkstattAdmin()) {
             return true;
         }
-        if (typeof KONTO === "undefined" || !KONTO.aktiv() || typeof ANMELDUNG === "undefined"
-                || !ANMELDUNG.abgleich) {
-            return false;
-        }
-        return KONTO.istAdmin(ANMELDUNG.abgleich.daten, KONTO.uid());
+        return typeof UPCREW_FREIGABE !== "undefined" && UPCREW_FREIGABE.darf("verwaltung");
     },
 
     zeigen(behaelter) {
@@ -106,25 +123,61 @@ const VERWALTUNG_BILDSCHIRM = {
         VERWALTUNG_BILDSCHIRM._quelleSetzen();
         VERWALTUNG_BILDSCHIRM._automatisch();
 
-        /* SEIT 0.25.0 im gemeinsamen Aufbau js\upcrew-einstellungen.js
-           (gleich in Blunderluck): Spieler · alle Spiele, Datenbank, „Nur in
-           Typoluck" (das Lexikon), Verwaltung beenden. Bis 0.24.0 ein
-           Umschalter Lexikon · Spieler. */
-        const spieler = BAUSTEINE.el("div", "verwaltung-ort verwaltung-spieler-ort");
-        VERWALTUNG_BILDSCHIRM._spielerZeigen(spieler);
-        const lexikon = BAUSTEINE.el("div", "verwaltung-ort verwaltung-lexikon-ort");
-        VERWALTUNG_BILDSCHIRM._lexikonZeigen(lexikon);
-        const daten = VERWALTUNG_BILDSCHIRM._datenKarteBauen();
+        /* SEIT 0.39.0 zeichnet der Baustein (Spieler · Datenbank · Nur in
+           Typoluck · Ende) — mit den Haken aus UPCREW_KONTO.einrichten
+           (EINSTELLUNGEN_BILDSCHIRM.kontoEinrichten), dazu hier „Verwaltung
+           beenden" im Blatt. */
         const inhalt = BAUSTEINE.el("div", "verwaltung-inhalt");
         behaelter.appendChild(inhalt);
-        UPCREW_EINSTELLUNGEN.bauen(inhalt, "verwaltung", [
-            { art: "spieler", inhalt: spieler },
-            { art: "datenbank", inhalt: daten || null },
-            { art: "spiel", inhalt: lexikon },
-            { art: "ende", zeilen: imBlatt ? [
-                { zeichen: "verlassen", titel: "Verwaltung beenden", beiKlick: () => UPCREW_BLATT.schliessen("knopf") }
-            ] : [] }
-        ], { spiel: "Typoluck" });
+        const haken = Object.assign({}, UPCREW_KONTO.haken(), {
+            schliessen: imBlatt ? () => UPCREW_BLATT.schliessen("knopf") : undefined
+        });
+        UPCREW_VERWALTUNG.zeigen(inhalt, haken);
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Die Haken für den Baustein (seit 0.39.0)
+     * ---------------------------------------------------------------- */
+
+    /* Spalte der Konten-Tabelle: Spielzeit über alle Spiele (ohne Vorsilbe). */
+    spalten() {
+        return [{ titel: "Spielzeit", wert: (spieler, daten) =>
+            VERWALTUNG_BILDSCHIRM.spielzeitText(daten, spieler.uid).replace(/^Spielzeit · /, "") }];
+    },
+
+    /* Werte der Spielerliste — dieselben wie `spielerZeilen`. */
+    spielerWerte(heute) {
+        const tag = () => heute || WORDLE.datumText(APP.jetzt());
+        return {
+            level: (fortschritt) => {
+                const l = FORTSCHRITT.level(fortschritt);
+                return { level: l.level, xp: FORTSCHRITT.gesamtXp(fortschritt) };
+            },
+            serie: (fortschritt) => FORTSCHRITT.serieHeute(fortschritt, tag()).tage,
+            abzeichen: (fortschritt) => {
+                const liste = FORTSCHRITT.abzeichen(fortschritt, tag());
+                return { erreicht: liste.filter((a) => a.erreicht > 0).length, alle: liste.length };
+            }
+        };
+    },
+
+    /* Unter den Details eines Spielers: Spielzeit („dabei seit") und die
+       Typoluck-Statistik (nur §12, erst jetzt geladen). */
+    details(zeile, daten) {
+        const inhalt = BAUSTEINE.el("div", "verwaltung-spieler");
+        const zeit = VERWALTUNG_BILDSCHIRM.spielzeitText(daten, zeile.uid);
+        if (zeit) {
+            inhalt.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", zeit));
+        }
+        inhalt.appendChild(VERWALTUNG_BILDSCHIRM._detailBauen(zeile));
+        return inhalt;
+    },
+
+    /* Abschnitt „Nur in Typoluck": Typoluck-Daten (nur §12) und das Lexikon. */
+    spielAbschnitt() {
+        const ort = BAUSTEINE.el("div", "verwaltung-ort verwaltung-lexikon-ort");
+        VERWALTUNG_BILDSCHIRM._lexikonZeigen(ort);
+        return { inhalt: ort };
     },
 
     /* ---------------------------------------------------------------- *
@@ -182,6 +235,13 @@ const VERWALTUNG_BILDSCHIRM = {
 
     _lexikonZeigen(ort) {
         const f = VERWALTUNG_BILDSCHIRM._filter;
+        /* Die Karte „Typoluck-Daten" (nur §12) steht seit 0.39.0 EINMAL
+           oben im Abschnitt „Nur in Typoluck" (bis 0.38.0 im Abschnitt
+           Datenbank und noch einmal über den Lösungen). */
+        const datenKarte = VERWALTUNG_BILDSCHIRM._datenKarteBauen();
+        if (datenKarte) {
+            ort.appendChild(datenKarte);
+        }
         ort.appendChild(BAUSTEINE.segment([
             { wert: "loesungen", text: "Lösungen · " + WOERTER_DE.loesungen.length },
             { wert: "zusatz", text: "Zusatz · " + WOERTER_DE.zusatz.length }
@@ -199,10 +259,6 @@ const VERWALTUNG_BILDSCHIRM = {
             return;
         }
 
-        const datenKarte = VERWALTUNG_BILDSCHIRM._datenKarteBauen();
-        if (datenKarte) {
-            ort.appendChild(datenKarte);
-        }
         /* Seit 0.18.1: ohne Admin-Quelle nur der Hinweis. */
         if (!VERWALTUNG_BILDSCHIRM.lexikonDa()) {
             ort.appendChild(ZUSTAND.leer({ zeichen: "info", text: "Nur im Werkzeug" }));
@@ -313,7 +369,7 @@ const VERWALTUNG_BILDSCHIRM = {
     },
 
     /* ---------------------------------------------------------------- *
-     * Spieler — der gemeinsame Baustein, nur lesen
+     * Spieler — Werte für den Baustein (Spalte, Spielerliste)
      * ---------------------------------------------------------------- */
 
     /* Spielzeit eines Spielers für Admins (seit 0.24.0, wie Blunderluck
@@ -338,18 +394,9 @@ const VERWALTUNG_BILDSCHIRM = {
     /* Die Zeilen aus der Spielerliste — rein, für den Test. */
     spielerZeilen(daten, heute) {
         const stand = (daten && Array.isArray(daten.spieler)) ? daten.spieler : [];
-        return UPCREW_SPIELERLISTE.zeilen(stand.filter((s) => !SPIELER.istVerteiler(s)), {
-            rolle: (uid) => KONTO.rolleVon(daten, uid),
-            level: (fortschritt) => {
-                const l = FORTSCHRITT.level(fortschritt);
-                return { level: l.level, xp: FORTSCHRITT.gesamtXp(fortschritt) };
-            },
-            serie: (fortschritt) => FORTSCHRITT.serieHeute(fortschritt, heute).tage,
-            abzeichen: (fortschritt) => {
-                const liste = FORTSCHRITT.abzeichen(fortschritt, heute);
-                return { erreicht: liste.filter((a) => a.erreicht > 0).length, alle: liste.length };
-            }
-        });
+        return UPCREW_SPIELERLISTE.zeilen(stand.filter((s) => !SPIELER.istVerteiler(s)), Object.assign({
+            rolle: (uid) => KONTO.rolleVon(daten, uid)
+        }, VERWALTUNG_BILDSCHIRM.spielerWerte(heute)));
     },
 
     /* ---------------------------------------------------------------- *
@@ -563,60 +610,6 @@ const VERWALTUNG_BILDSCHIRM = {
         return halter;
     },
 
-    /*
-     * „§12 NACHZIEHEN" (seit 0.22.0, wie Blunderluck v0.154.0; Konzept
-     * Phase A Punkt 4): Direkt nach dem Einspielen der Regel §12 fehlen die
-     * öffentlichen Auszüge und das Anmeldeverzeichnis. Der Knopf schreibt
-     * beides für alle Konten (`KONTO.nachziehen`), wiederholbar. Nur für
-     * UP#Plus und nur, wenn die App die Regel §12 erkannt hat.
-     */
-    _nachziehenBauen() {
-        if (typeof KONTO === "undefined" || typeof KONTO.istP12 !== "function"
-                || !KONTO.istP12() || KONTO.uid() !== KONTO.OBER_UID) {
-            return null;
-        }
-        const karte = BAUSTEINE.karte("Regel §12");
-        karte.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", "Auszüge und Anmeldeverzeichnis · wiederholbar"));
-        const knopf = BAUSTEINE.knopf({ text: "§12 nachziehen", art: "still",
-            beiKlick: async () => {
-                knopf.disabled = true;
-                const ergebnis = await KONTO.nachziehen(ANMELDUNG.abgleich.speicher);
-                knopf.disabled = false;
-                if (!ergebnis.ok) {
-                    await DIALOG.hinweis("Nicht nachgezogen", ergebnis.text || "");
-                    return;
-                }
-                await ANMELDUNG._nachladen();
-                await DIALOG.hinweis("Nachgezogen", ergebnis.geschrieben + " geschrieben · "
-                    + ergebnis.uebersprungen + " übersprungen");
-            } });
-        karte.appendChild(knopf);
-        return karte;
-    },
-
-    _spielerZeigen(ort) {
-        const daten = ANMELDUNG.abgleich ? ANMELDUNG.abgleich.daten : null;
-        const zeilen = VERWALTUNG_BILDSCHIRM.spielerZeilen(daten, WORDLE.datumText(APP.jetzt()));
-        ort.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis",
-            "Nur lesen · Rechte und Umbenennen in der Blunderluck-Verwaltung"));
-        const nachziehen = VERWALTUNG_BILDSCHIRM._nachziehenBauen();
-        if (nachziehen) {
-            ort.appendChild(nachziehen);
-        }
-        UPCREW_SPIELERLISTE.bauen(ort, {
-            zeilen: zeilen,
-            beiAuswahl: (zeile) => {
-                /* Seit 0.23.1 darunter die Typoluck-Statistik (nur §12, erst jetzt geladen). */
-                const inhalt = BAUSTEINE.el("div", "verwaltung-spieler");
-                inhalt.appendChild(UPCREW_SPIELERLISTE.details(zeile));
-                /* Seit 0.24.0: Spielzeit über alle Spiele und „dabei seit". */
-                const zeit = VERWALTUNG_BILDSCHIRM.spielzeitText(daten, zeile.uid);
-                if (zeit) {
-                    inhalt.appendChild(BAUSTEINE.el("p", "verwaltung-hinweis", zeit));
-                }
-                inhalt.appendChild(VERWALTUNG_BILDSCHIRM._detailBauen(zeile));
-                return DIALOG.hinweis(zeile.name + (zeile.tag ? " #" + zeile.tag : ""), "", inhalt);
-            }
-        });
-    }
+    /* „§12 nachziehen“ (seit 0.22.0) und der Spieler-Teil stehen seit 0.39.0
+       im Baustein js\upcrew-verwaltung.js (Abschnitt Datenbank bzw. Spieler). */
 };

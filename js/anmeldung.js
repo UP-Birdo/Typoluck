@@ -15,6 +15,15 @@
  * Passwort-Regel, Rollen. Die Regeln und Abläufe stehen dort; hier wird nur
  * gefragt und gezeigt. Ohne Firebase (Werkstatt, lokaler Modus) gilt der
  * alte Weg mit Prüfsumme (js\spieler.js, js\versiegelung.js).
+ *
+ * SEIT 0.39.0 NUR NOCH DAS ANMELDE-VOLLBILD (Weiche, Anmelden, Neues Konto,
+ * Neu verbinden, Gast, „Welches Konto?"). Name, Nummer, Passwort ändern,
+ * Gast sichern samt Erinnerung, Abmelden mit Rückfrage und Konto löschen
+ * stehen im Baustein js\upcrew-konto.js — gleich in allen UPCrew-Apps
+ * (Nutzer 17.10.2026; UPCrew bausteine\EINBAU-VERWALTUNG.md). Hier stehen
+ * nur noch die Haken dafür (`_nachladen`, `_frischZumSchreiben`,
+ * `_nachAbmelden`, `_nachLoeschen`, `_nachGastSichern`, `_nachKonto`);
+ * eingerichtet in EINSTELLUNGEN_BILDSCHIRM.kontoEinrichten.
  */
 
 const ANMELDUNG = {
@@ -26,10 +35,6 @@ const ANMELDUNG = {
 
     /* Läuft nach jeder erfolgreichen Anmeldung (von app.js gesetzt). */
     beiAngemeldet: null,
-
-    /* Jedes dritte Öffnen fragt ein Gast, ob er sichern will. */
-    GAST_ERINNERUNG_SCHLUESSEL: "typoluck.gast-erinnerung",
-    GAST_ERINNERUNG_JEDES: 3,
 
     verbinden(abgleich, wurzelEl) {
         ANMELDUNG.abgleich = abgleich;
@@ -55,7 +60,7 @@ const ANMELDUNG = {
     /* Wie ein Spieler angezeigt wird: seit 0.15.6 NUR der Name (Nutzer
        27.09.2026: „brauchst nicht mal den #… zu zeigen"). Die Nummer steht
        leise daneben nur bei gleichen Namen (SPIELER.nummerZusatz) und zum
-       Ändern in den Einstellungen (`nummerAendern`). */
+       Ändern in den Einstellungen (Baustein js\upcrew-konto.js). */
     anzeigeName(spieler) {
         return spieler ? spieler.name : "";
     },
@@ -104,7 +109,7 @@ const ANMELDUNG = {
                 ANMELDUNG._fehlendenEintragPruefen();
                 return;
             }
-            ANMELDUNG.abmelden(true);
+            ANMELDUNG.abmelden();
         }
     },
 
@@ -131,7 +136,7 @@ const ANMELDUNG = {
         try {
             const frisch = SPIELER.normalisieren(await ANMELDUNG.abgleich.speicher.laden());
             if (ANMELDUNG.ichId && !SPIELER.spielerFinden(frisch, ANMELDUNG.ichId)) {
-                await ANMELDUNG.abmelden(true);
+                await ANMELDUNG.abmelden();
             }
         } catch (fehler) {
             /* Kein Netz: Der nächste Stand fragt wieder. */
@@ -143,7 +148,7 @@ const ANMELDUNG = {
     /* Firebase erkennt die Sitzung nicht mehr an (KONTO.beiVerloren). */
     sitzungVerloren() {
         if (ANMELDUNG.ichId) {
-            ANMELDUNG.abmelden(true);
+            ANMELDUNG.abmelden();
         }
     },
 
@@ -422,147 +427,12 @@ const ANMELDUNG = {
         DIALOG.kurzmeldung("Gast");
     },
 
-    /* Jedes dritte Öffnen fragt ein Gast, ob er seinen Spielstand sichern
-       will (von app.js nach der Anmeldung gerufen). */
-    async gastErinnern() {
-        if (!KONTO.aktiv() || !ANMELDUNG.istGast()) {
-            return;
-        }
-        let zaehler = 0;
-        try {
-            zaehler = Number(window.localStorage.getItem(ANMELDUNG.GAST_ERINNERUNG_SCHLUESSEL)) || 0;
-            window.localStorage.setItem(ANMELDUNG.GAST_ERINNERUNG_SCHLUESSEL, String(zaehler + 1));
-        } catch (fehler) {
-            return;
-        }
-        if ((zaehler + 1) % ANMELDUNG.GAST_ERINNERUNG_JEDES !== 0) {
-            return;
-        }
-        const jetzt = await DIALOG.frage("Spielstand sichern?",
-            "Als Gast hängt dein Spielstand an diesem Gerät. Mit einem UPCrew-Konto "
-                + "nimmst du alles mit.", "Jetzt sichern", false);
-        if (jetzt) {
-            ANMELDUNG.gastSichernOeffnen();
-        }
-    },
-
-    gastSichernOeffnen() {
-        const eintrag = ANMELDUNG.ich();
-        if (!eintrag || eintrag.gast !== true) {
-            return;
-        }
-        ANMELDUNG.offen = true;
-        ANMELDUNG._wurzelEl.hidden = false;
-        document.body.classList.add("anmeldung-offen");
-
-        const kasten = ANMELDUNG._kastenBauen("Spielstand sichern",
-            "Name und Passwort · alles, was du als Gast gespielt hast, bleibt.");
-        const name = ANMELDUNG._feldBauen(kasten, "Name", false, "username");
-        ANMELDUNG._nameFeldSaeubern(name.feld);
-        const passwort = ANMELDUNG._feldBauen(kasten,
-            "Passwort (" + KONTO.passwortRegelText() + ")", true, "new-password");
-        const wiederholung = ANMELDUNG._feldBauen(kasten, "Passwort wiederholen", true, "new-password");
-        const los = BAUSTEINE.knopf({ text: "Sichern", art: "haupt", breit: true });
-        const pruefen = ANMELDUNG._formularPruefen(name, passwort, wiederholung, los);
-        const allgemein = ANMELDUNG._allgemeinBauen(kasten);
-
-        los.addEventListener("click", async () => {
-            if (los.disabled || !pruefen(true)) {
-                return;
-            }
-            los.disabled = true;
-            allgemein.fehler.textContent = "";
-            const ergebnis = await KONTO.gastSichern(ANMELDUNG.abgleich.speicher,
-                ANMELDUNG.abgleich.daten, eintrag, name.feld.value, passwort.feld.value);
-            await ANMELDUNG._kontoFertig(ergebnis, name, pruefen, "Gesichert · ",
-                { name: name, passwort: passwort, wiederholung: wiederholung, allgemein: allgemein });
-            /* Spielzeit, „dabei seit" und der übrige Gast-Stand vom Gerät
-               ziehen mit (seit 0.24.0, wie Blunderluck v0.155.0). */
-            if (ergebnis.ok && typeof SPIELZEIT !== "undefined" && ANMELDUNG.ich()) {
-                SPIELZEIT.gastZumKonto(ANMELDUNG.ich().id);
-            }
-            /* Der Besitz aus dem Shop zieht genauso mit (seit 0.31.0,
-               js/besitz.js): an derselben Stelle wie der Fortschritt. */
-            if (ergebnis.ok && typeof BESITZ !== "undefined" && ANMELDUNG.ich()) {
-                BESITZ.gastZumKonto(ANMELDUNG.ich().id);
-            }
-            /* Seit 0.36.0 auch die Lieblingswörter (bis dahin blieben sie
-               unter „gast“ liegen), danach die Top 3 ans Konto. */
-            if (ergebnis.ok && typeof LIEBLINGSWOERTER !== "undefined" && ANMELDUNG.ich()) {
-                LIEBLINGSWOERTER.gastZumKonto(ANMELDUNG.ich().id);
-                LIEBLINGSWOERTER.senden(ANMELDUNG.ich().id);
-            }
-        });
-
-        kasten.appendChild(los);
-        ANMELDUNG._eingabetaste([name, passwort, wiederholung], los);
-        kasten.appendChild(BAUSTEINE.knopf({
-            text: "Später", art: "flach", breit: true, beiKlick: () => ANMELDUNG._fertig()
-        }));
-        name.feld.focus();
-        pruefen();
-    },
-
     _uebernehmen(spieler) {
         ANMELDUNG.ichId = spieler.id;
         ANMELDUNG.abgleich.eigeneIdSetzen(spieler.id);
         ICH.personSetzen(spieler.id, spieler.name);
     },
 
-    /* ---------------------------------------------------------------- *
-     * Aus den Einstellungen heraus (bis 0.4.0: aus dem Profil)
-     * ---------------------------------------------------------------- */
-
-    async nameAendern() {
-        const ich = ANMELDUNG.ich();
-        if (!ich) {
-            return;
-        }
-        if (KONTO.aktiv()) {
-            const eingabe = await DIALOG.eingabe("Name ändern",
-                "Buchstaben und Ziffern · alle UPCrew-Spiele", ich.name, "Speichern");
-            if (eingabe === null) {
-                return;
-            }
-            const name = KONTO.nameSaeubern(eingabe);
-            if (name === ich.name) {
-                return;
-            }
-            const frisch = await ANMELDUNG._frischZumSchreiben();
-            if (!frisch) {
-                await DIALOG.hinweis("Das geht nicht", KONTO.fehlerText("netz"));
-                return;
-            }
-            const ergebnis = await KONTO.nameAendern(ANMELDUNG.abgleich.speicher,
-                frisch.daten, frisch.ich, name);
-            if (!ergebnis.ok) {
-                await DIALOG.hinweis("Das geht nicht", ergebnis.text);
-                return;
-            }
-            await ANMELDUNG._nachladen();
-            ICH.personSetzen(ich.id, name);
-            DIALOG.kurzmeldung("Name · " + ergebnis.eintrag.name);
-            return;
-        }
-        const neu = await DIALOG.eingabe("Name ändern",
-            "Der neue Name gilt in allen UPCrew-Spielen.", ich.name, "Speichern");
-        if (neu === null || neu.trim() === ich.name) {
-            return;
-        }
-        const fehler = SPIELER.namePruefen(ANMELDUNG.abgleich.daten, neu, ich.id);
-        if (fehler) {
-            await DIALOG.hinweis("Das geht nicht", fehler);
-            return;
-        }
-        ANMELDUNG.abgleich.aendern(SPIELER.nameSetzen(ANMELDUNG.abgleich.daten, ich.id, neu));
-        ICH.personSetzen(ich.id, neu.trim());
-        DIALOG.kurzmeldung("Name geändert");
-    },
-
-    /* Die eigene Nummer ändern (seit 0.15.6, wie Blunderluck v0.151.8;
-       Nutzer 27.09.2026: „man soll ihn in den Einstellungen ändern
-       können"). Leer lassen = eine zufällige freie würfeln. Nur mit echtem
-       UPCrew-Konto; Gäste haben keine eigene Nummer. */
     /*
      * „Welches Konto?" (seit 0.15.7, wie Blunderluck v0.151.9): Name und
      * Passwort passen zu mehreren gleichnamigen Konten. Hier — und nur hier
@@ -609,151 +479,75 @@ const ANMELDUNG = {
         return teile.join(" · ");
     },
 
-    async nummerAendern() {
-        const ich = ANMELDUNG.ich();
-        if (!ich || !KONTO.aktiv() || ich.gast === true) {
-            return;
-        }
-        const eingabe = await DIALOG.eingabe("Nummer ändern",
-            "Zurzeit #" + ich.tag + " · 4 Ziffern · leer = würfeln", "", "Speichern");
-        if (eingabe === null) {
-            return;
-        }
-        const frisch = await ANMELDUNG._frischZumSchreiben();
-        if (!frisch) {
-            await DIALOG.hinweis("Das geht nicht", KONTO.fehlerText("netz"));
-            return;
-        }
-        const ergebnis = await KONTO.tagAendern(ANMELDUNG.abgleich.speicher,
-            frisch.daten, frisch.ich, eingabe.trim());
-        if (!ergebnis.ok) {
-            await DIALOG.hinweis("Das geht nicht", ergebnis.text);
-            return;
-        }
-        await ANMELDUNG._nachladen();
-        DIALOG.kurzmeldung("Neue Nummer · #" + ergebnis.eintrag.tag);
-    },
-
-    async passwortAendern() {
-        const ich = ANMELDUNG.ich();
-        if (!ich) {
-            return;
-        }
-        const mitKonto = KONTO.aktiv();
-        const alt = await DIALOG.eingabe("Passwort ändern", "Zuerst das bisherige Passwort.",
-            "", "Weiter", true);
-        if (alt === null) {
-            return;
-        }
-        /* Mit UPCrew-Konto prüft Firebase — das liefert zugleich den
-           frischen Schlüssel, den Firebase für die Änderung verlangt. */
-        if (mitKonto) {
-            const probe = await KONTO.anmelden(KONTO.kennungVon(ich), alt);
-            if (!probe.ok) {
-                await DIALOG.hinweis("Das stimmt nicht", KONTO.fehlerText(probe.fehler));
-                return;
-            }
-        } else if (!await VERSIEGELUNG.passwortPruefen(alt, ich.pinSalz, ich.pinPruefwert)) {
-            await DIALOG.hinweis("Das stimmt nicht", "Das bisherige Passwort war falsch.");
-            return;
-        }
-        const neu = await DIALOG.eingabe("Neues Passwort", (mitKonto
-            ? KONTO.passwortRegelText()
-            : SPIELER.PASSWORT_MIN + " bis " + SPIELER.PASSWORT_MAX + " Zeichen")
-            + ". Gilt in allen UPCrew-Spielen.", "", "Weiter", true);
-        if (neu === null) {
-            return;
-        }
-        const regel = mitKonto ? KONTO.passwortPruefen(neu) : SPIELER.passwortPruefen(neu);
-        if (regel) {
-            await DIALOG.hinweis("Das geht nicht", regel);
-            return;
-        }
-        const nochmal = await DIALOG.eingabe("Noch einmal", "Das neue Passwort wiederholen.",
-            "", "Speichern", true);
-        if (nochmal !== neu) {
-            await DIALOG.hinweis("Nicht gleich", "Die beiden Eingaben waren verschieden. Nichts geändert.");
-            return;
-        }
-        if (mitKonto) {
-            const ergebnis = await KONTO.passwortAendern(neu);
-            if (!ergebnis.ok) {
-                await DIALOG.hinweis("Nichts geändert", KONTO.fehlerText(ergebnis.fehler));
-                return;
-            }
-            DIALOG.kurzmeldung("Passwort geändert");
-            return;
-        }
-        const salz = VERSIEGELUNG.salzErzeugen();
-        const pruefwert = await VERSIEGELUNG.passwortPruefwertBilden(neu, salz);
-        ANMELDUNG.abgleich.aendern(SPIELER.passwortSetzen(ANMELDUNG.abgleich.daten, ich.id, pruefwert, salz));
-        DIALOG.kurzmeldung("Passwort geändert");
-    },
-
-    /* UPCrew-Konto löschen: Rückfrage, Passwort (Firebase verlangt eine
-       frische Anmeldung), dann Eintrag, Namens-Platz und Firebase-Konto. Ein
-       Gast braucht kein Passwort. Die Wordle-Ergebnisse bleiben stehen; ohne
-       Namen zeigt sie niemand mehr. */
-    async kontoLoeschen() {
-        const ich = ANMELDUNG.ich();
-        if (!ich || !KONTO.aktiv()) {
-            return;
-        }
-        const sicher = await DIALOG.frage("UPCrew-Konto löschen?",
-            "Dein Konto verschwindet in ALLEN Spielen von UPCrew. Das lässt sich "
-                + "nicht rückgängig machen.", "Weiter", true);
-        if (!sicher) {
-            return;
-        }
-        let ergebnis;
-        if (ich.gast === true) {
-            ergebnis = await KONTO.eintragEntfernen(ANMELDUNG.abgleich.speicher, ich);
-            await KONTO.loeschen();
-        } else {
-            const passwort = await DIALOG.eingabe("Zur Sicherheit",
-                "Noch einmal dein Passwort.", "", "Endgültig löschen", true);
-            if (passwort === null) {
-                return;
-            }
-            ergebnis = await KONTO.kontoLoeschen(ANMELDUNG.abgleich.speicher, ich, passwort);
-        }
-        if (!ergebnis.ok) {
-            await DIALOG.hinweis("Nicht gelöscht", ergebnis.text);
-            return;
-        }
-        ANMELDUNG.abgleich.daten = SPIELER.spielerEntfernen(ANMELDUNG.abgleich.daten, ich.id);
-        await ANMELDUNG.abmelden(true);
-        DIALOG.kurzmeldung("Konto gelöscht");
-    },
-
-    /* `still` = ohne Rückfrage (das Konto ist verschwunden). Ein Gast wird
-       gewarnt: Sein Spielstand ist danach weg, sein Gast-Konto wird
-       weggeräumt. */
-    async abmelden(still) {
-        const ich = ANMELDUNG.ich();
-        const gast = !still && KONTO.aktiv() && ich && ich.gast === true;
-        if (!still) {
-            const sicher = await DIALOG.frage(gast ? "Als Gast abmelden?" : "Abmelden?",
-                gast
-                    ? "Dein Gast-Spielstand ist danach weg. Sichern kannst du ihn in den Einstellungen."
-                    : "Dein Konto bleibt bestehen. Du kannst dich jederzeit wieder anmelden.",
-                gast ? "Trotzdem abmelden" : "Abmelden", gast);
-            if (!sicher) {
-                return;
-            }
-        }
+    /*
+     * Abmelden OHNE Rückfrage (seit 0.39.0 nur noch so): das Konto ist
+     * verschwunden (`pruefen`, `_fehlendenEintragPruefen`) oder die
+     * Sitzung verloren (`sitzungVerloren`). Abmelden aus den Einstellungen
+     * — mit Rückfrage und Gast-Warnung — läuft über UPCREW_KONTO.abmelden.
+     */
+    async abmelden() {
         await ANMELDUNG.abgleich.sofortSchreiben();
-        if (gast) {
-            await KONTO.eintragEntfernen(ANMELDUNG.abgleich.speicher, ich);
-            await KONTO.loeschen();
-        }
         /* Auch die UPCrew-Sitzung vergessen. */
         KONTO.abmelden();
+        await ANMELDUNG._nachAbmelden();
+    },
+
+    /* ---------------------------------------------------------------- *
+     * Haken für den Baustein js\upcrew-konto.js (seit 0.39.0)
+     * ---------------------------------------------------------------- */
+
+    /* Person vergessen, Start, Anmelde-Vollbild. */
+    async _nachAbmelden() {
         ANMELDUNG.ichId = null;
         ANMELDUNG.abgleich.eigeneIdSetzen(null);
         ICH.personVergessen();
         NAVIGATION.zeigen("start", null, true);
         ANMELDUNG._vollbildZeigen();
+    },
+
+    /* Nach „Konto löschen": den eigenen Eintrag auch aus der Kopie nehmen
+       (wie bis 0.38.0), dann wie nach dem Abmelden. Die Wordle-Ergebnisse
+       bleiben stehen; ohne Namen zeigt sie niemand mehr. */
+    async _nachLoeschen() {
+        if (ANMELDUNG.ichId && ANMELDUNG.abgleich.daten) {
+            ANMELDUNG.abgleich.daten = SPIELER.spielerEntfernen(ANMELDUNG.abgleich.daten, ANMELDUNG.ichId);
+        }
+        await ANMELDUNG._nachAbmelden();
+    },
+
+    /* Nach „Spielstand sichern": Spielzeit, „dabei seit", Besitz und
+       Lieblingswörter vom Gerät ans Konto (seit 0.24.0 / 0.31.0 / 0.36.0). */
+    async _nachGastSichern(eintrag) {
+        if (eintrag) {
+            ANMELDUNG._uebernehmen(eintrag);
+        }
+        if (!ANMELDUNG.ich()) {
+            return;
+        }
+        if (typeof SPIELZEIT !== "undefined") {
+            SPIELZEIT.gastZumKonto(ANMELDUNG.ich().id);
+        }
+        /* Der Besitz aus dem Shop zieht genauso mit (seit 0.31.0,
+           js/besitz.js): an derselben Stelle wie der Fortschritt. */
+        if (typeof BESITZ !== "undefined") {
+            BESITZ.gastZumKonto(ANMELDUNG.ich().id);
+        }
+        /* Seit 0.36.0 auch die Lieblingswörter, danach die Top 3 ans Konto. */
+        if (typeof LIEBLINGSWOERTER !== "undefined") {
+            LIEBLINGSWOERTER.gastZumKonto(ANMELDUNG.ich().id);
+            LIEBLINGSWOERTER.senden(ANMELDUNG.ich().id);
+        }
+    },
+
+    /* Nach Name, Nummer, Passwort, Gast sichern: den Namen auf dem Gerät
+       nachziehen und neu zeichnen. */
+    _nachKonto(art, eintrag) {
+        if (art === "name" && eintrag) {
+            ICH.personSetzen(eintrag.id, eintrag.name);
+        }
+        if (typeof NAVIGATION.auffrischen === "function") {
+            NAVIGATION.auffrischen();
+        }
     },
 
     /* ---------------------------------------------------------------- *
@@ -940,13 +734,17 @@ const ANMELDUNG = {
         return ich ? { daten: daten, ich: ich } : null;
     },
 
-    /* Die Spielerliste frisch vom Server — nach jedem Konto-Ablauf. */
+    /* Die Spielerliste frisch vom Server — nach jedem Konto-Ablauf. Seit
+       0.39.0 liefert sie den neuen Stand oder null (Laden gescheitert) —
+       der Baustein js\upcrew-konto.js schreibt nur mit frischem Stand. */
     async _nachladen() {
         try {
             ANMELDUNG.abgleich.daten = SPIELER.normalisieren(await ANMELDUNG.abgleich.speicher.laden());
             ANMELDUNG.abgleich.beiDaten(ANMELDUNG.abgleich.daten);
+            return ANMELDUNG.abgleich.daten;
         } catch (fehler) {
             /* Kein Netz: Die regelmässige Abfrage holt es nach. */
+            return null;
         }
     },
 
