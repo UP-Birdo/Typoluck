@@ -15,7 +15,33 @@ const KONFIG = {
        Abschnitt „Versionierung"). HIER STEHT DIE NUMMER GENAU EINMAL — sie
        wird in den Einstellungen unter „Über Typoluck" angezeigt, und tests\test-syntax.js
        prüft, dass sw.js, CHANGELOG.md und STATUS.md dieselbe nennen. */
-    APP_VERSION: "0.37.0",
+    APP_VERSION: "0.38.0",
+
+    /*
+     * DER FREIGABE-KANAL (seit 0.38.0, Baustein js\freigabe.js, Einbau:
+     * UPCrew bausteine\EINBAU-FREIGABE.md). Jede sichtbare Neuerung hat hier
+     * einen Namen und eine Stufe:
+     *     "alle"   jeder (auch Gast)
+     *     "beta"   nur Konten mit Rolle „beta“ und Admins
+     *     "admin"  nur Admins
+     *     "aus"    gebaut, niemand sieht es
+     * Bildschirme fragen nur `UPCREW_FREIGABE.darf(name)`. Ein Name, der
+     * hier fehlt, heisst „nein“ (tests\test-freigabe-einbau.js hält Code und
+     * Tabelle gleich).
+     * REGEL FÜR KÜNFTIGE LÄUFE: sichtbar Neues kommt als "beta" (nie direkt
+     * "alle"); Freigabe für alle = hier auf "alle" + Version hochzählen.
+     * Startbelegung 0.38.0: die Neuerungen aus 0.36.0/0.37.0, die heute alle
+     * sehen, stehen auf "alle" — Notfall-Schalter, nichts verschwindet.
+     * Das Duell braucht ZUSÄTZLICH die Regel §14 (REGEL_14_EINGESPIELT unten:
+     * Datenbank, nicht Rolle).
+     */
+    FREIGABEN: {
+        "duell": "alle",             /* 0.36.0 Duell mit Freunden (dritte Art im Start) */
+        "ueben-nach-stufe": "alle",  /* 0.36.0 Übung passt sich der Spieler-Stufe an */
+        "schon-versucht": "alle",    /* 0.37.0 doppeltes Wort kostet keinen Versuch */
+        "ausgang-aufgaben": "alle",  /* 0.37.0 „Gelöst · 3/6“ / „Nicht gelöst“ unter Aufgaben */
+        "tastatur-pc": "alle"        /* 0.37.0 Strg+V, Esc, Entf, ß → ss am Rechner */
+    },
 
     /*
      * DAS DUELL (1 gegen 1, seit 0.34.0; Vertrag und Regel:
@@ -133,6 +159,14 @@ const KONFIG = {
         }
     }
 };
+
+/* Die Freigabe-Tabelle so früh wie möglich melden (seit 0.38.0): js\freigabe.js
+   lädt in index.html VOR dieser Datei, damit schon beim Laden der Bildschirme
+   (z. B. die Duell-Art im Start) `darf` die Tabelle kennt. APP.starten meldet
+   sie noch einmal (Einbau-Anleitung). */
+if (typeof UPCREW_FREIGABE !== "undefined" && UPCREW_FREIGABE && typeof UPCREW_FREIGABE.tabelle === "function") {
+    UPCREW_FREIGABE.tabelle(KONFIG.FREIGABEN);
+}
 
 /* Damit die Regressionstests die Datei außerhalb des Browsers laden können. */
 if (typeof module !== "undefined" && module.exports) {

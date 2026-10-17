@@ -50,6 +50,18 @@ const APP = {
         DIALOG.aufbauen(document.getElementById("dialog"), document.getElementById("kurzmeldung"));
         APP._fehlerFangen();
 
+        /* 1b. Freigabe-Kanal (seit 0.38.0, js\freigabe.js): die Tabelle der
+           App melden; ändert sich die Rolle (Laden, Abmelden, Kontowechsel —
+           gesetzt vom Konto-Kern), zeichnet der Bildschirm neu. */
+        if (typeof UPCREW_FREIGABE !== "undefined") {
+            UPCREW_FREIGABE.tabelle(KONFIG.FREIGABEN);
+            UPCREW_FREIGABE.beiWechsel(() => {
+                if (typeof NAVIGATION !== "undefined" && NAVIGATION.aktuell) {
+                    NAVIGATION.auffrischen();
+                }
+            });
+        }
+
         /* 2. Speicher */
         const werkstatt = WERKSTATT.aktiv();
         if (werkstatt) {

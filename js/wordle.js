@@ -580,7 +580,10 @@ const WORDLE = {
         if (WORDLE.istGebannt(runde, eingabe)) {
             return { runde: runde, fehler: "zensiert" };
         }
-        if (runde.versuche.indexOf(eingabe) !== -1) {
+        /* Freigabe „schon-versucht“ (seit 0.38.0, KONFIG.FREIGABEN); ohne
+           geladenen Baustein wie seit 0.37.0. Aus: zählt wie bis 0.36.0. */
+        const schonVersucht = typeof UPCREW_FREIGABE === "undefined" || UPCREW_FREIGABE.darf("schon-versucht");
+        if (schonVersucht && runde.versuche.indexOf(eingabe) !== -1) {
             return { runde: runde, fehler: "doppelt" };
         }
         if (runde.schwer) {

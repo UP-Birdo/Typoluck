@@ -200,6 +200,15 @@ const EINSTELLUNGEN_BILDSCHIRM = {
         return null;
     },
 
+    /* Die Rolle aus dem Freigabe-Kanal: "beta" | "admin" | null (Gast, ohne Rolle, ohne Baustein). */
+    betaRolle() {
+        if (typeof UPCREW_FREIGABE === "undefined" || typeof UPCREW_FREIGABE.rolle !== "function") {
+            return null;
+        }
+        const r = UPCREW_FREIGABE.rolle();
+        return (r === "beta" || r === "admin") ? r : null;
+    },
+
     _ueberAbschnitt() {
         const speicher = UPCREW_EINSTELLUNGEN.speicherZeile(
             EINSTELLUNGEN_BILDSCHIRM.lampeZustand(APP.speicherLage()));
@@ -213,6 +222,14 @@ const EINSTELLUNGEN_BILDSCHIRM = {
                 rechts: UPCREW_EINSTELLUNGEN.wert(KONFIG.APP_VERSION) },
             speicher
         ];
+        /* Beta-Zugang (seit 0.38.0, Freigabe-Kanal): nur für Rolle beta/admin
+           sichtbar — Gast und alle anderen sehen die Zeile nicht. */
+        const rolle = EINSTELLUNGEN_BILDSCHIRM.betaRolle();
+        if (rolle) {
+            zeilen.push({ zeichen: "schild", titel: "Beta-Zugang",
+                unter: rolle === "admin" ? "Als Admin" : "Neues früher",
+                rechts: UPCREW_EINSTELLUNGEN.wert("Aktiv") });
+        }
         const offen = ICH.ausstehend().length;
         if (offen > 0) {
             zeilen.push({ zeichen: "liste", titel: "Nicht gesendet",

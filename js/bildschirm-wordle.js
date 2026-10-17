@@ -147,8 +147,11 @@ const WORDLE_BILDSCHIRM = {
         }
         return WORDLE.neueRunde({
             /* Seit 0.36.0 nach Spieler-Stufe (WORDLE.uebungsBereich). */
+            /* Seit 0.38.0 hinter der Freigabe „ueben-nach-stufe“; aus = ganze Liste. */
             modus: "uebung", loesung: WORDLE.uebungswort(Math.random(),
-                typeof APP.uebungsStufe === "function" ? APP.uebungsStufe() : null),
+                (typeof APP.uebungsStufe === "function"
+                    && (typeof UPCREW_FREIGABE === "undefined" || UPCREW_FREIGABE.darf("ueben-nach-stufe")))
+                    ? APP.uebungsStufe() : null),
             zeitpunkt: APP.jetzt().getTime()
         });
     },
@@ -931,6 +934,12 @@ const WORDLE_BILDSCHIRM = {
             return;
         }
         const taste = ereignis.key;
+        /* Freigabe „tastatur-pc“ (seit 0.38.0): Entf, Esc, ß und Einfügen aus
+           0.37.0; aus = wie bis 0.36.0 (die Tasten tun nichts). */
+        const pc = typeof UPCREW_FREIGABE === "undefined" || UPCREW_FREIGABE.darf("tastatur-pc");
+        if (!pc && (taste === "Delete" || taste === "Escape" || taste === "ß")) {
+            return;
+        }
         if (taste === "Enter") {
             ereignis.preventDefault();
             WORDLE_BILDSCHIRM._eingeben("eingabe");
@@ -987,7 +996,8 @@ const WORDLE_BILDSCHIRM = {
 
     _beiEinfuegen(ereignis) {
         const ziel = ereignis && ereignis.target;
-        if (NAVIGATION.aktuell !== "wordle" || WORDLE_BILDSCHIRM._ueberlagert(ziel)
+        if ((typeof UPCREW_FREIGABE !== "undefined" && !UPCREW_FREIGABE.darf("tastatur-pc"))
+                || NAVIGATION.aktuell !== "wordle" || WORDLE_BILDSCHIRM._ueberlagert(ziel)
                 || WORDLE_BILDSCHIRM._sperre || !WORDLE_BILDSCHIRM.runde
                 || WORDLE_BILDSCHIRM.runde.zustand !== "laeuft") {
             return false;

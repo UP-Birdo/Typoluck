@@ -17,7 +17,7 @@
  */
 
 /* Der Name des Zwischenspeichers. HIER STEHT DIE NUMMER GENAU EINMAL. */
-const SPEICHER_NAME = "typoluck-v0.37.0";
+const SPEICHER_NAME = "typoluck-v0.38.0";
 
 /* Beim Bauen (localhost): Netz zuerst — sonst sieht man nach jeder Änderung
    die alte Fassung. Im Betrieb: Zwischenspeicher zuerst. */
@@ -80,6 +80,7 @@ const DATEIEN = [
     "./schrift/crew-S6-normal.woff2",
     "./schrift/crew-S6-fett.woff2",
 
+    "./js/freigabe.js",
     "./js/konfig.js",
     "./js/konto.js",
     "./js/versiegelung.js",

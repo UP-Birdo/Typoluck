@@ -151,7 +151,9 @@ const HERAUSFORDERUNGEN_BILDSCHIRM = {
 
     _erledigtBauen(figuren, ergebnis, runde) {
         const reihe = BAUSTEINE.figuren(figuren, true);
-        const text = HERAUSFORDERUNGEN_BILDSCHIRM.ergebnisText(ergebnis, runde);
+        /* Freigabe „ausgang-aufgaben“ (seit 0.38.0): aus = nur die Figuren wie bis 0.36.0. */
+        const frei = typeof UPCREW_FREIGABE === "undefined" || UPCREW_FREIGABE.darf("ausgang-aufgaben");
+        const text = frei ? HERAUSFORDERUNGEN_BILDSCHIRM.ergebnisText(ergebnis, runde) : "";
         if (!text) {
             return reihe;
         }

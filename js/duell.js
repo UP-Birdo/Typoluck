@@ -58,7 +58,12 @@ const DUELL = {
     /* Ist das Duell da? NUR mit eingespielter Regel §14 (KONFIG) oder in
        der Werkstatt. Sonst: nichts zu sehen, kein Pfad berührt. */
     an() {
-        return (typeof KONFIG !== "undefined" && !!KONFIG && KONFIG.REGEL_14_EINGESPIELT === true)
+        /* Seit 0.38.0 zusätzlich der Freigabe-Kanal (KONFIG.FREIGABEN
+           "duell"): Regel §14 UND Freigabe. Ohne geladenen Baustein (Tests
+           ohne js\freigabe.js) wie bisher. Die Art im Start entsteht beim
+           Laden — wechselt die Freigabe später, gilt es ab dem nächsten Start. */
+        const frei = typeof UPCREW_FREIGABE === "undefined" || UPCREW_FREIGABE.darf("duell");
+        return (typeof KONFIG !== "undefined" && !!KONFIG && KONFIG.REGEL_14_EINGESPIELT === true && frei)
             || DUELL._werkstatt === true;
     },
 
